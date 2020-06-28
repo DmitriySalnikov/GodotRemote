@@ -1,0 +1,26 @@
+# SConstruct
+*.dblite
+__pycache__
+*.pyc
+
+# Visual Studio Cache
+.vs/
+
+# VSCode Cache
+.vscode/
+
+# Binaries
+*.obj
+*.so
+*.o
+*.dylib
+*.pdb
+*.ilk
+*.exe
+*.os
+*.out
+.import/
+
+# exist only for testing
+GodotRemoteServer
+test.gd
