@@ -19,6 +19,7 @@ private:
 	class Thread *thread_connection_establisher = nullptr;
 	class Ref<StreamPeerTCP> tcp_peer = nullptr;
 
+	bool is_stopped = true;
 	bool stop_device = false;
 	bool break_connection = false;
 	String server_address = "192.168.88.88";

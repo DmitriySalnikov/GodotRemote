@@ -67,7 +67,13 @@ void GRDeviceDevelopment::stop() {
 	if (server_thread_listen) {
 		Thread::wait_to_finish(server_thread_listen);
 	}
+	delete server_thread_listen;
 	server_thread_listen = nullptr;
+
+	if (tcp_server) {
+		delete tcp_server;
+		tcp_server = nullptr;
+	}
 
 	if (resize_viewport) {
 		remove_child(resize_viewport);
@@ -345,9 +351,9 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 				t_send_data->set_name("GodotRemote_server_thread_send " + address);
 				t_recieve_input->set_name("GodotRemote_server_thread_recieve_input" + address);
 
-				log(String("New connection from ") + con->get_connected_host() + ":" + String::num(con->get_connected_port()), LogLevel::LL_Debug);
+				log(String("New connection from ") + con->get_connected_host() + ":" + String::num(con->get_connected_port()));
 			} else {
-				log("Refuse connection...", LogLevel::LL_Debug);
+				log("Refuse connection...");
 				srv->take_connection().ptr()->disconnect_from_host();
 			}
 		} else {
@@ -409,7 +415,7 @@ void GRDeviceDevelopment::_thread_send_data(void *p_userdata) {
 			//log(String::num(ds) + " bytes", LogLevel::LL_Debug);
 
 			if (!ds) {
-				log(String("Error encoding image! Code: ") + String::num(err), LogLevel::LL_Error);
+				log(String("Cant encode image! Code: ") + String::num(err), LogLevel::LL_Error);
 				os->delay_usec(1000);
 				continue;
 			}
@@ -425,7 +431,7 @@ void GRDeviceDevelopment::_thread_send_data(void *p_userdata) {
 			r.release();
 
 			if (err) {
-				log(String("Error sending image data! Code: ") + String::num(err), LogLevel::LL_Error);
+				log(String("Cant send image data! Code: ") + String::num(err), LogLevel::LL_Error);
 				r.release();
 				continue;
 			}

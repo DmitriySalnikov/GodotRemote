@@ -28,7 +28,9 @@ static String str(const Variant &val);
 static void log(const Variant &val, LogLevel lvl) {
 	if (lvl >= current_loglevel && lvl < LogLevel::LL_None) {
 		if (lvl == LogLevel::LL_Error) {
-			print_error("[GodotRemote] " + str(val));
+			print_error("[GodotRemote Error] " + str(val));
+		} else if (lvl == LogLevel::LL_Warning) {
+			print_error("[GodotRemote Warning] " + str(val));
 		} else {
 			print_line("[GodotRemote] " + str(val));
 		}
@@ -380,14 +382,46 @@ static uint64_t bytes2uint64(const PoolByteArray &data, int idx) {
 	return (int64_t)decode_uint64(r.ptr() + idx);
 }
 
-static float bytes2float(const PoolByteArray &data) {
+static float bytes2float(const PoolByteArray &data, int idx = 0) {
 	auto r = data.read();
-	return decode_float(r.ptr());
+	return decode_float(r.ptr() + idx);
 }
 
-static double bytes2double(const PoolByteArray &data) {
+static double bytes2double(const PoolByteArray &data, int idx = 0) {
 	auto r = data.read();
-	return decode_double(r.ptr());
+	return decode_double(r.ptr() + idx);
+}
+
+static int16_t bytes2int16(const uint8_t *data) {
+	return (int16_t)decode_uint16(data);
+}
+
+static int32_t bytes2int32(const uint8_t *data) {
+	return (int32_t)decode_uint32(data);
+}
+
+static int64_t bytes2int64(const uint8_t *data) {
+	return (int64_t)decode_uint64(data);
+}
+
+static uint16_t bytes2uint16(const uint8_t *data) {
+	return (int16_t)decode_uint16(data);
+}
+
+static uint32_t bytes2uint32(const uint8_t *data) {
+	return (int32_t)decode_uint32(data);
+}
+
+static uint64_t bytes2uint64(const uint8_t *data) {
+	return (int64_t)decode_uint64(data);
+}
+
+static float bytes2float(const uint8_t *data) {
+	return decode_float(data);
+}
+
+static double bytes2double(const uint8_t *data) {
+	return decode_double(data);
 }
 
 static bool validate_packet(const uint8_t *data) {

@@ -1,10 +1,10 @@
 /* GodotRemote.h */
 #pragma once
 
+#include "GRUtils.h"
 #include "core/image.h"
 #include "core/pool_vector.h"
 #include "core/reference.h"
-#include "GRUtils.h"
 
 class GodotRemote : public Reference {
 	GDCLASS(GodotRemote, Reference);
@@ -56,3 +56,43 @@ public:
 
 VARIANT_ENUM_CAST(GodotRemote::Subsampling)
 VARIANT_ENUM_CAST(GodotRemote::DeviceType)
+
+
+
+
+
+
+
+
+
+
+//
+//#include "core/io/stream_peer_tcp.h"
+//#include "core/io/tcp_server.h"
+//#include "scene/main/node.h"
+//
+//class TestMultithread : public Node {
+//	GDCLASS(TestMultithread, Node);
+//
+//protected:
+//	static void _bind_methods();
+//	void _notification(int p_notification);
+//
+//public:
+//	struct StartArgs {
+//		StreamPeerTCP *con;
+//		String name;
+//	};
+//
+//	class Thread *thread_server;
+//	class Thread *thread_client;
+//	static bool is_working;
+//
+//	static void _server(void *_data);
+//	static void _client(void *_data);
+//
+//	static void _send_data(void *_data);
+//	static void _recv_data(void *_data);
+//
+//	TestMultithread();
+//};

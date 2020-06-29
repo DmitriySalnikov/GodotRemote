@@ -97,6 +97,11 @@ GRDevice *GodotRemote::get_device() const {
 
 bool GodotRemote::start_remote_device(DeviceType type) {
 	stop_remote_device();
+
+	//SceneTree::get_singleton()->get_root()->call_deferred("add_child", new TestMultithread());
+	//return false;
+
+
 	GRDevice *d = nullptr;
 
 	switch (type) {
@@ -200,3 +205,199 @@ GodotRemote::GodotRemote() {
 	if (autostart && !Engine::get_singleton()->is_editor_hint())
 		call_deferred("start_remote_device");
 }
+
+//#include "core/os/thread.h"
+//
+//bool TestMultithread::is_working = false;
+//
+//void TestMultithread::_bind_methods() {
+//}
+//
+//void TestMultithread::_notification(int p_notification) {
+//	switch (p_notification) {
+//		case NOTIFICATION_EXIT_TREE: {
+//			is_working = false;
+//
+//			Thread::wait_to_finish(thread_client);
+//			Thread::wait_to_finish(thread_server);
+//
+//			break;
+//		}
+//	}
+//}
+//
+//TestMultithread::TestMultithread() {
+//	is_working = true;
+//	thread_server = Thread::create(&TestMultithread::_server, nullptr);
+//	thread_client = Thread::create(&TestMultithread::_client, nullptr);
+//	Math::randomize();
+//}
+//
+//void TestMultithread::_server(void *_data) {
+//	TCP_Server *tcp_server = new TCP_Server();
+//	Error err = tcp_server->listen(6666);
+//	Ref<StreamPeerTCP> con;
+//
+//	if (err) {
+//		log("DER'MO");
+//	}
+//
+//	Thread *_t_send = nullptr;
+//	Thread *_t_recv = nullptr;
+//
+//	while (tcp_server->is_listening() && is_working) {
+//		if (tcp_server->is_connection_available()) {
+//			con = tcp_server->take_connection();
+//
+//			if (_t_send)
+//				Thread::wait_to_finish(_t_send);
+//			if (_t_recv)
+//				Thread::wait_to_finish(_t_recv);
+//
+//			StartArgs *args = new StartArgs();
+//			args->con = con.ptr();
+//			args->name = "Server";
+//
+//			_t_send = Thread::create(&TestMultithread::_send_data, (void *)args);
+//			_t_recv = Thread::create(&TestMultithread::_recv_data, (void *)args);
+//			log("New client connected!");
+//		}
+//	}
+//
+//	if (_t_send)
+//		Thread::wait_to_finish(_t_send);
+//	if (_t_recv)
+//		Thread::wait_to_finish(_t_recv);
+//}
+//
+//void TestMultithread::_client(void *_data) {
+//	Ref<StreamPeerTCP> tcp_client;
+//	tcp_client.instance();
+//
+//	Error err = OK;
+//
+//	Thread *_t_send = nullptr;
+//	Thread *_t_recv = nullptr;
+//
+//	while (is_working) {
+//		if (tcp_client->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
+//			err = tcp_client->connect_to_host(IP_Address("127.0.0.1"), 6666);
+//
+//			if (err) {
+//				log("Cant connect to server!", LogLevel::LL_Error);
+//				continue;
+//			}
+//
+//			while (tcp_client->get_status() == StreamPeerTCP::STATUS_CONNECTING) {
+//			}
+//
+//			if (_t_send)
+//				Thread::wait_to_finish(_t_send);
+//			if (_t_recv)
+//				Thread::wait_to_finish(_t_recv);
+//
+//			if (tcp_client->get_status() == StreamPeerTCP::STATUS_CONNECTED) {
+//
+//				StartArgs *args = new StartArgs();
+//				args->con = tcp_client.ptr();
+//				args->name = "Client";
+//
+//				_t_send = Thread::create(&TestMultithread::_send_data, (void *)args);
+//				_t_recv = Thread::create(&TestMultithread::_recv_data, (void *)args);
+//				log("Connected to server!");
+//			}
+//		}
+//	}
+//
+//	if (_t_send)
+//		Thread::wait_to_finish(_t_send);
+//	if (_t_recv)
+//		Thread::wait_to_finish(_t_recv);
+//}
+//
+//void TestMultithread::_send_data(void *_data) {
+//	StartArgs *args = (StartArgs *)_data;
+//	StreamPeerTCP *con = args->con;
+//	String name = args->name;
+//	Error err = OK;
+//
+//	while (con->get_status() == StreamPeerTCP::STATUS_CONNECTED && is_working) {
+//		int size = Math::random(16, 16000);
+//		PoolByteArray d;
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//
+//		d.append_array(uint322bytes(size));
+//		d.resize(size + d.size());
+//
+//		auto r = d.read();
+//		err = con->put_data(r.ptr(), d.size());
+//		con->get_status();
+//		con->get_status();
+//
+//		if (err) {
+//			log(name + " cant send data", LogLevel::LL_Error);
+//		} else {
+//			log(name + " sent data with size " + str(size));
+//		}
+//
+//		OS::get_singleton()->delay_usec((int)Math::random(1, 50) * 1000);
+//	}
+//}
+//
+//void TestMultithread::_recv_data(void *_data) {
+//	StartArgs *args = (StartArgs *)_data;
+//	StreamPeerTCP *con = args->con;
+//	String name = args->name;
+//	Error err = OK;
+//
+//	while (con->get_status() == StreamPeerTCP::STATUS_CONNECTED && is_working) {
+//		PoolByteArray s;
+//		s.resize(4);
+//		auto w = s.write();
+//
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//		con->get_status();
+//
+//		err = con->get_data(w.ptr(), 4);
+//		if (err) {
+//			log(name + " cant recv data", LogLevel::LL_Error);
+//			continue;
+//		}
+//		w.release();
+//
+//		//OS::get_singleton()->delay_usec((int)Math::random(16, 75) * 1000);
+//
+//		int size = bytes2uint32(s);
+//		PoolByteArray d;
+//		d.resize(size);
+//		w = d.write();
+//		err = con->get_data(w.ptr(), size);
+//		w.release();
+//		con->get_status();
+//		con->get_status();
+//
+//		if (err) {
+//			log(name + " cant recv data", LogLevel::LL_Error);
+//		} else {
+//			log(name + " recv data body with size " + str(size));
+//		}
+//
+//		//OS::get_singleton()->delay_usec((int)Math::random(16, 75) * 1000);
+//	}
+//}

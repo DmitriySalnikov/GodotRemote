@@ -28,12 +28,14 @@ void GRDeviceStandalone::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
-
-	//BIND_ENUM_CONSTANT(InitData);
 }
 
 void GRDeviceStandalone::_notification(int p_notification) {
 	switch (p_notification) {
+		case NOTIFICATION_EXIT_TREE: {
+			stop();
+			break;
+		}
 		case NOTIFICATION_PREDELETE: {
 			stop();
 			break;
@@ -101,6 +103,7 @@ bool GRDeviceStandalone::start() {
 		ERR_FAIL_V_MSG(false, "Can't start already working Godot Remote Server");
 	}
 
+	is_stopped = false;
 	log("Starting GodotRemote client");
 
 	stop_device = false;
@@ -111,6 +114,10 @@ bool GRDeviceStandalone::start() {
 }
 
 void GRDeviceStandalone::stop() {
+	if (is_stopped)
+		return;
+	is_stopped = true;
+
 	stop_device = true;
 	break_connection = true;
 
@@ -161,6 +168,9 @@ void GRDeviceStandalone::_send_data(StartThreadArgs *p_userdata) {
 
 			PoolByteArray d = _process_input_data(dev);
 
+			if (d.size() == 0)
+				continue;
+
 			PoolByteArray data;
 			data.append_array(get_packet_header());
 			data.append(PacketType::InputData);
@@ -201,6 +211,10 @@ void GRDeviceStandalone::_send_data(StartThreadArgs *p_userdata) {
 
 PoolByteArray GRDeviceStandalone::_process_input_data(GRDeviceStandalone *dev) {
 	PoolByteArray res;
+
+	if (!dev->control_to_show_in->is_inside_tree())
+		return res;
+
 	Array collected_input = dev->input_collector->get_collected_input();
 
 	PoolByteArray data;
@@ -517,7 +531,7 @@ void GRDeviceStandalone::_thread_recieve_data(void *p_userdata) {
 					err = con->get_data(i_res, 4);
 
 					if (err != OK) {
-						log("Error get_data image header", LogLevel::LL_Error);
+						log("Cant get_data image header", LogLevel::LL_Error);
 						continue;
 					}
 
@@ -531,7 +545,7 @@ void GRDeviceStandalone::_thread_recieve_data(void *p_userdata) {
 					dw.release();
 
 					if (err != OK) {
-						log("Error get_data image body");
+						log("Cant get_data image body");
 						continue;
 					}
 

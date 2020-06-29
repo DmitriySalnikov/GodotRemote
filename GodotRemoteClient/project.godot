@@ -32,7 +32,7 @@ pointing/emulate_touch_from_mouse.mobile=false
 
 [network]
 
-limits/tcp/connect_timeout_seconds=2
+limits/tcp/connect_timeout_seconds=1
 
 [rendering]
 
