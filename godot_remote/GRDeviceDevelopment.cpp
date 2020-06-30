@@ -47,8 +47,9 @@ bool GRDeviceDevelopment::start() {
 
 	log("Starting GodotRemote server");
 
+	working = true;
 	stop_device = false;
-	tcp_server->listen(server_port);
+	tcp_server->listen(port);
 	server_thread_listen = Thread::create(&_thread_listen, this);
 	server_thread_listen->set_name("GRemote_listen_thread");
 
@@ -61,6 +62,10 @@ bool GRDeviceDevelopment::start() {
 }
 
 void GRDeviceDevelopment::stop() {
+	if (!working)
+		return;
+
+	working = false;
 	stop_device = true;
 	break_connection = true;
 
@@ -90,6 +95,75 @@ GRDDViewport *GRDeviceDevelopment::get_gr_viewport() {
 
 Node *GRDeviceDevelopment::get_settings_node() {
 	return settings_menu_node;
+}
+
+GRDeviceDevelopment::AuthResult GRDeviceDevelopment::_auth_client(GRDeviceDevelopment *dev, Ref<StreamPeerTCP> con) {
+	// Auth Packet
+	// 4bytes GodotRemote Header
+	// 4bytes Body Size
+	// 3byte  Version
+	// 1byte  Is receiving client type
+	// ....
+	//
+	// total body size = 4
+	//
+	// must receive
+	// 4bytes GodotRemote Header
+	// 1byte  error code
+
+	PoolByteArray data;
+	data.resize(8);
+	auto w = data.write();
+	Error err = con->get_data(w.ptr(), 8);
+	w.release();
+
+	if (err == OK) {
+		auto r = data.read();
+		if (!validate_packet(r.ptr()))
+			return AuthResult::Error;
+
+		int size = bytes2int32(r.ptr() + 4);
+		r.release();
+
+		if (size != 4) // body size must be equal to 4
+			return AuthResult::Error;
+
+		PoolByteArray body;
+		body.resize(size);
+		w = body.write();
+
+		err = con->get_data(w.ptr(), size);
+		if (err != OK)
+			return AuthResult::Error;
+		w.release();
+
+		PoolByteArray ret;
+		ret.append_array(get_packet_header());
+
+		r = body.read();
+		if (!validate_version(r.ptr())) {
+			ret.append((int)AuthErrorCode::VersionMismatch);
+			auto rr = ret.read();
+			con->put_data(rr.ptr(), ret.size());
+			return AuthResult::VersionMismatch;
+		}
+
+		bool is_recv = r[3];
+		r.release();
+
+		// send back final validation packet
+		ret.append((int)AuthErrorCode::OK);
+		r = ret.read();
+		con->put_data(r.ptr(), ret.size());
+		r.release();
+
+		if (is_recv)
+			return AuthResult::RecvClient;
+		else
+			return AuthResult::SendClient;
+	}
+
+	return AuthResult::Error;
 }
 
 void GRDeviceDevelopment::_process_input_data(const PoolByteArray &p_data) {
@@ -308,18 +382,27 @@ const uint8_t *GRDeviceDevelopment::_read_abstract_input_data(InputEvent *ie, co
 void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 	GRDeviceDevelopment *dev = (GRDeviceDevelopment *)p_userdata;
 	TCP_Server *srv = dev->tcp_server;
-	Ref<StreamPeerTCP> con;
 	Thread *t_send_data = nullptr;
 	Thread *t_recieve_input = nullptr;
 	OS *os = OS::get_singleton();
+	bool connectedRecv = false;
+	bool connectedSend = false;
+	Array connections;
 
 	while (!dev->stop_device && srv->is_listening()) {
-
-		if (dev->break_connection || con.is_null() || (con.is_valid() && con.ptr()->get_status() != StreamPeerTCP::STATUS_CONNECTED)) {
+		for (int i = connections.size()-1; i >= 0; i--)
+		{
+			Ref<StreamPeerTCP> con = connections[i];
 			if (con.is_valid()) {
-				con->disconnect_from_host();
-			}
+				if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
+					dev->break_connection = true;
+					connections.remove(i);
+				}
 
+			}
+		}
+
+		if (dev->break_connection) {
 			if (t_send_data) {
 				Thread::wait_to_finish(t_send_data);
 				t_send_data = nullptr;
@@ -328,52 +411,81 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 				Thread::wait_to_finish(t_recieve_input);
 				t_recieve_input = nullptr;
 			}
-			con.unref();
+			connectedRecv = false;
+			connectedSend = false;
 		}
 
 		if (srv->is_connection_available()) {
-			if (con.is_null()) {
-				con = srv->take_connection();
-
-				StartThreadArgs *args1 = new StartThreadArgs();
-				args1->dev = dev;
-				args1->con = con;
-
-				StartThreadArgs *args2 = new StartThreadArgs();
-				args2->dev = dev;
-				args2->con = con;
-
+			if (!connectedRecv || !connectedSend) {
+				Ref<StreamPeerTCP> con = srv->take_connection();
+				con->set_no_delay(true);
 				dev->break_connection = false;
-				t_send_data = Thread::create(&_thread_send_data, (void *)args1);
-				t_recieve_input = Thread::create(&_thread_recieve_input, (void *)args2);
 
 				String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
-				t_send_data->set_name("GodotRemote_server_thread_send " + address);
-				t_recieve_input->set_name("GodotRemote_server_thread_recieve_input" + address);
 
-				log(String("New connection from ") + con->get_connected_host() + ":" + String::num(con->get_connected_port()));
+				AuthResult res = _auth_client(dev, con);
+				switch (res) {
+					case AuthResult::Error:
+						log("Refusing connection. Wrong client.");
+						con->disconnect_from_host();
+						os->delay_usec(16_ms);
+						continue;
+					case AuthResult::VersionMismatch:
+						log("Refusing connection. Version mismatch.");
+						con->disconnect_from_host();
+						os->delay_usec(16_ms);
+						continue;
+					case AuthResult::SendClient:
+						if (!connectedSend) {
+							t_recieve_input = Thread::create(&_thread_recieve_input, new StartThreadArgs(dev, con));
+							t_recieve_input->set_name("GodotRemote_server_thread_recieve_input" + address);
+							log("New connection from " + address + "(Sending client)");
+							connectedSend = true;
+							connections.append(con);
+						} else {
+							log("Refusing connection. Sending client already connected.");
+							con->disconnect_from_host();
+							os->delay_usec(16_ms);
+						}
+						break;
+					case AuthResult::RecvClient:
+						if (!connectedRecv) {
+							t_send_data = Thread::create(&_thread_send_data, new StartThreadArgs(dev, con));
+							t_send_data->set_name("GodotRemote_server_thread_send " + address);
+							log("New connection from " + address + "(Receiving client)");
+							connectedRecv = true;
+							connections.append(con);
+						} else {
+							log("Refusing connection. Receiving client already connected.");
+							con->disconnect_from_host();
+							os->delay_usec(16_ms);
+						}
+						break;
+					default:
+						break;
+				}
+
 			} else {
-				log("Refuse connection...");
-				srv->take_connection().ptr()->disconnect_from_host();
+				log("Refusing connection. Already connected.");
+				srv->take_connection()->disconnect_from_host();
+				os->delay_usec(16_ms);
 			}
 		} else {
 			log("Waiting...", LogLevel::LL_Debug);
-			OS::get_singleton()->delay_usec(33 * 1000);
+			os->delay_usec(33_ms);
 		}
 	}
 
-	if (con.is_valid() && con.ptr()->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
-		con->disconnect_from_host();
+	dev->break_connection = true;
+	dev->stop_device = true;
 
-		if (t_send_data) {
-			Thread::wait_to_finish(t_send_data);
-			t_send_data = nullptr;
-		}
-		if (t_recieve_input) {
-			Thread::wait_to_finish(t_recieve_input);
-			t_recieve_input = nullptr;
-		}
-		con.unref();
+	if (t_send_data) {
+		Thread::wait_to_finish(t_send_data);
+		t_send_data = nullptr;
+	}
+	if (t_recieve_input) {
+		Thread::wait_to_finish(t_recieve_input);
+		t_recieve_input = nullptr;
 	}
 
 	dev->tcp_server->stop();
@@ -387,6 +499,7 @@ void GRDeviceDevelopment::_thread_send_data(void *p_userdata) {
 
 	GodotRemote *gr = GodotRemote::get_singleton();
 	OS *os = OS::get_singleton();
+	String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
 	Error err = Error::OK;
 
 	uint32_t prev_time = os->get_ticks_msec();
@@ -399,14 +512,14 @@ void GRDeviceDevelopment::_thread_send_data(void *p_userdata) {
 
 			Ref<ViewportTexture> vt = dev->resize_viewport->get_texture();
 			if (vt.is_null()) {
-				os->delay_usec(1000);
+				os->delay_usec(1_ms);
 				continue;
 			}
 
 			Ref<Image> img = vt->get_data();
 
 			if (img.is_null()) {
-				os->delay_usec(1000);
+				os->delay_usec(1_ms);
 				continue;
 			}
 
@@ -415,8 +528,8 @@ void GRDeviceDevelopment::_thread_send_data(void *p_userdata) {
 			//log(String::num(ds) + " bytes", LogLevel::LL_Debug);
 
 			if (!ds) {
-				log(String("Cant encode image! Code: ") + String::num(err), LogLevel::LL_Error);
-				os->delay_usec(1000);
+				log(String("Cant encode image! Code: ") + str(err), LogLevel::LL_Error);
+				os->delay_usec(1_ms);
 				continue;
 			}
 
@@ -431,22 +544,20 @@ void GRDeviceDevelopment::_thread_send_data(void *p_userdata) {
 			r.release();
 
 			if (err) {
-				log(String("Cant send image data! Code: ") + String::num(err), LogLevel::LL_Error);
+				log(String("Cant send image data! Code: ") + str(err), LogLevel::LL_Error);
 				r.release();
 				continue;
 			}
 			r.release();
 		} else {
-			os->delay_usec(1000);
+			os->delay_usec(16_ms);
 		}
 	}
 
-	if (dev->break_connection || con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
-		log("WHAT");
-	}
-	log("crash or end of work of Sending Thread");
+	log("Closing sending thread with address: " + address);
 
 	dev->break_connection = true;
+	con->disconnect_from_host();
 }
 
 void GRDeviceDevelopment::_thread_recieve_input(void *p_userdata) {
@@ -456,6 +567,7 @@ void GRDeviceDevelopment::_thread_recieve_input(void *p_userdata) {
 	delete args;
 
 	OS *os = OS::get_singleton();
+	String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
 	Error err = Error::OK;
 
 	while (!dev->break_connection && con->get_status() == StreamPeerTCP::STATUS_CONNECTED) {
@@ -505,7 +617,10 @@ void GRDeviceDevelopment::_thread_recieve_input(void *p_userdata) {
 		}
 	}
 
+	log("Closing receiving thread with address: " + address);
+
 	dev->break_connection = true;
+	con->disconnect_from_host();
 }
 
 //////////////////////////////////////////////

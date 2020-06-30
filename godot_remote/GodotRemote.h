@@ -6,6 +6,8 @@
 #include "core/pool_vector.h"
 #include "core/reference.h"
 
+#define COMPRESS_BUFFER_SIZE 1024 * 1024
+
 class GodotRemote : public Reference {
 	GDCLASS(GodotRemote, Reference);
 

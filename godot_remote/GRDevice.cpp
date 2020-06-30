@@ -3,8 +3,14 @@
 #include "GodotRemote.h"
 
 void GRDevice::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("get_port"), &GRDevice::get_port);
+	ClassDB::bind_method(D_METHOD("set_port", "port"), &GRDevice::set_port, DEFVAL(52341));
+
 	ClassDB::bind_method(D_METHOD("start"), &GRDevice::start);
 	ClassDB::bind_method(D_METHOD("stop"), &GRDevice::stop);
+	ClassDB::bind_method(D_METHOD("is_working"), &GRDevice::is_working);
+
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "port"), "set_port", "get_port");
 
 	BIND_ENUM_CONSTANT(InitData);
 	BIND_ENUM_CONSTANT(ImageData);
@@ -28,9 +34,22 @@ void GRDevice::_bind_methods() {
 	BIND_ENUM_CONSTANT(_InputEventWithModifiers)
 }
 
+uint16_t GRDevice::get_port() {
+	return port;
+}
+
+void GRDevice::set_port(uint16_t _port) {
+	stop();
+	port = _port;
+}
+
 bool GRDevice::start() {
 	ERR_FAIL_COND_V_MSG(!godot_remote, false, "GRDevice created incorrectly!");
 	return false;
+}
+
+bool GRDevice::is_working() {
+	return working;
 }
 
 GRDevice::GRDevice() {

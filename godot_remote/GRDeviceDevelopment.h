@@ -14,6 +14,17 @@ private:
 	public:
 		GRDeviceDevelopment *dev = nullptr;
 		Ref<StreamPeerTCP> con;
+		StartThreadArgs(GRDeviceDevelopment* d, Ref<StreamPeerTCP> c) {
+			dev = d;
+			con = c;
+		}
+	};
+
+	enum class AuthResult {
+		Error,
+		VersionMismatch,
+		SendClient,
+		RecvClient,
 	};
 
 	class Node *settings_menu_node = nullptr;
@@ -23,9 +34,9 @@ private:
 
 	bool stop_device = false;
 	bool break_connection = false;
-	int server_port = 52341;
 	int target_send_fps = 25;
 
+	static AuthResult _auth_client(GRDeviceDevelopment *dev, Ref<StreamPeerTCP> con);
 	static void _process_input_data(const PoolByteArray &p_data);
 	static const uint8_t *_read_abstract_input_data(class InputEvent *ie, const Vector2 vs, const uint8_t *data);
 

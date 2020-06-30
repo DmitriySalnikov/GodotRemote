@@ -5,6 +5,22 @@
 #include "core/io/marshalls.h"
 #include "core/pool_vector.h"
 
+#ifdef DEBUG_ENABLED
+
+#define TimeCountInit() int simple_time_counter = OS::get_singleton()->get_ticks_usec()
+#define TimeCountReset() simple_time_counter = OS::get_singleton()->get_ticks_usec()
+#define TimeCount(str)                                                                                                                                        \
+	GRUtils::log(str + String(": ") + String::num_real((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0), GRUtils::LogLevel::LL_Debug); \
+	simple_time_counter = OS::get_singleton()->get_ticks_usec()
+
+#else
+
+#define TimeCountInit()
+#define TimeCountReset()
+#define TimeCount(str)
+
+#endif // DEBUG_ENABLED
+
 namespace GRUtils {
 
 enum LogLevel {
@@ -15,13 +31,26 @@ enum LogLevel {
 	LL_Error = 3,
 };
 
+enum class AuthErrorCode {
+	OK = 0,
+	VersionMismatch = 1,
+};
+
 extern int current_loglevel;
 extern PoolByteArray internal_PACKET_HEADER;
+extern PoolByteArray internal_VERSION;
 
 // defines
 
 static void log(const Variant &val, LogLevel lvl = LogLevel::LL_Normal);
 static String str(const Variant &val);
+
+// literals
+
+// conversion from usec to msec. most useful to OS::delay_usec()
+constexpr uint32_t operator"" _ms(unsigned long long val) {
+	return val * 1000;
+}
 
 // implementations
 
@@ -430,8 +459,18 @@ static bool validate_packet(const uint8_t *data) {
 	return false;
 }
 
+static bool validate_version(const uint8_t* data) {
+	if (data[0] == internal_VERSION[0] && data[1] == internal_VERSION[1])
+		return true;
+	return false;
+}
+
 static PoolByteArray get_packet_header() {
 	return internal_PACKET_HEADER;
+}
+
+static PoolByteArray get_version() {
+	return internal_VERSION;
 }
 
 static void set_log_level(LogLevel lvl) {
@@ -444,6 +483,11 @@ static void init() {
 		internal_PACKET_HEADER.append(52);
 		internal_PACKET_HEADER.append(48);
 		internal_PACKET_HEADER.append(44);
+	}
+	if (internal_VERSION.empty()) {
+		internal_VERSION.append(1);
+		internal_VERSION.append(0);
+		internal_VERSION.append(0);
 	}
 }
 

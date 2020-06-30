@@ -11,5 +11,6 @@ int current_loglevel =
 		LogLevel::LL_Warning;
 #endif
 PoolByteArray internal_PACKET_HEADER = PoolByteArray();
+PoolByteArray internal_VERSION = PoolByteArray();
 
 } // namespace GRUtils

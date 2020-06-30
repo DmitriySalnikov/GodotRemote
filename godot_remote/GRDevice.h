@@ -35,16 +35,22 @@ public:
 		_InputEventWithModifiers = 15,
 	};
 
+
 protected:
 	class GodotRemote *godot_remote = nullptr;
+	bool working = false;
 
 	static void _bind_methods();
 
 public:
-	int port = 52341;
+	uint16_t port = 52341;
+
+	uint16_t get_port();
+	void set_port(uint16_t _port);
 
 	virtual bool start();
 	virtual void stop() = 0;
+	virtual bool is_working();
 
 	GRDevice();
 };

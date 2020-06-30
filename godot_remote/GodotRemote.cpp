@@ -24,22 +24,16 @@ PoolVector<uint8_t> GodotRemote::compress_jpg(Ref<Image> orig_img, int quality, 
 	PoolVector<uint8_t> res;
 	ERR_FAIL_COND_V(!orig_img.ptr(), res);
 	ERR_FAIL_COND_V(scale < 0.01f, res);
-	int time = OS::get_singleton()->get_ticks_usec();
-
-#define Count(str)                                                                                              \
-	print_line(str + String(": ") + String::num_real((OS::get_singleton()->get_ticks_usec() - time) / 1000.0)); \
-	time = OS::get_singleton()->get_ticks_usec()
-
-#define Count(str)
+	TimeCountInit();
 
 	Image img;
 	img.copy_internals_from(orig_img);
-	Count("Copy img");
+	TimeCount("Copy img");
 	if (scale != 1.f)
 		img.resize(img.get_width() * scale, img.get_height() * scale);
-	Count("Resize img");
+	TimeCount("Resize img");
 	img.convert(Image::FORMAT_RGBA8);
-	Count("Convert img");
+	TimeCount("Convert img");
 
 	jpge::params params;
 	params.m_quality = quality;
@@ -62,10 +56,10 @@ PoolVector<uint8_t> GodotRemote::compress_jpg(Ref<Image> orig_img, int quality, 
 
 	rb.release();
 	ri.release();
-	Count("Compress img");
+	TimeCount("Compress img");
 
 	res.append_array(compress_buffer.subarray(0, size - 1));
-	Count("Combine arrays");
+	TimeCount("Combine arrays");
 
 #undef Count
 	return res;
@@ -192,7 +186,9 @@ GodotRemote::GodotRemote() {
 	if (!singleton)
 		singleton = this;
 
-	compress_buffer.resize(1024 * 1024);
+
+
+	compress_buffer.resize(COMPRESS_BUFFER_SIZE);
 
 	id = (InputDefault *)Input::get_singleton();
 
