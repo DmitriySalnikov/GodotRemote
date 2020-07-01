@@ -2,7 +2,6 @@
 #include "GRDeviceDevelopment.h"
 #include "GodotRemote.h"
 #include "core/input_map.h"
-#include "core/io/tcp_server.h"
 #include "core/os/input_event.h"
 #include "core/os/thread_safe.h"
 #include "main/input_default.h"
@@ -21,6 +20,8 @@ void GRDeviceDevelopment::_bind_methods() {
 
 void GRDeviceDevelopment::_notification(int p_notification) {
 	switch (p_notification) {
+		case NOTIFICATION_CRASH:
+		case NOTIFICATION_EXIT_TREE:
 		case NOTIFICATION_PREDELETE: {
 			stop();
 			break;
@@ -31,7 +32,7 @@ void GRDeviceDevelopment::_notification(int p_notification) {
 GRDeviceDevelopment::GRDeviceDevelopment() :
 		GRDevice() {
 	set_name("GodotRemoteServer");
-	tcp_server = new TCP_Server();
+	tcp_server.instance();
 }
 
 GRDeviceDevelopment::~GRDeviceDevelopment() {
@@ -51,7 +52,6 @@ bool GRDeviceDevelopment::start() {
 	stop_device = false;
 	tcp_server->listen(port);
 	server_thread_listen = Thread::create(&_thread_listen, this);
-	server_thread_listen->set_name("GRemote_listen_thread");
 
 	if (!resize_viewport) {
 		resize_viewport = new GRDDViewport();
@@ -72,21 +72,14 @@ void GRDeviceDevelopment::stop() {
 	if (server_thread_listen) {
 		Thread::wait_to_finish(server_thread_listen);
 	}
-	delete server_thread_listen;
+	//delete server_thread_listen;
 	server_thread_listen = nullptr;
 
-	if (tcp_server) {
-		delete tcp_server;
-		tcp_server = nullptr;
-	}
-
-	if (resize_viewport) {
+	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
 		remove_child(resize_viewport);
 		resize_viewport->queue_delete();
 		resize_viewport = nullptr;
 	}
-
-	return;
 }
 
 GRDDViewport *GRDeviceDevelopment::get_gr_viewport() {
@@ -380,8 +373,9 @@ const uint8_t *GRDeviceDevelopment::_read_abstract_input_data(InputEvent *ie, co
 //////////////////////////////////////////////
 
 void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
+	Thread::set_name("GR_listen_thread");
 	GRDeviceDevelopment *dev = (GRDeviceDevelopment *)p_userdata;
-	TCP_Server *srv = dev->tcp_server;
+	Ref<TCP_Server> srv = dev->tcp_server;
 	Thread *t_send_data = nullptr;
 	Thread *t_recieve_input = nullptr;
 	OS *os = OS::get_singleton();
@@ -390,15 +384,13 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 	Array connections;
 
 	while (!dev->stop_device && srv->is_listening()) {
-		for (int i = connections.size()-1; i >= 0; i--)
-		{
+		for (int i = connections.size() - 1; i >= 0; i--) {
 			Ref<StreamPeerTCP> con = connections[i];
 			if (con.is_valid()) {
 				if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
 					dev->break_connection = true;
 					connections.remove(i);
 				}
-
 			}
 		}
 
@@ -438,7 +430,6 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 					case AuthResult::SendClient:
 						if (!connectedSend) {
 							t_recieve_input = Thread::create(&_thread_recieve_input, new StartThreadArgs(dev, con));
-							t_recieve_input->set_name("GodotRemote_server_thread_recieve_input" + address);
 							log("New connection from " + address + "(Sending client)");
 							connectedSend = true;
 							connections.append(con);
@@ -451,7 +442,6 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 					case AuthResult::RecvClient:
 						if (!connectedRecv) {
 							t_send_data = Thread::create(&_thread_send_data, new StartThreadArgs(dev, con));
-							t_send_data->set_name("GodotRemote_server_thread_send " + address);
 							log("New connection from " + address + "(Receiving client)");
 							connectedRecv = true;
 							connections.append(con);
@@ -499,8 +489,9 @@ void GRDeviceDevelopment::_thread_send_data(void *p_userdata) {
 
 	GodotRemote *gr = GodotRemote::get_singleton();
 	OS *os = OS::get_singleton();
-	String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
 	Error err = Error::OK;
+	String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
+	Thread::set_name("GR_server_send " + address);
 
 	uint32_t prev_time = os->get_ticks_msec();
 
@@ -569,6 +560,7 @@ void GRDeviceDevelopment::_thread_recieve_input(void *p_userdata) {
 	OS *os = OS::get_singleton();
 	String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
 	Error err = Error::OK;
+	Thread::set_name("GR_server_recv " + address);
 
 	while (!dev->break_connection && con->get_status() == StreamPeerTCP::STATUS_CONNECTED) {
 		uint8_t res[5];

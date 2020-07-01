@@ -109,9 +109,7 @@ bool GRDeviceStandalone::start() {
 	stop_device = false;
 	break_connection = false;
 	thread_send_data = Thread::create(&_thread_send_recv_data, new StartThreadArgs(this, false));
-	thread_send_data->set_name("GRemote_send_data_thread");
 	thread_recv_data = Thread::create(&_thread_send_recv_data, new StartThreadArgs(this, true));
-	thread_recv_data->set_name("GRemote_recv_data_thread");
 	return true;
 }
 
@@ -564,6 +562,7 @@ void GRDeviceStandalone::_thread_send_recv_data(void *p_userdata) {
 	Ref<StreamPeerTCP> con = is_recv ? dev->peer_recv : dev->peer_send;
 	OS *os = OS::get_singleton();
 	String type = is_recv ? "Receive" : "Send";
+	Thread::set_name("GRemote_"+type.to_lower()+"_data");
 
 	while (!dev->stop_device) {
 		if (con->get_status() == StreamPeerTCP::STATUS_CONNECTED || con->get_status() == StreamPeerTCP::STATUS_CONNECTING) {

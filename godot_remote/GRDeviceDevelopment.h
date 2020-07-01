@@ -5,6 +5,7 @@
 #include "core/io/stream_peer_tcp.h"
 #include "scene/main/viewport.h"
 #include "scene/gui/control.h"
+#include "core/io/tcp_server.h"
 
 class GRDeviceDevelopment : public GRDevice {
 	GDCLASS(GRDeviceDevelopment, GRDevice);
@@ -29,7 +30,7 @@ private:
 
 	class Node *settings_menu_node = nullptr;
 	class Thread *server_thread_listen = nullptr;
-	class TCP_Server *tcp_server = nullptr;
+	class Ref<TCP_Server> tcp_server = nullptr;
 	class GRDDViewport *resize_viewport = nullptr;
 
 	bool stop_device = false;
