@@ -156,10 +156,6 @@ void GodotRemote::_bind_methods() {
 void GodotRemote::_notification(int p_notification) {
 	switch (p_notification) {
 		case NOTIFICATION_PREDELETE:
-			if (device) {
-				device->queue_delete();
-				device = nullptr;
-			}
 			break;
 	}
 }

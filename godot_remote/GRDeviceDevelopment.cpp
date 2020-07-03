@@ -83,7 +83,7 @@ void GRDeviceDevelopment::stop() {
 
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
 		remove_child(resize_viewport);
-		memfree(resize_viewport);
+		memdelete(resize_viewport);
 		//resize_viewport->queue_delete();
 		resize_viewport = nullptr;
 	}
@@ -666,7 +666,7 @@ void GRDDViewport::_notification(int p_notification) {
 		case NOTIFICATION_EXIT_TREE: {
 			remove_child(renderer);
 			//renderer->queue_delete();
-			memfree(renderer);
+			memdelete(renderer);
 			main_vp->disconnect("size_changed", this, "_update_size");
 			main_vp = nullptr;
 			break;

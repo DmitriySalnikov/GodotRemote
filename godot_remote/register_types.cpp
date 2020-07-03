@@ -26,6 +26,6 @@ void register_godot_remote_types() {
 }
 
 void unregister_godot_remote_types() {
-	memfree(GodotRemote::get_singleton());
+	memdelete(GodotRemote::get_singleton());
 	GRUtils::deinit();
 }
