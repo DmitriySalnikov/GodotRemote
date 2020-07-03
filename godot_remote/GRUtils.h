@@ -2,8 +2,13 @@
 #ifndef GRUTILS_H
 #define GRUTILS_H
 
+#include "core/image.h"
 #include "core/io/marshalls.h"
+#include "core/os/os.h"
 #include "core/pool_vector.h"
+#include "core/project_settings.h"
+#include "jpge.h"
+#include "main/input_default.h"
 
 #ifdef DEBUG_ENABLED
 
@@ -21,6 +26,9 @@
 
 #endif // DEBUG_ENABLED
 
+#define GET_PROJ_SETTING(variable_to_store, setting_name) \
+	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
+
 namespace GRUtils {
 
 enum LogLevel {
@@ -36,9 +44,18 @@ enum class AuthErrorCode {
 	VersionMismatch = 1,
 };
 
+enum Subsampling {
+	SUBSAMPLING_Y_ONLY = 0,
+	SUBSAMPLING_H1V1 = 1,
+	SUBSAMPLING_H2V1 = 2,
+	SUBSAMPLING_H2V2 = 3
+};
+
 extern int current_loglevel;
+extern int compress_buffer_size_mb;
 extern PoolByteArray internal_PACKET_HEADER;
 extern PoolByteArray internal_VERSION;
+extern PoolByteArray compress_buffer;
 
 // defines
 
@@ -53,6 +70,71 @@ constexpr uint32_t operator"" _ms(unsigned long long val) {
 }
 
 // implementations
+
+static void set_gravity(const Vector3 &p_gravity) {
+	auto *id = (InputDefault *)Input::get_singleton();
+	if (id)
+		id->set_gravity(p_gravity);
+}
+
+static void set_accelerometer(const Vector3 &p_accel) {
+	auto *id = (InputDefault *)Input::get_singleton();
+	if (id)
+		id->set_accelerometer(p_accel);
+}
+
+static void set_magnetometer(const Vector3 &p_magnetometer) {
+	auto *id = (InputDefault *)Input::get_singleton();
+	if (id)
+		id->set_magnetometer(p_magnetometer);
+}
+
+static void set_gyroscope(const Vector3 &p_gyroscope) {
+	auto *id = (InputDefault *)Input::get_singleton();
+	if (id)
+		id->set_gyroscope(p_gyroscope);
+}
+
+static PoolByteArray compress_jpg(Ref<Image> orig_img, int quality, int subsampling) {
+	PoolByteArray res;
+	ERR_FAIL_COND_V(!orig_img.ptr(), res);
+	TimeCountInit();
+
+	Image img;
+	img.copy_internals_from(orig_img);
+	TimeCount("Copy img");
+	img.convert(Image::FORMAT_RGBA8);
+	TimeCount("Convert img");
+
+	jpge::params params;
+	params.m_quality = quality;
+	params.m_subsampling = (jpge::subsampling_t)subsampling;
+
+	ERR_FAIL_COND_V(!params.check(), res);
+	auto rb = compress_buffer.read();
+	auto ri = img.get_data().read();
+
+	int size = compress_buffer.size();
+	ERR_FAIL_COND_V_MSG(!jpge::compress_image_to_jpeg_file_in_memory(
+								(void *)rb.ptr(),
+								size,
+								img.get_width(),
+								img.get_height(),
+								4,
+								(const unsigned char *)ri.ptr(),
+								params),
+			res, "Can't compress image.");
+
+	rb.release();
+	ri.release();
+	TimeCount("Compress img");
+
+	res.append_array(compress_buffer.subarray(0, size - 1));
+	TimeCount("Combine arrays");
+
+	log("JPG size: " + str(res.size()), LogLevel::LL_Debug);
+	return res;
+}
 
 static void log(const Variant &val, LogLevel lvl) {
 	if (lvl >= current_loglevel && lvl < LogLevel::LL_None) {
@@ -459,7 +541,7 @@ static bool validate_packet(const uint8_t *data) {
 	return false;
 }
 
-static bool validate_version(const uint8_t* data) {
+static bool validate_version(const uint8_t *data) {
 	if (data[0] == internal_VERSION[0] && data[1] == internal_VERSION[1])
 		return true;
 	return false;
@@ -489,13 +571,19 @@ static void init() {
 		internal_VERSION.append(0);
 		internal_VERSION.append(0);
 	}
+
+	GET_PROJ_SETTING(compress_buffer_size_mb, "debug/godot_remote/server/jpg_compress_buffer_size_mbytes");
+	compress_buffer.resize((1024 * 1024) * compress_buffer_size_mb);
 }
 
 static void deinit() {
 	internal_PACKET_HEADER.resize(0);
+	internal_VERSION.resize(0);
+	compress_buffer.resize(0);
 }
 
 }; // namespace GRUtils
 
+VARIANT_ENUM_CAST(GRUtils::Subsampling)
 VARIANT_ENUM_CAST(GRUtils::LogLevel)
 #endif // !GRUTILS_H

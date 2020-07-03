@@ -6,30 +6,15 @@
 #include "core/pool_vector.h"
 #include "core/reference.h"
 
-#define COMPRESS_BUFFER_SIZE 1024 * 1024
-
 class GodotRemote : public Reference {
 	GDCLASS(GodotRemote, Reference);
 
 	static GodotRemote *singleton;
-	PoolVector<uint8_t> compress_buffer;
-
-private:
-	class GRDevice *device = nullptr;
-
-protected:
-	static void _bind_methods();
-	void _notification(int p_notification);
-	class InputDefault *id;
 
 public:
-	const static String ps_autoload_name;
-
-	enum Subsampling {
-		SUBSAMPLING_Y_ONLY = 0,
-		SUBSAMPLING_H1V1 = 1,
-		SUBSAMPLING_H2V1 = 2,
-		SUBSAMPLING_H2V2 = 3
+	enum ConnectionType {
+		WiFi = 0,
+		ADB = 1,
 	};
 
 	enum DeviceType {
@@ -38,63 +23,66 @@ public:
 		DEVICE_Standalone = 2,
 	};
 
-	void set_log_level(GRUtils::LogLevel lvl);
+private:
+	const String ps_autoload_name = "debug/godot_remote/general/autostart";
+	const String ps_port_name = "debug/godot_remote/general/port";
+	const String ps_con_type_name = "debug/godot_remote/general/connection_type";
+	const String ps_jpg_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
 
-	PoolVector<uint8_t> compress_jpg(Ref<Image> orig_img, int quality, float scale = 1.f, int subsampling = Subsampling::SUBSAMPLING_H2V2);
+	bool is_autostart = false;
+	uint16_t port = 52341;
+	ConnectionType con_type = ConnectionType::WiFi;
 
-	void set_gravity(const Vector3 &p_gravity) const;
-	void set_accelerometer(const Vector3 &p_accel) const;
-	void set_magnetometer(const Vector3 &p_magnetometer) const;
-	void set_gyroscope(const Vector3 &p_gyroscope) const;
+	class GRDevice *device = nullptr;
+	void register_and_load_settings();
+#ifdef TOOLS_ENABLED
+	void _native_run_emitted();
+#endif
+
+protected:
+	static void _bind_methods();
+	void _notification(int p_notification);
+
+public:
+	// GRUtils functions binds for GDScript
+	void set_log_level(GRUtils::LogLevel lvl) {
+		GRUtils::set_log_level(lvl);
+	}
+
+	PoolByteArray compress_jpg(Ref<Image> orig_img, int quality = 75, int subsampling = GRUtils::Subsampling::SUBSAMPLING_H2V2) {
+		return GRUtils::compress_jpg(orig_img, quality, subsampling);
+	}
+
+	void set_gravity(const Vector3 &p_gravity) const {
+		GRUtils::set_gravity(p_gravity);
+	}
+
+	void set_accelerometer(const Vector3 &p_accel) const {
+		GRUtils::set_accelerometer(p_accel);
+	}
+
+	void set_magnetometer(const Vector3 &p_magnetometer) const {
+		GRUtils::set_magnetometer(p_magnetometer);
+	}
+
+	void set_gyroscope(const Vector3 &p_gyroscope) const {
+		GRUtils::set_gyroscope(p_gyroscope);
+	}
+	// GRUtils end
 
 	class GRDevice *get_device() const;
 	// must be call_deffered
 	bool start_remote_device(DeviceType type = DeviceType::DEVICE_Auto);
 	bool stop_remote_device();
 
+#ifdef TOOLS_ENABLED
+	void _adb_port_forwarding();
+#endif
+
 	static GodotRemote *get_singleton();
 	GodotRemote();
+	~GodotRemote();
 };
 
-VARIANT_ENUM_CAST(GodotRemote::Subsampling)
 VARIANT_ENUM_CAST(GodotRemote::DeviceType)
-
-
-
-
-
-
-
-
-
-
-//
-//#include "core/io/stream_peer_tcp.h"
-//#include "core/io/tcp_server.h"
-//#include "scene/main/node.h"
-//
-//class TestMultithread : public Node {
-//	GDCLASS(TestMultithread, Node);
-//
-//protected:
-//	static void _bind_methods();
-//	void _notification(int p_notification);
-//
-//public:
-//	struct StartArgs {
-//		StreamPeerTCP *con;
-//		String name;
-//	};
-//
-//	class Thread *thread_server;
-//	class Thread *thread_client;
-//	static bool is_working;
-//
-//	static void _server(void *_data);
-//	static void _client(void *_data);
-//
-//	static void _send_data(void *_data);
-//	static void _recv_data(void *_data);
-//
-//	TestMultithread();
-//};
+VARIANT_ENUM_CAST(GodotRemote::ConnectionType)

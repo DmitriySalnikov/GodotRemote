@@ -12,11 +12,9 @@
 #include "core/project_settings.h"
 
 void register_godot_remote_types() {
-	GLOBAL_DEF(GodotRemote::ps_autoload_name, true);
-
-	GRUtils::init();
 	ClassDB::register_class<GodotRemote>();
-	Engine::get_singleton()->add_singleton(Engine::Singleton("GodotRemote", new GodotRemote()));
+	Engine::get_singleton()->add_singleton(Engine::Singleton("GodotRemote", memnew(GodotRemote)));
+	GRUtils::init();
 
 	ClassDB::register_virtual_class<GRDevice>();
 	ClassDB::register_class<GRDeviceDevelopment>();
@@ -28,6 +26,6 @@ void register_godot_remote_types() {
 }
 
 void unregister_godot_remote_types() {
-	delete GodotRemote::get_singleton();
+	memfree(GodotRemote::get_singleton());
 	GRUtils::deinit();
 }

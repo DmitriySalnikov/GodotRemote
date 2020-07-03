@@ -19,3 +19,25 @@ mouse_filter = 1
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[node name="LineEdit" type="LineEdit" parent="."]
+margin_left = 12.0
+margin_top = 11.0
+margin_right = 174.0
+margin_bottom = 72.0
+text = "127.0.0.1"
+align = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Button" type="Button" parent="."]
+margin_left = 187.0
+margin_top = 15.0
+margin_right = 306.0
+margin_bottom = 67.0
+text = "Set IP"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+[connection signal="pressed" from="Button" to="." method="_on_Button_pressed"]

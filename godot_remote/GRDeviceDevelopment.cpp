@@ -14,8 +14,6 @@ using namespace GRUtils;
 void GRDeviceDevelopment::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_settings_node"), &GRDeviceDevelopment::get_settings_node);
 	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRDeviceDevelopment::get_gr_viewport);
-
-	//BIND_ENUM_CONSTANT(InitData);
 }
 
 void GRDeviceDevelopment::_notification(int p_notification) {
@@ -33,10 +31,13 @@ GRDeviceDevelopment::GRDeviceDevelopment() :
 		GRDevice() {
 	set_name("GodotRemoteServer");
 	tcp_server.instance();
+	ips = new ImgProcessingStorage(this);
+	port = GLOBAL_GET("debug/godot_remote/general/port");
 }
 
 GRDeviceDevelopment::~GRDeviceDevelopment() {
 	stop();
+	delete ips;
 }
 
 bool GRDeviceDevelopment::start() {
@@ -50,11 +51,11 @@ bool GRDeviceDevelopment::start() {
 
 	working = true;
 	stop_device = false;
-	tcp_server->listen(port);
 	server_thread_listen = Thread::create(&_thread_listen, this);
+	t_image_encode = Thread::create(&_thread_image_processing, ips);
 
 	if (!resize_viewport) {
-		resize_viewport = new GRDDViewport();
+		resize_viewport = memnew(GRDDViewport);
 		add_child(resize_viewport);
 	}
 
@@ -72,12 +73,18 @@ void GRDeviceDevelopment::stop() {
 	if (server_thread_listen) {
 		Thread::wait_to_finish(server_thread_listen);
 	}
+	if (t_image_encode) {
+		Thread::wait_to_finish(t_image_encode);
+		t_image_encode = nullptr;
+	}
+
 	//delete server_thread_listen;
 	server_thread_listen = nullptr;
 
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
 		remove_child(resize_viewport);
-		resize_viewport->queue_delete();
+		memfree(resize_viewport);
+		//resize_viewport->queue_delete();
 		resize_viewport = nullptr;
 	}
 }
@@ -90,19 +97,283 @@ Node *GRDeviceDevelopment::get_settings_node() {
 	return settings_menu_node;
 }
 
+//////////////////////////////////////////////
+////////////////// STATIC ////////////////////
+//////////////////////////////////////////////
+
+void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
+	Thread::set_name("GR_listen_thread");
+	GRDeviceDevelopment *dev = (GRDeviceDevelopment *)p_userdata;
+	Ref<TCP_Server> srv = dev->tcp_server;
+	Thread *t_connection = nullptr;
+	OS *os = OS::get_singleton();
+	bool connectedRecv = false;
+	bool connectedSend = false;
+	Array connections;
+	Error err = OK;
+
+	srv->listen(dev->port);
+	log("Start listening port " + str(dev->port));
+
+	while (!dev->stop_device) {
+		if (!srv->is_listening()) {
+			err = srv->listen(dev->port);
+			log("Start listening port " + str(dev->port));
+
+			if (err != OK) {
+
+				switch (err) {
+					case ERR_UNAVAILABLE :
+						log("Socket listening unavailable");
+						break;
+					case ERR_ALREADY_IN_USE:
+						log("Socket already in use");
+						break;
+					case ERR_INVALID_PARAMETER:
+						log("Invalid listening address");
+						break;
+					case ERR_CANT_CREATE:
+						log("Can't bind listener");
+						break;
+					case FAILED:
+						log("Failed to start listening");
+						break;
+				}
+
+				os->delay_usec(1000_ms);
+				continue;
+			}
+		}
+
+		for (int i = connections.size() - 1; i >= 0; i--) {
+			Ref<StreamPeerTCP> con = connections[i];
+			if (con.is_valid()) {
+				if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
+					dev->break_connection = true;
+					connections.remove(i);
+				}
+			}
+		}
+
+		if (dev->break_connection) {
+			if (t_connection) {
+				Thread::wait_to_finish(t_connection);
+				t_connection = nullptr;
+			}
+			connectedRecv = false;
+			connectedSend = false;
+		}
+
+		if (srv->is_connection_available()) {
+			Ref<StreamPeerTCP> con = srv->take_connection();
+			con->set_no_delay(true);
+			String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
+
+			if (!connectedRecv || !connectedSend) {
+				AuthResult res = _auth_client(dev, con);
+				switch (res) {
+					case AuthResult::OK:
+						if (!connectedSend) {
+							dev->break_connection = false;
+							connectedSend = true;
+
+							t_connection = Thread::create(&_thread_connection, new StartThreadArgs(dev, con));
+							log("New connection from " + address);
+							connections.append(con);
+						} else {
+							log("Refusing connection. Sending client already connected.");
+							con->disconnect_from_host();
+							os->delay_usec(16_ms);
+						}
+						break;
+					case AuthResult::Error:
+						log("Refusing connection. Wrong client. " + address);
+						con->disconnect_from_host();
+						os->delay_usec(16_ms);
+						continue;
+					case AuthResult::VersionMismatch:
+						log("Refusing connection. Version mismatch. " + address);
+						con->disconnect_from_host();
+						os->delay_usec(16_ms);
+						continue;
+					default:
+						log("Unknown error code. Disconnecting." + address);
+						con->disconnect_from_host();
+						break;
+				}
+
+			} else {
+				log("Refusing connection. Already connected. " + address);
+				srv->take_connection()->disconnect_from_host();
+				os->delay_usec(16_ms);
+			}
+		} else {
+			log("Waiting...", LogLevel::LL_Debug);
+			os->delay_usec(33_ms);
+		}
+	}
+
+	dev->break_connection = true;
+	dev->stop_device = true;
+
+	if (t_connection) {
+		Thread::wait_to_finish(t_connection);
+		t_connection = nullptr;
+	}
+
+	dev->tcp_server->stop();
+}
+
+void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
+	StartThreadArgs *args = (StartThreadArgs *)p_userdata;
+	Ref<StreamPeerTCP> con = args->con;
+	GRDeviceDevelopment *dev = args->dev;
+	ImgProcessingStorage *ips = dev->ips;
+	delete args;
+
+	GodotRemote *gr = GodotRemote::get_singleton();
+	OS *os = OS::get_singleton();
+	Error err = Error::OK;
+
+	String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
+	Thread::set_name("GR_connection " + address);
+	uint32_t prev_time = os->get_ticks_msec();
+
+	while (!dev->break_connection && con->get_status() == StreamPeerTCP::STATUS_CONNECTED) {
+		bool nothing_happens = true;
+
+		// SENDING
+		uint32_t time = os->get_ticks_msec();
+		if (time - prev_time > (1000 / dev->target_send_fps) && !ips->is_new_data) {
+			nothing_happens = false;
+			prev_time = time;
+
+			ips->tex = dev->resize_viewport->get_texture();
+		}
+		// if image compressed to jpg and data is ready
+		if (ips->is_new_data) {
+			nothing_happens = false;
+			int ds = ips->ret_data.size();
+
+			if (ds == 0) {
+				log(String("Cant encode image!"), LogLevel::LL_Error);
+				ips->is_new_data = false;
+				os->delay_usec(1_ms);
+				continue;
+			}
+
+			PoolByteArray data;
+			data.append(PacketType::ImageData);
+			data.append_array(uint322bytes(ds));
+			data.append_array(ips->ret_data);
+			ips->is_new_data = false;
+
+			auto r = data.read();
+			err = con->put_data(r.ptr(), data.size());
+			r.release();
+
+			if (err) {
+				log(String("Cant send image data! Code: ") + str(err), LogLevel::LL_Error);
+				r.release();
+				continue;
+			}
+			r.release();
+		}
+
+		// RECEIVING
+		if (con->get_available_bytes()) {
+			nothing_happens = false;
+			uint8_t res;
+			err = con->get_data(&res, 1);
+
+			if (err)
+				continue;
+
+			PacketType type = (PacketType)res;
+			switch (type) {
+				case GRDevice::InitData:
+					break;
+				case GRDevice::ImageData:
+					break;
+				case GRDevice::InputData: {
+					uint8_t s_res[4];
+					err = con->get_data(s_res, 4);
+
+					if (err) {
+						continue;
+					}
+
+					const int size = bytes2uint32(s_res);
+					PoolByteArray data;
+					data.resize(size);
+
+					auto w = data.write();
+					err = con->get_data(w.ptr(), size);
+					w.release();
+
+					if (err) {
+						continue;
+					}
+
+					_process_input_data(data);
+
+					break;
+				}
+				default:
+					break;
+			}
+		}
+
+		if (nothing_happens) // for less cpu using
+			os->delay_usec(1_ms);
+	}
+
+	log("Closing connection thread with address: " + address);
+
+	dev->break_connection = true;
+	con->disconnect_from_host();
+}
+
+void GRDeviceDevelopment::_thread_image_processing(void *p_userdata) {
+	Thread::set_name("GR_image_encoding");
+
+	ImgProcessingStorage *ips = (ImgProcessingStorage *)p_userdata;
+	GRDeviceDevelopment *dev = ips->dev;
+	OS *os = OS::get_singleton();
+
+	while (!dev->stop_device) {
+
+		if (ips->tex.is_valid() && !ips->is_new_data) {
+			Ref<Image> img = ips->tex->get_data();
+
+			if (img.is_null()) {
+				os->delay_usec(1_ms);
+				continue;
+			}
+
+			ips->ret_data = compress_jpg(img, dev->jpg_quality, GRUtils::SUBSAMPLING_H2V2);
+			ips->is_new_data = true;
+			ips->tex.unref();
+		}
+
+		os->delay_usec(1_ms);
+	}
+}
+
 GRDeviceDevelopment::AuthResult GRDeviceDevelopment::_auth_client(GRDeviceDevelopment *dev, Ref<StreamPeerTCP> con) {
 	// Auth Packet
 	// 4bytes GodotRemote Header
 	// 4bytes Body Size
 	// 3byte  Version
-	// 1byte  Is receiving client type
 	// ....
 	//
-	// total body size = 4
+	// total body size = 3
 	//
 	// must receive
 	// 4bytes GodotRemote Header
 	// 1byte  error code
+	//
+	// total return size = 5
 
 	PoolByteArray data;
 	data.resize(8);
@@ -118,19 +389,21 @@ GRDeviceDevelopment::AuthResult GRDeviceDevelopment::_auth_client(GRDeviceDevelo
 		int size = bytes2int32(r.ptr() + 4);
 		r.release();
 
-		if (size != 4) // body size must be equal to 4
+		if (size != 3) // body size must be equal to 3
 			return AuthResult::Error;
 
 		PoolByteArray body;
 		body.resize(size);
 		w = body.write();
 
+		// get body data
 		err = con->get_data(w.ptr(), size);
 		if (err != OK)
 			return AuthResult::Error;
 		w.release();
 
 		PoolByteArray ret;
+		// prepare response packet
 		ret.append_array(get_packet_header());
 
 		r = body.read();
@@ -140,27 +413,24 @@ GRDeviceDevelopment::AuthResult GRDeviceDevelopment::_auth_client(GRDeviceDevelo
 			con->put_data(rr.ptr(), ret.size());
 			return AuthResult::VersionMismatch;
 		}
-
-		bool is_recv = r[3];
 		r.release();
 
 		// send back final validation packet
 		ret.append((int)AuthErrorCode::OK);
 		r = ret.read();
-		con->put_data(r.ptr(), ret.size());
+		err = con->put_data(r.ptr(), ret.size());
 		r.release();
+		if (err == OK) {
+			return AuthResult::OK;
+		}
 
-		if (is_recv)
-			return AuthResult::RecvClient;
-		else
-			return AuthResult::SendClient;
+		return AuthResult::Error;
 	}
 
 	return AuthResult::Error;
 }
 
 void GRDeviceDevelopment::_process_input_data(const PoolByteArray &p_data) {
-	InputDefault *id = (InputDefault *)Input::get_singleton();
 	InputMap *im = InputMap::get_singleton();
 	OS *os = OS::get_singleton();
 
@@ -183,11 +453,11 @@ void GRDeviceDevelopment::_process_input_data(const PoolByteArray &p_data) {
 			case GRDevice::_InputDeviceSensors: {
 				PoolVector3Array vecs = bytes2var(data, 12 * 4 + 8);
 
-				if (id && vecs.size() == 4) {
-					id->set_accelerometer(vecs[0]);
-					id->set_gravity(vecs[1]);
-					id->set_gyroscope(vecs[2]);
-					id->set_magnetometer(vecs[3]);
+				if (vecs.size() == 4) {
+					set_accelerometer(vecs[0]);
+					set_gravity(vecs[1]);
+					set_gyroscope(vecs[2]);
+					set_magnetometer(vecs[3]);
 				}
 
 				break;
@@ -324,19 +594,19 @@ void GRDeviceDevelopment::_process_input_data(const PoolByteArray &p_data) {
 				break;
 			}
 			default: {
-				log(String("Not supported InputEvent type: ") + String::num_int64(type));
+				log(String("Not supported InputEvent type: ") + str(type));
 				break;
 			}
 		}
 
 		data = next;
 		if (ev.is_valid()) {
-			id->call_deferred("parse_input_event", ev);
+			Input::get_singleton()->call_deferred("parse_input_event", ev);
 		}
 	}
 }
 
-const uint8_t *GRDeviceDevelopment::_read_abstract_input_data(InputEvent *ie, const Vector2 vs, const uint8_t *data) {
+const uint8_t *GRDeviceDevelopment::_read_abstract_input_data(InputEvent *ie, const Vector2 &vs, const uint8_t *data) {
 	ie->set_device(decode_uint32(data));
 	// TODO add ability to set custom device id or just -1/0 if we emulating input.
 	data += 4;
@@ -369,253 +639,6 @@ const uint8_t *GRDeviceDevelopment::_read_abstract_input_data(InputEvent *ie, co
 }
 
 //////////////////////////////////////////////
-////////////////// THREADS ///////////////////
-//////////////////////////////////////////////
-
-void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
-	Thread::set_name("GR_listen_thread");
-	GRDeviceDevelopment *dev = (GRDeviceDevelopment *)p_userdata;
-	Ref<TCP_Server> srv = dev->tcp_server;
-	Thread *t_send_data = nullptr;
-	Thread *t_recieve_input = nullptr;
-	OS *os = OS::get_singleton();
-	bool connectedRecv = false;
-	bool connectedSend = false;
-	Array connections;
-
-	while (!dev->stop_device && srv->is_listening()) {
-		for (int i = connections.size() - 1; i >= 0; i--) {
-			Ref<StreamPeerTCP> con = connections[i];
-			if (con.is_valid()) {
-				if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
-					dev->break_connection = true;
-					connections.remove(i);
-				}
-			}
-		}
-
-		if (dev->break_connection) {
-			if (t_send_data) {
-				Thread::wait_to_finish(t_send_data);
-				t_send_data = nullptr;
-			}
-			if (t_recieve_input) {
-				Thread::wait_to_finish(t_recieve_input);
-				t_recieve_input = nullptr;
-			}
-			connectedRecv = false;
-			connectedSend = false;
-		}
-
-		if (srv->is_connection_available()) {
-			if (!connectedRecv || !connectedSend) {
-				Ref<StreamPeerTCP> con = srv->take_connection();
-				con->set_no_delay(true);
-				dev->break_connection = false;
-
-				String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
-
-				AuthResult res = _auth_client(dev, con);
-				switch (res) {
-					case AuthResult::Error:
-						log("Refusing connection. Wrong client.");
-						con->disconnect_from_host();
-						os->delay_usec(16_ms);
-						continue;
-					case AuthResult::VersionMismatch:
-						log("Refusing connection. Version mismatch.");
-						con->disconnect_from_host();
-						os->delay_usec(16_ms);
-						continue;
-					case AuthResult::SendClient:
-						if (!connectedSend) {
-							t_recieve_input = Thread::create(&_thread_recieve_input, new StartThreadArgs(dev, con));
-							log("New connection from " + address + "(Sending client)");
-							connectedSend = true;
-							connections.append(con);
-						} else {
-							log("Refusing connection. Sending client already connected.");
-							con->disconnect_from_host();
-							os->delay_usec(16_ms);
-						}
-						break;
-					case AuthResult::RecvClient:
-						if (!connectedRecv) {
-							t_send_data = Thread::create(&_thread_send_data, new StartThreadArgs(dev, con));
-							log("New connection from " + address + "(Receiving client)");
-							connectedRecv = true;
-							connections.append(con);
-						} else {
-							log("Refusing connection. Receiving client already connected.");
-							con->disconnect_from_host();
-							os->delay_usec(16_ms);
-						}
-						break;
-					default:
-						break;
-				}
-
-			} else {
-				log("Refusing connection. Already connected.");
-				srv->take_connection()->disconnect_from_host();
-				os->delay_usec(16_ms);
-			}
-		} else {
-			log("Waiting...", LogLevel::LL_Debug);
-			os->delay_usec(33_ms);
-		}
-	}
-
-	dev->break_connection = true;
-	dev->stop_device = true;
-
-	if (t_send_data) {
-		Thread::wait_to_finish(t_send_data);
-		t_send_data = nullptr;
-	}
-	if (t_recieve_input) {
-		Thread::wait_to_finish(t_recieve_input);
-		t_recieve_input = nullptr;
-	}
-
-	dev->tcp_server->stop();
-}
-
-void GRDeviceDevelopment::_thread_send_data(void *p_userdata) {
-	StartThreadArgs *args = (StartThreadArgs *)p_userdata;
-	Ref<StreamPeerTCP> con = args->con;
-	GRDeviceDevelopment *dev = args->dev;
-	delete args;
-
-	GodotRemote *gr = GodotRemote::get_singleton();
-	OS *os = OS::get_singleton();
-	Error err = Error::OK;
-	String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
-	Thread::set_name("GR_server_send " + address);
-
-	uint32_t prev_time = os->get_ticks_msec();
-
-	while (!dev->break_connection && con->get_status() == StreamPeerTCP::STATUS_CONNECTED) {
-		uint32_t time = os->get_ticks_msec();
-
-		if (time - prev_time > (1000 / dev->target_send_fps)) {
-			prev_time = time;
-
-			Ref<ViewportTexture> vt = dev->resize_viewport->get_texture();
-			if (vt.is_null()) {
-				os->delay_usec(1_ms);
-				continue;
-			}
-
-			Ref<Image> img = vt->get_data();
-
-			if (img.is_null()) {
-				os->delay_usec(1_ms);
-				continue;
-			}
-
-			PoolByteArray viewport_data = gr->compress_jpg(img, 75, 1.0f, GodotRemote::SUBSAMPLING_H2V2);
-			int ds = viewport_data.size();
-			//log(String::num(ds) + " bytes", LogLevel::LL_Debug);
-
-			if (!ds) {
-				log(String("Cant encode image! Code: ") + str(err), LogLevel::LL_Error);
-				os->delay_usec(1_ms);
-				continue;
-			}
-
-			PoolByteArray data;
-			data.append_array(get_packet_header());
-			data.append(PacketType::ImageData);
-			data.append_array(uint322bytes(ds));
-			data.append_array(viewport_data);
-
-			auto r = data.read();
-			err = con->put_data(r.ptr(), data.size());
-			r.release();
-
-			if (err) {
-				log(String("Cant send image data! Code: ") + str(err), LogLevel::LL_Error);
-				r.release();
-				continue;
-			}
-			r.release();
-		} else {
-			os->delay_usec(16_ms);
-		}
-	}
-
-	log("Closing sending thread with address: " + address);
-
-	dev->break_connection = true;
-	con->disconnect_from_host();
-}
-
-void GRDeviceDevelopment::_thread_recieve_input(void *p_userdata) {
-	StartThreadArgs *args = (StartThreadArgs *)p_userdata;
-	Ref<StreamPeerTCP> con = args->con;
-	GRDeviceDevelopment *dev = args->dev;
-	delete args;
-
-	OS *os = OS::get_singleton();
-	String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
-	Error err = Error::OK;
-	Thread::set_name("GR_server_recv " + address);
-
-	while (!dev->break_connection && con->get_status() == StreamPeerTCP::STATUS_CONNECTED) {
-		uint8_t res[5];
-		err = con->get_data(res, 5);
-
-		if (err)
-			continue;
-
-		if (validate_packet(res)) {
-			PacketType type = (PacketType)res[4];
-
-			switch (type) {
-				case GRDevice::InitData:
-					break;
-				case GRDevice::ImageData:
-					break;
-				case GRDevice::InputData: {
-					uint8_t s_res[8];
-					err = con->get_data(s_res, 8);
-
-					if (err) {
-						continue;
-					}
-
-					const int size = bytes2var(s_res, 8);
-					PoolByteArray data;
-					data.resize(size);
-
-					auto w = data.write();
-					err = con->get_data(w.ptr(), size);
-					w.release();
-
-					if (err) {
-						continue;
-					}
-
-					_process_input_data(data);
-
-					break;
-				}
-				default:
-					break;
-			}
-		} else {
-			log("Packet is not a valid!", LogLevel::LL_Error);
-		}
-	}
-
-	log("Closing receiving thread with address: " + address);
-
-	dev->break_connection = true;
-	con->disconnect_from_host();
-}
-
-//////////////////////////////////////////////
 ////////////// GRDDViewport //////////////////
 //////////////////////////////////////////////
 
@@ -634,13 +657,16 @@ void GRDDViewport::_notification(int p_notification) {
 			main_vp->connect("size_changed", this, "_update_size");
 			_update_size();
 
-			auto renderer = new GRDDViewportRenderer();
+			renderer = memnew(GRDDViewportRenderer);
 			renderer->tex = main_vp->get_texture();
 			add_child(renderer);
 
 			break;
 		}
 		case NOTIFICATION_EXIT_TREE: {
+			remove_child(renderer);
+			//renderer->queue_delete();
+			memfree(renderer);
 			main_vp->disconnect("size_changed", this, "_update_size");
 			main_vp = nullptr;
 			break;

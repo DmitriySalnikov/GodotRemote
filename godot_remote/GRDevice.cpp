@@ -39,8 +39,14 @@ uint16_t GRDevice::get_port() {
 }
 
 void GRDevice::set_port(uint16_t _port) {
-	stop();
+	bool old = is_working();
+	if (old)
+		stop();
+
 	port = _port;
+
+	if (old)
+		start();
 }
 
 bool GRDevice::start() {

@@ -22,13 +22,7 @@ config/icon="res://icon.png"
 [debug]
 
 settings/stdout/verbose_stdout=true
-settings/godot_remote/autostart=false
-
-[input_devices]
-
-pointing/emulate_touch_from_mouse=true
-pointing/emulate_mouse_from_touch=false
-pointing/emulate_touch_from_mouse.mobile=false
+godot_remote/general/autostart=false
 
 [network]
 
