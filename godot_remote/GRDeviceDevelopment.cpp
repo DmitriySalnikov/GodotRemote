@@ -1,4 +1,7 @@
 /* GRDeviceDevelopment.cpp */
+
+#ifndef NO_GODOTREMOTE_SERVER
+
 #include "GRDeviceDevelopment.h"
 #include "GodotRemote.h"
 #include "core/input_map.h"
@@ -755,3 +758,5 @@ GRDDViewportRenderer::GRDDViewportRenderer() {
 
 	set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
 }
+
+#endif // !NO_GODOTREMOTE_SERVER

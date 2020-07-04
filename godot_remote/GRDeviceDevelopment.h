@@ -1,6 +1,8 @@
 /* GRDeviceDevelopment.h */
 #pragma once
 
+#ifndef NO_GODOTREMOTE_SERVER
+
 #include "GRDevice.h"
 #include "core/io/stream_peer_tcp.h"
 #include "core/io/tcp_server.h"
@@ -111,3 +113,5 @@ public:
 
 	GRDDViewportRenderer();
 };
+
+#endif // !NO_GODOTREMOTE_SERVER

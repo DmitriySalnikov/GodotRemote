@@ -1,5 +1,9 @@
 /* GRDeviceStandalone.cpp */
+
+#ifndef NO_GODOTREMOTE_CLIENT
+
 #include "GRDeviceStandalone.h"
+#include "GRResources.h"
 #include "GodotRemote.h"
 #include "core/input_map.h"
 #include "core/io/tcp_server.h"
@@ -7,21 +11,26 @@
 #include "core/os/thread_safe.h"
 #include "main/input_default.h"
 #include "modules/regex/regex.h"
-#include "scene/2d/sprite.h"
 #include "scene/gui/control.h"
+#include "scene/gui/texture_rect.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/viewport.h"
+#include "scene/resources/material.h"
 #include "scene/resources/texture.h"
 
 using namespace GRUtils;
 
 void GRDeviceStandalone::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("set_control_to_show_in", "control_node", "position_in_node"), &GRDeviceStandalone::set_control_to_show_in, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("_update_texture_from_iamge", "image"), &GRDeviceStandalone::_update_texture_from_iamge);
+	ClassDB::bind_method(D_METHOD("set_control_to_show_in", "control_node", "position_in_node"), &GRDeviceStandalone::set_control_to_show_in, DEFVAL(0));
+	ClassDB::bind_method(D_METHOD("set_custom_no_signal_texture", "texture"), &GRDeviceStandalone::set_custom_no_signal_texture);
+	ClassDB::bind_method(D_METHOD("set_custom_no_signal_material", "material"), &GRDeviceStandalone::set_custom_no_signal_material);
 	ClassDB::bind_method(D_METHOD("set_address", "ip", "port", "ipv4"), &GRDeviceStandalone::set_address, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("set_ip", "ip", "ipv4"), &GRDeviceStandalone::set_ip, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("get_ip"), &GRDeviceStandalone::get_ip);
+
+	ADD_SIGNAL(MethodInfo("signal_state_changed", PropertyInfo(Variant::BOOL, "is_connected")));
 
 	// SETGET
 	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "val"), &GRDeviceStandalone::set_capture_on_focus);
@@ -57,15 +66,30 @@ GRDeviceStandalone::GRDeviceStandalone() :
 	ips = new ImgProcessingStorage(this);
 	peer.instance();
 	port = GLOBAL_GET("debug/godot_remote/general/port");
+
+#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
+	Ref<Image> no_signal_image;
+	no_signal_image.instance();
+	no_signal_texture.instance();
+	GetPoolVectorFromBin(tmp_no_signal, GRResources::Bin_NoSignalPNG);
+	no_signal_image->load_png_from_buffer(tmp_no_signal);
+	no_signal_texture->create_from_image(no_signal_image);
+
+	Ref<Shader> shader;
+	shader.instance();
+	shader->set_code(GRResources::Txt_CRT_Shader);
+	no_signal_mat.instance();
+	no_signal_mat->set_shader(shader);
+#endif
 }
 
 GRDeviceStandalone::~GRDeviceStandalone() {
 	stop();
 	delete ips;
 
-	if (sprite_shows_stream && !sprite_shows_stream->is_queued_for_deletion()) {
-		sprite_shows_stream->queue_delete();
-		sprite_shows_stream = nullptr;
+	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
+		tex_shows_stream->queue_delete();
+		tex_shows_stream = nullptr;
 	}
 	if (input_collector && !input_collector->is_queued_for_deletion()) {
 		input_collector->queue_delete();
@@ -74,28 +98,45 @@ GRDeviceStandalone::~GRDeviceStandalone() {
 }
 
 void GRDeviceStandalone::set_control_to_show_in(Control *ctrl, int position_in_node) {
-	if (sprite_shows_stream && !sprite_shows_stream->is_queued_for_deletion()) {
-		sprite_shows_stream->queue_delete();
+	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
+		tex_shows_stream->queue_delete();
+		tex_shows_stream = nullptr;
 	}
 	if (input_collector && !input_collector->is_queued_for_deletion()) {
 		input_collector->queue_delete();
+		input_collector = nullptr;
 	}
 
 	control_to_show_in = ctrl;
 
 	if (control_to_show_in && !control_to_show_in->is_queued_for_deletion()) {
-		sprite_shows_stream = memnew(Sprite);
+		tex_shows_stream = memnew(TextureRect);
 		input_collector = memnew(GRInputCollector);
 
-		sprite_shows_stream->set_name("GodotRemoteStreamSprite");
+		tex_shows_stream->set_name("GodotRemoteStreamSprite");
 		input_collector->set_name("GodotRemoteInputCollector");
 
-		control_to_show_in->add_child(sprite_shows_stream);
-		control_to_show_in->move_child(sprite_shows_stream, position_in_node);
+		tex_shows_stream->set_expand(true);
+		tex_shows_stream->set_anchor(MARGIN_RIGHT, 1.f);
+		tex_shows_stream->set_anchor(MARGIN_BOTTOM, 1.f);
+
+		prev_signal_connection_state = true; // force execute update function
+		_update_stream_texture_state(false);
+
+		control_to_show_in->add_child(tex_shows_stream);
+		control_to_show_in->move_child(tex_shows_stream, position_in_node);
 		control_to_show_in->add_child(input_collector);
 
 		input_collector->set_capture_on_focus(capture_only_when_control_in_focus);
 	}
+}
+
+void GRDeviceStandalone::set_custom_no_signal_texture(Ref<Texture> custom_tex) {
+	custom_no_signal_texture = custom_tex;
+}
+
+void GRDeviceStandalone::set_custom_no_signal_material(Ref<Material> custom_mat) {
+	custom_no_signal_material = custom_mat;
 }
 
 bool GRDeviceStandalone::is_capture_on_focus() {
@@ -144,6 +185,7 @@ void GRDeviceStandalone::set_ip(String ip, bool ipv4) {
 end:
 	if (!server_address.is_valid() || is_invalid) {
 		ERR_PRINT(ip + " is an invalid address!");
+		log(ip + " is an invalid address!");
 		server_address = IP_Address(prev);
 	}
 
@@ -151,7 +193,7 @@ end:
 		start();
 }
 
-void GRDeviceStandalone::set_address(String ip, uint16_t port, bool ipv4) {
+void GRDeviceStandalone::set_address(String ip, uint16_t _port, bool ipv4) {
 	bool old = is_working();
 	if (old)
 		stop();
@@ -162,18 +204,19 @@ void GRDeviceStandalone::set_address(String ip, uint16_t port, bool ipv4) {
 
 	if (ipv4) {
 		auto res = ip_validator->search(ip);
-		if (res->get_names().size() != 1) {
+		if (res.is_null()) {
 			is_invalid = true;
 			goto end;
 		}
 	}
 
 	server_address = ip;
-	port = port;
+	port = _port;
 
 end:
 	if (!server_address.is_valid() || is_invalid) {
 		ERR_PRINT(ip + " is an invalid address!");
+		log(ip + " is an invalid address!");
 		server_address = IP_Address(prev);
 		port = prevPort;
 	}
@@ -209,6 +252,7 @@ void GRDeviceStandalone::stop() {
 	working = false;
 	stop_device = true;
 	break_connection = true;
+	_update_stream_texture_state(false);
 
 	if (thread_connection) {
 		Thread::wait_to_finish(thread_connection);
@@ -225,20 +269,39 @@ void GRDeviceStandalone::_update_texture_from_iamge(Ref<Image> img) {
 	tex.instance();
 	tex->create_from_image(img);
 
-	if (control_to_show_in && !control_to_show_in->is_queued_for_deletion()) {
-		Vector2 size = control_to_show_in->get_rect().size;
+	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion())
+		tex_shows_stream->set_texture(tex);
+}
 
-		Sprite *s = sprite_shows_stream;
-		if (s && !s->is_queued_for_deletion()) {
-			s->set_texture(tex);
+void GRDeviceStandalone::_update_stream_texture_state(bool is_has_signal) {
+	if (prev_signal_connection_state == is_has_signal)
+		return;
 
-			Vector2 new_pos = size / 2;
-			if (s->get_position() != new_pos)
-				s->set_position(new_pos);
-
-			Vector2 new_scale = (Vector2(1, 1) / Vector2(tex->get_width(), tex->get_height())) * size;
-			if (s->get_scale() != new_scale)
-				s->set_scale(new_scale);
+	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
+		if (is_has_signal) {
+			prev_signal_connection_state = true;
+			emit_signal("signal_state_changed", true);
+			tex_shows_stream->set_material(nullptr);
+		} else {
+			prev_signal_connection_state = false;
+			emit_signal("signal_state_changed", false);
+			if (custom_no_signal_texture.is_valid()) {
+				tex_shows_stream->set_texture(custom_no_signal_texture);
+			}
+#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
+			else {
+				tex_shows_stream->set_texture(no_signal_texture);
+				tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
+			}
+#endif
+			if (custom_no_signal_material.is_valid()) {
+				tex_shows_stream->set_material(custom_no_signal_material);
+			}
+#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
+			else {
+				tex_shows_stream->set_material(no_signal_mat);
+			}
+#endif
 		}
 	}
 }
@@ -257,12 +320,18 @@ void GRDeviceStandalone::_thread_connection(void *p_userdata) {
 	Thread::set_name("GRemote_connection");
 
 	while (!dev->stop_device) {
+		if (os->get_ticks_msec() - dev->prev_valid_connection_time > 1000) {
+			dev->_update_stream_texture_state(false);
+		}
+
 		if (con->get_status() == StreamPeerTCP::STATUS_CONNECTED || con->get_status() == StreamPeerTCP::STATUS_CONNECTING) {
 			con->disconnect_from_host();
 		}
 
-		String address = (String)dev->server_address + ":" + str(dev->port);
-		Error err = con->connect_to_host(dev->server_address, dev->port);
+		IP_Address ip = GodotRemote::get_singleton()->get_connection_type() == GodotRemote::ConnectionType::CONNECTION_ADB ? IP_Address("127.0.0.1") : dev->server_address;
+
+		String address = (String)ip + ":" + str(dev->port);
+		Error err = con->connect_to_host(ip, dev->port);
 
 		if (err == OK) {
 			log("Connecting to " + address);
@@ -300,6 +369,7 @@ void GRDeviceStandalone::_thread_connection(void *p_userdata) {
 
 		if (_auth_on_server(con)) {
 			log("Successful connected to " + address);
+			dev->_update_stream_texture_state(true);
 			_connection_loop(dev, con);
 		}
 
@@ -319,8 +389,10 @@ void GRDeviceStandalone::_connection_loop(GRDeviceStandalone *dev, Ref<StreamPee
 
 	uint32_t prev_time = os->get_ticks_msec();
 	while (!dev->break_connection && con->is_connected_to_host()) {
-		// SENDING
 		uint32_t time = os->get_ticks_msec();
+		dev->prev_valid_connection_time = time;
+
+		// SENDING
 		if ((time - prev_time) > (1000 / dev->send_data_fps)) {
 			prev_time = time;
 
@@ -726,7 +798,7 @@ void GRInputCollector::_bind_methods() {
 }
 
 void GRInputCollector::_input(Ref<InputEvent> ie) {
-	if ((capture_only_when_control_in_focus && parent && !parent->has_focus()) || (grdev && !grdev->is_working())) {
+	if (!parent || (capture_only_when_control_in_focus && !parent->has_focus()) || (grdev && !grdev->is_working())) {
 		return;
 	}
 
@@ -853,9 +925,12 @@ PoolVector3Array GRInputCollector::get_sensors() {
 }
 
 GRInputCollector::GRInputCollector() {
+	parent = nullptr;
 	sensors.resize(4);
 	set_process_input(true);
 }
 
 GRInputCollector::~GRInputCollector() {
 }
+
+#endif // !NO_GODOTREMOTE_CLIENT

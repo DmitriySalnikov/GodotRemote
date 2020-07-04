@@ -13,8 +13,8 @@ class GodotRemote : public Reference {
 
 public:
 	enum ConnectionType {
-		WiFi = 0,
-		ADB = 1,
+		CONNECTION_WiFi = 0,
+		CONNECTION_ADB = 1,
 	};
 
 	enum DeviceType {
@@ -31,7 +31,7 @@ private:
 
 	bool is_autostart = false;
 	uint16_t port = 52341;
-	ConnectionType con_type = ConnectionType::WiFi;
+	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 
 	class GRDevice *device = nullptr;
 	void register_and_load_settings();
@@ -74,6 +74,9 @@ public:
 	// must be call_deffered
 	bool start_remote_device(DeviceType type = DeviceType::DEVICE_Auto);
 	bool stop_remote_device();
+
+	void set_connection_type(int type);
+	int get_connection_type();
 
 #ifdef TOOLS_ENABLED
 	void _adb_port_forwarding();

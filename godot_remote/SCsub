@@ -2,8 +2,16 @@
 
 Import('env')
 
+module_env = env.Clone()
+
+if ARGUMENTS.get('godot_remote_no_default_resources', 'no') == 'yes':
+    module_env.Append(CPPDEFINES=["NO_GODOTREMOTE_DEFAULT_RESOURCES"])
+if ARGUMENTS.get('godot_remote_disable_server', 'no') == 'yes':
+    module_env.Append(CPPDEFINES=["NO_GODOTREMOTE_SERVER"])
+if ARGUMENTS.get('godot_remote_disable_client', 'no') == 'yes':
+    module_env.Append(CPPDEFINES=["NO_GODOTREMOTE_CLIENT"])
+
 if env["platform"] == "x11":
-    module_env = env.Clone()
     module_env.Append(CCFLAGS=['-O2']) # Flags for C and C++ code
     module_env.Append(CXXFLAGS=['-std=c++11']) # Flags for C++ code only
     
@@ -21,4 +29,4 @@ if env["platform"] == "x11":
     else:
         module_env.add_source_files(env.modules_sources, "*.cpp")
 else:
-    env.add_source_files(env.modules_sources, "*.cpp")
+    module_env.add_source_files(env.modules_sources, "*.cpp")

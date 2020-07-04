@@ -17,35 +17,40 @@ GRDevice *GodotRemote::get_device() const {
 	return device;
 }
 
-#include "servers/audio_server.h"
-
 bool GodotRemote::start_remote_device(DeviceType type) {
 	stop_remote_device();
-
-	//SceneTree::get_singleton()->get_root()->call_deferred("add_child", new TestMultithread());
-	//return false;
 
 	GRDevice *d = nullptr;
 
 	switch (type) {
+		// automatically start server if it not a standalone build
 		case GodotRemote::DEVICE_Auto:
-			if (OS::get_singleton()->has_feature("standalone"))
-				d = memnew(GRDeviceStandalone);
-			else
+			if (!OS::get_singleton()->has_feature("standalone")) {
+#ifndef NO_GODOTREMOTE_SERVER
 				d = memnew(GRDeviceDevelopment);
+#else
+				ERR_FAIL_V_MSG(false, "Server not included in this build!");
+#endif
+			}
 			break;
 		case GodotRemote::DEVICE_Development:
+#ifndef NO_GODOTREMOTE_SERVER
 			d = memnew(GRDeviceDevelopment);
+#else
+			ERR_FAIL_V_MSG(false, "Server not included in this build!");
+#endif
 			break;
 		case GodotRemote::DEVICE_Standalone:
+#ifndef NO_GODOTREMOTE_CLIENT
 			d = memnew(GRDeviceStandalone);
+#else
+			ERR_FAIL_V_MSG(false, "Client not included in this build!");
+#endif
 			break;
 		default:
 			ERR_FAIL_V_MSG(false, "Not allowed type!");
 			break;
 	}
-
-	AudioDriverManager::get_driver(0)->finish();
 
 	if (d->start()) {
 		device = d;
@@ -67,12 +72,20 @@ bool GodotRemote::stop_remote_device() {
 	return false;
 }
 
+void GodotRemote::set_connection_type(int type) {
+	con_type = (ConnectionType)type;
+}
+
+int GodotRemote::get_connection_type() {
+	return con_type;
+}
+
 void GodotRemote::register_and_load_settings() {
 #define DEF_SET(var, name, def_val, info) \
 	var = GLOBAL_DEF(name, def_val);      \
 	ProjectSettings::get_singleton()->set_custom_property_info(name, info)
 #define DEF_SET_ENUM(var, type, name, def_val, info) \
-	var = (type)(int)GLOBAL_DEF(name, def_val);    \
+	var = (type)(int)GLOBAL_DEF(name, def_val);      \
 	ProjectSettings::get_singleton()->set_custom_property_info(name, info)
 #define DEF_(name, def_val, info) \
 	GLOBAL_DEF(name, def_val);    \
@@ -88,6 +101,7 @@ void GodotRemote::register_and_load_settings() {
 }
 
 #ifdef TOOLS_ENABLED
+// TODO need to try get every device IDs and setup forwarding for each
 #include "editor/editor_export.h"
 #include "editor/editor_node.h"
 #include "editor/editor_run_native.h"
@@ -109,9 +123,9 @@ void GodotRemote::_adb_port_forwarding() {
 void GodotRemote::_native_run_emitted() {
 	// delayed call because debugger can't connect to game if adb blocks thread on start
 	switch (con_type) {
-		case GodotRemote::WiFi:
+		case GodotRemote::CONNECTION_WiFi:
 			break;
-		case GodotRemote::ADB:
+		case GodotRemote::CONNECTION_ADB:
 			call_deferred("adb_port_forwarding");
 			break;
 	}
@@ -127,6 +141,14 @@ void GodotRemote::_bind_methods() {
 #endif
 
 	ClassDB::bind_method(D_METHOD("get_device"), &GodotRemote::get_device);
+
+	ClassDB::bind_method(D_METHOD("set_connection_type", "type"), &GodotRemote::set_connection_type);
+	ClassDB::bind_method(D_METHOD("get_connection_type"), &GodotRemote::get_connection_type);
+
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "connection_type", PROPERTY_HINT_ENUM, "WiFi"), "set_connection_type", "get_connection_type");
+
+	BIND_ENUM_CONSTANT(CONNECTION_ADB);
+	BIND_ENUM_CONSTANT(CONNECTION_WiFi);
 
 	BIND_ENUM_CONSTANT(DEVICE_Auto);
 	BIND_ENUM_CONSTANT(DEVICE_Development);
@@ -170,7 +192,7 @@ GodotRemote::GodotRemote() {
 
 #ifdef TOOLS_ENABLED
 	if (Engine::get_singleton()->is_editor_hint())
-		if(EditorNode::get_singleton())
+		if (EditorNode::get_singleton())
 			EditorNode::get_singleton()->connect("play_pressed", this, "native_run_emitted");
 #endif
 

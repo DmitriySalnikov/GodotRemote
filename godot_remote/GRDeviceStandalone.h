@@ -1,6 +1,8 @@
 /* GRDeviceStandalone.h */
 #pragma once
 
+#ifndef NO_GODOTREMOTE_CLIENT
+
 #include "GRDevice.h"
 #include "core/io/ip_address.h"
 #include "core/io/stream_peer_tcp.h"
@@ -49,10 +51,22 @@ private:
 	bool capture_pointer_only_when_hover_control = true;
 	ImgProcessingStorage *ips = nullptr;
 	class Control *control_to_show_in = nullptr;
-	class Sprite *sprite_shows_stream = nullptr;
+	class TextureRect *tex_shows_stream = nullptr;
 	class GRInputCollector *input_collector = nullptr;
 
+	// NO SIGNAL screen
+	uint32_t prev_valid_connection_time = 0;
+	bool prev_signal_connection_state = false;
+	Ref<class ImageTexture> custom_no_signal_texture;
+	Ref<class Material> custom_no_signal_material;
+
+#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
+	Ref<class ImageTexture> no_signal_texture;
+	Ref<class ShaderMaterial> no_signal_mat;
+#endif
+
 	void _update_texture_from_iamge(Ref<Image> img);
+	void _update_stream_texture_state(bool is_has_signal);
 
 	static void _thread_connection(void *p_userdata);
 	static void _thread_image_decoder(void *p_userdata);
@@ -67,6 +81,8 @@ protected:
 
 public:
 	void set_control_to_show_in(class Control *ctrl, int position_in_node = 0);
+	void set_custom_no_signal_texture(Ref<Texture> custom_tex);
+	void set_custom_no_signal_material(Ref<Material> custom_mat);
 
 	bool is_capture_on_focus();
 	void set_capture_on_focus(bool value);
@@ -74,7 +90,7 @@ public:
 	void set_capture_when_hover(bool value);
 	String get_ip();
 	void set_ip(String ip, bool ipv4 = true);
-	void set_address(String ip, uint16_t port, bool ipv4 = true);
+	void set_address(String ip, uint16_t _port, bool ipv4 = true);
 
 	virtual bool start() override;
 	virtual void stop() override;
@@ -90,7 +106,7 @@ private:
 	GRDeviceStandalone *grdev = nullptr;
 	Array collected_input;
 	PoolVector3Array sensors;
-	class Control *parent = nullptr;
+	class Control *parent;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
 
@@ -114,3 +130,5 @@ public:
 	GRInputCollector();
 	~GRInputCollector();
 };
+
+#endif // !NO_GODOTREMOTE_CLIENT
