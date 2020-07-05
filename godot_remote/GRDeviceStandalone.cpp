@@ -23,24 +23,36 @@ using namespace GRUtils;
 
 void GRDeviceStandalone::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_update_texture_from_iamge", "image"), &GRDeviceStandalone::_update_texture_from_iamge);
+
 	ClassDB::bind_method(D_METHOD("set_control_to_show_in", "control_node", "position_in_node"), &GRDeviceStandalone::set_control_to_show_in, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_texture", "texture"), &GRDeviceStandalone::set_custom_no_signal_texture);
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_material", "material"), &GRDeviceStandalone::set_custom_no_signal_material);
 	ClassDB::bind_method(D_METHOD("set_address", "ip", "port", "ipv4"), &GRDeviceStandalone::set_address, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("set_ip", "ip", "ipv4"), &GRDeviceStandalone::set_ip, DEFVAL(true));
-	ClassDB::bind_method(D_METHOD("get_ip"), &GRDeviceStandalone::get_ip);
 
-	ADD_SIGNAL(MethodInfo("signal_state_changed", PropertyInfo(Variant::BOOL, "is_connected")));
+	ClassDB::bind_method(D_METHOD("get_ip"), &GRDeviceStandalone::get_ip);
+	ClassDB::bind_method(D_METHOD("is_stream_active"), &GRDeviceStandalone::is_stream_active);
+
+	ADD_SIGNAL(MethodInfo("stream_state_changed", PropertyInfo(Variant::BOOL, "is_active")));
 
 	// SETGET
 	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "val"), &GRDeviceStandalone::set_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("set_capture_when_hover", "val"), &GRDeviceStandalone::set_capture_when_hover);
+	ClassDB::bind_method(D_METHOD("set_connection_type", "type"), &GRDeviceStandalone::set_connection_type);
+	ClassDB::bind_method(D_METHOD("set_target_send_fps", "fps"), &GRDeviceStandalone::set_target_send_fps);
+	ClassDB::bind_method(D_METHOD("set_stretch_mode", "mode"), &GRDeviceStandalone::set_stretch_mode);
 
 	ClassDB::bind_method(D_METHOD("is_capture_on_focus"), &GRDeviceStandalone::is_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("is_capture_when_hover"), &GRDeviceStandalone::is_capture_when_hover);
+	ClassDB::bind_method(D_METHOD("get_connection_type"), &GRDeviceStandalone::get_connection_type);
+	ClassDB::bind_method(D_METHOD("get_target_send_fps"), &GRDeviceStandalone::get_target_send_fps);
+	ClassDB::bind_method(D_METHOD("get_stretch_mode"), &GRDeviceStandalone::get_stretch_mode);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "connection_type", PROPERTY_HINT_ENUM, "WiFi,ADB"), "set_connection_type", "get_connection_type");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), "set_target_send_fps", "get_target_send_fps");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Fill,Keep Aspect"), "set_stretch_mode", "get_stretch_mode");
 }
 
 void GRDeviceStandalone::_notification(int p_notification) {
@@ -120,7 +132,7 @@ void GRDeviceStandalone::set_control_to_show_in(Control *ctrl, int position_in_n
 		tex_shows_stream->set_anchor(MARGIN_RIGHT, 1.f);
 		tex_shows_stream->set_anchor(MARGIN_BOTTOM, 1.f);
 
-		prev_signal_connection_state = true; // force execute update function
+		signal_connection_state = true; // force execute update function
 		_update_stream_texture_state(false);
 
 		control_to_show_in->add_child(tex_shows_stream);
@@ -128,6 +140,8 @@ void GRDeviceStandalone::set_control_to_show_in(Control *ctrl, int position_in_n
 		control_to_show_in->add_child(input_collector);
 
 		input_collector->set_capture_on_focus(capture_only_when_control_in_focus);
+		input_collector->set_gr_device(this);
+		input_collector->set_tex_rect(tex_shows_stream);
 	}
 }
 
@@ -159,41 +173,45 @@ void GRDeviceStandalone::set_capture_when_hover(bool value) {
 		input_collector->set_capture_when_hover(capture_pointer_only_when_hover_control);
 }
 
+void GRDeviceStandalone::set_connection_type(int type) {
+	GodotRemote::get_singleton()->set_connection_type(type);
+}
+
+int GRDeviceStandalone::get_connection_type() {
+	return GodotRemote::get_singleton()->get_connection_type();
+}
+
+void GRDeviceStandalone::set_target_send_fps(int fps) {
+	ERR_FAIL_COND(fps <= 0);
+	send_data_fps = fps;
+}
+
+int GRDeviceStandalone::get_target_send_fps() {
+	return send_data_fps;
+}
+
+void GRDeviceStandalone::set_stretch_mode(int stretch) {
+	stretch_mode = (StretchMode)stretch;
+	_update_stream_texture_state(signal_connection_state);
+}
+
+int GRDeviceStandalone::get_stretch_mode() {
+	return stretch_mode;
+}
+
+bool GRDeviceStandalone::is_stream_active() {
+	return signal_connection_state;
+}
+
 String GRDeviceStandalone::get_ip() {
 	return (String)server_address;
 }
 
-void GRDeviceStandalone::set_ip(String ip, bool ipv4) {
-	bool old = is_working();
-	String prev = (String)server_address;
-
-	if (old)
-		stop();
-
-	bool is_invalid = false;
-
-	if (ipv4) {
-		auto res = ip_validator->search(ip);
-		if (res.is_null()) {
-			is_invalid = true;
-			goto end;
-		}
-	}
-
-	server_address = ip;
-
-end:
-	if (!server_address.is_valid() || is_invalid) {
-		ERR_PRINT(ip + " is an invalid address!");
-		log(ip + " is an invalid address!");
-		server_address = IP_Address(prev);
-	}
-
-	if (old)
-		start();
+bool GRDeviceStandalone::set_ip(String ip, bool ipv4) {
+	return set_address(ip, port, ipv4);
 }
 
-void GRDeviceStandalone::set_address(String ip, uint16_t _port, bool ipv4) {
+bool GRDeviceStandalone::set_address(String ip, uint16_t _port, bool ipv4) {
 	bool old = is_working();
 	if (old)
 		stop();
@@ -214,15 +232,18 @@ void GRDeviceStandalone::set_address(String ip, uint16_t _port, bool ipv4) {
 	port = _port;
 
 end:
+	bool all_ok = true;
 	if (!server_address.is_valid() || is_invalid) {
 		ERR_PRINT(ip + " is an invalid address!");
 		log(ip + " is an invalid address!");
 		server_address = IP_Address(prev);
 		port = prevPort;
+		all_ok = false;
 	}
 
 	if (old)
 		start();
+	return all_ok;
 }
 
 bool GRDeviceStandalone::start() {
@@ -269,29 +290,38 @@ void GRDeviceStandalone::_update_texture_from_iamge(Ref<Image> img) {
 	tex.instance();
 	tex->create_from_image(img);
 
-	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion())
+	// avg fps
+	uint32_t time = OS::get_singleton()->get_ticks_msec();
+	_update_avg_fps(time - prev_display_image_time);
+	prev_display_image_time = time;
+
+	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		tex_shows_stream->set_texture(tex);
+	}
 }
 
 void GRDeviceStandalone::_update_stream_texture_state(bool is_has_signal) {
-	if (prev_signal_connection_state == is_has_signal)
-		return;
-
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		if (is_has_signal) {
-			prev_signal_connection_state = true;
-			emit_signal("signal_state_changed", true);
+			signal_connection_state = true;
+			tex_shows_stream->set_stretch_mode(stretch_mode == StretchMode::KeepAspect ? TextureRect::STRETCH_KEEP_ASPECT_CENTERED : TextureRect::STRETCH_SCALE);
 			tex_shows_stream->set_material(nullptr);
+
+			if (signal_connection_state != is_has_signal)
+				emit_signal("stream_state_changed", true);
 		} else {
-			prev_signal_connection_state = false;
-			emit_signal("signal_state_changed", false);
+			signal_connection_state = false;
+			tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
+
+			if (signal_connection_state != is_has_signal)
+				emit_signal("stream_state_changed", false);
+
 			if (custom_no_signal_texture.is_valid()) {
 				tex_shows_stream->set_texture(custom_no_signal_texture);
 			}
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 			else {
 				tex_shows_stream->set_texture(no_signal_texture);
-				tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
 			}
 #endif
 			if (custom_no_signal_material.is_valid()) {
@@ -304,6 +334,11 @@ void GRDeviceStandalone::_update_stream_texture_state(bool is_has_signal) {
 #endif
 		}
 	}
+}
+
+void GRDeviceStandalone::_reset_counters() {
+	GRDevice::_reset_counters();
+	prev_display_image_time = OS::get_singleton()->get_ticks_msec() - 16;
 }
 
 //////////////////////////////////////////////
@@ -334,7 +369,7 @@ void GRDeviceStandalone::_thread_connection(void *p_userdata) {
 		Error err = con->connect_to_host(ip, dev->port);
 
 		if (err == OK) {
-			log("Connecting to " + address);
+			log("Connecting to " + address, LogLevel::LL_Debug);
 		} else {
 			switch (err) {
 				case FAILED:
@@ -359,7 +394,7 @@ void GRDeviceStandalone::_thread_connection(void *p_userdata) {
 		}
 
 		if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
-			log("Timeout! Connect to " + address + " failed.");
+			log("Timeout! Connect to " + address + " failed.", LogLevel::LL_Debug);
 			os->delay_usec(50_ms);
 			continue;
 		}
@@ -369,6 +404,7 @@ void GRDeviceStandalone::_thread_connection(void *p_userdata) {
 
 		if (_auth_on_server(con)) {
 			log("Successful connected to " + address);
+
 			dev->_update_stream_texture_state(true);
 			_connection_loop(dev, con);
 		}
@@ -387,14 +423,24 @@ void GRDeviceStandalone::_connection_loop(GRDeviceStandalone *dev, Ref<StreamPee
 	OS *os = OS::get_singleton();
 	Error err = Error::OK;
 
+	dev->_reset_counters();
+
 	uint32_t prev_time = os->get_ticks_msec();
-	while (!dev->break_connection && con->is_connected_to_host()) {
+	uint32_t prev_ping_sending_time = prev_time;
+	bool ping_sended = false;
+
+	while (!dev->break_connection && con->get_status() == StreamPeerTCP::STATUS_CONNECTED) {
 		uint32_t time = os->get_ticks_msec();
 		dev->prev_valid_connection_time = time;
+		bool nothing_happens = true;
 
+		///////////////////////////////////////////////////////////////////
 		// SENDING
+
+		// INPUT
 		if ((time - prev_time) > (1000 / dev->send_data_fps)) {
 			prev_time = time;
+			nothing_happens = false;
 
 			PoolByteArray d = _process_input_data(dev);
 
@@ -407,17 +453,32 @@ void GRDeviceStandalone::_connection_loop(GRDeviceStandalone *dev, Ref<StreamPee
 			data.append_array(d);
 
 			auto r = data.read();
-			Error err = con->put_data(r.ptr(), data.size());
+			err = con->put_data(r.ptr(), data.size());
 			r.release();
 
 			if (err) {
 				log("Put input data failed with code: " + str(err));
+				goto end_send;
 			}
+		}
+
+		// PING
+		if ((time - prev_ping_sending_time) > 100 && !ping_sended) {
+			prev_ping_sending_time = time;
+			nothing_happens = false;
+			ping_sended = true;
+			con->put_8((uint8_t)PacketType::Ping);
 		}
 	end_send:
 
+		if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
+			break;
+		}
+
+		///////////////////////////////////////////////////////////////////
 		// RECEIVING
-		if (con->get_available_bytes()) {
+		while (con->get_available_bytes() > 0) {
+			nothing_happens = false;
 			uint8_t res;
 			err = con->get_data(&res, 1);
 
@@ -464,13 +525,24 @@ void GRDeviceStandalone::_connection_loop(GRDeviceStandalone *dev, Ref<StreamPee
 				case GRDevice::InputData: {
 					break;
 				}
+				case GRDevice::Ping: {
+					con->put_8((uint8_t)PacketType::Pong);
+					break;
+				}
+				case GRDevice::Pong: {
+					dev->_update_avg_ping(os->get_ticks_msec() - prev_ping_sending_time);
+					ping_sended = false;
+					break;
+				}
 				default:
+					log("Not supported packet type! " + str(type), LogLevel::LL_Warning);
 					break;
 			}
 		}
 	end_recv:
 
-		os->delay_usec(1_ms);
+		if (nothing_happens)
+			os->delay_usec(1_ms);
 	}
 
 	dev->break_connection = true;
@@ -554,7 +626,7 @@ bool GRDeviceStandalone::_auth_on_server(Ref<StreamPeerTCP> con) {
 	return false;
 }
 
-#define fix(e) (e - offset) / vp_size
+#define fix(e) (e - rect.position) / rect.size
 
 #define data_append_defaults()                                                                                       \
 	data.append_array(uint322bytes(ie->get_device()));                                                               \
@@ -574,7 +646,9 @@ bool GRDeviceStandalone::_auth_on_server(Ref<StreamPeerTCP> con) {
 PoolByteArray GRDeviceStandalone::_process_input_data(GRDeviceStandalone *dev) {
 	PoolByteArray res;
 
-	if (!dev->control_to_show_in->is_inside_tree())
+	if (!dev ||
+			!dev->tex_shows_stream || dev->tex_shows_stream->is_queued_for_deletion() || !dev->tex_shows_stream->is_inside_tree() ||
+			!dev->control_to_show_in || dev->control_to_show_in->is_queued_for_deletion() || !dev->control_to_show_in->is_inside_tree())
 		return res;
 
 	Array collected_input = dev->input_collector->get_collected_input();
@@ -588,8 +662,19 @@ PoolByteArray GRDeviceStandalone::_process_input_data(GRDeviceStandalone *dev) {
 	res.append_array(uint322bytes(data.size() + 4));
 	res.append_array(data);
 
-	Vector2 vp_size = dev->control_to_show_in->get_size();
-	Vector2 offset = dev->control_to_show_in->get_global_position();
+	Rect2 rect;
+	switch (dev->stretch_mode) {
+		case GRDeviceStandalone::KeepAspect:
+			if (dev->tex_shows_stream->get_texture().is_null()) {
+				goto fill;
+			}
+			rect = dev->input_collector->get_keep_aspect_rect();
+			break;
+		case GRDeviceStandalone::Fill:
+		fill:
+			rect = Rect2(dev->tex_shows_stream->get_global_position(), dev->tex_shows_stream->get_size());
+			break;
+	}
 
 	for (int i = 0; i < collected_input.size(); i++) {
 		data.resize(0);
@@ -802,7 +887,36 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		return;
 	}
 
-	Rect2 rect = Rect2(parent->get_global_position(), parent->get_size());
+	Rect2 rect;
+	switch (grdev->get_stretch_mode()) {
+		case GRDeviceStandalone::StretchMode::KeepAspect: {
+			Ref<Texture> tex = texture_rect->get_texture();
+			if (tex.is_null())
+				goto fill;
+
+			Vector2 pos = texture_rect->get_global_position();
+			Vector2 outer_size = texture_rect->get_size();
+			Vector2 inner_size = tex->get_size();
+			float asp_rec = outer_size.x / outer_size.y;
+			float asp_tex = inner_size.x / inner_size.y;
+
+			if (asp_rec > asp_tex) {
+				float width = outer_size.y * asp_tex;
+				keep_aspect_rect_because_other_ways_to_get_all_time_fails = Rect2(Vector2(pos.x + (outer_size.x - width) / 2, pos.y), Vector2(width, outer_size.y));
+			} else {
+				float height = outer_size.x / asp_tex;
+				keep_aspect_rect_because_other_ways_to_get_all_time_fails = Rect2(Vector2(pos.x, pos.y + (outer_size.y - height) / 2), Vector2(outer_size.x, height));
+			}
+			rect = keep_aspect_rect_because_other_ways_to_get_all_time_fails;
+			break;
+		}
+		case GRDeviceStandalone::StretchMode::Fill:
+		default:
+		fill:
+			rect = Rect2(texture_rect->get_global_position(), texture_rect->get_size());
+			keep_aspect_rect_because_other_ways_to_get_all_time_fails = rect;
+			break;
+	}
 
 	{
 		Ref<InputEventMouseButton> iemb = ie;
@@ -910,6 +1024,14 @@ void GRInputCollector::set_capture_when_hover(bool value) {
 
 void GRInputCollector::set_gr_device(GRDeviceStandalone *dev) {
 	grdev = dev;
+}
+
+void GRInputCollector::set_tex_rect(TextureRect *tr) {
+	texture_rect = tr;
+}
+
+Rect2 GRInputCollector::get_keep_aspect_rect() {
+	return keep_aspect_rect_because_other_ways_to_get_all_time_fails;
 }
 
 Array GRInputCollector::get_collected_input() {

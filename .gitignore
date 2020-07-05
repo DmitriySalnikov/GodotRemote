@@ -22,5 +22,4 @@ __pycache__
 .import/
 
 # exist only for testing
-GodotRemoteServer
 test.gd

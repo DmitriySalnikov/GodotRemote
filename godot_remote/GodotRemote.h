@@ -34,7 +34,9 @@ private:
 	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 
 	class GRDevice *device = nullptr;
+
 	void register_and_load_settings();
+	void create_and_start_device(DeviceType type = DeviceType::DEVICE_Auto);
 #ifdef TOOLS_ENABLED
 	void _native_run_emitted();
 #endif
@@ -72,7 +74,8 @@ public:
 
 	class GRDevice *get_device() const;
 	// must be call_deffered
-	bool start_remote_device(DeviceType type = DeviceType::DEVICE_Auto);
+	bool create_remote_device(DeviceType type = DeviceType::DEVICE_Auto);
+	bool start_remote_device();
 	bool stop_remote_device();
 
 	void set_connection_type(int type);

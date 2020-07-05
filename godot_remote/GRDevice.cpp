@@ -3,6 +3,9 @@
 #include "GodotRemote.h"
 
 void GRDevice::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("get_avg_ping"), &GRDevice::get_avg_ping);
+	ClassDB::bind_method(D_METHOD("get_avg_fps"), &GRDevice::get_avg_fps);
+
 	ClassDB::bind_method(D_METHOD("get_port"), &GRDevice::get_port);
 	ClassDB::bind_method(D_METHOD("set_port", "port"), &GRDevice::set_port, DEFVAL(52341));
 
@@ -15,6 +18,7 @@ void GRDevice::_bind_methods() {
 	BIND_ENUM_CONSTANT(InitData);
 	BIND_ENUM_CONSTANT(ImageData);
 	BIND_ENUM_CONSTANT(InputData);
+	BIND_ENUM_CONSTANT(Ping);
 
 	BIND_ENUM_CONSTANT(_InputDeviceSensors)
 	BIND_ENUM_CONSTANT(_InputEvent)
@@ -32,6 +36,31 @@ void GRDevice::_bind_methods() {
 	BIND_ENUM_CONSTANT(_InputEventScreenDrag)
 	BIND_ENUM_CONSTANT(_InputEventScreenTouch)
 	BIND_ENUM_CONSTANT(_InputEventWithModifiers)
+}
+
+void GRDevice::_reset_counters() {
+	recv_avg_fps = 0;
+	recv_avg_ping = 0;
+}
+
+void GRDevice::_update_avg_ping(int ping) {
+	recv_avg_ping = (recv_avg_ping * avg_ping_smoothing) + ((float)ping * (1.f - avg_ping_smoothing));
+}
+
+void GRDevice::_update_avg_fps(int frametime) {
+	if (!frametime) {
+		recv_avg_fps = (recv_avg_fps * avg_fps_smoothing) + (0 * (1.f - avg_fps_smoothing));
+		return;
+	}
+	recv_avg_fps = (recv_avg_fps * avg_fps_smoothing) + ((1000.f / frametime) * (1.f - avg_fps_smoothing));
+}
+
+float GRDevice::get_avg_ping() {
+	return recv_avg_ping;
+}
+
+float GRDevice::get_avg_fps() {
+	return recv_avg_fps;
 }
 
 uint16_t GRDevice::get_port() {

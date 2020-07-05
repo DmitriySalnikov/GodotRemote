@@ -17,6 +17,12 @@ using namespace GRUtils;
 void GRDeviceDevelopment::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_settings_node"), &GRDeviceDevelopment::get_settings_node);
 	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRDeviceDevelopment::get_gr_viewport);
+
+	ClassDB::bind_method(D_METHOD("set_target_send_fps"), &GRDeviceDevelopment::set_target_send_fps);
+
+	ClassDB::bind_method(D_METHOD("get_target_send_fps"), &GRDeviceDevelopment::get_target_send_fps);
+
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps"), "set_target_send_fps", "get_target_send_fps");
 }
 
 void GRDeviceDevelopment::_notification(int p_notification) {
@@ -28,6 +34,15 @@ void GRDeviceDevelopment::_notification(int p_notification) {
 			break;
 		}
 	}
+}
+
+void GRDeviceDevelopment::set_target_send_fps(int fps) {
+	ERR_FAIL_COND(fps <= 0);
+	target_send_fps = fps;
+}
+
+int GRDeviceDevelopment::get_target_send_fps() {
+	return target_send_fps;
 }
 
 GRDeviceDevelopment::GRDeviceDevelopment() :
@@ -110,8 +125,7 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 	Ref<TCP_Server> srv = dev->tcp_server;
 	Thread *t_connection = nullptr;
 	OS *os = OS::get_singleton();
-	bool connectedRecv = false;
-	bool connectedSend = false;
+	bool is_client_connected = false;
 	Array connections;
 	Error err = OK;
 
@@ -126,7 +140,7 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 			if (err != OK) {
 
 				switch (err) {
-					case ERR_UNAVAILABLE :
+					case ERR_UNAVAILABLE:
 						log("Socket listening unavailable");
 						break;
 					case ERR_ALREADY_IN_USE:
@@ -163,31 +177,24 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 				Thread::wait_to_finish(t_connection);
 				t_connection = nullptr;
 			}
-			connectedRecv = false;
-			connectedSend = false;
+			is_client_connected = false;
 		}
 
 		if (srv->is_connection_available()) {
-			Ref<StreamPeerTCP> con = srv->take_connection();
-			con->set_no_delay(true);
-			String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
+			if (!is_client_connected) {
+				Ref<StreamPeerTCP> con = srv->take_connection();
+				con->set_no_delay(true);
+				String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
 
-			if (!connectedRecv || !connectedSend) {
 				AuthResult res = _auth_client(dev, con);
 				switch (res) {
 					case AuthResult::OK:
-						if (!connectedSend) {
-							dev->break_connection = false;
-							connectedSend = true;
+						dev->break_connection = false;
+						is_client_connected = true;
 
-							t_connection = Thread::create(&_thread_connection, new StartThreadArgs(dev, con));
-							log("New connection from " + address);
-							connections.append(con);
-						} else {
-							log("Refusing connection. Sending client already connected.");
-							con->disconnect_from_host();
-							os->delay_usec(16_ms);
-						}
+						t_connection = Thread::create(&_thread_connection, new StartThreadArgs(dev, con));
+						log("New connection from " + address);
+						connections.append(con);
 						break;
 					case AuthResult::Error:
 						log("Refusing connection. Wrong client. " + address);
@@ -206,8 +213,8 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 				}
 
 			} else {
-				log("Refusing connection. Already connected. " + address);
-				srv->take_connection()->disconnect_from_host();
+				//log("Refusing connection. Already connected. " + address, LogLevel::LL_Debug);
+				//con->disconnect_from_host();
 				os->delay_usec(16_ms);
 			}
 		} else {
@@ -240,12 +247,20 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 
 	String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
 	Thread::set_name("GR_connection " + address);
+
+	dev->_reset_counters();
+
 	uint32_t prev_time = os->get_ticks_msec();
+	uint32_t prev_ping_sending_time = prev_time;
+	uint32_t prev_send_image_time = prev_time;
+	bool ping_sended = false;
 
 	while (!dev->break_connection && con->get_status() == StreamPeerTCP::STATUS_CONNECTED) {
 		bool nothing_happens = true;
 
 		// SENDING
+
+		// IMAGE
 		uint32_t time = os->get_ticks_msec();
 		if (time - prev_time > (1000 / dev->target_send_fps) && !ips->is_new_data) {
 			nothing_happens = false;
@@ -262,7 +277,7 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 				log(String("Cant encode image!"), LogLevel::LL_Error);
 				ips->is_new_data = false;
 				os->delay_usec(1_ms);
-				continue;
+				goto end_send;
 			}
 
 			PoolByteArray data;
@@ -275,22 +290,37 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 			err = con->put_data(r.ptr(), data.size());
 			r.release();
 
+			// avg fps
+			time = os->get_ticks_msec();
+			dev->_update_avg_fps(time - prev_send_image_time);
+			prev_send_image_time = time;
+
 			if (err) {
 				log(String("Cant send image data! Code: ") + str(err), LogLevel::LL_Error);
 				r.release();
-				continue;
+				goto end_send;
 			}
 			r.release();
 		}
 
+		// PING
+		time = os->get_ticks_msec();
+		if ((os->get_ticks_msec() - prev_ping_sending_time) > 100 && !ping_sended) {
+			prev_ping_sending_time = time;
+			nothing_happens = false;
+			ping_sended = true;
+			con->put_8((uint8_t)PacketType::Ping);
+		}
+	end_send:
+
 		// RECEIVING
-		if (con->get_available_bytes()) {
+		while (con->get_available_bytes() > 0) {
 			nothing_happens = false;
 			uint8_t res;
 			err = con->get_data(&res, 1);
 
 			if (err)
-				continue;
+				goto end_recv;
 
 			PacketType type = (PacketType)res;
 			switch (type) {
@@ -303,7 +333,7 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 					err = con->get_data(s_res, 4);
 
 					if (err) {
-						continue;
+						break;
 					}
 
 					const int size = bytes2uint32(s_res);
@@ -315,17 +345,28 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 					w.release();
 
 					if (err) {
-						continue;
+						break;
 					}
 
 					_process_input_data(data);
 
 					break;
 				}
+				case GRDevice::Ping: {
+					con->put_8((uint8_t)PacketType::Pong);
+					break;
+				}
+				case GRDevice::Pong: {
+					dev->_update_avg_ping(os->get_ticks_msec() - prev_ping_sending_time);
+					ping_sended = false;
+					break;
+				}
 				default:
+					log("Not supported packet type! " + str(type), LogLevel::LL_Warning);
 					break;
 			}
 		}
+	end_recv:
 
 		if (nothing_happens) // for less cpu using
 			os->delay_usec(1_ms);

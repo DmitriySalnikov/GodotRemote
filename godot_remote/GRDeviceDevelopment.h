@@ -54,8 +54,9 @@ private:
 
 	bool stop_device = false;
 	bool break_connection = false;
-	int target_send_fps = 60;
 	int jpg_quality = 75;
+
+	int target_send_fps = 25;
 
 	static void _thread_listen(void *p_userdata);
 	static void _thread_connection(void *p_userdata);
@@ -70,6 +71,9 @@ protected:
 	void _notification(int p_notification);
 
 public:
+	void set_target_send_fps(int fps);
+	int get_target_send_fps();
+
 	virtual bool start() override;
 	virtual void stop() override;
 

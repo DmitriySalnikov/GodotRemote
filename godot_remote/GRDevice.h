@@ -14,6 +14,8 @@ public:
 		InitData = 0,
 		ImageData = 1,
 		InputData = 2,
+		Ping = 254,
+		Pong = 255,
 	};
 
 	enum InputType {
@@ -39,12 +41,22 @@ public:
 protected:
 	class GodotRemote *godot_remote = nullptr;
 	bool working = false;
+	float recv_avg_ping = 0;
+	float recv_avg_fps = 0;
+	float avg_ping_smoothing = 0.4f;
+	float avg_fps_smoothing = 0.8f;
+
+	virtual void _reset_counters();
+	void _update_avg_ping(int ping);
+	void _update_avg_fps(int frametime);
 
 	static void _bind_methods();
 
 public:
 	uint16_t port = 52341;
 
+	float get_avg_ping();
+	float get_avg_fps();
 	uint16_t get_port();
 	void set_port(uint16_t _port);
 
