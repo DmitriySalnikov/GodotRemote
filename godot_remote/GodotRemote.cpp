@@ -5,6 +5,7 @@
 #include "GRDeviceStandalone.h"
 #include "core/os/os.h"
 #include "core/project_settings.h"
+#include "editor/editor_node.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/viewport.h"
 #include "thirdparty/jpeg-compressor/jpgd.h"
@@ -12,6 +13,29 @@
 GodotRemote *GodotRemote::singleton = nullptr;
 
 using namespace GRUtils;
+
+GodotRemote *GodotRemote::get_singleton() {
+	return singleton;
+}
+
+GodotRemote::GodotRemote() {
+	if (!singleton)
+		singleton = this;
+
+#ifdef TOOLS_ENABLED
+	if (Engine::get_singleton()->is_editor_hint())
+		if (EditorNode::get_singleton())
+			EditorNode::get_singleton()->connect("play_pressed", this, "native_run_emitted");
+#endif
+
+	register_and_load_settings();
+	if (is_autostart && !Engine::get_singleton()->is_editor_hint())
+		call_deferred("create_and_start_device");
+}
+
+GodotRemote::~GodotRemote() {
+	compress_buffer.resize(0);
+}
 
 void GodotRemote::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("create_and_start_device", "device_type"), &GodotRemote::create_and_start_device, DEFVAL(DeviceType::DEVICE_Auto));
@@ -167,7 +191,6 @@ void GodotRemote::create_and_start_device(DeviceType type) {
 #ifdef TOOLS_ENABLED
 // TODO need to try get every device IDs and setup forwarding for each
 #include "editor/editor_export.h"
-#include "editor/editor_node.h"
 #include "editor/editor_run_native.h"
 #include "editor/editor_settings.h"
 
@@ -195,29 +218,6 @@ void GodotRemote::_native_run_emitted() {
 	}
 }
 #endif
-
-GodotRemote *GodotRemote::get_singleton() {
-	return singleton;
-}
-
-GodotRemote::GodotRemote() {
-	if (!singleton)
-		singleton = this;
-
-#ifdef TOOLS_ENABLED
-	if (Engine::get_singleton()->is_editor_hint())
-		if (EditorNode::get_singleton())
-			EditorNode::get_singleton()->connect("play_pressed", this, "native_run_emitted");
-#endif
-
-	register_and_load_settings();
-	if (is_autostart && !Engine::get_singleton()->is_editor_hint())
-		call_deferred("create_and_start_device");
-}
-
-GodotRemote::~GodotRemote() {
-	compress_buffer.resize(0);
-}
 
 //if (Engine::get_singleton()->is_editor_hint()) {
 //	if (EditorExport::get_singleton()) {

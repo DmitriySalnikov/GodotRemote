@@ -348,7 +348,10 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 						break;
 					}
 
-					_process_input_data(data);
+					if(!_parse_input_data(data)) {
+						con->disconnect_from_host();
+						break;
+					}
 
 					break;
 				}
@@ -474,7 +477,7 @@ GRDeviceDevelopment::AuthResult GRDeviceDevelopment::_auth_client(GRDeviceDevelo
 	return AuthResult::Error;
 }
 
-void GRDeviceDevelopment::_process_input_data(const PoolByteArray &p_data) {
+bool GRDeviceDevelopment::_parse_input_data(const PoolByteArray &p_data) {
 	InputMap *im = InputMap::get_singleton();
 	OS *os = OS::get_singleton();
 
@@ -491,6 +494,12 @@ void GRDeviceDevelopment::_process_input_data(const PoolByteArray &p_data) {
 		int length = decode_uint32(data); // block size
 		const uint8_t *next = data + length;
 		InputType type = (InputType)data[4];
+
+		if (data == next) {
+			log("Incorrect Input Data!!! Something wrong with data received from client!\n" + str_arr(p_data, true) + "\n", LogLevel::LL_Error);
+			return false;
+		}
+
 		data += 5;
 
 		switch (type) {
@@ -648,6 +657,8 @@ void GRDeviceDevelopment::_process_input_data(const PoolByteArray &p_data) {
 			Input::get_singleton()->call_deferred("parse_input_event", ev);
 		}
 	}
+
+	return true;
 }
 
 const uint8_t *GRDeviceDevelopment::_read_abstract_input_data(InputEvent *ie, const Vector2 &vs, const uint8_t *data) {

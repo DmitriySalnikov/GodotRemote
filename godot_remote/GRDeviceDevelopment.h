@@ -63,7 +63,7 @@ private:
 	static void _thread_image_processing(void *p_userdata);
 
 	static AuthResult _auth_client(GRDeviceDevelopment *dev, Ref<StreamPeerTCP> con);
-	static void _process_input_data(const PoolByteArray &p_data);
+	static bool _parse_input_data(const PoolByteArray &p_data);
 	static const uint8_t *_read_abstract_input_data(class InputEvent *ie, const Vector2 &vs, const uint8_t *data);
 
 protected:

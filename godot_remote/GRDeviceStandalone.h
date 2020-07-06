@@ -71,7 +71,7 @@ private:
 	Ref<class Material> custom_no_signal_material;
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
-	Ref<class ImageTexture> no_signal_texture;
+	Ref<class Image> no_signal_image;
 	Ref<class ShaderMaterial> no_signal_mat;
 #endif
 
@@ -84,7 +84,6 @@ private:
 
 	static void _connection_loop(GRDeviceStandalone *dev, Ref<StreamPeerTCP> con);
 	static bool _auth_on_server(Ref<StreamPeerTCP> con);
-	static PoolByteArray _process_input_data(GRDeviceStandalone *dev);
 
 protected:
 	static void _bind_methods();
@@ -124,14 +123,16 @@ class GRInputCollector : public Node {
 private:
 	GRDeviceStandalone *grdev = nullptr;
 	class TextureRect *texture_rect = nullptr;
-	Array collected_input;
-	PoolVector3Array sensors;
+	PoolByteArray collected_input_data;
 	class Control *parent;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
-	Rect2 keep_aspect_rect_because_other_ways_to_get_all_time_fails;
+	Rect2 stream_rect;
 
 protected:
+
+	void _update_stream_rect();
+
 	static void _bind_methods();
 
 	void _input(Ref<InputEvent> ie);
@@ -146,9 +147,7 @@ public:
 	void set_gr_device(GRDeviceStandalone *dev);
 	void set_tex_rect(class TextureRect *tr);
 
-	Rect2 get_keep_aspect_rect();
-	Array get_collected_input();
-	PoolVector3Array get_sensors();
+	PoolByteArray get_collected_input_data();
 
 	GRInputCollector();
 	~GRInputCollector();

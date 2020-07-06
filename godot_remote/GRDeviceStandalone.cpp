@@ -80,12 +80,9 @@ GRDeviceStandalone::GRDeviceStandalone() :
 	port = GLOBAL_GET("debug/godot_remote/general/port");
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
-	Ref<Image> no_signal_image;
 	no_signal_image.instance();
-	no_signal_texture.instance();
 	GetPoolVectorFromBin(tmp_no_signal, GRResources::Bin_NoSignalPNG);
 	no_signal_image->load_png_from_buffer(tmp_no_signal);
-	no_signal_texture->create_from_image(no_signal_image);
 
 	Ref<Shader> shader;
 	shader.instance();
@@ -286,17 +283,21 @@ void GRDeviceStandalone::stop() {
 }
 
 void GRDeviceStandalone::_update_texture_from_iamge(Ref<Image> img) {
-	Ref<ImageTexture> tex;
-	tex.instance();
-	tex->create_from_image(img);
-
 	// avg fps
 	uint32_t time = OS::get_singleton()->get_ticks_msec();
 	_update_avg_fps(time - prev_display_image_time);
 	prev_display_image_time = time;
 
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
-		tex_shows_stream->set_texture(tex);
+		Ref<ImageTexture> tex = tex_shows_stream->get_texture();
+		if (tex.is_valid()) {
+			tex->create_from_image(img);
+		} else {
+			Ref<ImageTexture> tex;
+			tex.instance();
+			tex->create_from_image(img);
+			tex_shows_stream->set_texture(tex);
+		}
 	}
 }
 
@@ -307,8 +308,9 @@ void GRDeviceStandalone::_update_stream_texture_state(bool is_has_signal) {
 			tex_shows_stream->set_stretch_mode(stretch_mode == StretchMode::KeepAspect ? TextureRect::STRETCH_KEEP_ASPECT_CENTERED : TextureRect::STRETCH_SCALE);
 			tex_shows_stream->set_material(nullptr);
 
-			if (signal_connection_state != is_has_signal)
+			if (signal_connection_state != is_has_signal) {
 				emit_signal("stream_state_changed", true);
+			}
 		} else {
 			signal_connection_state = false;
 			tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
@@ -321,7 +323,14 @@ void GRDeviceStandalone::_update_stream_texture_state(bool is_has_signal) {
 			}
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 			else {
-				tex_shows_stream->set_texture(no_signal_texture);
+				Ref<ImageTexture> tex = tex_shows_stream->get_texture();
+				if (tex.is_valid()) {
+					tex->create_from_image(no_signal_image);
+				} else {
+					tex.instance();
+					tex->create_from_image(no_signal_image);
+					tex_shows_stream->set_texture(tex);
+				}
 			}
 #endif
 			if (custom_no_signal_material.is_valid()) {
@@ -442,7 +451,7 @@ void GRDeviceStandalone::_connection_loop(GRDeviceStandalone *dev, Ref<StreamPee
 			prev_time = time;
 			nothing_happens = false;
 
-			PoolByteArray d = _process_input_data(dev);
+			PoolByteArray d = dev->input_collector->get_collected_input_data();
 
 			if (d.size() == 0)
 				goto end_send;
@@ -626,7 +635,64 @@ bool GRDeviceStandalone::_auth_on_server(Ref<StreamPeerTCP> con) {
 	return false;
 }
 
-#define fix(e) (e - rect.position) / rect.size
+//////////////////////////////////////////////
+///////////// INPUT COLLECTOR ////////////////
+//////////////////////////////////////////////
+
+void GRInputCollector::_update_stream_rect() {
+	if (!grdev || !grdev->is_working())
+		return;
+
+	if (texture_rect && !texture_rect->is_queued_for_deletion()) {
+		switch (grdev->get_stretch_mode()) {
+			case GRDeviceStandalone::StretchMode::KeepAspect: {
+				Ref<Texture> tex = texture_rect->get_texture();
+				if (tex.is_null())
+					goto fill;
+
+				Vector2 pos = texture_rect->get_global_position();
+				Vector2 outer_size = texture_rect->get_size();
+				Vector2 inner_size = tex->get_size();
+				float asp_rec = outer_size.x / outer_size.y;
+				float asp_tex = inner_size.x / inner_size.y;
+
+				if (asp_rec > asp_tex) {
+					float width = outer_size.y * asp_tex;
+					stream_rect = Rect2(Vector2(pos.x + (outer_size.x - width) / 2, pos.y), Vector2(width, outer_size.y));
+					return;
+				} else {
+					float height = outer_size.x / asp_tex;
+					stream_rect = Rect2(Vector2(pos.x, pos.y + (outer_size.y - height) / 2), Vector2(outer_size.x, height));
+					return;
+				}
+				break;
+			}
+			case GRDeviceStandalone::StretchMode::Fill:
+			default:
+			fill:
+				stream_rect = Rect2(texture_rect->get_global_position(), texture_rect->get_size());
+				return;
+		}
+	}
+	if (parent && !parent->is_queued_for_deletion()) {
+		stream_rect = Rect2(parent->get_global_position(), parent->get_size());
+	}
+	return;
+}
+
+void GRInputCollector::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("_input", "input_event"), &GRInputCollector::_input);
+
+	ClassDB::bind_method(D_METHOD("is_capture_on_focus"), &GRInputCollector::is_capture_on_focus);
+	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "value"), &GRInputCollector::set_capture_on_focus);
+	ClassDB::bind_method(D_METHOD("is_capture_when_hover"), &GRInputCollector::is_capture_when_hover);
+	ClassDB::bind_method(D_METHOD("set_capture_when_hover", "value"), &GRInputCollector::set_capture_when_hover);
+
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
+}
+
+#define fix(e) (e - stream_rect.position) / stream_rect.size
 
 #define data_append_defaults()                                                                                       \
 	data.append_array(uint322bytes(ie->get_device()));                                                               \
@@ -643,285 +709,47 @@ bool GRDeviceStandalone::_auth_on_server(Ref<StreamPeerTCP> con) {
 		data.append_array(var2bytes(fix(ieg->get_position())));                                                      \
 	}
 
-PoolByteArray GRDeviceStandalone::_process_input_data(GRDeviceStandalone *dev) {
-	PoolByteArray res;
-
-	if (!dev ||
-			!dev->tex_shows_stream || dev->tex_shows_stream->is_queued_for_deletion() || !dev->tex_shows_stream->is_inside_tree() ||
-			!dev->control_to_show_in || dev->control_to_show_in->is_queued_for_deletion() || !dev->control_to_show_in->is_inside_tree())
-		return res;
-
-	Array collected_input = dev->input_collector->get_collected_input();
-	PoolVector3Array sensors = dev->input_collector->get_sensors();
-
-	PoolByteArray data;
-	data.append(InputType::_InputDeviceSensors);
-	data.append_array(var2bytes(sensors));
-	sensors.resize(0);
-
-	res.append_array(uint322bytes(data.size() + 4));
-	res.append_array(data);
-
-	Rect2 rect;
-	switch (dev->stretch_mode) {
-		case GRDeviceStandalone::KeepAspect:
-			if (dev->tex_shows_stream->get_texture().is_null()) {
-				goto fill;
-			}
-			rect = dev->input_collector->get_keep_aspect_rect();
-			break;
-		case GRDeviceStandalone::Fill:
-		fill:
-			rect = Rect2(dev->tex_shows_stream->get_global_position(), dev->tex_shows_stream->get_size());
-			break;
-	}
-
-	for (int i = 0; i < collected_input.size(); i++) {
-		data.resize(0);
-		Ref<InputEvent> ie = ((Ref<InputEvent>)collected_input[i]);
-
-		Ref<InputEventMouse> iem = ie;
-		Ref<InputEventGesture> ieg = ie;
-		Ref<InputEventWithModifiers> iewm = ie;
-
-		if (ie.is_null()) {
-			log("InputEvent is null", LogLevel::LL_Error);
-			continue;
-		}
-
-		{
-			Ref<InputEventKey> iek = ie;
-			if (iek.is_valid()) {
-				data.append(InputType::_InputEventKey);
-				data_append_defaults();
-
-				data.append((uint8_t)iek->is_pressed() | (uint8_t)iek->is_echo() << 1);
-				data.append_array(uint322bytes(iek->get_scancode()));
-				data.append_array(uint322bytes(iek->get_unicode()));
-
-				goto end;
-			}
-		}
-
-		{
-			Ref<InputEventMouseButton> iemb = ie;
-			if (iemb.is_valid()) {
-				data.append(InputType::_InputEventMouseButton);
-				data_append_defaults();
-
-				data.append_array(float2bytes(iemb->get_factor()));
-				data.append_array(uint162bytes(iemb->get_button_index()));
-				data.append((uint8_t)iemb->is_pressed() | (uint8_t)iemb->is_doubleclick() << 1);
-
-				goto end;
-			}
-		}
-
-		{
-			Ref<InputEventMouseMotion> iemm = ie;
-			if (iemm.is_valid()) {
-				data.append(InputType::_InputEventMouseMotion);
-				data_append_defaults();
-
-				data.append_array(float2bytes(iemm->get_pressure()));
-				data.append_array(var2bytes(iemm->get_tilt()));
-				data.append_array(var2bytes(fix(iemm->get_relative())));
-				data.append_array(var2bytes(fix(iemm->get_speed())));
-
-				goto end;
-			}
-		}
-
-		{
-			Ref<InputEventScreenTouch> iest = ie;
-			if (iest.is_valid()) {
-				data.append(InputType::_InputEventScreenTouch);
-				data_append_defaults();
-
-				data.append(iest->get_index());
-				data.append_array(var2bytes(fix(iest->get_position())));
-				data.append(iest->is_pressed());
-
-				goto end;
-			}
-		}
-
-		{
-			Ref<InputEventScreenDrag> iesd = ie;
-			if (iesd.is_valid()) {
-				data.append(InputType::_InputEventScreenDrag);
-				data_append_defaults();
-
-				data.append(iesd->get_index());
-				data.append_array(var2bytes(fix(iesd->get_position())));
-				data.append_array(var2bytes(fix(iesd->get_relative())));
-				data.append_array(var2bytes(fix(iesd->get_speed())));
-
-				goto end;
-			}
-		}
-
-		{
-			Ref<InputEventMagnifyGesture> iemg = ie;
-			if (iemg.is_valid()) {
-				data.append(InputType::_InputEventMagnifyGesture);
-				data_append_defaults();
-
-				data.append_array(float2bytes(iemg->get_factor()));
-
-				goto end;
-			}
-		}
-
-		{
-			Ref<InputEventPanGesture> iepg = ie;
-			if (iepg.is_valid()) {
-				data.append(InputType::_InputEventPanGesture);
-				data_append_defaults();
-
-				data.append_array(var2bytes(fix(iepg->get_delta())));
-
-				goto end;
-			}
-		}
-
-		{
-			Ref<InputEventJoypadButton> iejb = ie;
-			if (iejb.is_valid()) {
-				data.append(InputType::_InputEventJoypadButton);
-				data_append_defaults();
-
-				data.append_array(uint322bytes(iejb->get_button_index()));
-				data.append_array(float2bytes(iejb->get_pressure()));
-				data.append(iejb->is_pressed());
-
-				goto end;
-			}
-		}
-
-		{
-			Ref<InputEventJoypadMotion> iejm = ie;
-			if (iejm.is_valid()) {
-				data.append(InputType::_InputEventJoypadMotion);
-				data_append_defaults();
-
-				data.append_array(uint322bytes(iejm->get_axis()));
-				data.append_array(float2bytes(iejm->get_axis_value()));
-
-				goto end;
-			}
-		}
-
-		{
-			Ref<InputEventAction> iea = ie;
-			if (iea.is_valid()) {
-				data.append(InputType::_InputEventAction);
-				data_append_defaults();
-
-				PoolByteArray sd = var2bytes((String)iea->get_action());
-
-				data.append_array(uint322bytes(sd.size()));
-				data.append_array(sd);
-				data.append_array(float2bytes(iea->get_strength()));
-				data.append(iea->is_pressed());
-
-				goto end;
-			}
-		}
-
-		{
-			Ref<InputEventMIDI> iemidi = ie;
-			if (iemidi.is_valid()) {
-				data.append(InputType::_InputEventMIDI);
-				data_append_defaults();
-
-				PoolIntArray midi;
-				midi.append(iemidi->get_channel());
-				midi.append(iemidi->get_message());
-				midi.append(iemidi->get_pitch());
-				midi.append(iemidi->get_velocity());
-				midi.append(iemidi->get_instrument());
-				midi.append(iemidi->get_pressure());
-				midi.append(iemidi->get_controller_number());
-				midi.append(iemidi->get_controller_value());
-
-				data.append_array(var2bytes(midi));
-
-				goto end;
-			}
-		}
-
-		log("InputEvent type " + str(ie) + " not supported!", LogLevel::LL_Error);
-		continue;
-
-	end:
-
-		res.append_array(uint322bytes(data.size() + 4)); // block size
-		res.append_array(data);
-	}
-
-	return res;
-}
-
-#undef fix
-#undef data_append_defaults
-
-//////////////////////////////////////////////
-///////////// INPUT COLLECTOR ////////////////
-//////////////////////////////////////////////
-
-void GRInputCollector::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("_input", "input_event"), &GRInputCollector::_input);
-
-	ClassDB::bind_method(D_METHOD("is_capture_on_focus"), &GRInputCollector::is_capture_on_focus);
-	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "value"), &GRInputCollector::set_capture_on_focus);
-	ClassDB::bind_method(D_METHOD("is_capture_when_hover"), &GRInputCollector::is_capture_when_hover);
-	ClassDB::bind_method(D_METHOD("set_capture_when_hover", "value"), &GRInputCollector::set_capture_when_hover);
-
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
-}
-
 void GRInputCollector::_input(Ref<InputEvent> ie) {
 	if (!parent || (capture_only_when_control_in_focus && !parent->has_focus()) || (grdev && !grdev->is_working())) {
 		return;
 	}
 
-	Rect2 rect;
-	switch (grdev->get_stretch_mode()) {
-		case GRDeviceStandalone::StretchMode::KeepAspect: {
-			Ref<Texture> tex = texture_rect->get_texture();
-			if (tex.is_null())
-				goto fill;
+	if (collected_input_data.size() > 1024 * 8) {
+		collected_input_data.resize(0);
+	}
 
-			Vector2 pos = texture_rect->get_global_position();
-			Vector2 outer_size = texture_rect->get_size();
-			Vector2 inner_size = tex->get_size();
-			float asp_rec = outer_size.x / outer_size.y;
-			float asp_tex = inner_size.x / inner_size.y;
+	// TODO maybe later i change it to update less frequent
+	_update_stream_rect();
 
-			if (asp_rec > asp_tex) {
-				float width = outer_size.y * asp_tex;
-				keep_aspect_rect_because_other_ways_to_get_all_time_fails = Rect2(Vector2(pos.x + (outer_size.x - width) / 2, pos.y), Vector2(width, outer_size.y));
-			} else {
-				float height = outer_size.x / asp_tex;
-				keep_aspect_rect_because_other_ways_to_get_all_time_fails = Rect2(Vector2(pos.x, pos.y + (outer_size.y - height) / 2), Vector2(outer_size.x, height));
-			}
-			rect = keep_aspect_rect_because_other_ways_to_get_all_time_fails;
-			break;
+	PoolByteArray data;
+
+	Ref<InputEventMouse> iem = ie;
+	Ref<InputEventGesture> ieg = ie;
+	Ref<InputEventWithModifiers> iewm = ie;
+
+	if (ie.is_null()) {
+		log("InputEvent is null", LogLevel::LL_Error);
+		goto end;
+	}
+
+	{
+		Ref<InputEventKey> iek = ie;
+		if (iek.is_valid()) {
+			data.append(GRDevice::InputType::_InputEventKey);
+			data_append_defaults();
+
+			data.append((uint8_t)iek->is_pressed() | (uint8_t)iek->is_echo() << 1);
+			data.append_array(uint322bytes(iek->get_scancode()));
+			data.append_array(uint322bytes(iek->get_unicode()));
+
+			goto end;
 		}
-		case GRDeviceStandalone::StretchMode::Fill:
-		default:
-		fill:
-			rect = Rect2(texture_rect->get_global_position(), texture_rect->get_size());
-			keep_aspect_rect_because_other_ways_to_get_all_time_fails = rect;
-			break;
 	}
 
 	{
 		Ref<InputEventMouseButton> iemb = ie;
 		if (iemb.is_valid()) {
-			if (!rect.has_point(iemb->get_position()) && capture_pointer_only_when_hover_control) {
+			if (!stream_rect.has_point(iemb->get_position()) && capture_pointer_only_when_hover_control) {
 				int idx = iemb->get_button_index();
 				if (idx == BUTTON_WHEEL_UP || idx == BUTTON_WHEEL_DOWN ||
 						idx == BUTTON_WHEEL_LEFT || idx == BUTTON_WHEEL_RIGHT) {
@@ -931,6 +759,13 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 						return;
 				}
 			}
+			data.append(GRDevice::InputType::_InputEventMouseButton);
+			data_append_defaults();
+
+			data.append_array(float2bytes(iemb->get_factor()));
+			data.append_array(uint162bytes(iemb->get_button_index()));
+			data.append((uint8_t)iemb->is_pressed() | (uint8_t)iemb->is_doubleclick() << 1);
+
 			goto end;
 		}
 	}
@@ -938,8 +773,16 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventMouseMotion> iemm = ie;
 		if (iemm.is_valid()) {
-			if (!rect.has_point(iemm->get_position()) && capture_pointer_only_when_hover_control)
+			if (!stream_rect.has_point(iemm->get_position()) && capture_pointer_only_when_hover_control)
 				return;
+			data.append(GRDevice::InputType::_InputEventMouseMotion);
+			data_append_defaults();
+
+			data.append_array(float2bytes(iemm->get_pressure()));
+			data.append_array(var2bytes(iemm->get_tilt()));
+			data.append_array(var2bytes(fix(iemm->get_relative())));
+			data.append_array(var2bytes(fix(iemm->get_speed())));
+
 			goto end;
 		}
 	}
@@ -947,10 +790,17 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventScreenTouch> iest = ie;
 		if (iest.is_valid()) {
-			if (!rect.has_point(iest->get_position()) && capture_pointer_only_when_hover_control) {
+			if (!stream_rect.has_point(iest->get_position()) && capture_pointer_only_when_hover_control) {
 				if (iest->is_pressed())
 					return;
 			}
+			data.append(GRDevice::InputType::_InputEventScreenTouch);
+			data_append_defaults();
+
+			data.append(iest->get_index());
+			data.append_array(var2bytes(fix(iest->get_position())));
+			data.append(iest->is_pressed());
+
 			goto end;
 		}
 	}
@@ -958,8 +808,16 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventScreenDrag> iesd = ie;
 		if (iesd.is_valid()) {
-			if (!rect.has_point(iesd->get_position()) && capture_pointer_only_when_hover_control)
+			if (!stream_rect.has_point(iesd->get_position()) && capture_pointer_only_when_hover_control)
 				return;
+			data.append(GRDevice::InputType::_InputEventScreenDrag);
+			data_append_defaults();
+
+			data.append(iesd->get_index());
+			data.append_array(var2bytes(fix(iesd->get_position())));
+			data.append_array(var2bytes(fix(iesd->get_relative())));
+			data.append_array(var2bytes(fix(iesd->get_speed())));
+
 			goto end;
 		}
 	}
@@ -967,8 +825,13 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventMagnifyGesture> iemg = ie;
 		if (iemg.is_valid()) {
-			if (!rect.has_point(iemg->get_position()) && capture_pointer_only_when_hover_control)
+			if (!stream_rect.has_point(iemg->get_position()) && capture_pointer_only_when_hover_control)
 				return;
+			data.append(GRDevice::InputType::_InputEventMagnifyGesture);
+			data_append_defaults();
+
+			data.append_array(float2bytes(iemg->get_factor()));
+
 			goto end;
 		}
 	}
@@ -976,25 +839,94 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventPanGesture> iepg = ie;
 		if (iepg.is_valid()) {
-			if (!rect.has_point(iepg->get_position()) && capture_pointer_only_when_hover_control)
+			if (!stream_rect.has_point(iepg->get_position()) && capture_pointer_only_when_hover_control)
 				return;
+			data.append(GRDevice::InputType::_InputEventPanGesture);
+			data_append_defaults();
+
+			data.append_array(var2bytes(fix(iepg->get_delta())));
+
 			goto end;
 		}
 	}
 
-end:
+	{
+		Ref<InputEventJoypadButton> iejb = ie;
+		if (iejb.is_valid()) {
+			data.append(GRDevice::InputType::_InputEventJoypadButton);
+			data_append_defaults();
 
-	if (collected_input.size() > 200) {
-		collected_input.resize(0);
+			data.append_array(uint322bytes(iejb->get_button_index()));
+			data.append_array(float2bytes(iejb->get_pressure()));
+			data.append(iejb->is_pressed());
+
+			goto end;
+		}
 	}
 
-	collected_input.append(ie);
+	{
+		Ref<InputEventJoypadMotion> iejm = ie;
+		if (iejm.is_valid()) {
+			data.append(GRDevice::InputType::_InputEventJoypadMotion);
+			data_append_defaults();
 
-	sensors[0] = Input::get_singleton()->get_accelerometer();
-	sensors[1] = Input::get_singleton()->get_gravity();
-	sensors[2] = Input::get_singleton()->get_gyroscope();
-	sensors[3] = Input::get_singleton()->get_magnetometer();
+			data.append_array(uint322bytes(iejm->get_axis()));
+			data.append_array(float2bytes(iejm->get_axis_value()));
+
+			goto end;
+		}
+	}
+
+	{
+		Ref<InputEventAction> iea = ie;
+		if (iea.is_valid()) {
+			data.append(GRDevice::InputType::_InputEventAction);
+			data_append_defaults();
+
+			PoolByteArray sd = var2bytes((String)iea->get_action());
+
+			data.append_array(uint322bytes(sd.size()));
+			data.append_array(sd);
+			data.append_array(float2bytes(iea->get_strength()));
+			data.append(iea->is_pressed());
+
+			goto end;
+		}
+	}
+
+	{
+		Ref<InputEventMIDI> iemidi = ie;
+		if (iemidi.is_valid()) {
+			data.append(GRDevice::InputType::_InputEventMIDI);
+			data_append_defaults();
+
+			PoolIntArray midi;
+			midi.append(iemidi->get_channel());
+			midi.append(iemidi->get_message());
+			midi.append(iemidi->get_pitch());
+			midi.append(iemidi->get_velocity());
+			midi.append(iemidi->get_instrument());
+			midi.append(iemidi->get_pressure());
+			midi.append(iemidi->get_controller_number());
+			midi.append(iemidi->get_controller_value());
+
+			data.append_array(var2bytes(midi));
+
+			goto end;
+		}
+	}
+	log("InputEvent type " + str(ie) + " not supported!", LogLevel::LL_Error);
+
+end:
+
+	if (data.size()) {
+		collected_input_data.append_array(uint322bytes(data.size() + 4)); // block size
+		collected_input_data.append_array(data);
+	}
 }
+
+#undef fix
+#undef data_append_defaults
 
 void GRInputCollector::_notification(int p_notification) {
 	switch (p_notification) {
@@ -1030,25 +962,31 @@ void GRInputCollector::set_tex_rect(TextureRect *tr) {
 	texture_rect = tr;
 }
 
-Rect2 GRInputCollector::get_keep_aspect_rect() {
-	return keep_aspect_rect_because_other_ways_to_get_all_time_fails;
-}
+PoolByteArray GRInputCollector::get_collected_input_data() {
+	PoolByteArray res;
+	PoolVector3Array sensors;
+	sensors.resize(4);
+	auto w = sensors.write();
+	w[0] = Input::get_singleton()->get_accelerometer();
+	w[1] = Input::get_singleton()->get_gravity();
+	w[2] = Input::get_singleton()->get_gyroscope();
+	w[3] = Input::get_singleton()->get_magnetometer();
+	w.release();
 
-Array GRInputCollector::get_collected_input() {
-	Array res = collected_input.duplicate();
-	collected_input.clear();
-	return res;
-}
+	// sensors
+	res.append_array(uint322bytes(12 * sensors.size() + 8 + 4 + 1)); // +8 - sensors header, +4 - this value, +1 - type
+	res.append(GRDevice::InputType::_InputDeviceSensors);
+	res.append_array(var2bytes(sensors));
 
-PoolVector3Array GRInputCollector::get_sensors() {
-	PoolVector3Array res;
-	res.append_array(sensors);
+	// other input events
+	res.append_array(collected_input_data);
+	collected_input_data.resize(0);
+
 	return res;
 }
 
 GRInputCollector::GRInputCollector() {
 	parent = nullptr;
-	sensors.resize(4);
 	set_process_input(true);
 }
 
