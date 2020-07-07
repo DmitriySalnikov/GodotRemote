@@ -258,6 +258,7 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 	while (!dev->break_connection && con->get_status() == StreamPeerTCP::STATUS_CONNECTED) {
 		bool nothing_happens = true;
 
+		///////////////////////////////////////////////////////////////////
 		// SENDING
 
 		// IMAGE
@@ -313,6 +314,7 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 		}
 	end_send:
 
+		///////////////////////////////////////////////////////////////////
 		// RECEIVING
 		while (con->get_available_bytes() > 0) {
 			nothing_happens = false;
@@ -348,7 +350,7 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 						break;
 					}
 
-					if(!_parse_input_data(data)) {
+					if (!_parse_input_data(data)) {
 						con->disconnect_from_host();
 						break;
 					}

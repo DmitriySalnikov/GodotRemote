@@ -121,7 +121,7 @@ class GRInputCollector : public Node {
 	GDCLASS(GRInputCollector, Node);
 
 private:
-	GRDeviceStandalone *grdev = nullptr;
+	GRDeviceStandalone *dev = nullptr;
 	class TextureRect *texture_rect = nullptr;
 	PoolByteArray collected_input_data;
 	class Control *parent;

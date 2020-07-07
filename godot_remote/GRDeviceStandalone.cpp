@@ -304,19 +304,19 @@ void GRDeviceStandalone::_update_texture_from_iamge(Ref<Image> img) {
 void GRDeviceStandalone::_update_stream_texture_state(bool is_has_signal) {
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		if (is_has_signal) {
-			signal_connection_state = true;
 			tex_shows_stream->set_stretch_mode(stretch_mode == StretchMode::KeepAspect ? TextureRect::STRETCH_KEEP_ASPECT_CENTERED : TextureRect::STRETCH_SCALE);
 			tex_shows_stream->set_material(nullptr);
 
 			if (signal_connection_state != is_has_signal) {
 				emit_signal("stream_state_changed", true);
 			}
+			signal_connection_state = true;
 		} else {
-			signal_connection_state = false;
 			tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
 
 			if (signal_connection_state != is_has_signal)
 				emit_signal("stream_state_changed", false);
+			signal_connection_state = false;
 
 			if (custom_no_signal_texture.is_valid()) {
 				tex_shows_stream->set_texture(custom_no_signal_texture);
@@ -640,11 +640,11 @@ bool GRDeviceStandalone::_auth_on_server(Ref<StreamPeerTCP> con) {
 //////////////////////////////////////////////
 
 void GRInputCollector::_update_stream_rect() {
-	if (!grdev || !grdev->is_working())
+	if (!dev || !dev->is_working())
 		return;
 
 	if (texture_rect && !texture_rect->is_queued_for_deletion()) {
-		switch (grdev->get_stretch_mode()) {
+		switch (dev->get_stretch_mode()) {
 			case GRDeviceStandalone::StretchMode::KeepAspect: {
 				Ref<Texture> tex = texture_rect->get_texture();
 				if (tex.is_null())
@@ -710,7 +710,7 @@ void GRInputCollector::_bind_methods() {
 	}
 
 void GRInputCollector::_input(Ref<InputEvent> ie) {
-	if (!parent || (capture_only_when_control_in_focus && !parent->has_focus()) || (grdev && !grdev->is_working())) {
+	if (!parent || (capture_only_when_control_in_focus && !parent->has_focus()) || (dev && !dev->is_working()) || !dev->is_stream_active()) {
 		return;
 	}
 
@@ -955,7 +955,7 @@ void GRInputCollector::set_capture_when_hover(bool value) {
 }
 
 void GRInputCollector::set_gr_device(GRDeviceStandalone *dev) {
-	grdev = dev;
+	dev = dev;
 }
 
 void GRInputCollector::set_tex_rect(TextureRect *tr) {
