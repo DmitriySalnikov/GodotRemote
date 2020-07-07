@@ -49,14 +49,6 @@ void GodotRemote::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_device"), &GodotRemote::get_device);
 
-	ClassDB::bind_method(D_METHOD("set_connection_type", "type"), &GodotRemote::set_connection_type);
-	ClassDB::bind_method(D_METHOD("get_connection_type"), &GodotRemote::get_connection_type);
-
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "connection_type", PROPERTY_HINT_ENUM, "WiFi"), "set_connection_type", "get_connection_type");
-
-	BIND_ENUM_CONSTANT(CONNECTION_ADB);
-	BIND_ENUM_CONSTANT(CONNECTION_WiFi);
-
 	BIND_ENUM_CONSTANT(DEVICE_Auto);
 	BIND_ENUM_CONSTANT(DEVICE_Development);
 	BIND_ENUM_CONSTANT(DEVICE_Standalone);
@@ -155,14 +147,6 @@ bool GodotRemote::stop_remote_device() {
 	return false;
 }
 
-void GodotRemote::set_connection_type(int type) {
-	con_type = (ConnectionType)type;
-}
-
-int GodotRemote::get_connection_type() {
-	return con_type;
-}
-
 void GodotRemote::register_and_load_settings() {
 #define DEF_SET(var, name, def_val, info) \
 	var = GLOBAL_DEF(name, def_val);      \
@@ -175,9 +159,9 @@ void GodotRemote::register_and_load_settings() {
 	ProjectSettings::get_singleton()->set_custom_property_info(name, info)
 
 	DEF_SET(is_autostart, ps_autoload_name, true, PropertyInfo(Variant::BOOL, ps_autoload_name));
-	DEF_SET_ENUM(con_type, ConnectionType, ps_con_type_name, con_type, PropertyInfo(Variant::INT, ps_con_type_name, PROPERTY_HINT_ENUM, "Only WiFi,Configure ADB/USB"));
 	DEF_SET(port, ps_port_name, port, PropertyInfo(Variant::INT, ps_port_name, PROPERTY_HINT_RANGE, "0,65535"));
 	DEF_(ps_jpg_mb_size_name, 4, PropertyInfo(Variant::INT, ps_jpg_mb_size_name, PROPERTY_HINT_RANGE, "1,128"));
+	DEF_(ps_config_adb_name, true, PropertyInfo(Variant::BOOL, ps_config_adb_name));
 
 #undef DEF_SET
 #undef DEF_
@@ -208,14 +192,9 @@ void GodotRemote::_adb_port_forwarding() {
 }
 
 void GodotRemote::_native_run_emitted() {
-	// delayed call because debugger can't connect to game if adb blocks thread on start
-	switch (con_type) {
-		case GodotRemote::CONNECTION_WiFi:
-			break;
-		case GodotRemote::CONNECTION_ADB:
-			call_deferred("adb_port_forwarding");
-			break;
-	}
+	// call_deferred because debugger can't connect to game if process blocks thread on start
+	if (GET_PS(ps_config_adb_name))
+		call_deferred("adb_port_forwarding");
 }
 #endif
 

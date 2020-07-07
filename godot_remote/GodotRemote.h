@@ -12,11 +12,6 @@ class GodotRemote : public Reference {
 	static GodotRemote *singleton;
 
 public:
-	enum ConnectionType {
-		CONNECTION_WiFi = 0,
-		CONNECTION_ADB = 1,
-	};
-
 	enum DeviceType {
 		DEVICE_Auto = 0,
 		DEVICE_Development = 1,
@@ -26,17 +21,15 @@ public:
 private:
 	const String ps_autoload_name = "debug/godot_remote/general/autostart";
 	const String ps_port_name = "debug/godot_remote/general/port";
-	const String ps_con_type_name = "debug/godot_remote/general/connection_type";
+	const String ps_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
 	const String ps_jpg_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
 
 	bool is_autostart = false;
 	uint16_t port = 52341;
-	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 
 	class GRDevice *device = nullptr;
 
 	void register_and_load_settings();
-	void create_and_start_device(DeviceType type = DeviceType::DEVICE_Auto);
 #ifdef TOOLS_ENABLED
 	void _native_run_emitted();
 #endif
@@ -73,13 +66,12 @@ public:
 	// GRUtils end
 
 	class GRDevice *get_device() const;
+
 	// must be call_deffered
+	void create_and_start_device(DeviceType type = DeviceType::DEVICE_Auto);
 	bool create_remote_device(DeviceType type = DeviceType::DEVICE_Auto);
 	bool start_remote_device();
 	bool stop_remote_device();
-
-	void set_connection_type(int type);
-	int get_connection_type();
 
 #ifdef TOOLS_ENABLED
 	void _adb_port_forwarding();
@@ -91,4 +83,3 @@ public:
 };
 
 VARIANT_ENUM_CAST(GodotRemote::DeviceType)
-VARIANT_ENUM_CAST(GodotRemote::ConnectionType)

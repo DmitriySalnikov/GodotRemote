@@ -26,7 +26,11 @@
 
 #endif // DEBUG_ENABLED
 
-#define GET_PROJ_SETTING(variable_to_store, setting_name) \
+// Get Project Setting
+#define GET_PS(setting_name) \
+	ProjectSettings::get_singleton()->get_setting(setting_name)
+// Get Project Setting and set it to variable
+#define GET_PS_SET(variable_to_store, setting_name) \
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
 
 namespace GRUtils {
@@ -572,7 +576,7 @@ static void init() {
 		internal_VERSION.append(0);
 	}
 
-	GET_PROJ_SETTING(compress_buffer_size_mb, "debug/godot_remote/server/jpg_compress_buffer_size_mbytes");
+	GET_PS_SET(compress_buffer_size_mb, "debug/godot_remote/server/jpg_compress_buffer_size_mbytes");
 	compress_buffer.resize((1024 * 1024) * compress_buffer_size_mb);
 }
 

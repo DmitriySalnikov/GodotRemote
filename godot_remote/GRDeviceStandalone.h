@@ -12,9 +12,14 @@ class GRDeviceStandalone : public GRDevice {
 	GDCLASS(GRDeviceStandalone, GRDevice);
 
 public:
+	enum ConnectionType {
+		CONNECTION_WiFi = 0,
+		CONNECTION_ADB = 1,
+	};
+
 	enum StretchMode {
-		KeepAspect = 0,
-		Fill = 1,
+		STRETCH_KEEP_ASPECT = 0,
+		STRETCH_FILL = 1,
 	};
 
 private:
@@ -59,8 +64,9 @@ private:
 
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
-	StretchMode stretch_mode = StretchMode::KeepAspect;
+	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
+	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 	int send_data_fps = 60;
 	uint32_t prev_display_image_time = 60;
 
@@ -144,7 +150,7 @@ public:
 	bool is_capture_when_hover();
 	void set_capture_when_hover(bool value);
 
-	void set_gr_device(GRDeviceStandalone *dev);
+	void set_gr_device(GRDeviceStandalone *_dev);
 	void set_tex_rect(class TextureRect *tr);
 
 	PoolByteArray get_collected_input_data();
@@ -154,3 +160,6 @@ public:
 };
 
 #endif // !NO_GODOTREMOTE_CLIENT
+
+VARIANT_ENUM_CAST(GRDeviceStandalone::ConnectionType)
+VARIANT_ENUM_CAST(GRDeviceStandalone::StretchMode)

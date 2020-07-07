@@ -53,6 +53,12 @@ void GRDeviceStandalone::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "connection_type", PROPERTY_HINT_ENUM, "WiFi,ADB"), "set_connection_type", "get_connection_type");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), "set_target_send_fps", "get_target_send_fps");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Fill,Keep Aspect"), "set_stretch_mode", "get_stretch_mode");
+
+	BIND_ENUM_CONSTANT(CONNECTION_ADB);
+	BIND_ENUM_CONSTANT(CONNECTION_WiFi);
+
+	BIND_ENUM_CONSTANT(STRETCH_KEEP_ASPECT);
+	BIND_ENUM_CONSTANT(STRETCH_FILL);
 }
 
 void GRDeviceStandalone::_notification(int p_notification) {
@@ -171,11 +177,11 @@ void GRDeviceStandalone::set_capture_when_hover(bool value) {
 }
 
 void GRDeviceStandalone::set_connection_type(int type) {
-	GodotRemote::get_singleton()->set_connection_type(type);
+	con_type = (ConnectionType)type;
 }
 
 int GRDeviceStandalone::get_connection_type() {
-	return GodotRemote::get_singleton()->get_connection_type();
+	return con_type;
 }
 
 void GRDeviceStandalone::set_target_send_fps(int fps) {
@@ -304,7 +310,7 @@ void GRDeviceStandalone::_update_texture_from_iamge(Ref<Image> img) {
 void GRDeviceStandalone::_update_stream_texture_state(bool is_has_signal) {
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		if (is_has_signal) {
-			tex_shows_stream->set_stretch_mode(stretch_mode == StretchMode::KeepAspect ? TextureRect::STRETCH_KEEP_ASPECT_CENTERED : TextureRect::STRETCH_SCALE);
+			tex_shows_stream->set_stretch_mode(stretch_mode == StretchMode::STRETCH_KEEP_ASPECT ? TextureRect::STRETCH_KEEP_ASPECT_CENTERED : TextureRect::STRETCH_SCALE);
 			tex_shows_stream->set_material(nullptr);
 
 			if (signal_connection_state != is_has_signal) {
@@ -372,7 +378,7 @@ void GRDeviceStandalone::_thread_connection(void *p_userdata) {
 			con->disconnect_from_host();
 		}
 
-		IP_Address ip = GodotRemote::get_singleton()->get_connection_type() == GodotRemote::ConnectionType::CONNECTION_ADB ? IP_Address("127.0.0.1") : dev->server_address;
+		IP_Address ip = dev->con_type == ConnectionType::CONNECTION_ADB ? IP_Address("127.0.0.1") : dev->server_address;
 
 		String address = (String)ip + ":" + str(dev->port);
 		Error err = con->connect_to_host(ip, dev->port);
@@ -645,7 +651,7 @@ void GRInputCollector::_update_stream_rect() {
 
 	if (texture_rect && !texture_rect->is_queued_for_deletion()) {
 		switch (dev->get_stretch_mode()) {
-			case GRDeviceStandalone::StretchMode::KeepAspect: {
+			case GRDeviceStandalone::StretchMode::STRETCH_KEEP_ASPECT: {
 				Ref<Texture> tex = texture_rect->get_texture();
 				if (tex.is_null())
 					goto fill;
@@ -667,7 +673,7 @@ void GRInputCollector::_update_stream_rect() {
 				}
 				break;
 			}
-			case GRDeviceStandalone::StretchMode::Fill:
+			case GRDeviceStandalone::StretchMode::STRETCH_FILL:
 			default:
 			fill:
 				stream_rect = Rect2(texture_rect->get_global_position(), texture_rect->get_size());
@@ -954,8 +960,8 @@ void GRInputCollector::set_capture_when_hover(bool value) {
 	capture_pointer_only_when_hover_control = value;
 }
 
-void GRInputCollector::set_gr_device(GRDeviceStandalone *dev) {
-	dev = dev;
+void GRInputCollector::set_gr_device(GRDeviceStandalone *_dev) {
+	dev = _dev;
 }
 
 void GRInputCollector::set_tex_rect(TextureRect *tr) {
