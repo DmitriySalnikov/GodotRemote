@@ -3,6 +3,7 @@
 #ifndef NO_GODOTREMOTE_SERVER
 
 #include "GRDeviceDevelopment.h"
+#include "GRPacket.h"
 #include "GodotRemote.h"
 #include "core/input_map.h"
 #include "core/os/input_event.h"
@@ -10,7 +11,6 @@
 #include "main/input_default.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
-#include <memory>
 
 using namespace GRUtils;
 
@@ -65,7 +65,7 @@ bool GRDeviceDevelopment::start() {
 		ERR_FAIL_V_MSG(false, "Can't start already working Godot Remote Server");
 	}
 
-	log("Starting GodotRemote server");
+	_log("Starting GodotRemote server");
 
 	working = true;
 	stop_device = false;
@@ -126,34 +126,34 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 	Thread *t_connection = nullptr;
 	OS *os = OS::get_singleton();
 	bool is_client_connected = false;
-	Array connections;
+	Ref<StreamPeerTCP> connection;
 	Error err = OK;
 
 	srv->listen(dev->port);
-	log("Start listening port " + str(dev->port));
+	_log("Start listening port " + str(dev->port));
 
 	while (!dev->stop_device) {
 		if (!srv->is_listening()) {
 			err = srv->listen(dev->port);
-			log("Start listening port " + str(dev->port));
+			_log("Start listening port " + str(dev->port));
 
 			if (err != OK) {
 
 				switch (err) {
 					case ERR_UNAVAILABLE:
-						log("Socket listening unavailable");
+						_log("Socket listening unavailable");
 						break;
 					case ERR_ALREADY_IN_USE:
-						log("Socket already in use");
+						_log("Socket already in use");
 						break;
 					case ERR_INVALID_PARAMETER:
-						log("Invalid listening address");
+						_log("Invalid listening address");
 						break;
 					case ERR_CANT_CREATE:
-						log("Can't bind listener");
+						_log("Can't bind listener");
 						break;
 					case FAILED:
-						log("Failed to start listening");
+						_log("Failed to start listening");
 						break;
 				}
 
@@ -162,18 +162,13 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 			}
 		}
 
-		for (int i = connections.size() - 1; i >= 0; i--) {
-			Ref<StreamPeerTCP> con = connections[i];
-			if (con.is_valid()) {
-				if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
-					dev->break_connection = true;
-					connections.remove(i);
-				}
-			}
+		if (connection.is_null() || !connection->is_connected_to_host()) {
+			dev->break_connection = true;
 		}
 
 		if (dev->break_connection) {
 			if (t_connection) {
+				_log("Waiting connection thread...", LogLevel::LL_Debug);
 				Thread::wait_to_finish(t_connection);
 				t_connection = nullptr;
 			}
@@ -193,32 +188,32 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 						is_client_connected = true;
 
 						t_connection = Thread::create(&_thread_connection, new StartThreadArgs(dev, con));
-						log("New connection from " + address);
-						connections.append(con);
+						_log("New connection from " + address);
+						connection = con;
 						break;
 					case AuthResult::Error:
-						log("Refusing connection. Wrong client. " + address);
+						_log("Refusing connection. Wrong client. " + address);
 						con->disconnect_from_host();
 						os->delay_usec(16_ms);
 						continue;
 					case AuthResult::VersionMismatch:
-						log("Refusing connection. Version mismatch. " + address);
+						_log("Refusing connection. Version mismatch. " + address);
 						con->disconnect_from_host();
 						os->delay_usec(16_ms);
 						continue;
 					default:
-						log("Unknown error code. Disconnecting." + address);
+						_log("Unknown error code. Disconnecting." + address);
 						con->disconnect_from_host();
 						break;
 				}
 
 			} else {
-				//log("Refusing connection. Already connected. " + address, LogLevel::LL_Debug);
+				//_log("Refusing connection. Already connected. " + address, LogLevel::LL_Debug);
 				//con->disconnect_from_host();
 				os->delay_usec(16_ms);
 			}
 		} else {
-			log("Waiting...", LogLevel::LL_Debug);
+			_log("Waiting...", LogLevel::LL_Debug);
 			os->delay_usec(33_ms);
 		}
 	}
@@ -227,6 +222,7 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 	dev->stop_device = true;
 
 	if (t_connection) {
+		_log("Stopping device thread", LogLevel::LL_Debug);
 		Thread::wait_to_finish(t_connection);
 		t_connection = nullptr;
 	}
@@ -236,16 +232,19 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 
 void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 	StartThreadArgs *args = (StartThreadArgs *)p_userdata;
-	Ref<StreamPeerTCP> con = args->con;
+	Ref<StreamPeerTCP> connection = args->con;
 	GRDeviceDevelopment *dev = args->dev;
 	ImgProcessingStorage *ips = dev->ips;
 	delete args;
+
+	Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
+	ppeer->set_stream_peer(connection);
 
 	GodotRemote *gr = GodotRemote::get_singleton();
 	OS *os = OS::get_singleton();
 	Error err = Error::OK;
 
-	String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
+	String address = str(connection->get_connected_host()) + ":" + str(connection->get_connected_port());
 	Thread::set_name("GR_connection " + address);
 
 	dev->_reset_counters();
@@ -255,15 +254,16 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 	uint32_t prev_send_image_time = prev_time;
 	bool ping_sended = false;
 
-	while (!dev->break_connection && con->get_status() == StreamPeerTCP::STATUS_CONNECTED) {
+	while (!dev->break_connection && connection->is_connected_to_host()) {
 		bool nothing_happens = true;
+		int send_data_time_ms = (1000 / dev->target_send_fps);
 
 		///////////////////////////////////////////////////////////////////
 		// SENDING
 
 		// IMAGE
 		uint32_t time = os->get_ticks_msec();
-		if (time - prev_time > (1000 / dev->target_send_fps) && !ips->is_new_data) {
+		if (time - prev_time > send_data_time_ms && !ips->is_new_data) {
 			nothing_happens = false;
 			prev_time = time;
 
@@ -272,24 +272,19 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 		// if image compressed to jpg and data is ready
 		if (ips->is_new_data) {
 			nothing_happens = false;
-			int ds = ips->ret_data.size();
 
-			if (ds == 0) {
-				log(String("Cant encode image!"), LogLevel::LL_Error);
+			Ref<GRPacketImageData> pack(memnew(GRPacketImageData));
+
+			if (ips->ret_data.size() == 0) {
+				_log("Cant encode image!", LogLevel::LL_Error);
 				ips->is_new_data = false;
 				os->delay_usec(1_ms);
 				goto end_send;
 			}
+			pack->set_image_data(ips->ret_data);
 
-			PoolByteArray data;
-			data.append(PacketType::ImageData);
-			data.append_array(uint322bytes(ds));
-			data.append_array(ips->ret_data);
+			err = ppeer->put_var(pack->get_data());
 			ips->is_new_data = false;
-
-			auto r = data.read();
-			err = con->put_data(r.ptr(), data.size());
-			r.release();
 
 			// avg fps
 			time = os->get_ticks_msec();
@@ -297,11 +292,9 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 			prev_send_image_time = time;
 
 			if (err) {
-				log(String("Cant send image data! Code: ") + str(err), LogLevel::LL_Error);
-				r.release();
+				_log("Cant send image data! Code: " + str(err), LogLevel::LL_Error);
 				goto end_send;
 			}
-			r.release();
 		}
 
 		// PING
@@ -310,64 +303,76 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 			prev_ping_sending_time = time;
 			nothing_happens = false;
 			ping_sended = true;
-			con->put_8((uint8_t)PacketType::Ping);
+
+			Ref<GRPacketPing> pack(memnew(GRPacketPing));
+			err = ppeer->put_var(pack->get_data());
+
+			if (err) {
+				_log("Send ping failed with code: " + str(err), LogLevel::LL_Error);
+				goto end_send;
+			}
 		}
 	end_send:
 
+		if (!connection->is_connected_to_host()) {
+			_log("Lost connection after sending!", LogLevel::LL_Error);
+			continue;
+		}
+
 		///////////////////////////////////////////////////////////////////
 		// RECEIVING
-		while (con->get_available_bytes() > 0) {
+		uint32_t recv_start_time = os->get_ticks_msec();
+		while (ppeer->get_available_packet_count() > 0 && (os->get_ticks_msec() - recv_start_time) < send_data_time_ms) {
 			nothing_happens = false;
-			uint8_t res;
-			err = con->get_data(&res, 1);
+			Variant res;
+			err = ppeer->get_var(res);
 
-			if (err)
+			if (err) {
+				_log("Can't receive packet!", LogLevel::LL_Error);
 				goto end_recv;
+			}
 
-			PacketType type = (PacketType)res;
+			//_log(str_arr((PoolByteArray)res, true));
+			Ref<GRPacket> pack = GRPacket::create(res);
+			GRPacket::PacketType type = pack->get_type();
+			//_log((int)type);
+
 			switch (type) {
-				case GRDevice::InitData:
+				case GRPacket::PacketType::InitData:
 					break;
-				case GRDevice::ImageData:
+				case GRPacket::PacketType::ImageData:
 					break;
-				case GRDevice::InputData: {
-					uint8_t s_res[4];
-					err = con->get_data(s_res, 4);
+				case GRPacket::PacketType::InputData: {
+					Ref<GRPacketInputData> data = pack;
 
-					if (err) {
+					if (data.is_null()) {
 						break;
 					}
 
-					const int size = bytes2uint32(s_res);
-					PoolByteArray data;
-					data.resize(size);
-
-					auto w = data.write();
-					err = con->get_data(w.ptr(), size);
-					w.release();
-
-					if (err) {
-						break;
-					}
-
-					if (!_parse_input_data(data)) {
-						con->disconnect_from_host();
+					if (!_parse_input_data(data->get_input_data())) {
+						connection->disconnect_from_host();
 						break;
 					}
 
 					break;
 				}
-				case GRDevice::Ping: {
-					con->put_8((uint8_t)PacketType::Pong);
+				case GRPacket::PacketType::Ping: {
+					Ref<GRPacketPong> pack(memnew(GRPacketPong));
+					err = ppeer->put_var(pack->get_data());
+
+					if (err) {
+						_log("Send pong failed with code: " + str(err), LogLevel::LL_Error);
+						goto end_recv;
+					}
 					break;
 				}
-				case GRDevice::Pong: {
+				case GRPacket::PacketType::Pong: {
 					dev->_update_avg_ping(os->get_ticks_msec() - prev_ping_sending_time);
 					ping_sended = false;
 					break;
 				}
 				default:
-					log("Not supported packet type! " + str(type), LogLevel::LL_Warning);
+					_log("Not supported packet type! " + str((int)type), LogLevel::LL_Warning);
 					break;
 			}
 		}
@@ -377,10 +382,9 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 			os->delay_usec(1_ms);
 	}
 
-	log("Closing connection thread with address: " + address);
+	_log("Closing connection thread with address: " + address, LogLevel::LL_Debug);
 
 	dev->break_connection = true;
-	con->disconnect_from_host();
 }
 
 void GRDeviceDevelopment::_thread_image_processing(void *p_userdata) {
@@ -498,7 +502,7 @@ bool GRDeviceDevelopment::_parse_input_data(const PoolByteArray &p_data) {
 		InputType type = (InputType)data[4];
 
 		if (data == next) {
-			log("Incorrect Input Data!!! Something wrong with data received from client!\n" + str_arr(p_data, true) + "\n", LogLevel::LL_Error);
+			_log("Incorrect Input Data!!! Something wrong with data received from client!\n" + str_arr(p_data, true) + "\n", LogLevel::LL_Error);
 			return false;
 		}
 
@@ -649,7 +653,7 @@ bool GRDeviceDevelopment::_parse_input_data(const PoolByteArray &p_data) {
 				break;
 			}
 			default: {
-				log(String("Not supported InputEvent type: ") + str(type));
+				_log(String("Not supported InputEvent type: ") + str(type));
 				break;
 			}
 		}

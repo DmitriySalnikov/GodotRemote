@@ -15,11 +15,6 @@ void GRDevice::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "port"), "set_port", "get_port");
 
-	BIND_ENUM_CONSTANT(InitData);
-	BIND_ENUM_CONSTANT(ImageData);
-	BIND_ENUM_CONSTANT(InputData);
-	BIND_ENUM_CONSTANT(Ping);
-
 	BIND_ENUM_CONSTANT(_InputDeviceSensors)
 	BIND_ENUM_CONSTANT(_InputEvent)
 	BIND_ENUM_CONSTANT(_InputEventAction)

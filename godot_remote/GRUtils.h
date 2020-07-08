@@ -5,8 +5,9 @@
 #include "core/image.h"
 #include "core/io/marshalls.h"
 #include "core/os/os.h"
-#include "core/pool_vector.h"
+#include "core/print_string.h"
 #include "core/project_settings.h"
+#include "core/variant.h"
 #include "jpge.h"
 #include "main/input_default.h"
 
@@ -14,8 +15,8 @@
 
 #define TimeCountInit() int simple_time_counter = OS::get_singleton()->get_ticks_usec()
 #define TimeCountReset() simple_time_counter = OS::get_singleton()->get_ticks_usec()
-#define TimeCount(str)                                                                                                                                        \
-	GRUtils::log(str + String(": ") + String::num_real((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0), GRUtils::LogLevel::LL_Debug); \
+#define TimeCount(str)                                                                                                                                         \
+	GRUtils::_log(str + String(": ") + String::num_real((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0), GRUtils::LogLevel::LL_Debug); \
 	simple_time_counter = OS::get_singleton()->get_ticks_usec()
 
 #else
@@ -63,7 +64,7 @@ extern PoolByteArray compress_buffer;
 
 // defines
 
-static void log(const Variant &val, LogLevel lvl = LogLevel::LL_Normal);
+static void _log(const Variant &val, LogLevel lvl = LogLevel::LL_Normal);
 static String str(const Variant &val);
 
 // literals
@@ -136,11 +137,11 @@ static PoolByteArray compress_jpg(Ref<Image> orig_img, int quality, int subsampl
 	res.append_array(compress_buffer.subarray(0, size - 1));
 	TimeCount("Combine arrays");
 
-	log("JPG size: " + str(res.size()), LogLevel::LL_Debug);
+	_log("JPG size: " + str(res.size()), LogLevel::LL_Debug);
 	return res;
 }
 
-static void log(const Variant &val, LogLevel lvl) {
+static void _log(const Variant &val, LogLevel lvl) {
 	if (lvl >= current_loglevel && lvl < LogLevel::LL_None) {
 		if (lvl == LogLevel::LL_Error) {
 			print_error("[GodotRemote Error] " + str(val));
@@ -264,7 +265,7 @@ static String str(const Variant &val) {
 		}
 		case Variant::VECTOR2: {
 			Vector2 v2 = val;
-			return String("V2(") + String::num_real(v2.x) + ", " + String::num_real(v2.y) + ")";
+			return String("V2(") + v2 + ")";
 		}
 		case Variant::RECT2: {
 			Rect2 r = val;
@@ -272,29 +273,35 @@ static String str(const Variant &val) {
 		}
 		case Variant::VECTOR3: {
 			Vector3 v3 = val;
-			return String("V3(") + String::num_real(v3.x) + ", " + String::num_real(v3.y) + ", " + String::num_real(v3.z) + ")";
-		}
-		case Variant::TRANSFORM2D: {
-			break;
-		}
-		case Variant::PLANE: {
-			break;
-		}
-		case Variant::QUAT: {
-			break;
-		}
-		case Variant::AABB: {
-			break;
-		}
-		case Variant::BASIS: {
-			break;
+			return String("V3(") + v3 + ")";
 		}
 		case Variant::TRANSFORM: {
-			break;
+			Transform t3d = val;
+			return String("T3D(") + t3d + ")";
+		}
+		case Variant::TRANSFORM2D: {
+			Transform2D t2d = val;
+			return String("T2D(") + t2d + ")";
+		}
+		case Variant::PLANE: {
+			Plane pln = val;
+			return String("P(") + pln + ")";
+		}
+		case Variant::QUAT: {
+			Quat q = val;
+			return String("Q(") + q + ")";
+		}
+		case Variant::AABB: {
+			AABB ab = val;
+			return String("AABB(") + ab + ")";
+		}
+		case Variant::BASIS: {
+			Basis bs = val;
+			return String("B(") + bs + ")";
 		}
 		case Variant::COLOR: {
 			Color c = val;
-			return String("C(") + String::num_real(c.r) + ", " + String::num_real(c.g) + ", " + String::num_real(c.b) + ", " + String::num_real(c.a) + ")";
+			return String("C(") + c + ")";
 		}
 		case Variant::NODE_PATH: {
 			NodePath np = val;
@@ -344,17 +351,17 @@ static String str(const Variant &val) {
 }
 
 static void log_array(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {
-	log(str_arr(data, size, force_full, max_shown_items), lvl);
+	_log(str_arr(data, size, force_full, max_shown_items), lvl);
 }
 static void log_array(const Array data, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {
-	log(str_arr(data, force_full, max_shown_items), lvl);
+	_log(str_arr(data, force_full, max_shown_items), lvl);
 }
 static void log_array(const Dictionary data, const bool force_full = false, const int max_shown_items = 32, LogLevel lvl = LogLevel::LL_Normal) {
-	log(str_arr(data, force_full, max_shown_items), lvl);
+	_log(str_arr(data, force_full, max_shown_items), lvl);
 }
 template <class T>
 static void log_array(const PoolVector<T> data, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {
-	log(str_arr(data, force_full, max_shown_items), lvl);
+	_log(str_arr(data, force_full, max_shown_items), lvl);
 }
 
 static PoolByteArray var2bytes(const Variant &data, bool full_objects = false) {
@@ -362,7 +369,7 @@ static PoolByteArray var2bytes(const Variant &data, bool full_objects = false) {
 	int len;
 	Error err = encode_variant(data, NULL, len, full_objects);
 	if (err) {
-		//log(String("Unexpected error in var2bytes: ") + String::num(err), LogLevel::LL_Error);
+		//_log(String("Unexpected error in var2bytes: ") + String::num(err), LogLevel::LL_Error);
 		return barr;
 	}
 
@@ -381,7 +388,7 @@ static T bytes2var(const PoolByteArray &data, bool allow_objects = false) {
 		PoolByteArray::Read r = data.read();
 		Error err = decode_variant(ret, r.ptr(), data.size(), NULL, allow_objects);
 		if (err) {
-			//log("Not enough bytes for decoding bytes, or invalid format.", LogLevel::LL_Error);
+			//_log("Not enough bytes for decoding bytes, or invalid format.", LogLevel::LL_Error);
 			return Variant();
 		}
 	}
@@ -395,7 +402,7 @@ static T bytes2var(const uint8_t *data, int size, bool allow_objects = false) {
 	{
 		Error err = decode_variant(ret, data, size, NULL, allow_objects);
 		if (err) {
-			//log("Not enough bytes for decoding bytes, or invalid format.", LogLevel::LL_Error);
+			//_log("Not enough bytes for decoding bytes, or invalid format.", LogLevel::LL_Error);
 			return Variant();
 		}
 	}

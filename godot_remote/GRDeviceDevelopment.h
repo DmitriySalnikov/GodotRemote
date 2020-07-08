@@ -37,6 +37,10 @@ private:
 			dev = d;
 			con = c;
 		}
+		~StartThreadArgs() {
+			dev = nullptr;
+			con.unref();
+		}
 	};
 
 	enum class AuthResult {
@@ -57,6 +61,8 @@ private:
 	int jpg_quality = 75;
 
 	int target_send_fps = 25;
+
+	virtual void _reset_counters() override { GRDevice::_reset_counters(); };
 
 	static void _thread_listen(void *p_userdata);
 	static void _thread_connection(void *p_userdata);

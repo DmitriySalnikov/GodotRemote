@@ -187,7 +187,7 @@ void GodotRemote::_adb_port_forwarding() {
 	String res;
 	Error err = OS::get_singleton()->execute(EditorSettings::get_singleton()->get_setting("export/android/adb"), args, true, nullptr, &res, nullptr, true);
 	if (err == OK) {
-		log("ADB result: \n" + res);
+		_log("ADB result: \n" + res);
 	}
 }
 
@@ -203,10 +203,10 @@ void GodotRemote::_native_run_emitted() {
 //		int c = EditorExport::get_singleton()->get_export_platform_count();
 //		for (int i = 0; i < c; i++) {
 //			auto p = EditorExport::get_singleton()->get_export_platform(i);
-//			log(p->get_os_name());
+//			_log(p->get_os_name());
 //			int c2 = p->get_options_count();
 //			for (int i = 0; i < c2; i++) {
-//				log(p->get_option_label(i));
+//				_log(p->get_option_label(i));
 //			}
 //		}
 //	}

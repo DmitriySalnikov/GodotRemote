@@ -44,6 +44,9 @@ private:
 		StartThreadArgs(GRDeviceStandalone *d) {
 			dev = d;
 		}
+		~StartThreadArgs() {
+			dev = nullptr;
+		}
 	};
 
 	ImgProcessingStorage *ips = nullptr;
@@ -88,7 +91,7 @@ private:
 	static void _thread_connection(void *p_userdata);
 	static void _thread_image_decoder(void *p_userdata);
 
-	static void _connection_loop(GRDeviceStandalone *dev, Ref<StreamPeerTCP> con);
+	static void _connection_loop(GRDeviceStandalone *dev, Ref<StreamPeerTCP> connection);
 	static bool _auth_on_server(Ref<StreamPeerTCP> con);
 
 protected:

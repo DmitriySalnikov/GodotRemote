@@ -5,6 +5,7 @@
 #include "GRDeviceStandalone.h"
 #include "GRResources.h"
 #include "GodotRemote.h"
+#include "GRPacket.h"
 #include "core/input_map.h"
 #include "core/io/tcp_server.h"
 #include "core/os/input_event.h"
@@ -214,6 +215,13 @@ bool GRDeviceStandalone::set_ip(String ip, bool ipv4) {
 	return set_address(ip, port, ipv4);
 }
 
+// TODO try to resolve address
+/*IP_Address ip;
+if (p_host.is_valid_ip_address())
+	ip = p_host;
+else
+	ip = IP::get_singleton()->resolve_hostname(p_host);*/
+
 bool GRDeviceStandalone::set_address(String ip, uint16_t _port, bool ipv4) {
 	bool old = is_working();
 	if (old)
@@ -238,7 +246,7 @@ end:
 	bool all_ok = true;
 	if (!server_address.is_valid() || is_invalid) {
 		ERR_PRINT(ip + " is an invalid address!");
-		log(ip + " is an invalid address!");
+		_log(ip + " is an invalid address!");
 		server_address = IP_Address(prev);
 		port = prevPort;
 		all_ok = false;
@@ -256,7 +264,7 @@ bool GRDeviceStandalone::start() {
 		ERR_FAIL_V_MSG(false, "Can't start already working Godot Remote Server");
 	}
 
-	log("Starting GodotRemote client");
+	_log("Starting GodotRemote client");
 
 	working = true;
 	stop_device = false;
@@ -271,7 +279,7 @@ void GRDeviceStandalone::stop() {
 	if (!working)
 		return;
 
-	log("Stopping GodotRemote client");
+	_log("Stopping GodotRemote client");
 
 	working = false;
 	stop_device = true;
@@ -384,20 +392,20 @@ void GRDeviceStandalone::_thread_connection(void *p_userdata) {
 		Error err = con->connect_to_host(ip, dev->port);
 
 		if (err == OK) {
-			log("Connecting to " + address, LogLevel::LL_Debug);
+			_log("Connecting to " + address, LogLevel::LL_Debug);
 		} else {
 			switch (err) {
 				case FAILED:
-					log("Failed to open socket or can't connect to host", LogLevel::LL_Error);
+					_log("Failed to open socket or can't connect to host", LogLevel::LL_Error);
 					break;
 				case ERR_UNAVAILABLE:
-					log("Socket is unavailable", LogLevel::LL_Error);
+					_log("Socket is unavailable", LogLevel::LL_Error);
 					break;
 				case ERR_INVALID_PARAMETER:
-					log("Host address is invalid", LogLevel::LL_Error);
+					_log("Host address is invalid", LogLevel::LL_Error);
 					break;
 				case ERR_ALREADY_EXISTS:
-					log("Socket already in use", LogLevel::LL_Error);
+					_log("Socket already in use", LogLevel::LL_Error);
 					break;
 			}
 			os->delay_usec(250_ms);
@@ -409,7 +417,7 @@ void GRDeviceStandalone::_thread_connection(void *p_userdata) {
 		}
 
 		if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
-			log("Timeout! Connect to " + address + " failed.", LogLevel::LL_Debug);
+			_log("Timeout! Connect to " + address + " failed.", LogLevel::LL_Debug);
 			os->delay_usec(50_ms);
 			continue;
 		}
@@ -418,10 +426,11 @@ void GRDeviceStandalone::_thread_connection(void *p_userdata) {
 		dev->break_connection = false;
 
 		if (_auth_on_server(con)) {
-			log("Successful connected to " + address);
+			_log("Successful connected to " + address);
 
 			dev->_update_stream_texture_state(true);
 			_connection_loop(dev, con);
+			_log("Work of _connection_loop stopped");
 		}
 
 		if (con->is_connected_to_host())
@@ -433,10 +442,13 @@ void GRDeviceStandalone::_thread_connection(void *p_userdata) {
 	}
 }
 
-void GRDeviceStandalone::_connection_loop(GRDeviceStandalone *dev, Ref<StreamPeerTCP> con) {
+void GRDeviceStandalone::_connection_loop(GRDeviceStandalone *dev, Ref<StreamPeerTCP> connection) {
 	ImgProcessingStorage *ips = dev->ips;
 	OS *os = OS::get_singleton();
 	Error err = Error::OK;
+
+	Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
+	ppeer->set_stream_peer(connection);
 
 	dev->_reset_counters();
 
@@ -444,16 +456,17 @@ void GRDeviceStandalone::_connection_loop(GRDeviceStandalone *dev, Ref<StreamPee
 	uint32_t prev_ping_sending_time = prev_time;
 	bool ping_sended = false;
 
-	while (!dev->break_connection && con->get_status() == StreamPeerTCP::STATUS_CONNECTED) {
+	while (!dev->break_connection && connection->is_connected_to_host()) {
+		bool nothing_happens = true;
 		uint32_t time = os->get_ticks_msec();
 		dev->prev_valid_connection_time = time;
-		bool nothing_happens = true;
+		int send_data_time_ms = (1000 / dev->send_data_fps);
 
 		///////////////////////////////////////////////////////////////////
 		// SENDING
 
 		// INPUT
-		if ((time - prev_time) > (1000 / dev->send_data_fps)) {
+		if ((time - prev_time) > send_data_time_ms) {
 			prev_time = time;
 			nothing_happens = false;
 
@@ -462,17 +475,13 @@ void GRDeviceStandalone::_connection_loop(GRDeviceStandalone *dev, Ref<StreamPee
 			if (d.size() == 0)
 				goto end_send;
 
-			PoolByteArray data;
-			data.append(PacketType::InputData);
-			data.append_array(uint322bytes(d.size()));
-			data.append_array(d);
+			Ref<GRPacketInputData> pack(memnew(GRPacketInputData));
+			pack->set_input_data(d);
 
-			auto r = data.read();
-			err = con->put_data(r.ptr(), data.size());
-			r.release();
+			err = ppeer->put_var(pack->get_data());
 
 			if (err) {
-				log("Put input data failed with code: " + str(err));
+				_log("Put input data failed with code: " + str(err));
 				goto end_send;
 			}
 		}
@@ -482,75 +491,72 @@ void GRDeviceStandalone::_connection_loop(GRDeviceStandalone *dev, Ref<StreamPee
 			prev_ping_sending_time = time;
 			nothing_happens = false;
 			ping_sended = true;
-			con->put_8((uint8_t)PacketType::Ping);
+
+			Ref<GRPacketPing> pack(memnew(GRPacketPing));
+			err = ppeer->put_var(pack->get_data());
+
+			if (err) {
+				_log("Send ping failed with code: " + str(err));
+				goto end_send;
+			}
 		}
 	end_send:
 
-		if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
-			break;
+		if (!connection->is_connected_to_host()) {
+			_log("Lost connection after sending!", LogLevel::LL_Error);
+			continue;
 		}
 
 		///////////////////////////////////////////////////////////////////
 		// RECEIVING
-		while (con->get_available_bytes() > 0) {
+		uint32_t recv_start_time = os->get_ticks_msec();
+		while (ppeer->get_available_packet_count() > 0 && (os->get_ticks_msec() - recv_start_time) < send_data_time_ms) {
 			nothing_happens = false;
-			uint8_t res;
-			err = con->get_data(&res, 1);
+
+			Variant buf;
+			ppeer->get_var(buf);
 
 			if (err)
 				goto end_recv;
 
-			PacketType type = (PacketType)res;
+			Ref<GRPacket> pack = GRPacket::create(buf);
+			GRPacket::PacketType type = pack->get_type();
 
 			switch (type) {
-				case GRDevice::InitData:
+				case GRPacket::PacketType::InitData:
 					break;
-				case GRDevice::ImageData: {
-					uint8_t i_res[4];
-					err = con->get_data(i_res, 4);
-
-					if (err != OK) {
-						log("Cant get_data image header", LogLevel::LL_Error);
-						goto end_recv;
-					}
-
-					int size = decode_uint32(i_res);
-
-					PoolByteArray data;
-					data.resize(size);
-					auto dw = data.write();
-
-					err = con->get_data(dw.ptr(), size);
-					dw.release();
-					if (err != OK) {
-						log("Cant get_data image body");
-						goto end_recv;
-					}
-					if (data.size() == 0) {
-						log("Received image with zero size!");
+				case GRPacket::PacketType::ImageData: {
+					Ref<GRPacketImageData> data = pack;
+					if (data.is_null()) {
+						ERR_FAIL_MSG("GRPacketImageData is null");
 						goto end_recv;
 					}
 
 					if (!ips->is_new_data) {
-						ips->tex_data = data;
+						ips->tex_data = data->get_image_data();
 						ips->is_new_data = true;
 					}
 					break;
 				}
-				case GRDevice::InputData: {
+				case GRPacket::PacketType::InputData: {
 					break;
 				}
-				case GRDevice::Ping: {
-					con->put_8((uint8_t)PacketType::Pong);
+				case GRPacket::PacketType::Ping: {
+					Ref<GRPacketPong> pack(memnew(GRPacketPong));
+					err = ppeer->put_var(pack->get_data());
+					if (err) {
+						_log("Send pong failed with code: " + str(err));
+						goto end_send;
+					}
 					break;
 				}
-				case GRDevice::Pong: {
+				case GRPacket::PacketType::Pong: {
 					dev->_update_avg_ping(os->get_ticks_msec() - prev_ping_sending_time);
 					ping_sended = false;
 					break;
 				}
 				default:
-					log("Not supported packet type! " + str(type), LogLevel::LL_Warning);
+					_log("Not supported packet type! " + str((int)type), LogLevel::LL_Warning);
 					break;
 			}
 		}
@@ -560,6 +566,10 @@ void GRDeviceStandalone::_connection_loop(GRDeviceStandalone *dev, Ref<StreamPee
 			os->delay_usec(1_ms);
 	}
 
+	_log(str(dev->break_connection));
+	_log(str(connection->is_connected_to_host()));
+
+	_log("Closing connection with address: " + (String)connection->get_connected_host() + ":" + str(connection->get_connected_port()));
 	dev->break_connection = true;
 }
 
@@ -577,6 +587,8 @@ void GRDeviceStandalone::_thread_image_decoder(void *p_userdata) {
 
 			if (img->load_jpg_from_buffer(ips->tex_data) == OK) {
 				dev->call_deferred("_update_texture_from_iamge", img);
+			} else {
+				_log("Can't decode JPG image.", LogLevel::LL_Error);
 			}
 			ips->is_new_data = false;
 		}
@@ -630,7 +642,7 @@ bool GRDeviceStandalone::_auth_on_server(Ref<StreamPeerTCP> con) {
 				case GRUtils::AuthErrorCode::OK:
 					return true;
 				case GRUtils::AuthErrorCode::VersionMismatch:
-					log("Can't connect to server. Version mismatch.");
+					_log("Can't connect to server. Version mismatch.");
 					return false;
 			}
 		}
@@ -734,7 +746,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	Ref<InputEventWithModifiers> iewm = ie;
 
 	if (ie.is_null()) {
-		log("InputEvent is null", LogLevel::LL_Error);
+		_log("InputEvent is null", LogLevel::LL_Error);
 		goto end;
 	}
 
@@ -921,7 +933,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 			goto end;
 		}
 	}
-	log("InputEvent type " + str(ie) + " not supported!", LogLevel::LL_Error);
+	_log("InputEvent type " + str(ie) + " not supported!", LogLevel::LL_Error);
 
 end:
 

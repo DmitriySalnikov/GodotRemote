@@ -1,8 +1,6 @@
 /* GRDevice.h */
 #pragma once
 
-#include "core/io/marshalls.h"
-#include "core/pool_vector.h"
 #include "scene/main/node.h"
 #include "GRUtils.h"
 
@@ -10,14 +8,6 @@ class GRDevice : public Node {
 	GDCLASS(GRDevice, Node);
 
 public:
-	enum PacketType {
-		InitData = 0,
-		ImageData = 1,
-		InputData = 2,
-		Ping = 254,
-		Pong = 255,
-	};
-
 	enum InputType {
 		_InputDeviceSensors = 0,
 		_InputEvent = 1,
@@ -67,5 +57,4 @@ public:
 	GRDevice();
 };
 
-VARIANT_ENUM_CAST(GRDevice::PacketType)
 VARIANT_ENUM_CAST(GRDevice::InputType)
