@@ -14,6 +14,14 @@ GodotRemote *GodotRemote::singleton = nullptr;
 
 using namespace GRUtils;
 
+String GodotRemote::ps_autoload_name = "debug/godot_remote/general/autostart";
+String GodotRemote::ps_port_name = "debug/godot_remote/general/port";
+String GodotRemote::ps_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
+String GodotRemote::ps_jpg_quality_name = "debug/godot_remote/server/jpg_quality";
+String GodotRemote::ps_jpg_buffer_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
+String GodotRemote::ps_auto_adjust_scale_name = "debug/godot_remote/server/auto_adjust_scale";
+String GodotRemote::ps_scale_of_sending_stream_name = "debug/godot_remote/server/scale_of_sending_stream";
+
 GodotRemote *GodotRemote::get_singleton() {
 	return singleton;
 }
@@ -159,9 +167,12 @@ void GodotRemote::register_and_load_settings() {
 	ProjectSettings::get_singleton()->set_custom_property_info(name, info)
 
 	DEF_SET(is_autostart, ps_autoload_name, true, PropertyInfo(Variant::BOOL, ps_autoload_name));
-	DEF_SET(port, ps_port_name, port, PropertyInfo(Variant::INT, ps_port_name, PROPERTY_HINT_RANGE, "0,65535"));
-	DEF_(ps_jpg_mb_size_name, 4, PropertyInfo(Variant::INT, ps_jpg_mb_size_name, PROPERTY_HINT_RANGE, "1,128"));
+	DEF_(ps_port_name, 52341, PropertyInfo(Variant::INT, ps_port_name, PROPERTY_HINT_RANGE, "0,65535"));
+	DEF_(ps_jpg_quality_name, 75, PropertyInfo(Variant::INT, ps_jpg_quality_name, PROPERTY_HINT_RANGE, "0,100"));
+	DEF_(ps_jpg_buffer_mb_size_name, 4, PropertyInfo(Variant::INT, ps_jpg_buffer_mb_size_name, PROPERTY_HINT_RANGE, "1,128"));
 	DEF_(ps_config_adb_name, true, PropertyInfo(Variant::BOOL, ps_config_adb_name));
+	DEF_(ps_auto_adjust_scale_name, false, PropertyInfo(Variant::BOOL, ps_auto_adjust_scale_name));
+	DEF_(ps_scale_of_sending_stream_name, 0.4f, PropertyInfo(Variant::REAL, ps_scale_of_sending_stream_name, PROPERTY_HINT_RANGE, "0,1,0.01"));
 
 #undef DEF_SET
 #undef DEF_
@@ -181,8 +192,8 @@ void GodotRemote::create_and_start_device(DeviceType type) {
 void GodotRemote::_adb_port_forwarding() {
 	List<String> args;
 	args.push_back("reverse");
-	args.push_back("tcp:" + str(port));
-	args.push_back("tcp:" + str(port));
+	args.push_back("tcp:" + str(GET_PS(ps_port_name)));
+	args.push_back("tcp:" + str(GET_PS(ps_port_name)));
 
 	String res;
 	Error err = OS::get_singleton()->execute(EditorSettings::get_singleton()->get_setting("export/android/adb"), args, true, nullptr, &res, nullptr, true);

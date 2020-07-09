@@ -19,7 +19,6 @@ public:
 	};
 
 protected:
-
 	virtual Ref<StreamPeerBuffer> _get_data() {
 		Ref<StreamPeerBuffer> buf(memnew(StreamPeerBuffer));
 		buf->put_8((uint8_t)get_type());

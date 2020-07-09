@@ -29,10 +29,9 @@ public:
 
 
 protected:
-	class GodotRemote *godot_remote = nullptr;
 	bool working = false;
-	float recv_avg_ping = 0;
-	float recv_avg_fps = 0;
+	float avg_ping = 0;
+	float avg_fps = 0;
 	float avg_ping_smoothing = 0.4f;
 	float avg_fps_smoothing = 0.8f;
 
@@ -50,7 +49,7 @@ public:
 	uint16_t get_port();
 	void set_port(uint16_t _port);
 
-	virtual bool start();
+	virtual bool start() = 0;
 	virtual void stop() = 0;
 	virtual bool is_working();
 

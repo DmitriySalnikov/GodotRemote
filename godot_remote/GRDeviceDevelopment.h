@@ -58,11 +58,15 @@ private:
 
 	bool stop_device = false;
 	bool break_connection = false;
-	int jpg_quality = 75;
 
+	bool auto_adjust_scale = false;
+	int jpg_quality = 75;
 	int target_send_fps = 25;
 
-	virtual void _reset_counters() override { GRDevice::_reset_counters(); };
+	float prev_avg_fps = 0;
+	void _adjust_viewport_scale();
+
+	virtual void _reset_counters() override;
 
 	static void _thread_listen(void *p_userdata);
 	static void _thread_connection(void *p_userdata);
@@ -77,6 +81,10 @@ protected:
 	void _notification(int p_notification);
 
 public:
+	void set_auto_adjust_scale(bool _val);
+	int get_auto_adjust_scale();
+	void set_jpg_quality(int _quality);
+	int get_jpg_quality();
 	void set_target_send_fps(int fps);
 	int get_target_send_fps();
 
@@ -92,11 +100,13 @@ public:
 
 class GRDDViewport : public Viewport {
 	GDCLASS(GRDDViewport, Viewport);
+	friend GRDeviceDevelopment;
 
 protected:
 	Viewport *main_vp = nullptr;
 	class GRDDViewportRenderer *renderer = nullptr;
 	float rendering_scale = 0.5f;
+	float auto_scale = 0.5f;
 
 	static void _bind_methods();
 	void _notification(int p_notification);

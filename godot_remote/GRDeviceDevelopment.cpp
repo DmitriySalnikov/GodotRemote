@@ -19,10 +19,16 @@ void GRDeviceDevelopment::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRDeviceDevelopment::get_gr_viewport);
 
 	ClassDB::bind_method(D_METHOD("set_target_send_fps"), &GRDeviceDevelopment::set_target_send_fps);
+	ClassDB::bind_method(D_METHOD("set_auto_adjust_scale"), &GRDeviceDevelopment::set_auto_adjust_scale);
+	ClassDB::bind_method(D_METHOD("set_jpg_quality"), &GRDeviceDevelopment::set_jpg_quality);
 
 	ClassDB::bind_method(D_METHOD("get_target_send_fps"), &GRDeviceDevelopment::get_target_send_fps);
+	ClassDB::bind_method(D_METHOD("get_auto_adjust_scale"), &GRDeviceDevelopment::get_auto_adjust_scale);
+	ClassDB::bind_method(D_METHOD("get_jpg_quality"), &GRDeviceDevelopment::get_jpg_quality);
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps"), "set_target_send_fps", "get_target_send_fps");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "get_auto_adjust_scale");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "jpg_quality"), "set_jpg_quality", "get_jpg_quality");
 }
 
 void GRDeviceDevelopment::_notification(int p_notification) {
@@ -34,6 +40,23 @@ void GRDeviceDevelopment::_notification(int p_notification) {
 			break;
 		}
 	}
+}
+
+void GRDeviceDevelopment::set_auto_adjust_scale(bool _val) {
+	auto_adjust_scale = _val;
+}
+
+int GRDeviceDevelopment::get_auto_adjust_scale() {
+	return auto_adjust_scale;
+}
+
+void GRDeviceDevelopment::set_jpg_quality(int _quality) {
+	ERR_FAIL_COND(_quality < 0 || _quality > 100);
+	jpg_quality = _quality;
+}
+
+int GRDeviceDevelopment::get_jpg_quality() {
+	return jpg_quality;
 }
 
 void GRDeviceDevelopment::set_target_send_fps(int fps) {
@@ -50,7 +73,8 @@ GRDeviceDevelopment::GRDeviceDevelopment() :
 	set_name("GodotRemoteServer");
 	tcp_server.instance();
 	ips = new ImgProcessingStorage(this);
-	port = GLOBAL_GET("debug/godot_remote/general/port");
+	jpg_quality = GET_PS(GodotRemote::ps_jpg_quality_name);
+	auto_adjust_scale = GET_PS(GodotRemote::ps_auto_adjust_scale_name);
 }
 
 GRDeviceDevelopment::~GRDeviceDevelopment() {
@@ -59,8 +83,6 @@ GRDeviceDevelopment::~GRDeviceDevelopment() {
 }
 
 bool GRDeviceDevelopment::start() {
-	GRDevice::start();
-
 	if (server_thread_listen) {
 		ERR_FAIL_V_MSG(false, "Can't start already working Godot Remote Server");
 	}
@@ -113,6 +135,45 @@ GRDDViewport *GRDeviceDevelopment::get_gr_viewport() {
 
 Node *GRDeviceDevelopment::get_settings_node() {
 	return settings_menu_node;
+}
+
+void GRDeviceDevelopment::_adjust_viewport_scale() {
+	if (!resize_viewport)
+		return;
+
+	const float smooth = 0.8f;
+	float scale = resize_viewport->auto_scale;
+	if (prev_avg_fps == 0) {
+		prev_avg_fps = avg_fps;
+	} else {
+		prev_avg_fps = (prev_avg_fps * smooth) + (avg_fps * (1.f - smooth));
+	}
+	_log(prev_avg_fps);
+
+	if (!auto_adjust_scale) {
+		scale = -1.f;
+		goto end;
+	}
+
+	if (prev_avg_fps < target_send_fps - 4) {
+		scale -= 0.001f;
+	} else if (prev_avg_fps > target_send_fps - 1) {
+		scale += 0.0012f;
+	}
+
+	if (scale < 0.1f)
+		scale = 0.1f;
+	if (scale > 1)
+		scale = 1;
+
+	end:
+	resize_viewport->auto_scale = scale;
+	resize_viewport->_update_size();
+}
+
+void GRDeviceDevelopment::_reset_counters() {
+	GRDevice::_reset_counters();
+	prev_avg_fps = 0;
 }
 
 //////////////////////////////////////////////
@@ -289,6 +350,7 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 			// avg fps
 			time = os->get_ticks_msec();
 			dev->_update_avg_fps(time - prev_send_image_time);
+			dev->_adjust_viewport_scale();
 			prev_send_image_time = time;
 
 			if (err) {
@@ -738,8 +800,14 @@ void GRDDViewport::_notification(int p_notification) {
 }
 
 void GRDDViewport::_update_size() {
+	float scale = rendering_scale;
+	if (auto_scale > 0)
+		scale = auto_scale;
+
 	if (main_vp && main_vp->get_texture().is_valid()) {
-		Vector2 size = main_vp->get_size() * rendering_scale;
+		Vector2 size = main_vp->get_size() * scale;
+		if (get_size() == size)
+			return;
 
 		if (size.x < 8)
 			size.x = 8;
@@ -766,6 +834,8 @@ float GRDDViewport::get_rendering_scale() {
 
 GRDDViewport::GRDDViewport() {
 	set_name("GRDDViewport");
+
+	rendering_scale = GET_PS(GodotRemote::ps_scale_of_sending_stream_name);
 
 	set_hdr(false);
 	set_disable_3d(true);

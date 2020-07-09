@@ -18,14 +18,16 @@ public:
 		DEVICE_Standalone = 2,
 	};
 
-private:
-	const String ps_autoload_name = "debug/godot_remote/general/autostart";
-	const String ps_port_name = "debug/godot_remote/general/port";
-	const String ps_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
-	const String ps_jpg_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
+	static String ps_autoload_name;
+	static String ps_port_name;
+	static String ps_config_adb_name;
+	static String ps_jpg_buffer_mb_size_name;
+	static String ps_jpg_quality_name;
+	static String ps_scale_of_sending_stream_name;
+	static String ps_auto_adjust_scale_name;
 
+private:
 	bool is_autostart = false;
-	uint16_t port = 52341;
 
 	class GRDevice *device = nullptr;
 

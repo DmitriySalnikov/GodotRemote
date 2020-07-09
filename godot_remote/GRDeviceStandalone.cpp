@@ -84,7 +84,6 @@ GRDeviceStandalone::GRDeviceStandalone() :
 	set_name("GodotRemoteClient");
 	ips = new ImgProcessingStorage(this);
 	peer.instance();
-	port = GLOBAL_GET("debug/godot_remote/general/port");
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 	no_signal_image.instance();
@@ -258,8 +257,6 @@ end:
 }
 
 bool GRDeviceStandalone::start() {
-	GRDevice::start();
-
 	if (working) {
 		ERR_FAIL_V_MSG(false, "Can't start already working Godot Remote Server");
 	}
@@ -565,9 +562,6 @@ void GRDeviceStandalone::_connection_loop(GRDeviceStandalone *dev, Ref<StreamPee
 		if (nothing_happens)
 			os->delay_usec(1_ms);
 	}
-
-	_log(str(dev->break_connection));
-	_log(str(connection->is_connected_to_host()));
 
 	_log("Closing connection with address: " + (String)connection->get_connected_host() + ":" + str(connection->get_connected_port()));
 	dev->break_connection = true;

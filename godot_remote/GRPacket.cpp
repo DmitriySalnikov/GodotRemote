@@ -61,7 +61,6 @@ void GRPacketImageData::set_image_data(PoolByteArray &buf) {
 	img_data = buf;
 }
 
-
 //////////////////////////////////////////////////////////////////////////
 // INPUT DATA
 Ref<StreamPeerBuffer> GRPacketInputData::_get_data() {
@@ -83,4 +82,3 @@ PoolByteArray &GRPacketInputData::get_input_data() {
 void GRPacketInputData::set_input_data(PoolByteArray &buf) {
 	input_data = buf;
 }
-
