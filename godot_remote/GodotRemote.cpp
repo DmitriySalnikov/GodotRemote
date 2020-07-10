@@ -1,14 +1,13 @@
 /* GodotRemote.cpp */
 #include "GodotRemote.h"
 #include "GRDevice.h"
-#include "GRDeviceDevelopment.h"
-#include "GRDeviceStandalone.h"
+#include "GRServer.h"
+#include "GRClient.h"
 #include "core/os/os.h"
 #include "core/project_settings.h"
 #include "editor/editor_node.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/viewport.h"
-#include "thirdparty/jpeg-compressor/jpgd.h"
 
 GodotRemote *GodotRemote::singleton = nullptr;
 
@@ -33,7 +32,7 @@ GodotRemote::GodotRemote() {
 #ifdef TOOLS_ENABLED
 	if (Engine::get_singleton()->is_editor_hint())
 		if (EditorNode::get_singleton())
-			EditorNode::get_singleton()->connect("play_pressed", this, "native_run_emitted");
+			EditorNode::get_singleton()->connect("play_pressed", this, "_run_emitted");
 #endif
 
 	register_and_load_settings();
@@ -49,10 +48,10 @@ void GodotRemote::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("create_and_start_device", "device_type"), &GodotRemote::create_and_start_device, DEFVAL(DeviceType::DEVICE_Auto));
 	ClassDB::bind_method(D_METHOD("create_remote_device", "device_type"), &GodotRemote::create_remote_device, DEFVAL(DeviceType::DEVICE_Auto));
 	ClassDB::bind_method(D_METHOD("start_remote_device"), &GodotRemote::start_remote_device);
-	ClassDB::bind_method(D_METHOD("stop_remote_device"), &GodotRemote::stop_remote_device);
+	ClassDB::bind_method(D_METHOD("remove_remote_device"), &GodotRemote::remove_remote_device);
 #ifdef TOOLS_ENABLED
 	ClassDB::bind_method(D_METHOD("_adb_port_forwarding"), &GodotRemote::_adb_port_forwarding);
-	ClassDB::bind_method(D_METHOD("_native_run_emitted"), &GodotRemote::_native_run_emitted);
+	ClassDB::bind_method(D_METHOD("_run_emitted"), &GodotRemote::_run_emitted);
 #endif
 
 	ClassDB::bind_method(D_METHOD("get_device"), &GodotRemote::get_device);
@@ -60,6 +59,11 @@ void GodotRemote::_bind_methods() {
 	BIND_ENUM_CONSTANT(DEVICE_Auto);
 	BIND_ENUM_CONSTANT(DEVICE_Development);
 	BIND_ENUM_CONSTANT(DEVICE_Standalone);
+
+	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS, "USE_INTERNAL_SERVER_SETTINGS");
+	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::RENDER_SCALE, "SERVER_PARAM_RENDER_SCALE");
+	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::JPG_QUALITY, "SERVER_PARAM_JPG_QUALITY");
+	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::SEND_FPS, "SERVER_PARAM_SEND_FPS");
 
 	// GRUtils
 	BIND_ENUM_CONSTANT(SUBSAMPLING_Y_ONLY);
@@ -74,7 +78,6 @@ void GodotRemote::_bind_methods() {
 	BIND_ENUM_CONSTANT(LL_Error);
 
 	ClassDB::bind_method(D_METHOD("set_log_level", "level"), &GodotRemote::set_log_level);
-	ClassDB::bind_method(D_METHOD("compress_jpg", "image", "quality", "subsampling"), &GodotRemote::compress_jpg, DEFVAL(75), DEFVAL(Subsampling::SUBSAMPLING_H2V2));
 
 	ClassDB::bind_method(D_METHOD("set_gravity", "value"), &GodotRemote::set_gravity);
 	ClassDB::bind_method(D_METHOD("set_accelerometer", "value"), &GodotRemote::set_accelerometer);
@@ -94,7 +97,7 @@ GRDevice *GodotRemote::get_device() const {
 }
 
 bool GodotRemote::create_remote_device(DeviceType type) {
-	stop_remote_device();
+	remove_remote_device();
 
 	GRDevice *d = nullptr;
 
@@ -103,7 +106,7 @@ bool GodotRemote::create_remote_device(DeviceType type) {
 		case GodotRemote::DEVICE_Auto:
 			if (!OS::get_singleton()->has_feature("standalone")) {
 #ifndef NO_GODOTREMOTE_SERVER
-				d = memnew(GRDeviceDevelopment);
+				d = memnew(GRServer);
 #else
 				ERR_FAIL_V_MSG(false, "Server not included in this build!");
 #endif
@@ -111,14 +114,14 @@ bool GodotRemote::create_remote_device(DeviceType type) {
 			break;
 		case GodotRemote::DEVICE_Development:
 #ifndef NO_GODOTREMOTE_SERVER
-			d = memnew(GRDeviceDevelopment);
+			d = memnew(GRServer);
 #else
 			ERR_FAIL_V_MSG(false, "Server not included in this build!");
 #endif
 			break;
 		case GodotRemote::DEVICE_Standalone:
 #ifndef NO_GODOTREMOTE_CLIENT
-			d = memnew(GRDeviceStandalone);
+			d = memnew(GRClient);
 #else
 			ERR_FAIL_V_MSG(false, "Client not included in this build!");
 #endif
@@ -145,7 +148,7 @@ bool GodotRemote::start_remote_device() {
 	return false;
 }
 
-bool GodotRemote::stop_remote_device() {
+bool GodotRemote::remove_remote_device() {
 	if (device) {
 		device->stop();
 		device->queue_delete();
@@ -186,8 +189,13 @@ void GodotRemote::create_and_start_device(DeviceType type) {
 #ifdef TOOLS_ENABLED
 // TODO need to try get every device IDs and setup forwarding for each
 #include "editor/editor_export.h"
-#include "editor/editor_run_native.h"
 #include "editor/editor_settings.h"
+
+void GodotRemote::_run_emitted() {
+	// call_deferred because debugger can't connect to game if process blocks thread on start
+	if (GET_PS(ps_config_adb_name))
+		call_deferred("adb_port_forwarding");
+}
 
 void GodotRemote::_adb_port_forwarding() {
 	List<String> args;
@@ -202,11 +210,6 @@ void GodotRemote::_adb_port_forwarding() {
 	}
 }
 
-void GodotRemote::_native_run_emitted() {
-	// call_deferred because debugger can't connect to game if process blocks thread on start
-	if (GET_PS(ps_config_adb_name))
-		call_deferred("adb_port_forwarding");
-}
 #endif
 
 //if (Engine::get_singleton()->is_editor_hint()) {

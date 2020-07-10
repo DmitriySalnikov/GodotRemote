@@ -14,6 +14,8 @@ public:
 		InitData = 1,
 		ImageData = 2,
 		InputData = 3,
+		ServerSettings = 4,
+		ServerSettingsRequest = 253,
 		Ping = 254,
 		Pong = 255,
 	};
@@ -31,10 +33,10 @@ protected:
 
 public:
 	static Ref<GRPacket> create(const PoolByteArray &bytes);
-	virtual PacketType get_type() { return PacketType::None; };
 	PoolByteArray get_data() {
 		return _get_data()->get_data_array();
 	};
+	virtual PacketType get_type() { return PacketType::None; };
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -76,29 +78,45 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// PING
-class GRPacketPing : public GRPacket {
-	GDCLASS(GRPacketPing, GRPacket);
+// ServerSettings
+class GRPacketServerSettings : public GRPacket {
+	GDCLASS(GRPacketServerSettings, GRPacket);
 	friend GRPacket;
 
+	Dictionary settings;
+
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override { return GRPacket::_get_data(); };
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override { return true; };
+	virtual Ref<StreamPeerBuffer> _get_data() override;
+	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
 public:
-	virtual PacketType get_type() override { return PacketType::Ping; };
+	Dictionary &get_settings();
+	void set_settings(Dictionary &_settings);
+	void add_setting(int _setting, Variant value);
+
+	virtual PacketType get_type() override { return PacketType::ServerSettings; };
 };
 
 //////////////////////////////////////////////////////////////////////////
-// PONG
-class GRPacketPong : public GRPacket {
-	GDCLASS(GRPacketPong, GRPacket);
-	friend GRPacket;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+// REQUESTS!
 
-protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override { return GRPacket::_get_data(); };
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override { return true; };
+#define BASIC_PACKET(_name, _type)                                                            \
+	class _name : public GRPacket {                                                           \
+		GDCLASS(_name, GRPacket);                                                             \
+		friend GRPacket;                                                                      \
+                                                                                              \
+	protected:                                                                                \
+		virtual Ref<StreamPeerBuffer> _get_data() override { return GRPacket::_get_data(); }; \
+		virtual bool _create(Ref<StreamPeerBuffer> buf) override { return true; };            \
+                                                                                              \
+	public:                                                                                   \
+		virtual PacketType get_type() override { return _type; };                             \
+	}
 
-public:
-	virtual PacketType get_type() override { return PacketType::Pong; };
-};
+BASIC_PACKET(GRPacketServerSettingsRequest, PacketType::ServerSettingsRequest);
+BASIC_PACKET(GRPacketPing, PacketType::Ping);
+BASIC_PACKET(GRPacketPong, PacketType::Pong);
+
+#undef BASIC_PACKET

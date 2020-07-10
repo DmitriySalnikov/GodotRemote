@@ -36,8 +36,8 @@ protected:
 	float avg_fps_smoothing = 0.8f;
 
 	virtual void _reset_counters();
-	void _update_avg_ping(int ping);
-	void _update_avg_fps(int frametime);
+	void _update_avg_ping(uint32_t ping);
+	void _update_avg_fps(uint32_t frametime);
 
 	static void _bind_methods();
 

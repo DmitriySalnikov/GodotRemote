@@ -4,7 +4,6 @@
 #include "GodotRemote.h"
 
 namespace GRUtils {
-int compress_buffer_size_mb = 4;
 int current_loglevel =
 #ifdef DEBUG_ENABLED
 		LogLevel::LL_Normal;
@@ -13,7 +12,10 @@ int current_loglevel =
 #endif
 PoolByteArray internal_PACKET_HEADER = PoolByteArray();
 PoolByteArray internal_VERSION = PoolByteArray();
+#ifndef NO_GODOTREMOTE_SERVER
+int compress_buffer_size_mb = 4;
 PoolByteArray compress_buffer = PoolByteArray();
+#endif
 
 void init() {
 	if (internal_PACKET_HEADER.empty()) {
@@ -27,16 +29,23 @@ void init() {
 		internal_VERSION.append(0);
 		internal_VERSION.append(0);
 	}
-
-	GET_PS_SET(compress_buffer_size_mb, GodotRemote::ps_jpg_buffer_mb_size_name);
-	compress_buffer.resize((1024 * 1024) * compress_buffer_size_mb);
 }
 
 void deinit() {
 	internal_PACKET_HEADER.resize(0);
 	internal_VERSION.resize(0);
+}
+
+#ifndef NO_GODOTREMOTE_SERVER
+void init_server_utils() {
+	GET_PS_SET(compress_buffer_size_mb, GodotRemote::ps_jpg_buffer_mb_size_name);
+	compress_buffer.resize((1024 * 1024) * compress_buffer_size_mb);
+}
+
+void deinit_server_utils() {
 	compress_buffer.resize(0);
 }
+#endif
 
 void _log(const Variant &val, LogLevel lvl) {
 	if (lvl >= current_loglevel && lvl < LogLevel::LL_None) {
@@ -49,7 +58,6 @@ void _log(const Variant &val, LogLevel lvl) {
 		}
 	}
 }
-
 
 String str_arr(const Array arr, const bool force_full, const int max_shown_items) {
 	String res = "[ ";
@@ -120,9 +128,11 @@ String str_arr(const uint8_t *data, const int size, const bool force_full, const
 	return res + " ]";
 };
 
+#ifndef NO_GODOTREMOTE_SERVER
 PoolByteArray compress_jpg(Ref<Image> orig_img, int quality, int subsampling) {
 	PoolByteArray res;
 	ERR_FAIL_COND_V(!orig_img.ptr(), res);
+	ERR_FAIL_COND_V(quality < 1 || quality > 100, res);
 	TimeCountInit();
 
 	Image img;
@@ -160,6 +170,7 @@ PoolByteArray compress_jpg(Ref<Image> orig_img, int quality, int subsampling) {
 	_log("JPG size: " + str(res.size()), LogLevel::LL_Debug);
 	return res;
 }
+#endif
 
 String str(const Variant &val) {
 	Variant::Type type = val.get_type();

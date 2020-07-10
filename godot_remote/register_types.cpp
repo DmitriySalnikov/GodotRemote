@@ -3,8 +3,8 @@
 #include "register_types.h"
 
 #include "GRDevice.h"
-#include "GRDeviceDevelopment.h"
-#include "GRDeviceStandalone.h"
+#include "GRServer.h"
+#include "GRClient.h"
 #include "GRUtils.h"
 #include "GodotRemote.h"
 #include "core/class_db.h"
@@ -17,11 +17,11 @@ void register_godot_remote_types() {
 	GRUtils::init();
 
 	ClassDB::register_virtual_class<GRDevice>();
-	ClassDB::register_class<GRDeviceDevelopment>();
-	ClassDB::register_class<GRDeviceStandalone>();
+	ClassDB::register_class<GRServer>();
+	ClassDB::register_class<GRClient>();
 
-	ClassDB::register_class<GRDDViewport>();
-	ClassDB::register_class<GRDDViewportRenderer>();
+	ClassDB::register_class<GRSViewport>();
+	ClassDB::register_class<GRSViewportRenderer>();
 	ClassDB::register_class<GRInputCollector>();
 }
 

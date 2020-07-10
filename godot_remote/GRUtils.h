@@ -33,7 +33,9 @@
 // Get Project Setting and set it to variable
 #define GET_PS_SET(variable_to_store, setting_name) \
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
-
+// Bind constant with custom name
+#define BIND_ENUM_CONSTANT_CUSTOM(m_constant, m_name) \
+	ClassDB::bind_integer_constant(get_class_static(), __constant_get_enum_name((int)m_constant, m_name), m_name, (int)m_constant);
 namespace GRUtils {
 
 enum LogLevel {
@@ -58,14 +60,20 @@ enum Subsampling {
 
 // DEFINES
 
+extern int current_loglevel;
+extern PoolByteArray internal_PACKET_HEADER;
+extern PoolByteArray internal_VERSION;
+
 extern void init();
 extern void deinit();
 
-extern int current_loglevel;
-extern int compress_buffer_size_mb;
-extern PoolByteArray internal_PACKET_HEADER;
-extern PoolByteArray internal_VERSION;
+#ifndef NO_GODOTREMOTE_SERVER
+extern void init_server_utils();
+extern void deinit_server_utils();
 extern PoolByteArray compress_buffer;
+extern int compress_buffer_size_mb;
+extern PoolByteArray compress_jpg(Ref<Image> orig_img, int quality, int subsampling);
+#endif
 
 extern void _log(const Variant &val, LogLevel lvl = LogLevel::LL_Normal);
 extern String str(const Variant &val);
@@ -74,7 +82,6 @@ extern String str_arr(const Array arr, const bool force_full = false, const int 
 extern String str_arr(const Dictionary arr, const bool force_full = false, const int max_shown_items = 32);
 extern String str_arr(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64);
 
-extern PoolByteArray compress_jpg(Ref<Image> orig_img, int quality, int subsampling);
 extern PoolByteArray var2bytes(const Variant &data, bool full_objects = false);
 
 extern PoolByteArray int162bytes(const int16_t &data);

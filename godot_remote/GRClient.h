@@ -1,4 +1,4 @@
-/* GRDeviceStandalone.h */
+/* GRClient.h */
 #pragma once
 
 #ifndef NO_GODOTREMOTE_CLIENT
@@ -8,8 +8,8 @@
 #include "core/io/stream_peer_tcp.h"
 #include "scene/main/node.h"
 
-class GRDeviceStandalone : public GRDevice {
-	GDCLASS(GRDeviceStandalone, GRDevice);
+class GRClient : public GRDevice {
+	GDCLASS(GRClient, GRDevice);
 
 public:
 	enum ConnectionType {
@@ -25,11 +25,11 @@ public:
 private:
 	class ImgProcessingStorage {
 	public:
-		GRDeviceStandalone *dev = nullptr;
+		GRClient *dev = nullptr;
 		PoolByteArray tex_data;
 		bool is_new_data = false;
 
-		ImgProcessingStorage(GRDeviceStandalone *d) {
+		ImgProcessingStorage(GRClient *d) {
 			dev = d;
 		}
 		~ImgProcessingStorage() {
@@ -39,9 +39,9 @@ private:
 
 	class StartThreadArgs {
 	public:
-		GRDeviceStandalone *dev = nullptr;
+		GRClient *dev = nullptr;
 
-		StartThreadArgs(GRDeviceStandalone *d) {
+		StartThreadArgs(GRClient *d) {
 			dev = d;
 		}
 		~StartThreadArgs() {
@@ -69,7 +69,10 @@ private:
 	bool capture_pointer_only_when_hover_control = true;
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
+	Mutex* send_queue_mutex;
+	List<Ref<class GRPacket>> send_queue;
 	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
+	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
 	uint32_t prev_display_image_time = 60;
 
@@ -84,6 +87,18 @@ private:
 	Ref<class ShaderMaterial> no_signal_mat;
 #endif
 
+	template<class T>
+	T _find_queued_packet_by_type() {
+		for (auto e = send_queue.front(); e; e = e->next())
+		{
+			T o = e->get();
+			if (o.is_valid()) {
+				return o;
+			}
+		}
+		return T();
+	}
+
 	void _update_texture_from_iamge(Ref<Image> img);
 	void _update_stream_texture_state(bool is_has_signal);
 	virtual void _reset_counters() override;
@@ -91,7 +106,7 @@ private:
 	static void _thread_connection(void *p_userdata);
 	static void _thread_image_decoder(void *p_userdata);
 
-	static void _connection_loop(GRDeviceStandalone *dev, Ref<StreamPeerTCP> connection);
+	static void _connection_loop(GRClient *dev, Ref<StreamPeerTCP> connection);
 	static bool _auth_on_server(Ref<StreamPeerTCP> con);
 
 protected:
@@ -118,19 +133,23 @@ public:
 	String get_ip();
 	bool set_ip(String ip, bool ipv4 = true);
 	bool set_address(String ip, uint16_t _port, bool ipv4 = true);
+	void set_input_buffer(int mb);
+
+	void set_server_setting(int param, Variant value);
+	void disable_overriding_server_settings();
 
 	virtual bool start() override;
 	virtual void stop() override;
 
-	GRDeviceStandalone();
-	~GRDeviceStandalone();
+	GRClient();
+	~GRClient();
 };
 
 class GRInputCollector : public Node {
 	GDCLASS(GRInputCollector, Node);
 
 private:
-	GRDeviceStandalone *dev = nullptr;
+	GRClient *dev = nullptr;
 	class TextureRect *texture_rect = nullptr;
 	PoolByteArray collected_input_data;
 	class Control *parent;
@@ -153,7 +172,7 @@ public:
 	bool is_capture_when_hover();
 	void set_capture_when_hover(bool value);
 
-	void set_gr_device(GRDeviceStandalone *_dev);
+	void set_gr_device(GRClient *_dev);
 	void set_tex_rect(class TextureRect *tr);
 
 	PoolByteArray get_collected_input_data();
@@ -164,5 +183,5 @@ public:
 
 #endif // !NO_GODOTREMOTE_CLIENT
 
-VARIANT_ENUM_CAST(GRDeviceStandalone::ConnectionType)
-VARIANT_ENUM_CAST(GRDeviceStandalone::StretchMode)
+VARIANT_ENUM_CAST(GRClient::ConnectionType)
+VARIANT_ENUM_CAST(GRClient::StretchMode)

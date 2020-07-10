@@ -18,6 +18,13 @@ public:
 		DEVICE_Standalone = 2,
 	};
 
+	enum class TypesOfServerSettings {
+		USE_INTERNAL_SERVER_SETTINGS = 0,
+		JPG_QUALITY = 1,
+		SEND_FPS = 2,
+		RENDER_SCALE = 3,
+	};
+
 	static String ps_autoload_name;
 	static String ps_port_name;
 	static String ps_config_adb_name;
@@ -33,7 +40,7 @@ private:
 
 	void register_and_load_settings();
 #ifdef TOOLS_ENABLED
-	void _native_run_emitted();
+	void _run_emitted();
 #endif
 
 protected:
@@ -44,10 +51,6 @@ public:
 	// GRUtils functions binds for GDScript
 	void set_log_level(GRUtils::LogLevel lvl) {
 		GRUtils::set_log_level(lvl);
-	}
-
-	PoolByteArray compress_jpg(Ref<Image> orig_img, int quality = 75, int subsampling = GRUtils::Subsampling::SUBSAMPLING_H2V2) {
-		return GRUtils::compress_jpg(orig_img, quality, subsampling);
 	}
 
 	void set_gravity(const Vector3 &p_gravity) const {
@@ -73,7 +76,7 @@ public:
 	void create_and_start_device(DeviceType type = DeviceType::DEVICE_Auto);
 	bool create_remote_device(DeviceType type = DeviceType::DEVICE_Auto);
 	bool start_remote_device();
-	bool stop_remote_device();
+	bool remove_remote_device();
 
 #ifdef TOOLS_ENABLED
 	void _adb_port_forwarding();
@@ -85,3 +88,4 @@ public:
 };
 
 VARIANT_ENUM_CAST(GodotRemote::DeviceType)
+VARIANT_ENUM_CAST(GodotRemote::TypesOfServerSettings)

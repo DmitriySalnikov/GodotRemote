@@ -27,6 +27,10 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 			CREATE(GRPacketImageData);
 		case PacketType::InputData:
 			CREATE(GRPacketInputData);
+		case PacketType::ServerSettings:
+			CREATE(GRPacketServerSettings);
+		case PacketType::ServerSettingsRequest:
+			CREATE(GRPacketServerSettingsRequest);
 		case PacketType::Ping:
 			CREATE(GRPacketPing);
 		case PacketType::Pong:
@@ -81,4 +85,30 @@ PoolByteArray &GRPacketInputData::get_input_data() {
 
 void GRPacketInputData::set_input_data(PoolByteArray &buf) {
 	input_data = buf;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// SERVER SETTINGS
+Ref<StreamPeerBuffer> GRPacketServerSettings::_get_data() {
+	auto buf = GRPacket::_get_data();
+	buf->put_var(settings);
+	return buf;
+}
+
+bool GRPacketServerSettings::_create(Ref<StreamPeerBuffer> buf) {
+	GRPacket::_create(buf);
+	settings = buf->get_var();
+	return true;
+}
+
+Dictionary &GRPacketServerSettings::get_settings() {
+	return settings;
+}
+
+void GRPacketServerSettings::set_settings(Dictionary &_settings) {
+	settings = _settings;
+}
+
+void GRPacketServerSettings::add_setting(int _setting, Variant value) {
+	settings[_setting] = value;
 }

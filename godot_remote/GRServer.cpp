@@ -1,8 +1,8 @@
-/* GRDeviceDevelopment.cpp */
+/* GRServer.cpp */
 
 #ifndef NO_GODOTREMOTE_SERVER
 
-#include "GRDeviceDevelopment.h"
+#include "GRServer.h"
 #include "GRPacket.h"
 #include "GodotRemote.h"
 #include "core/input_map.h"
@@ -14,24 +14,27 @@
 
 using namespace GRUtils;
 
-void GRDeviceDevelopment::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("get_settings_node"), &GRDeviceDevelopment::get_settings_node);
-	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRDeviceDevelopment::get_gr_viewport);
+void GRServer::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("get_settings_node"), &GRServer::get_settings_node);
+	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRServer::get_gr_viewport);
 
-	ClassDB::bind_method(D_METHOD("set_target_send_fps"), &GRDeviceDevelopment::set_target_send_fps);
-	ClassDB::bind_method(D_METHOD("set_auto_adjust_scale"), &GRDeviceDevelopment::set_auto_adjust_scale);
-	ClassDB::bind_method(D_METHOD("set_jpg_quality"), &GRDeviceDevelopment::set_jpg_quality);
+	ClassDB::bind_method(D_METHOD("set_target_send_fps"), &GRServer::set_target_send_fps);
+	ClassDB::bind_method(D_METHOD("set_auto_adjust_scale"), &GRServer::set_auto_adjust_scale);
+	ClassDB::bind_method(D_METHOD("set_jpg_quality"), &GRServer::set_jpg_quality);
+	ClassDB::bind_method(D_METHOD("set_render_scale"), &GRServer::set_render_scale);
 
-	ClassDB::bind_method(D_METHOD("get_target_send_fps"), &GRDeviceDevelopment::get_target_send_fps);
-	ClassDB::bind_method(D_METHOD("get_auto_adjust_scale"), &GRDeviceDevelopment::get_auto_adjust_scale);
-	ClassDB::bind_method(D_METHOD("get_jpg_quality"), &GRDeviceDevelopment::get_jpg_quality);
+	ClassDB::bind_method(D_METHOD("get_target_send_fps"), &GRServer::get_target_send_fps);
+	ClassDB::bind_method(D_METHOD("get_auto_adjust_scale"), &GRServer::get_auto_adjust_scale);
+	ClassDB::bind_method(D_METHOD("get_jpg_quality"), &GRServer::get_jpg_quality);
+	ClassDB::bind_method(D_METHOD("get_render_scale"), &GRServer::get_render_scale);
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps"), "set_target_send_fps", "get_target_send_fps");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "get_auto_adjust_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "jpg_quality"), "set_jpg_quality", "get_jpg_quality");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "render_scale"), "set_render_scale", "get_render_scale");
 }
 
-void GRDeviceDevelopment::_notification(int p_notification) {
+void GRServer::_notification(int p_notification) {
 	switch (p_notification) {
 		case NOTIFICATION_CRASH:
 		case NOTIFICATION_EXIT_TREE:
@@ -42,47 +45,59 @@ void GRDeviceDevelopment::_notification(int p_notification) {
 	}
 }
 
-void GRDeviceDevelopment::set_auto_adjust_scale(bool _val) {
+void GRServer::set_auto_adjust_scale(bool _val) {
 	auto_adjust_scale = _val;
 }
 
-int GRDeviceDevelopment::get_auto_adjust_scale() {
+int GRServer::get_auto_adjust_scale() {
 	return auto_adjust_scale;
 }
 
-void GRDeviceDevelopment::set_jpg_quality(int _quality) {
+void GRServer::set_jpg_quality(int _quality) {
 	ERR_FAIL_COND(_quality < 0 || _quality > 100);
 	jpg_quality = _quality;
 }
 
-int GRDeviceDevelopment::get_jpg_quality() {
+int GRServer::get_jpg_quality() {
 	return jpg_quality;
 }
 
-void GRDeviceDevelopment::set_target_send_fps(int fps) {
+void GRServer::set_target_send_fps(int fps) {
 	ERR_FAIL_COND(fps <= 0);
 	target_send_fps = fps;
 }
 
-int GRDeviceDevelopment::get_target_send_fps() {
+int GRServer::get_target_send_fps() {
 	return target_send_fps;
 }
 
-GRDeviceDevelopment::GRDeviceDevelopment() :
+void GRServer::set_render_scale(float _scale) {
+	if (resize_viewport)
+		resize_viewport->set_rendering_scale(_scale);
+}
+
+float GRServer::get_render_scale() {
+	if (resize_viewport)
+		return resize_viewport->get_rendering_scale();
+	return -1;
+}
+
+GRServer::GRServer() :
 		GRDevice() {
 	set_name("GodotRemoteServer");
 	tcp_server.instance();
 	ips = new ImgProcessingStorage(this);
-	jpg_quality = GET_PS(GodotRemote::ps_jpg_quality_name);
-	auto_adjust_scale = GET_PS(GodotRemote::ps_auto_adjust_scale_name);
+	_load_settings();
+	init_server_utils();
 }
 
-GRDeviceDevelopment::~GRDeviceDevelopment() {
+GRServer::~GRServer() {
 	stop();
 	delete ips;
+	deinit_server_utils();
 }
 
-bool GRDeviceDevelopment::start() {
+bool GRServer::start() {
 	if (server_thread_listen) {
 		ERR_FAIL_V_MSG(false, "Can't start already working Godot Remote Server");
 	}
@@ -95,14 +110,14 @@ bool GRDeviceDevelopment::start() {
 	t_image_encode = Thread::create(&_thread_image_processing, ips);
 
 	if (!resize_viewport) {
-		resize_viewport = memnew(GRDDViewport);
+		resize_viewport = memnew(GRSViewport);
 		add_child(resize_viewport);
 	}
 
 	return true;
 }
 
-void GRDeviceDevelopment::stop() {
+void GRServer::stop() {
 	if (!working)
 		return;
 
@@ -129,15 +144,15 @@ void GRDeviceDevelopment::stop() {
 	}
 }
 
-GRDDViewport *GRDeviceDevelopment::get_gr_viewport() {
+GRSViewport *GRServer::get_gr_viewport() {
 	return resize_viewport;
 }
 
-Node *GRDeviceDevelopment::get_settings_node() {
+Node *GRServer::get_settings_node() {
 	return settings_menu_node;
 }
 
-void GRDeviceDevelopment::_adjust_viewport_scale() {
+void GRServer::_adjust_viewport_scale() {
 	if (!resize_viewport)
 		return;
 
@@ -166,12 +181,52 @@ void GRDeviceDevelopment::_adjust_viewport_scale() {
 	if (scale > 1)
 		scale = 1;
 
-	end:
+end:
 	resize_viewport->auto_scale = scale;
 	resize_viewport->_update_size();
 }
 
-void GRDeviceDevelopment::_reset_counters() {
+void GRServer::_load_settings() {
+	jpg_quality = GET_PS(GodotRemote::ps_jpg_quality_name);
+	auto_adjust_scale = GET_PS(GodotRemote::ps_auto_adjust_scale_name);
+}
+
+void GRServer::_update_settings_from_client(const Dictionary settings) {
+	Array keys = settings.keys();
+	_log("DEBUG RECEIVING");
+
+	for (int i = 0; i < settings.size(); i++) {
+		Variant key = keys[i];
+		Variant value = settings[key];
+
+		_log(key);
+		if (key.get_type() == Variant::INT) {
+			GodotRemote::TypesOfServerSettings k = (GodotRemote::TypesOfServerSettings)(int)key;
+			switch (k) {
+				case GodotRemote::TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS:
+					if ((bool)value == true) {
+						_load_settings();
+						return;
+					}
+					break;
+				case GodotRemote::TypesOfServerSettings::JPG_QUALITY:
+					set_jpg_quality(value);
+					break;
+				case GodotRemote::TypesOfServerSettings::SEND_FPS:
+					set_target_send_fps(value);
+					break;
+				case GodotRemote::TypesOfServerSettings::RENDER_SCALE:
+					set_render_scale(value);
+					break;
+				default:
+					_log("Unknown server setting with code: " + str((int)k));
+					break;
+			}
+		}
+	}
+}
+
+void GRServer::_reset_counters() {
 	GRDevice::_reset_counters();
 	prev_avg_fps = 0;
 }
@@ -180,9 +235,9 @@ void GRDeviceDevelopment::_reset_counters() {
 ////////////////// STATIC ////////////////////
 //////////////////////////////////////////////
 
-void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
+void GRServer::_thread_listen(void *p_userdata) {
 	Thread::set_name("GR_listen_thread");
-	GRDeviceDevelopment *dev = (GRDeviceDevelopment *)p_userdata;
+	GRServer *dev = (GRServer *)p_userdata;
 	Ref<TCP_Server> srv = dev->tcp_server;
 	Thread *t_connection = nullptr;
 	OS *os = OS::get_singleton();
@@ -291,15 +346,16 @@ void GRDeviceDevelopment::_thread_listen(void *p_userdata) {
 	dev->tcp_server->stop();
 }
 
-void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
+void GRServer::_thread_connection(void *p_userdata) {
 	StartThreadArgs *args = (StartThreadArgs *)p_userdata;
 	Ref<StreamPeerTCP> connection = args->con;
-	GRDeviceDevelopment *dev = args->dev;
+	GRServer *dev = args->dev;
 	ImgProcessingStorage *ips = dev->ips;
 	delete args;
 
 	Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
 	ppeer->set_stream_peer(connection);
+	ppeer->set_output_buffer_max_size(compress_buffer.size());
 
 	GodotRemote *gr = GodotRemote::get_singleton();
 	OS *os = OS::get_singleton();
@@ -396,21 +452,28 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 
 			//_log(str_arr((PoolByteArray)res, true));
 			Ref<GRPacket> pack = GRPacket::create(res);
+			if (pack.is_null())
+			{
+				_log("Received packet was NULL", LogLevel::LL_Error);
+				continue;
+			}
+
 			GRPacket::PacketType type = pack->get_type();
 			//_log((int)type);
 
 			switch (type) {
 				case GRPacket::PacketType::InitData:
+					ERR_PRINT("NOT IMPLEMENTED");
 					break;
 				case GRPacket::PacketType::ImageData:
+					ERR_PRINT("NOT IMPLEMENTED");
 					break;
 				case GRPacket::PacketType::InputData: {
 					Ref<GRPacketInputData> data = pack;
-
 					if (data.is_null()) {
+						ERR_PRINT("Incorrect GRPacketInputData");
 						break;
 					}
-
 					if (!_parse_input_data(data->get_input_data())) {
 						connection->disconnect_from_host();
 						break;
@@ -418,6 +481,18 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 
 					break;
 				}
+				case GRPacket::PacketType::ServerSettings: {
+					Ref<GRPacketServerSettings> data = pack;
+					if (data.is_null()) {
+						ERR_PRINT("Incorrect GRPacketServerSettings");
+						break;
+					}
+					dev->_update_settings_from_client(data->get_settings());
+					break;
+				}
+				case GRPacket::PacketType::ServerSettingsRequest:
+					ERR_PRINT("NOT IMPLEMENTED");
+					break;
 				case GRPacket::PacketType::Ping: {
 					Ref<GRPacketPong> pack(memnew(GRPacketPong));
 					err = ppeer->put_var(pack->get_data());
@@ -449,17 +524,19 @@ void GRDeviceDevelopment::_thread_connection(void *p_userdata) {
 	dev->break_connection = true;
 }
 
-void GRDeviceDevelopment::_thread_image_processing(void *p_userdata) {
+void GRServer::_thread_image_processing(void *p_userdata) {
 	Thread::set_name("GR_image_encoding");
 
 	ImgProcessingStorage *ips = (ImgProcessingStorage *)p_userdata;
-	GRDeviceDevelopment *dev = ips->dev;
+	GRServer *dev = ips->dev;
 	OS *os = OS::get_singleton();
 
 	while (!dev->stop_device) {
 
 		if (ips->tex.is_valid() && !ips->is_new_data) {
+			TimeCountInit();
 			Ref<Image> img = ips->tex->get_data();
+			TimeCount("Get Image Data From Viewport");
 
 			if (img.is_null()) {
 				os->delay_usec(1_ms);
@@ -475,7 +552,7 @@ void GRDeviceDevelopment::_thread_image_processing(void *p_userdata) {
 	}
 }
 
-GRDeviceDevelopment::AuthResult GRDeviceDevelopment::_auth_client(GRDeviceDevelopment *dev, Ref<StreamPeerTCP> con) {
+GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<StreamPeerTCP> con) {
 	// Auth Packet
 	// 4bytes GodotRemote Header
 	// 4bytes Body Size
@@ -545,7 +622,7 @@ GRDeviceDevelopment::AuthResult GRDeviceDevelopment::_auth_client(GRDeviceDevelo
 	return AuthResult::Error;
 }
 
-bool GRDeviceDevelopment::_parse_input_data(const PoolByteArray &p_data) {
+bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 	InputMap *im = InputMap::get_singleton();
 	OS *os = OS::get_singleton();
 
@@ -729,7 +806,7 @@ bool GRDeviceDevelopment::_parse_input_data(const PoolByteArray &p_data) {
 	return true;
 }
 
-const uint8_t *GRDeviceDevelopment::_read_abstract_input_data(InputEvent *ie, const Vector2 &vs, const uint8_t *data) {
+const uint8_t *GRServer::_read_abstract_input_data(InputEvent *ie, const Vector2 &vs, const uint8_t *data) {
 	ie->set_device(decode_uint32(data));
 	// TODO add ability to set custom device id or just -1/0 if we emulating input.
 	data += 4;
@@ -762,25 +839,25 @@ const uint8_t *GRDeviceDevelopment::_read_abstract_input_data(InputEvent *ie, co
 }
 
 //////////////////////////////////////////////
-////////////// GRDDViewport //////////////////
+////////////// GRSViewport //////////////////
 //////////////////////////////////////////////
 
-void GRDDViewport::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("_update_size"), &GRDDViewport::_update_size);
-	ClassDB::bind_method(D_METHOD("set_rendering_scale"), &GRDDViewport::set_rendering_scale);
-	ClassDB::bind_method(D_METHOD("get_rendering_scale"), &GRDDViewport::get_rendering_scale);
+void GRSViewport::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("_update_size"), &GRSViewport::_update_size);
+	ClassDB::bind_method(D_METHOD("set_rendering_scale"), &GRSViewport::set_rendering_scale);
+	ClassDB::bind_method(D_METHOD("get_rendering_scale"), &GRSViewport::get_rendering_scale);
 
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "rendering_scale", PROPERTY_HINT_RANGE, "0,1,0.001"), "set_rendering_scale", "get_rendering_scale");
 }
 
-void GRDDViewport::_notification(int p_notification) {
+void GRSViewport::_notification(int p_notification) {
 	switch (p_notification) {
 		case NOTIFICATION_ENTER_TREE: {
 			main_vp = SceneTree::get_singleton()->get_root();
 			main_vp->connect("size_changed", this, "_update_size");
 			_update_size();
 
-			renderer = memnew(GRDDViewportRenderer);
+			renderer = memnew(GRSViewportRenderer);
 			renderer->tex = main_vp->get_texture();
 			add_child(renderer);
 
@@ -799,7 +876,7 @@ void GRDDViewport::_notification(int p_notification) {
 	}
 }
 
-void GRDDViewport::_update_size() {
+void GRSViewport::_update_size() {
 	float scale = rendering_scale;
 	if (auto_scale > 0)
 		scale = auto_scale;
@@ -823,17 +900,17 @@ void GRDDViewport::_update_size() {
 	}
 }
 
-void GRDDViewport::set_rendering_scale(float val) {
+void GRSViewport::set_rendering_scale(float val) {
 	rendering_scale = val;
 	_update_size();
 }
 
-float GRDDViewport::get_rendering_scale() {
+float GRSViewport::get_rendering_scale() {
 	return rendering_scale;
 }
 
-GRDDViewport::GRDDViewport() {
-	set_name("GRDDViewport");
+GRSViewport::GRSViewport() {
+	set_name("GRSViewport");
 
 	rendering_scale = GET_PS(GodotRemote::ps_scale_of_sending_stream_name);
 
@@ -850,13 +927,13 @@ GRDDViewport::GRDDViewport() {
 }
 
 //////////////////////////////////////////////
-/////////// GRDDViewportRenderer /////////////
+/////////// GRSViewportRenderer /////////////
 //////////////////////////////////////////////
 
-void GRDDViewportRenderer::_bind_methods() {
+void GRSViewportRenderer::_bind_methods() {
 }
 
-void GRDDViewportRenderer::_notification(int p_notification) {
+void GRSViewportRenderer::_notification(int p_notification) {
 	switch (p_notification) {
 		case NOTIFICATION_ENTER_TREE: {
 			vp = get_viewport();
@@ -880,8 +957,8 @@ void GRDDViewportRenderer::_notification(int p_notification) {
 	}
 }
 
-GRDDViewportRenderer::GRDDViewportRenderer() {
-	set_name("GRDDViewportRenderer");
+GRSViewportRenderer::GRSViewportRenderer() {
+	set_name("GRSViewportRenderer");
 	set_process(true);
 
 	set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
