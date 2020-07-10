@@ -163,12 +163,12 @@ void GRServer::_adjust_viewport_scale() {
 	} else {
 		prev_avg_fps = (prev_avg_fps * smooth) + (avg_fps * (1.f - smooth));
 	}
-	_log(prev_avg_fps);
 
 	if (!auto_adjust_scale) {
 		scale = -1.f;
 		goto end;
 	}
+	_log(prev_avg_fps);
 
 	if (prev_avg_fps < target_send_fps - 4) {
 		scale -= 0.001f;
@@ -193,13 +193,11 @@ void GRServer::_load_settings() {
 
 void GRServer::_update_settings_from_client(const Dictionary settings) {
 	Array keys = settings.keys();
-	_log("DEBUG RECEIVING");
 
 	for (int i = 0; i < settings.size(); i++) {
 		Variant key = keys[i];
 		Variant value = settings[key];
 
-		_log(key);
 		if (key.get_type() == Variant::INT) {
 			GodotRemote::TypesOfServerSettings k = (GodotRemote::TypesOfServerSettings)(int)key;
 			switch (k) {

@@ -44,7 +44,11 @@ void GRDevice::_update_avg_ping(uint32_t ping) {
 
 void GRDevice::_update_avg_fps(uint32_t frametime) {
 	if (!frametime) {
-		avg_fps = (avg_fps * avg_fps_smoothing);
+		//avg_fps = (avg_fps * avg_fps_smoothing);
+		return;
+	}
+	// TODO need more tests to understand strange fps pick with high fps
+	if (frametime == 1) {
 		return;
 	}
 	avg_fps = (avg_fps * avg_fps_smoothing) + ((1000.f / frametime) * (1.f - avg_fps_smoothing));

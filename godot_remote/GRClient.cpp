@@ -35,8 +35,10 @@ void GRClient::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_ip"), &GRClient::get_ip);
 	ClassDB::bind_method(D_METHOD("is_stream_active"), &GRClient::is_stream_active);
+	ClassDB::bind_method(D_METHOD("is_connected_to_host"), &GRClient::is_connected_to_host);
 
 	ADD_SIGNAL(MethodInfo("stream_state_changed", PropertyInfo(Variant::BOOL, "is_active")));
+	ADD_SIGNAL(MethodInfo("connection_state_changed", PropertyInfo(Variant::BOOL, "is_connected")));
 
 	// SETGET
 	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "val"), &GRClient::set_capture_on_focus);
@@ -306,6 +308,10 @@ void GRClient::stop() {
 	thread_image_decoder = nullptr;
 }
 
+bool GRClient::is_connected_to_host() {
+	return peer->is_connected_to_host();
+}
+
 void GRClient::_update_texture_from_iamge(Ref<Image> img) {
 	// avg fps
 	uint32_t time = OS::get_singleton()->get_ticks_msec();
@@ -455,7 +461,10 @@ void GRClient::_thread_connection(void *p_userdata) {
 			_log("Successful connected to " + address);
 
 			dev->_update_stream_texture_state(true);
+
+			dev->call_deferred("emit_signal", "connection_state_changed", true);
 			_connection_loop(dev, con);
+			dev->call_deferred("emit_signal", "connection_state_changed", false);
 		}
 
 		if (con->is_connected_to_host())

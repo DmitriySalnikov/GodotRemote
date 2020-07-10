@@ -130,6 +130,7 @@ public:
 	int get_stretch_mode();
 
 	bool is_stream_active();
+	bool is_connected_to_host();
 	String get_ip();
 	bool set_ip(String ip, bool ipv4 = true);
 	bool set_address(String ip, uint16_t _port, bool ipv4 = true);
