@@ -39,7 +39,7 @@ void GRServer::_notification(int p_notification) {
 		case NOTIFICATION_CRASH:
 		case NOTIFICATION_EXIT_TREE:
 		case NOTIFICATION_PREDELETE: {
-			stop();
+			_internal_call_only_deffered_stop();
 			break;
 		}
 	}
@@ -86,18 +86,21 @@ GRServer::GRServer() :
 		GRDevice() {
 	set_name("GodotRemoteServer");
 	tcp_server.instance();
+	connection_mutex = Mutex::create();
 	ips = new ImgProcessingStorage(this);
 	_load_settings();
 	init_server_utils();
 }
 
 GRServer::~GRServer() {
-	stop();
+	_internal_call_only_deffered_stop();
 	delete ips;
+	connection_mutex->unlock();
+	memdelete(connection_mutex);
 	deinit_server_utils();
 }
 
-bool GRServer::start() {
+bool GRServer::_internal_call_only_deffered_start() {
 	if (server_thread_listen) {
 		ERR_FAIL_V_MSG(false, "Can't start already working Godot Remote Server");
 	}
@@ -113,11 +116,10 @@ bool GRServer::start() {
 		resize_viewport = memnew(GRSViewport);
 		add_child(resize_viewport);
 	}
-
 	return true;
 }
 
-void GRServer::stop() {
+void GRServer::_internal_call_only_deffered_stop() {
 	if (!working)
 		return;
 
@@ -189,6 +191,10 @@ end:
 void GRServer::_load_settings() {
 	jpg_quality = GET_PS(GodotRemote::ps_jpg_quality_name);
 	auto_adjust_scale = GET_PS(GodotRemote::ps_auto_adjust_scale_name);
+
+	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
+		resize_viewport->set_rendering_scale(GET_PS(GodotRemote::ps_scale_of_sending_stream_name));
+	}
 }
 
 void GRServer::_update_settings_from_client(const Dictionary settings) {
@@ -450,8 +456,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 			//_log(str_arr((PoolByteArray)res, true));
 			Ref<GRPacket> pack = GRPacket::create(res);
-			if (pack.is_null())
-			{
+			if (pack.is_null()) {
 				_log("Received packet was NULL", LogLevel::LL_Error);
 				continue;
 			}
@@ -518,7 +523,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 	}
 
 	_log("Closing connection thread with address: " + address, LogLevel::LL_Debug);
-
+	dev->_load_settings();
 	dev->break_connection = true;
 }
 
@@ -533,6 +538,7 @@ void GRServer::_thread_image_processing(void *p_userdata) {
 
 		if (ips->tex.is_valid() && !ips->is_new_data) {
 			TimeCountInit();
+			_THREAD_SAFE_METHOD_
 			Ref<Image> img = ips->tex->get_data();
 			TimeCount("Get Image Data From Viewport");
 

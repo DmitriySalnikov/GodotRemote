@@ -39,6 +39,7 @@ void GRClient::_bind_methods() {
 
 	ADD_SIGNAL(MethodInfo("stream_state_changed", PropertyInfo(Variant::BOOL, "is_active")));
 	ADD_SIGNAL(MethodInfo("connection_state_changed", PropertyInfo(Variant::BOOL, "is_connected")));
+	ADD_SIGNAL(MethodInfo("working_state_changed", PropertyInfo(Variant::BOOL, "is_working")));
 
 	// SETGET
 	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "val"), &GRClient::set_capture_on_focus);
@@ -69,11 +70,13 @@ void GRClient::_bind_methods() {
 void GRClient::_notification(int p_notification) {
 	switch (p_notification) {
 		case NOTIFICATION_EXIT_TREE: {
-			stop();
+			is_deleting = true;
+			_internal_call_only_deffered_stop();
 			break;
 		}
 		case NOTIFICATION_PREDELETE: {
-			stop();
+			is_deleting = true;
+			_internal_call_only_deffered_stop();
 			break;
 		}
 	}
@@ -87,8 +90,11 @@ GRClient::GRClient() :
 
 	set_name("GodotRemoteClient");
 	ips = new ImgProcessingStorage(this);
+	thread_image_decoder = Thread::create(&_thread_image_decoder, ips);
+
 	peer.instance();
 	send_queue_mutex = Mutex::create();
+	connection_mutex = Mutex::create();
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 	no_signal_image.instance();
@@ -104,18 +110,32 @@ GRClient::GRClient() :
 }
 
 GRClient::~GRClient() {
-	stop();
-	delete ips;
+	is_deleting = true;
+	_internal_call_only_deffered_stop();
 	memdelete(send_queue_mutex);
+	memdelete(connection_mutex);
+
+	ips->is_working = false;
+	if (thread_image_decoder) {
+		Thread::wait_to_finish(thread_image_decoder);
+	}
+	memdelete(thread_image_decoder);
+	thread_image_decoder = nullptr;
+	delete ips;
 
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		tex_shows_stream->queue_delete();
-		tex_shows_stream = nullptr;
 	}
 	if (input_collector && !input_collector->is_queued_for_deletion()) {
 		input_collector->queue_delete();
-		input_collector = nullptr;
 	}
+	tex_shows_stream = nullptr;
+	input_collector = nullptr;
+
+#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
+	no_signal_mat.unref();
+	no_signal_image.unref();
+#endif
 }
 
 void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
@@ -229,8 +249,10 @@ else
 
 bool GRClient::set_address(String ip, uint16_t _port, bool ipv4) {
 	bool old = is_working();
-	if (old)
+	if (old) {
+		//_internal_call_only_deffered_stop();
 		stop();
+	}
 	String prev = (String)server_address;
 	int prevPort = port;
 
@@ -257,59 +279,67 @@ end:
 		all_ok = false;
 	}
 
-	if (old)
+	if (old) {
+		//_internal_call_only_deffered_start();
 		start();
+	}
 	return all_ok;
 }
 
 void GRClient::set_input_buffer(int mb) {
 	bool old = is_working();
-	if (old)
+	if (old) {
+		//_internal_call_only_deffered_stop();
 		stop();
+	}
 	input_buffer_size_in_mb = mb;
-	if (old)
+	if (old) {
+		//_internal_call_only_deffered_start();
 		start();
+	}
 }
 
-bool GRClient::start() {
+bool GRClient::_internal_call_only_deffered_start() {
 	if (working) {
-		ERR_FAIL_V_MSG(false, "Can't start already working Godot Remote Server");
+		ERR_FAIL_V_MSG(false, "Can't start already working GodotRemote Client");
 	}
 
-	_log("Starting GodotRemote client");
+	_log("Starting GodotRemote client", LogLevel::LL_Debug);
 
 	working = true;
-	stop_device = false;
-	break_connection = false;
 
-	thread_connection = Thread::create(&_thread_connection, new StartThreadArgs(this));
-	thread_image_decoder = Thread::create(&_thread_image_decoder, ips);
+	thread_connection.instance();
+	thread_connection->dev = this;
+	thread_connection->thread_ref = Thread::create(&_thread_connection, thread_connection.ptr());
+
+	call_deferred("emit_signal", "working_state_changed", true);
+
 	return true;
 }
 
-void GRClient::stop() {
+void GRClient::_internal_call_only_deffered_stop() {
 	if (!working)
 		return;
 
-	_log("Stopping GodotRemote client");
+	connection_mutex->try_lock();
+	_log("Stopping GodotRemote client", LogLevel::LL_Debug);
 
 	working = false;
-	stop_device = true;
-	break_connection = true;
+	thread_connection->stop_thread = true;
+	thread_connection->break_connection = true;
+
+	send_queue_mutex->unlock();
+	connection_mutex->unlock();
+
 	_update_stream_texture_state(false);
 
-	if (thread_connection) {
-		Thread::wait_to_finish(thread_connection);
-	}
-	if (thread_image_decoder) {
-		Thread::wait_to_finish(thread_image_decoder);
-	}
-	thread_connection = nullptr;
-	thread_image_decoder = nullptr;
+	call_deferred("emit_signal", "working_state_changed", false);
+
+	thread_connection.unref();
 }
 
 bool GRClient::is_connected_to_host() {
-	return peer->is_connected_to_host();
+	return peer->is_connected_to_host() && is_connection_working;
 }
 
 void GRClient::_update_texture_from_iamge(Ref<Image> img) {
@@ -332,20 +362,24 @@ void GRClient::_update_texture_from_iamge(Ref<Image> img) {
 }
 
 void GRClient::_update_stream_texture_state(bool is_has_signal) {
+	if (is_deleting)
+		return;
+
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		if (is_has_signal) {
 			tex_shows_stream->set_stretch_mode(stretch_mode == StretchMode::STRETCH_KEEP_ASPECT ? TextureRect::STRETCH_KEEP_ASPECT_CENTERED : TextureRect::STRETCH_SCALE);
 			tex_shows_stream->set_material(nullptr);
 
 			if (signal_connection_state != is_has_signal) {
-				emit_signal("stream_state_changed", true);
+				call_deferred("emit_signal", "stream_state_changed", true);
 			}
 			signal_connection_state = true;
 		} else {
 			tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
 
-			if (signal_connection_state != is_has_signal)
-				emit_signal("stream_state_changed", false);
+			if (signal_connection_state != is_has_signal) {
+				call_deferred("emit_signal", "stream_state_changed", false);
+			}
 			signal_connection_state = false;
 
 			if (custom_no_signal_texture.is_valid()) {
@@ -401,15 +435,14 @@ void GRClient::disable_overriding_server_settings() {
 //////////////////////////////////////////////
 
 void GRClient::_thread_connection(void *p_userdata) {
-	StartThreadArgs *args = (StartThreadArgs *)p_userdata;
-	GRClient *dev = args->dev;
-	delete args;
+	Ref<ConnectionThreadParams> con_thread = (ConnectionThreadParams *)p_userdata;
+	GRClient *dev = con_thread->dev;
 
 	Ref<StreamPeerTCP> con = dev->peer;
 	OS *os = OS::get_singleton();
 	Thread::set_name("GRemote_connection");
 
-	while (!dev->stop_device) {
+	while (!con_thread->stop_thread) {
 		if (os->get_ticks_msec() - dev->prev_valid_connection_time > 1000) {
 			dev->_update_stream_texture_state(false);
 		}
@@ -455,15 +488,19 @@ void GRClient::_thread_connection(void *p_userdata) {
 		}
 
 		con->set_no_delay(true);
-		dev->break_connection = false;
 
 		if (_auth_on_server(con)) {
 			_log("Successful connected to " + address);
 
 			dev->_update_stream_texture_state(true);
 
+			con_thread->break_connection = false;
+			dev->is_connection_working = true;
 			dev->call_deferred("emit_signal", "connection_state_changed", true);
-			_connection_loop(dev, con);
+
+			_connection_loop(con_thread, con);
+
+			dev->is_connection_working = false;
 			dev->call_deferred("emit_signal", "connection_state_changed", false);
 		}
 
@@ -471,12 +508,15 @@ void GRClient::_thread_connection(void *p_userdata) {
 			con->disconnect_from_host();
 	}
 
+	dev->_update_stream_texture_state(false);
 	if (con.is_valid() && con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
 		con.unref();
 	}
+	_log("Connection thread stopped", LogLevel::LL_Debug);
 }
 
-void GRClient::_connection_loop(GRClient *dev, Ref<StreamPeerTCP> connection) {
+void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<StreamPeerTCP> connection) {
+	GRClient *dev = con_thread->dev;
 	ImgProcessingStorage *ips = dev->ips;
 	OS *os = OS::get_singleton();
 	Error err = Error::OK;
@@ -491,7 +531,11 @@ void GRClient::_connection_loop(GRClient *dev, Ref<StreamPeerTCP> connection) {
 	uint32_t prev_ping_sending_time = prev_time;
 	bool ping_sended = false;
 
-	while (!dev->break_connection && connection->is_connected_to_host()) {
+	while (!con_thread->break_connection && connection->is_connected_to_host()) {
+		dev->connection_mutex->lock();
+		if (con_thread->break_connection || !connection->is_connected_to_host())
+			break;
+
 		bool nothing_happens = true;
 		uint32_t time = os->get_ticks_msec();
 		uint32_t start_while_time = 0;
@@ -616,13 +660,14 @@ void GRClient::_connection_loop(GRClient *dev, Ref<StreamPeerTCP> connection) {
 			}
 		}
 	end_recv:
+		dev->connection_mutex->unlock();
 
 		if (nothing_happens)
 			os->delay_usec(1_ms);
 	}
 
 	_log("Closing connection");
-	dev->break_connection = true;
+	con_thread->break_connection = true;
 }
 
 void GRClient::_thread_image_decoder(void *p_userdata) {
@@ -632,7 +677,7 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 	GRClient *dev = ips->dev;
 	OS *os = OS::get_singleton();
 
-	while (!dev->stop_device) {
+	while (ips->is_working) {
 		if (ips->is_new_data) {
 			Ref<Image> img;
 			img.instance();

@@ -3,6 +3,9 @@
 #include "GodotRemote.h"
 
 void GRDevice::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_start"), &GRDevice::_internal_call_only_deffered_start);
+	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_stop"), &GRDevice::_internal_call_only_deffered_stop);
+
 	ClassDB::bind_method(D_METHOD("get_avg_ping"), &GRDevice::get_avg_ping);
 	ClassDB::bind_method(D_METHOD("get_avg_fps"), &GRDevice::get_avg_fps);
 
@@ -75,6 +78,14 @@ void GRDevice::set_port(uint16_t _port) {
 
 	if (old)
 		start();
+}
+
+void GRDevice::start() {
+	call_deferred("_internal_call_only_deffered_start");
+}
+
+void GRDevice::stop() {
+	call_deferred("_internal_call_only_deffered_stop");
 }
 
 bool GRDevice::is_working() {

@@ -49,8 +49,11 @@ public:
 	uint16_t get_port();
 	void set_port(uint16_t _port);
 
-	virtual bool start() = 0;
-	virtual void stop() = 0;
+	void start();
+	void stop();
+
+	virtual bool _internal_call_only_deffered_start() = 0;
+	virtual void _internal_call_only_deffered_stop() = 0;
 	virtual bool is_working();
 
 	GRDevice();

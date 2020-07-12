@@ -8,15 +8,15 @@
 #include "core/print_string.h"
 #include "core/project_settings.h"
 #include "core/variant.h"
-#include "jpge.h"
 #include "main/input_default.h"
 
 #ifdef DEBUG_ENABLED
 
 #define TimeCountInit() int simple_time_counter = OS::get_singleton()->get_ticks_usec()
 #define TimeCountReset() simple_time_counter = OS::get_singleton()->get_ticks_usec()
-#define TimeCount(str)                                                                                                                                         \
-	GRUtils::_log(str + String(": ") + String::num_real((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0), GRUtils::LogLevel::LL_Debug); \
+// Shows delta between this and previous counter. Need to call TimeCountInit before
+#define TimeCount(str)                                                                                                                                                 \
+	GRUtils::_log(str + String(": ") + String::num_real((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0) + " ms", GRUtils::LogLevel::LL_Debug); \
 	simple_time_counter = OS::get_singleton()->get_ticks_usec()
 
 #else

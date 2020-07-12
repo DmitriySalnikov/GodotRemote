@@ -28,6 +28,7 @@ private:
 		GRClient *dev = nullptr;
 		PoolByteArray tex_data;
 		bool is_new_data = false;
+		bool is_working = true;
 
 		ImgProcessingStorage(GRClient *d) {
 			dev = d;
@@ -37,29 +38,35 @@ private:
 		}
 	};
 
-	class StartThreadArgs {
+	class ConnectionThreadParams : public Reference {
+		GDCLASS(ConnectionThreadParams, Reference);
+
 	public:
 		GRClient *dev = nullptr;
+		class Thread *thread_ref = nullptr;
+		bool break_connection = false;
+		bool stop_thread = false;
 
-		StartThreadArgs(GRClient *d) {
-			dev = d;
-		}
-		~StartThreadArgs() {
+		~ConnectionThreadParams() {
 			dev = nullptr;
+			break_connection = true;
+
+			if (thread_ref)
+				memdelete(thread_ref);
+			thread_ref = nullptr;
 		}
 	};
 
+	bool is_deleting = false;
+	bool is_connection_working = false;
 	ImgProcessingStorage *ips = nullptr;
-	class Node *settings_menu_node = nullptr;
-	class Thread *thread_connection = nullptr;
-	class Thread *thread_image_decoder = nullptr;
+	Node *settings_menu_node = nullptr;
+	Thread *thread_image_decoder = nullptr;
 	class Control *control_to_show_in = nullptr;
 	class TextureRect *tex_shows_stream = nullptr;
 	class GRInputCollector *input_collector = nullptr;
 	class Ref<StreamPeerTCP> peer;
-
-	bool stop_device = false;
-	bool break_connection = false;
+	Ref<ConnectionThreadParams> thread_connection = nullptr;
 
 	IP_Address server_address = String("127.0.0.1");
 	const String ip_validator_pattern = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
@@ -69,8 +76,9 @@ private:
 	bool capture_pointer_only_when_hover_control = true;
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
-	Mutex* send_queue_mutex;
-	List<Ref<class GRPacket>> send_queue;
+	Mutex *send_queue_mutex = nullptr;
+	Mutex *connection_mutex = nullptr;
+	List<Ref<class GRPacket> > send_queue;
 	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
@@ -87,10 +95,9 @@ private:
 	Ref<class ShaderMaterial> no_signal_mat;
 #endif
 
-	template<class T>
+	template <class T>
 	T _find_queued_packet_by_type() {
-		for (auto e = send_queue.front(); e; e = e->next())
-		{
+		for (auto e = send_queue.front(); e; e = e->next()) {
 			T o = e->get();
 			if (o.is_valid()) {
 				return o;
@@ -106,7 +113,7 @@ private:
 	static void _thread_connection(void *p_userdata);
 	static void _thread_image_decoder(void *p_userdata);
 
-	static void _connection_loop(GRClient *dev, Ref<StreamPeerTCP> connection);
+	static void _connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<StreamPeerTCP> connection);
 	static bool _auth_on_server(Ref<StreamPeerTCP> con);
 
 protected:
@@ -139,8 +146,8 @@ public:
 	void set_server_setting(int param, Variant value);
 	void disable_overriding_server_settings();
 
-	virtual bool start() override;
-	virtual void stop() override;
+	virtual bool _internal_call_only_deffered_start() override;
+	virtual void _internal_call_only_deffered_stop() override;
 
 	GRClient();
 	~GRClient();
@@ -159,7 +166,6 @@ private:
 	Rect2 stream_rect;
 
 protected:
-
 	void _update_stream_rect();
 
 	static void _bind_methods();

@@ -3,6 +3,11 @@
 #include "GRUtils.h"
 #include "GodotRemote.h"
 
+#ifndef NO_GODOTREMOTE_SERVER
+// richgel999/jpeg-compressor: https://github.com/richgel999/jpeg-compressor
+#include "jpge.h"
+#endif
+
 namespace GRUtils {
 int current_loglevel =
 #ifdef DEBUG_ENABLED

@@ -50,10 +50,11 @@ private:
 	};
 
 	ImgProcessingStorage *ips = nullptr;
-	class Node *settings_menu_node = nullptr;
-	class Thread *server_thread_listen = nullptr;
-	class Thread *t_image_encode = nullptr;
-	class Ref<TCP_Server> tcp_server;
+	Node *settings_menu_node = nullptr;
+	Mutex *connection_mutex = nullptr;
+	Thread *server_thread_listen = nullptr;
+	Thread *t_image_encode = nullptr;
+	Ref<TCP_Server> tcp_server;
 	class GRSViewport *resize_viewport = nullptr;
 
 	bool stop_device = false;
@@ -93,8 +94,8 @@ public:
 	void set_render_scale(float _scale);
 	float get_render_scale();
 
-	virtual bool start() override;
-	virtual void stop() override;
+	virtual bool _internal_call_only_deffered_start() override;
+	virtual void _internal_call_only_deffered_stop() override;
 
 	GRSViewport *get_gr_viewport();
 	class Node *get_settings_node();

@@ -143,7 +143,7 @@ bool GodotRemote::create_remote_device(DeviceType type) {
 
 bool GodotRemote::start_remote_device() {
 	if (device) {
-		return device->start();
+		return device->_internal_call_only_deffered_start();
 	}
 	return false;
 }
