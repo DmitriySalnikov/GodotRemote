@@ -94,7 +94,7 @@ public:
 	void set_render_scale(float _scale);
 	float get_render_scale();
 
-	virtual bool _internal_call_only_deffered_start() override;
+	virtual void _internal_call_only_deffered_start() override;
 	virtual void _internal_call_only_deffered_stop() override;
 
 	GRSViewport *get_gr_viewport();

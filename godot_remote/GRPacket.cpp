@@ -57,7 +57,7 @@ bool GRPacketImageData::_create(Ref<StreamPeerBuffer> buf) {
 	return true;
 }
 
-PoolByteArray &GRPacketImageData::get_image_data() {
+PoolByteArray GRPacketImageData::get_image_data() {
 	return img_data;
 }
 
@@ -79,7 +79,7 @@ bool GRPacketInputData::_create(Ref<StreamPeerBuffer> buf) {
 	return true;
 }
 
-PoolByteArray &GRPacketInputData::get_input_data() {
+PoolByteArray GRPacketInputData::get_input_data() {
 	return input_data;
 }
 
@@ -101,7 +101,7 @@ bool GRPacketServerSettings::_create(Ref<StreamPeerBuffer> buf) {
 	return true;
 }
 
-Dictionary &GRPacketServerSettings::get_settings() {
+Dictionary GRPacketServerSettings::get_settings() {
 	return settings;
 }
 

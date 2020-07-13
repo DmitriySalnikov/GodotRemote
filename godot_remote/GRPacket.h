@@ -52,7 +52,7 @@ protected:
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
 public:
-	PoolByteArray &get_image_data();
+	PoolByteArray get_image_data();
 	void set_image_data(PoolByteArray &buf);
 
 	virtual PacketType get_type() override { return PacketType::ImageData; };
@@ -71,7 +71,7 @@ protected:
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
 public:
-	PoolByteArray &get_input_data();
+	PoolByteArray get_input_data();
 	void set_input_data(PoolByteArray &buf);
 
 	virtual PacketType get_type() override { return PacketType::InputData; };
@@ -90,7 +90,7 @@ protected:
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
 public:
-	Dictionary &get_settings();
+	Dictionary get_settings();
 	void set_settings(Dictionary &_settings);
 	void add_setting(int _setting, Variant value);
 

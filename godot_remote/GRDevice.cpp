@@ -6,6 +6,8 @@ void GRDevice::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_start"), &GRDevice::_internal_call_only_deffered_start);
 	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_stop"), &GRDevice::_internal_call_only_deffered_stop);
 
+	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_restart"), &GRDevice::_internal_call_only_deffered_restart);
+
 	ClassDB::bind_method(D_METHOD("get_avg_ping"), &GRDevice::get_avg_ping);
 	ClassDB::bind_method(D_METHOD("get_avg_fps"), &GRDevice::get_avg_fps);
 
@@ -14,26 +16,33 @@ void GRDevice::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("start"), &GRDevice::start);
 	ClassDB::bind_method(D_METHOD("stop"), &GRDevice::stop);
-	ClassDB::bind_method(D_METHOD("is_working"), &GRDevice::is_working);
+	ClassDB::bind_method(D_METHOD("get_status"), &GRDevice::get_status);
+
+	ADD_SIGNAL(MethodInfo("status_changed", PropertyInfo(Variant::INT, "status")));
 
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "port"), "set_port", "get_port");
 
-	BIND_ENUM_CONSTANT(_InputDeviceSensors)
-	BIND_ENUM_CONSTANT(_InputEvent)
-	BIND_ENUM_CONSTANT(_InputEventAction)
-	BIND_ENUM_CONSTANT(_InputEventGesture)
-	BIND_ENUM_CONSTANT(_InputEventJoypadButton)
-	BIND_ENUM_CONSTANT(_InputEventJoypadMotion)
-	BIND_ENUM_CONSTANT(_InputEventKey)
-	BIND_ENUM_CONSTANT(_InputEventMagnifyGesture)
-	BIND_ENUM_CONSTANT(_InputEventMIDI)
-	BIND_ENUM_CONSTANT(_InputEventMouse)
-	BIND_ENUM_CONSTANT(_InputEventMouseButton)
-	BIND_ENUM_CONSTANT(_InputEventMouseMotion)
-	BIND_ENUM_CONSTANT(_InputEventPanGesture)
-	BIND_ENUM_CONSTANT(_InputEventScreenDrag)
-	BIND_ENUM_CONSTANT(_InputEventScreenTouch)
-	BIND_ENUM_CONSTANT(_InputEventWithModifiers)
+	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Starting, "STATUS_STARTING");
+	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Stopping, "STATUS_STOPPING");
+	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Working, "STATUS_WORKING");
+	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Stopped, "STATUS_STOPPED");
+
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputDeviceSensors, "InputDeviceSensors")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEvent, "InputEvent")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventAction, "InputEventAction")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventGesture, "InputEventGesture")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventJoypadButton, "InputEventJoypadButton")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventJoypadMotion, "InputEventJoypadMotion")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventKey, "InputEventKey")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventMagnifyGesture, "InputEventMagnifyGesture")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventMIDI, "InputEventMIDI")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventMouse, "InputEventMouse")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventMouseButton, "InputEventMouseButton")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventMouseMotion, "InputEventMouseMotion")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventPanGesture, "InputEventPanGesture")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventScreenDrag, "InputEventScreenDrag")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventScreenTouch, "InputEventScreenTouch")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::InputEventWithModifiers, "InputEventWithModifiers")
 }
 
 void GRDevice::_reset_counters() {
@@ -57,6 +66,11 @@ void GRDevice::_update_avg_fps(uint32_t frametime) {
 	avg_fps = (avg_fps * avg_fps_smoothing) + ((1000.f / frametime) * (1.f - avg_fps_smoothing));
 }
 
+void GRDevice::set_status(WorkingStatus status) {
+	working_status = status;
+	emit_signal("status_changed", (int)working_status);
+}
+
 float GRDevice::get_avg_ping() {
 	return avg_ping;
 }
@@ -70,14 +84,8 @@ uint16_t GRDevice::get_port() {
 }
 
 void GRDevice::set_port(uint16_t _port) {
-	bool old = is_working();
-	if (old)
-		stop();
-
 	port = _port;
-
-	if (old)
-		start();
+	restart();
 }
 
 void GRDevice::start() {
@@ -88,8 +96,19 @@ void GRDevice::stop() {
 	call_deferred("_internal_call_only_deffered_stop");
 }
 
-bool GRDevice::is_working() {
-	return working;
+void GRDevice::restart() {
+	call_deferred("_internal_call_only_deffered_restart");
+}
+
+void GRDevice::_internal_call_only_deffered_restart() {
+	if (get_status() == (int)WorkingStatus::Working) {
+		_internal_call_only_deffered_stop();
+		_internal_call_only_deffered_start();
+	}
+}
+
+int GRDevice::get_status() {
+	return (int)working_status;
 }
 
 GRDevice::GRDevice() {

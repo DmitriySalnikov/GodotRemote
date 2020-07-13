@@ -27,12 +27,12 @@ private:
 	public:
 		GRClient *dev = nullptr;
 		PoolByteArray tex_data;
-		bool is_new_data = false;
-		bool is_working = true;
+		bool *_is_processing_img = nullptr;
 
-		ImgProcessingStorage(GRClient *d) {
-			dev = d;
+		ImgProcessingStorage(GRClient *_dev) {
+			dev = _dev;
 		}
+
 		~ImgProcessingStorage() {
 			tex_data.resize(0);
 		}
@@ -43,29 +43,36 @@ private:
 
 	public:
 		GRClient *dev = nullptr;
+		class Ref<StreamPeerTCP> peer;
 		class Thread *thread_ref = nullptr;
 		bool break_connection = false;
 		bool stop_thread = false;
 
+		void close_thread() {
+			break_connection = true;
+			stop_thread = true;
+			if (thread_ref) {
+				Thread::wait_to_finish(thread_ref);
+				memdelete(thread_ref);
+				thread_ref = nullptr;
+			}
+		}
+
 		~ConnectionThreadParams() {
 			dev = nullptr;
-			break_connection = true;
-
-			if (thread_ref)
-				memdelete(thread_ref);
-			thread_ref = nullptr;
+			close_thread();
+			if (peer.is_valid()) {
+				peer.unref();
+			}
 		}
 	};
 
 	bool is_deleting = false;
 	bool is_connection_working = false;
-	ImgProcessingStorage *ips = nullptr;
 	Node *settings_menu_node = nullptr;
-	Thread *thread_image_decoder = nullptr;
 	class Control *control_to_show_in = nullptr;
 	class TextureRect *tex_shows_stream = nullptr;
 	class GRInputCollector *input_collector = nullptr;
-	class Ref<StreamPeerTCP> peer;
 	Ref<ConnectionThreadParams> thread_connection = nullptr;
 
 	IP_Address server_address = String("127.0.0.1");
@@ -113,7 +120,7 @@ private:
 	static void _thread_connection(void *p_userdata);
 	static void _thread_image_decoder(void *p_userdata);
 
-	static void _connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<StreamPeerTCP> connection);
+	static void _connection_loop(Ref<ConnectionThreadParams> con_thread, class Ref<StreamPeerTCP> connection);
 	static bool _auth_on_server(Ref<StreamPeerTCP> con);
 
 protected:
@@ -146,7 +153,7 @@ public:
 	void set_server_setting(int param, Variant value);
 	void disable_overriding_server_settings();
 
-	virtual bool _internal_call_only_deffered_start() override;
+	virtual void _internal_call_only_deffered_start() override;
 	virtual void _internal_call_only_deffered_stop() override;
 
 	GRClient();
@@ -164,6 +171,7 @@ private:
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
 	Rect2 stream_rect;
+	PoolVector3Array sensors;
 
 protected:
 	void _update_stream_rect();

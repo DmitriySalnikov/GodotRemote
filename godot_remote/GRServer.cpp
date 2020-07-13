@@ -39,7 +39,9 @@ void GRServer::_notification(int p_notification) {
 		case NOTIFICATION_CRASH:
 		case NOTIFICATION_EXIT_TREE:
 		case NOTIFICATION_PREDELETE: {
-			_internal_call_only_deffered_stop();
+			if (get_status() == (int)WorkingStatus::Working) {
+				_internal_call_only_deffered_stop();
+			}
 			break;
 		}
 	}
@@ -93,21 +95,28 @@ GRServer::GRServer() :
 }
 
 GRServer::~GRServer() {
-	_internal_call_only_deffered_stop();
+	if (get_status() == (int)WorkingStatus::Working) {
+		_internal_call_only_deffered_stop();
+	}
 	delete ips;
 	connection_mutex->unlock();
 	memdelete(connection_mutex);
 	deinit_server_utils();
 }
 
-bool GRServer::_internal_call_only_deffered_start() {
-	if (server_thread_listen) {
-		ERR_FAIL_V_MSG(false, "Can't start already working Godot Remote Server");
+void GRServer::_internal_call_only_deffered_start() {
+	switch ((WorkingStatus)get_status()) {
+		case GRDevice::WorkingStatus::Working:
+			ERR_FAIL_MSG("Can't start already working GodotRemote Server");
+		case GRDevice::WorkingStatus::Starting:
+			ERR_FAIL_MSG("Can't start already starting GodotRemote Server");
+		case GRDevice::WorkingStatus::Stopping:
+			ERR_FAIL_MSG("Can't start stopping GodotRemote Server");
 	}
 
+	set_status(WorkingStatus::Starting);
 	_log("Starting GodotRemote server");
 
-	working = true;
 	stop_device = false;
 	server_thread_listen = Thread::create(&_thread_listen, this);
 	t_image_encode = Thread::create(&_thread_image_processing, ips);
@@ -116,14 +125,22 @@ bool GRServer::_internal_call_only_deffered_start() {
 		resize_viewport = memnew(GRSViewport);
 		add_child(resize_viewport);
 	}
-	return true;
+	set_status(WorkingStatus::Working);
 }
 
 void GRServer::_internal_call_only_deffered_stop() {
-	if (!working)
-		return;
+	switch ((WorkingStatus)get_status()) {
+		case GRDevice::WorkingStatus::Stopped:
+			ERR_FAIL_MSG("Can't stop already stopped GodotRemote Server");
+		case GRDevice::WorkingStatus::Stopping:
+			ERR_FAIL_MSG("Can't stop already stopping GodotRemote Server");
+		case GRDevice::WorkingStatus::Starting:
+			ERR_FAIL_MSG("Can't stop starting GodotRemote Server");
+	}
 
-	working = false;
+	set_status(WorkingStatus::Stopping);
+	_log("Stopping GodotRemote server");
+
 	stop_device = true;
 	break_connection = true;
 
@@ -144,6 +161,7 @@ void GRServer::_internal_call_only_deffered_stop() {
 		//resize_viewport->queue_delete();
 		resize_viewport = nullptr;
 	}
+	set_status(WorkingStatus::Stopped);
 }
 
 GRSViewport *GRServer::get_gr_viewport() {
@@ -538,7 +556,7 @@ void GRServer::_thread_image_processing(void *p_userdata) {
 
 		if (ips->tex.is_valid() && !ips->is_new_data) {
 			TimeCountInit();
-			_THREAD_SAFE_METHOD_
+
 			Ref<Image> img = ips->tex->get_data();
 			TimeCount("Get Image Data From Viewport");
 
@@ -652,7 +670,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 		data += 5;
 
 		switch (type) {
-			case GRDevice::_InputDeviceSensors: {
+			case InputType::InputDeviceSensors: {
 				PoolVector3Array vecs = bytes2var(data, 12 * 4 + 8);
 
 				if (vecs.size() == 4) {
@@ -664,7 +682,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 
 				break;
 			}
-			case GRDevice::_InputEventAction: {
+			case InputType::InputEventAction: {
 				Ref<InputEventAction> e;
 				e.instance();
 				data = _read_abstract_input_data(e.ptr(), vp_size, data);
@@ -680,7 +698,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 				}
 				break;
 			}
-			case GRDevice::_InputEventJoypadButton: {
+			case InputType::InputEventJoypadButton: {
 				Ref<InputEventJoypadButton> e;
 				e.instance();
 				data = _read_abstract_input_data(e.ptr(), vp_size, data);
@@ -691,7 +709,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 				ev = e;
 				break;
 			}
-			case GRDevice::_InputEventJoypadMotion: {
+			case InputType::InputEventJoypadMotion: {
 				Ref<InputEventJoypadMotion> e;
 				e.instance();
 				data = _read_abstract_input_data(e.ptr(), vp_size, data);
@@ -701,7 +719,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 				ev = e;
 				break;
 			}
-			case GRDevice::_InputEventKey: {
+			case InputType::InputEventKey: {
 				Ref<InputEventKey> e;
 				e.instance();
 				data = _read_abstract_input_data(e.ptr(), vp_size, data);
@@ -713,7 +731,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 				ev = e;
 				break;
 			}
-			case GRDevice::_InputEventMagnifyGesture: {
+			case InputType::InputEventMagnifyGesture: {
 				Ref<InputEventMagnifyGesture> e;
 				e.instance();
 				data = _read_abstract_input_data(e.ptr(), vp_size, data);
@@ -722,7 +740,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 				ev = e;
 				break;
 			}
-			case GRDevice::_InputEventMIDI: {
+			case InputType::InputEventMIDI: {
 				Ref<InputEventMIDI> e;
 				e.instance();
 				data = _read_abstract_input_data(e.ptr(), vp_size, data);
@@ -739,7 +757,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 				ev = e;
 				break;
 			}
-			case GRDevice::_InputEventMouseButton: {
+			case InputType::InputEventMouseButton: {
 				Ref<InputEventMouseButton> e;
 				e.instance();
 				data = _read_abstract_input_data(e.ptr(), vp_size, data);
@@ -751,7 +769,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 				ev = e;
 				break;
 			}
-			case GRDevice::_InputEventMouseMotion: {
+			case InputType::InputEventMouseMotion: {
 				Ref<InputEventMouseMotion> e;
 				e.instance();
 				data = _read_abstract_input_data(e.ptr(), vp_size, data);
@@ -763,7 +781,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 				ev = e;
 				break;
 			}
-			case GRDevice::_InputEventPanGesture: {
+			case InputType::InputEventPanGesture: {
 				Ref<InputEventPanGesture> e;
 				e.instance();
 				data = _read_abstract_input_data(e.ptr(), vp_size, data);
@@ -772,7 +790,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 				ev = e;
 				break;
 			}
-			case GRDevice::_InputEventScreenDrag: {
+			case InputType::InputEventScreenDrag: {
 				Ref<InputEventScreenDrag> e;
 				e.instance();
 				data = _read_abstract_input_data(e.ptr(), vp_size, data);
@@ -784,7 +802,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 				ev = e;
 				break;
 			}
-			case GRDevice::_InputEventScreenTouch: {
+			case InputType::InputEventScreenTouch: {
 				Ref<InputEventScreenTouch> e;
 				e.instance();
 				data = _read_abstract_input_data(e.ptr(), vp_size, data);
@@ -796,7 +814,7 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 				break;
 			}
 			default: {
-				_log(String("Not supported InputEvent type: ") + str(type));
+				_log(String("Not supported InputEvent type: ") + str((int)type));
 				break;
 			}
 		}

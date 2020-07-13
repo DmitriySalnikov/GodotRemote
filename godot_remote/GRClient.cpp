@@ -39,7 +39,6 @@ void GRClient::_bind_methods() {
 
 	ADD_SIGNAL(MethodInfo("stream_state_changed", PropertyInfo(Variant::BOOL, "is_active")));
 	ADD_SIGNAL(MethodInfo("connection_state_changed", PropertyInfo(Variant::BOOL, "is_connected")));
-	ADD_SIGNAL(MethodInfo("working_state_changed", PropertyInfo(Variant::BOOL, "is_working")));
 
 	// SETGET
 	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "val"), &GRClient::set_capture_on_focus);
@@ -69,14 +68,12 @@ void GRClient::_bind_methods() {
 
 void GRClient::_notification(int p_notification) {
 	switch (p_notification) {
-		case NOTIFICATION_EXIT_TREE: {
-			is_deleting = true;
-			_internal_call_only_deffered_stop();
-			break;
-		}
+		case NOTIFICATION_EXIT_TREE:
 		case NOTIFICATION_PREDELETE: {
 			is_deleting = true;
-			_internal_call_only_deffered_stop();
+			if (get_status() == (int)WorkingStatus::Working) {
+				_internal_call_only_deffered_stop();
+			}
 			break;
 		}
 	}
@@ -84,15 +81,11 @@ void GRClient::_notification(int p_notification) {
 
 GRClient::GRClient() :
 		GRDevice() {
-
 	ip_validator.instance();
 	ip_validator->compile(ip_validator_pattern);
 
 	set_name("GodotRemoteClient");
-	ips = new ImgProcessingStorage(this);
-	thread_image_decoder = Thread::create(&_thread_image_decoder, ips);
 
-	peer.instance();
 	send_queue_mutex = Mutex::create();
 	connection_mutex = Mutex::create();
 
@@ -111,17 +104,11 @@ GRClient::GRClient() :
 
 GRClient::~GRClient() {
 	is_deleting = true;
-	_internal_call_only_deffered_stop();
+	if (get_status() == (int)WorkingStatus::Working) {
+		_internal_call_only_deffered_stop();
+	}
 	memdelete(send_queue_mutex);
 	memdelete(connection_mutex);
-
-	ips->is_working = false;
-	if (thread_image_decoder) {
-		Thread::wait_to_finish(thread_image_decoder);
-	}
-	memdelete(thread_image_decoder);
-	thread_image_decoder = nullptr;
-	delete ips;
 
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		tex_shows_stream->queue_delete();
@@ -136,6 +123,53 @@ GRClient::~GRClient() {
 	no_signal_mat.unref();
 	no_signal_image.unref();
 #endif
+}
+
+void GRClient::_internal_call_only_deffered_start() {
+	switch ((WorkingStatus)get_status()) {
+		case GRDevice::WorkingStatus::Working:
+			ERR_FAIL_MSG("Can't start already working GodotRemote Client");
+		case GRDevice::WorkingStatus::Starting:
+			ERR_FAIL_MSG("Can't start already starting GodotRemote Client");
+		case GRDevice::WorkingStatus::Stopping:
+			ERR_FAIL_MSG("Can't start stopping GodotRemote Client");
+	}
+
+	_log("Starting GodotRemote client", LogLevel::LL_Debug);
+	set_status(WorkingStatus::Starting);
+
+	thread_connection.instance();
+	thread_connection->dev = this;
+	thread_connection->peer.instance();
+	thread_connection->thread_ref = Thread::create(&_thread_connection, thread_connection.ptr());
+
+	_update_stream_texture_state(false);
+	set_status(WorkingStatus::Working);
+}
+
+void GRClient::_internal_call_only_deffered_stop() {
+	switch ((WorkingStatus)get_status()) {
+		case GRDevice::WorkingStatus::Stopped:
+			ERR_FAIL_MSG("Can't stop already stopped GodotRemote Client");
+		case GRDevice::WorkingStatus::Stopping:
+			ERR_FAIL_MSG("Can't stop already stopping GodotRemote Client");
+		case GRDevice::WorkingStatus::Starting:
+			ERR_FAIL_MSG("Can't stop starting GodotRemote Client");
+	}
+
+	_log("Stopping GodotRemote client", LogLevel::LL_Debug);
+	set_status(WorkingStatus::Stopping);
+
+	connection_mutex->lock();
+	if (thread_connection.is_valid()) {
+		thread_connection->close_thread();
+		thread_connection.unref();
+	}
+	send_queue_mutex->unlock();
+	connection_mutex->unlock();
+
+	_update_stream_texture_state(false);
+	set_status(WorkingStatus::Stopped);
 }
 
 void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
@@ -248,11 +282,6 @@ else
 	ip = IP::get_singleton()->resolve_hostname(p_host);*/
 
 bool GRClient::set_address(String ip, uint16_t _port, bool ipv4) {
-	bool old = is_working();
-	if (old) {
-		//_internal_call_only_deffered_stop();
-		stop();
-	}
 	String prev = (String)server_address;
 	int prevPort = port;
 
@@ -279,67 +308,21 @@ end:
 		all_ok = false;
 	}
 
-	if (old) {
-		//_internal_call_only_deffered_start();
-		start();
-	}
+	restart();
 	return all_ok;
 }
 
 void GRClient::set_input_buffer(int mb) {
-	bool old = is_working();
-	if (old) {
-		//_internal_call_only_deffered_stop();
-		stop();
-	}
+
 	input_buffer_size_in_mb = mb;
-	if (old) {
-		//_internal_call_only_deffered_start();
-		start();
-	}
-}
-
-bool GRClient::_internal_call_only_deffered_start() {
-	if (working) {
-		ERR_FAIL_V_MSG(false, "Can't start already working GodotRemote Client");
-	}
-
-	_log("Starting GodotRemote client", LogLevel::LL_Debug);
-
-	working = true;
-
-	thread_connection.instance();
-	thread_connection->dev = this;
-	thread_connection->thread_ref = Thread::create(&_thread_connection, thread_connection.ptr());
-
-	call_deferred("emit_signal", "working_state_changed", true);
-
-	return true;
-}
-
-void GRClient::_internal_call_only_deffered_stop() {
-	if (!working)
-		return;
-
-	connection_mutex->try_lock();
-	_log("Stopping GodotRemote client", LogLevel::LL_Debug);
-
-	working = false;
-	thread_connection->stop_thread = true;
-	thread_connection->break_connection = true;
-
-	send_queue_mutex->unlock();
-	connection_mutex->unlock();
-
-	_update_stream_texture_state(false);
-
-	call_deferred("emit_signal", "working_state_changed", false);
-
-	thread_connection.unref();
+	restart();
 }
 
 bool GRClient::is_connected_to_host() {
-	return peer->is_connected_to_host() && is_connection_working;
+	if (thread_connection.is_valid() && thread_connection->peer.is_valid()) {
+		return thread_connection->peer->is_connected_to_host() && is_connection_working;
+	}
+	return false;
 }
 
 void GRClient::_update_texture_from_iamge(Ref<Image> img) {
@@ -437,8 +420,8 @@ void GRClient::disable_overriding_server_settings() {
 void GRClient::_thread_connection(void *p_userdata) {
 	Ref<ConnectionThreadParams> con_thread = (ConnectionThreadParams *)p_userdata;
 	GRClient *dev = con_thread->dev;
+	Ref<StreamPeerTCP> con = con_thread->peer;
 
-	Ref<StreamPeerTCP> con = dev->peer;
 	OS *os = OS::get_singleton();
 	Thread::set_name("GRemote_connection");
 
@@ -509,15 +492,16 @@ void GRClient::_thread_connection(void *p_userdata) {
 	}
 
 	dev->_update_stream_texture_state(false);
-	if (con.is_valid() && con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
-		con.unref();
-	}
 	_log("Connection thread stopped", LogLevel::LL_Debug);
 }
 
 void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<StreamPeerTCP> connection) {
 	GRClient *dev = con_thread->dev;
-	ImgProcessingStorage *ips = dev->ips;
+
+	Thread *_img_thread = nullptr;
+	Thread *img_proc = nullptr;
+	bool _is_processing_img = false;
+
 	OS *os = OS::get_singleton();
 	Error err = Error::OK;
 
@@ -535,6 +519,14 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<Stre
 		dev->connection_mutex->lock();
 		if (con_thread->break_connection || !connection->is_connected_to_host())
 			break;
+
+		if (!_is_processing_img) {
+			if (_img_thread) {
+				Thread::wait_to_finish(_img_thread);
+				memdelete(_img_thread);
+				_img_thread = nullptr;
+			}
+		}
 
 		bool nothing_happens = true;
 		uint32_t time = os->get_ticks_msec();
@@ -631,9 +623,17 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<Stre
 						goto end_recv;
 					}
 
-					if (!ips->is_new_data) {
+					if (!_is_processing_img) {
+						if (_img_thread) {
+							Thread::wait_to_finish(_img_thread);
+							memdelete(_img_thread);
+							_img_thread = nullptr;
+						}
+
+						ImgProcessingStorage *ips = new ImgProcessingStorage(dev);
 						ips->tex_data = data->get_image_data();
-						ips->is_new_data = true;
+						ips->_is_processing_img = &_is_processing_img;
+						_img_thread = Thread::create(&_thread_image_decoder, ips);
 					}
 					break;
 				}
@@ -666,32 +666,32 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<Stre
 			os->delay_usec(1_ms);
 	}
 
+	if (_img_thread) {
+		Thread::wait_to_finish(_img_thread);
+		memdelete(_img_thread);
+		_img_thread = nullptr;
+	}
+
 	_log("Closing connection");
 	con_thread->break_connection = true;
 }
 
 void GRClient::_thread_image_decoder(void *p_userdata) {
-	Thread::set_name("GR_image_encoding");
-
 	ImgProcessingStorage *ips = (ImgProcessingStorage *)p_userdata;
-	GRClient *dev = ips->dev;
-	OS *os = OS::get_singleton();
+	*ips->_is_processing_img = true;
 
-	while (ips->is_working) {
-		if (ips->is_new_data) {
-			Ref<Image> img;
-			img.instance();
-			TimeCountInit();
-			if (img->load_jpg_from_buffer(ips->tex_data) == OK) {
-				dev->call_deferred("_update_texture_from_iamge", img);
-				TimeCount("Decode Image Time");
-			} else {
-				_log("Can't decode JPG image.", LogLevel::LL_Error);
-			}
-			ips->is_new_data = false;
-		}
-		os->delay_usec(1_ms);
+	GRClient *dev = ips->dev;
+	Ref<Image> img(memnew(Image));
+
+	TimeCountInit();
+	if (img->load_jpg_from_buffer(ips->tex_data) == OK) {
+		dev->call_deferred("_update_texture_from_iamge", img);
+		TimeCount("Decode Image Time");
+	} else {
+		_log("Can't decode JPG image.", LogLevel::LL_Error);
 	}
+	*ips->_is_processing_img = false;
+	delete ips;
 }
 
 bool GRClient::_auth_on_server(Ref<StreamPeerTCP> con) {
@@ -756,7 +756,7 @@ bool GRClient::_auth_on_server(Ref<StreamPeerTCP> con) {
 //////////////////////////////////////////////
 
 void GRInputCollector::_update_stream_rect() {
-	if (!dev || !dev->is_working())
+	if (!dev || dev->get_status() != (int)GRDevice::WorkingStatus::Working)
 		return;
 
 	if (texture_rect && !texture_rect->is_queued_for_deletion()) {
@@ -826,7 +826,7 @@ void GRInputCollector::_bind_methods() {
 	}
 
 void GRInputCollector::_input(Ref<InputEvent> ie) {
-	if (!parent || (capture_only_when_control_in_focus && !parent->has_focus()) || (dev && !dev->is_working()) || !dev->is_stream_active()) {
+	if (!parent || (capture_only_when_control_in_focus && !parent->has_focus()) || (dev && dev->get_status() != (int)GRDevice::WorkingStatus::Working) || !dev->is_stream_active()) {
 		return;
 	}
 
@@ -851,7 +851,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventKey> iek = ie;
 		if (iek.is_valid()) {
-			data.append(GRDevice::InputType::_InputEventKey);
+			data.append((int)GRDevice::InputType::InputEventKey);
 			data_append_defaults();
 
 			data.append((uint8_t)iek->is_pressed() | (uint8_t)iek->is_echo() << 1);
@@ -875,7 +875,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 						return;
 				}
 			}
-			data.append(GRDevice::InputType::_InputEventMouseButton);
+			data.append((int)GRDevice::InputType::InputEventMouseButton);
 			data_append_defaults();
 
 			data.append_array(float2bytes(iemb->get_factor()));
@@ -891,7 +891,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		if (iemm.is_valid()) {
 			if (!stream_rect.has_point(iemm->get_position()) && capture_pointer_only_when_hover_control)
 				return;
-			data.append(GRDevice::InputType::_InputEventMouseMotion);
+			data.append((int)GRDevice::InputType::InputEventMouseMotion);
 			data_append_defaults();
 
 			data.append_array(float2bytes(iemm->get_pressure()));
@@ -910,7 +910,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 				if (iest->is_pressed())
 					return;
 			}
-			data.append(GRDevice::InputType::_InputEventScreenTouch);
+			data.append((int)GRDevice::InputType::InputEventScreenTouch);
 			data_append_defaults();
 
 			data.append(iest->get_index());
@@ -926,7 +926,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		if (iesd.is_valid()) {
 			if (!stream_rect.has_point(iesd->get_position()) && capture_pointer_only_when_hover_control)
 				return;
-			data.append(GRDevice::InputType::_InputEventScreenDrag);
+			data.append((int)GRDevice::InputType::InputEventScreenDrag);
 			data_append_defaults();
 
 			data.append(iesd->get_index());
@@ -943,7 +943,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		if (iemg.is_valid()) {
 			if (!stream_rect.has_point(iemg->get_position()) && capture_pointer_only_when_hover_control)
 				return;
-			data.append(GRDevice::InputType::_InputEventMagnifyGesture);
+			data.append((int)GRDevice::InputType::InputEventMagnifyGesture);
 			data_append_defaults();
 
 			data.append_array(float2bytes(iemg->get_factor()));
@@ -957,7 +957,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		if (iepg.is_valid()) {
 			if (!stream_rect.has_point(iepg->get_position()) && capture_pointer_only_when_hover_control)
 				return;
-			data.append(GRDevice::InputType::_InputEventPanGesture);
+			data.append((int)GRDevice::InputType::InputEventPanGesture);
 			data_append_defaults();
 
 			data.append_array(var2bytes(fix(iepg->get_delta())));
@@ -969,7 +969,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventJoypadButton> iejb = ie;
 		if (iejb.is_valid()) {
-			data.append(GRDevice::InputType::_InputEventJoypadButton);
+			data.append((int)GRDevice::InputType::InputEventJoypadButton);
 			data_append_defaults();
 
 			data.append_array(uint322bytes(iejb->get_button_index()));
@@ -983,7 +983,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventJoypadMotion> iejm = ie;
 		if (iejm.is_valid()) {
-			data.append(GRDevice::InputType::_InputEventJoypadMotion);
+			data.append((int)GRDevice::InputType::InputEventJoypadMotion);
 			data_append_defaults();
 
 			data.append_array(uint322bytes(iejm->get_axis()));
@@ -996,7 +996,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventAction> iea = ie;
 		if (iea.is_valid()) {
-			data.append(GRDevice::InputType::_InputEventAction);
+			data.append((int)GRDevice::InputType::InputEventAction);
 			data_append_defaults();
 
 			PoolByteArray sd = var2bytes((String)iea->get_action());
@@ -1013,7 +1013,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventMIDI> iemidi = ie;
 		if (iemidi.is_valid()) {
-			data.append(GRDevice::InputType::_InputEventMIDI);
+			data.append((int)GRDevice::InputType::InputEventMIDI);
 			data_append_defaults();
 
 			PoolIntArray midi;
@@ -1034,6 +1034,13 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	_log("InputEvent type " + str(ie) + " not supported!", LogLevel::LL_Error);
 
 end:
+
+	auto w = sensors.write();
+	w[0] = Input::get_singleton()->get_accelerometer();
+	w[1] = Input::get_singleton()->get_gravity();
+	w[2] = Input::get_singleton()->get_gyroscope();
+	w[3] = Input::get_singleton()->get_magnetometer();
+	w.release();
 
 	if (data.size()) {
 		collected_input_data.append_array(uint322bytes(data.size() + 4)); // block size
@@ -1080,18 +1087,10 @@ void GRInputCollector::set_tex_rect(TextureRect *tr) {
 
 PoolByteArray GRInputCollector::get_collected_input_data() {
 	PoolByteArray res;
-	PoolVector3Array sensors;
-	sensors.resize(4);
-	auto w = sensors.write();
-	w[0] = Input::get_singleton()->get_accelerometer();
-	w[1] = Input::get_singleton()->get_gravity();
-	w[2] = Input::get_singleton()->get_gyroscope();
-	w[3] = Input::get_singleton()->get_magnetometer();
-	w.release();
 
 	// sensors
 	res.append_array(uint322bytes(12 * sensors.size() + 8 + 4 + 1)); // +8 - sensors header, +4 - this value, +1 - type
-	res.append(GRDevice::InputType::_InputDeviceSensors);
+	res.append((int)GRDevice::InputType::InputDeviceSensors);
 	res.append_array(var2bytes(sensors));
 
 	// other input events
@@ -1104,9 +1103,11 @@ PoolByteArray GRInputCollector::get_collected_input_data() {
 GRInputCollector::GRInputCollector() {
 	parent = nullptr;
 	set_process_input(true);
+	sensors.resize(4);
 }
 
 GRInputCollector::~GRInputCollector() {
+	sensors.resize(0);
 }
 
 #endif // !NO_GODOTREMOTE_CLIENT
