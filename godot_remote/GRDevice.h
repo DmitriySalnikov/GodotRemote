@@ -69,6 +69,7 @@ public:
 	virtual int get_status();
 
 	GRDevice();
+	~GRDevice();
 };
 
 VARIANT_ENUM_CAST(GRDevice::WorkingStatus)

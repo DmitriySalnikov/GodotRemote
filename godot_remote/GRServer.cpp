@@ -462,14 +462,14 @@ void GRServer::_thread_connection(void *p_userdata) {
 		///////////////////////////////////////////////////////////////////
 		// RECEIVING
 		uint32_t recv_start_time = os->get_ticks_msec();
-		while (ppeer->get_available_packet_count() > 0 && (os->get_ticks_msec() - recv_start_time) < send_data_time_ms) {
+		while (connection->is_connected_to_host() && ppeer->get_available_packet_count() > 0 && (os->get_ticks_msec() - recv_start_time) < send_data_time_ms) {
 			nothing_happens = false;
 			Variant res;
 			err = ppeer->get_var(res);
 
 			if (err) {
 				_log("Can't receive packet!", LogLevel::LL_Error);
-				goto end_recv;
+				continue;
 			}
 
 			//_log(str_arr((PoolByteArray)res, true));
@@ -483,12 +483,14 @@ void GRServer::_thread_connection(void *p_userdata) {
 			//_log((int)type);
 
 			switch (type) {
-				case GRPacket::PacketType::InitData:
+				case GRPacket::PacketType::InitData: {
 					ERR_PRINT("NOT IMPLEMENTED");
 					break;
-				case GRPacket::PacketType::ImageData:
+				}
+				case GRPacket::PacketType::ImageData: {
 					ERR_PRINT("NOT IMPLEMENTED");
 					break;
+				}
 				case GRPacket::PacketType::InputData: {
 					Ref<GRPacketInputData> data = pack;
 					if (data.is_null()) {
@@ -511,9 +513,10 @@ void GRServer::_thread_connection(void *p_userdata) {
 					dev->_update_settings_from_client(data->get_settings());
 					break;
 				}
-				case GRPacket::PacketType::ServerSettingsRequest:
+				case GRPacket::PacketType::ServerSettingsRequest: {
 					ERR_PRINT("NOT IMPLEMENTED");
 					break;
+				}
 				case GRPacket::PacketType::Ping: {
 					Ref<GRPacketPong> pack(memnew(GRPacketPong));
 					err = ppeer->put_var(pack->get_data());
@@ -529,9 +532,10 @@ void GRServer::_thread_connection(void *p_userdata) {
 					ping_sended = false;
 					break;
 				}
-				default:
+				default: {
 					_log("Not supported packet type! " + str((int)type), LogLevel::LL_Warning);
 					break;
+				}
 			}
 		}
 	end_recv:

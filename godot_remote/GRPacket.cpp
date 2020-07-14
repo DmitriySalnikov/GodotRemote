@@ -4,6 +4,10 @@
 using namespace GRUtils;
 
 Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
+	if (bytes.empty()) {
+		ERR_FAIL_V_MSG(Ref<GRPacket>(), "Can't create GRPacket from empty data!");
+	}
+
 	PacketType type = (PacketType)bytes[0];
 	Ref<StreamPeerBuffer> buf(memnew(StreamPeerBuffer));
 	buf->set_data_array(bytes);

@@ -13,7 +13,6 @@
 #include "main/input_default.h"
 #include "modules/regex/regex.h"
 #include "scene/gui/control.h"
-#include "scene/gui/texture_rect.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/viewport.h"
@@ -24,6 +23,7 @@ using namespace GRUtils;
 
 void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_update_texture_from_iamge", "image"), &GRClient::_update_texture_from_iamge);
+	ClassDB::bind_method(D_METHOD("_update_stream_texture_state", "state"), &GRClient::_update_stream_texture_state);
 
 	ClassDB::bind_method(D_METHOD("set_control_to_show_in", "control_node", "position_in_node"), &GRClient::set_control_to_show_in, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_texture", "texture"), &GRClient::set_custom_no_signal_texture);
@@ -110,14 +110,7 @@ GRClient::~GRClient() {
 	memdelete(send_queue_mutex);
 	memdelete(connection_mutex);
 
-	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
-		tex_shows_stream->queue_delete();
-	}
-	if (input_collector && !input_collector->is_queued_for_deletion()) {
-		input_collector->queue_delete();
-	}
-	tex_shows_stream = nullptr;
-	input_collector = nullptr;
+	set_control_to_show_in(nullptr);
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 	no_signal_mat.unref();
@@ -138,12 +131,16 @@ void GRClient::_internal_call_only_deffered_start() {
 	_log("Starting GodotRemote client", LogLevel::LL_Debug);
 	set_status(WorkingStatus::Starting);
 
+	if (thread_connection.is_valid()) {
+		thread_connection->close_thread();
+		thread_connection.unref();
+	}
 	thread_connection.instance();
 	thread_connection->dev = this;
 	thread_connection->peer.instance();
 	thread_connection->thread_ref = Thread::create(&_thread_connection, thread_connection.ptr());
 
-	_update_stream_texture_state(false);
+	call_deferred("_update_stream_texture_state", false);
 	set_status(WorkingStatus::Working);
 }
 
@@ -167,8 +164,8 @@ void GRClient::_internal_call_only_deffered_stop() {
 	}
 	send_queue_mutex->unlock();
 	connection_mutex->unlock();
-
-	_update_stream_texture_state(false);
+	
+	call_deferred("_update_stream_texture_state", false);
 	set_status(WorkingStatus::Stopped);
 }
 
@@ -185,7 +182,7 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 	control_to_show_in = ctrl;
 
 	if (control_to_show_in && !control_to_show_in->is_queued_for_deletion()) {
-		tex_shows_stream = memnew(TextureRect);
+		tex_shows_stream = memnew(GRTextureRect);
 		input_collector = memnew(GRInputCollector);
 
 		tex_shows_stream->set_name("GodotRemoteStreamSprite");
@@ -194,17 +191,20 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 		tex_shows_stream->set_expand(true);
 		tex_shows_stream->set_anchor(MARGIN_RIGHT, 1.f);
 		tex_shows_stream->set_anchor(MARGIN_BOTTOM, 1.f);
-
-		signal_connection_state = true; // force execute update function
-		_update_stream_texture_state(false);
+		tex_shows_stream->dev = this;
+		tex_shows_stream->this_in_client = &tex_shows_stream;
 
 		control_to_show_in->add_child(tex_shows_stream);
 		control_to_show_in->move_child(tex_shows_stream, position_in_node);
 		control_to_show_in->add_child(input_collector);
 
 		input_collector->set_capture_on_focus(capture_only_when_control_in_focus);
-		input_collector->set_gr_device(this);
 		input_collector->set_tex_rect(tex_shows_stream);
+		input_collector->dev= this;
+		input_collector->this_in_client = &input_collector;
+
+		signal_connection_state = true; // force execute update function
+		call_deferred("_update_stream_texture_state", false);
 	}
 }
 
@@ -255,7 +255,7 @@ int GRClient::get_target_send_fps() {
 
 void GRClient::set_stretch_mode(int stretch) {
 	stretch_mode = (StretchMode)stretch;
-	_update_stream_texture_state(signal_connection_state);
+	call_deferred("_update_stream_texture_state", signal_connection_state);
 }
 
 int GRClient::get_stretch_mode() {
@@ -421,13 +421,13 @@ void GRClient::_thread_connection(void *p_userdata) {
 	Ref<ConnectionThreadParams> con_thread = (ConnectionThreadParams *)p_userdata;
 	GRClient *dev = con_thread->dev;
 	Ref<StreamPeerTCP> con = con_thread->peer;
-
+	
 	OS *os = OS::get_singleton();
 	Thread::set_name("GRemote_connection");
 
 	while (!con_thread->stop_thread) {
 		if (os->get_ticks_msec() - dev->prev_valid_connection_time > 1000) {
-			dev->_update_stream_texture_state(false);
+			dev->call_deferred("_update_stream_texture_state", false);
 		}
 
 		if (con->get_status() == StreamPeerTCP::STATUS_CONNECTED || con->get_status() == StreamPeerTCP::STATUS_CONNECTING) {
@@ -475,7 +475,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 		if (_auth_on_server(con)) {
 			_log("Successful connected to " + address);
 
-			dev->_update_stream_texture_state(true);
+			dev->call_deferred("_update_stream_texture_state", true);
 
 			con_thread->break_connection = false;
 			dev->is_connection_working = true;
@@ -491,7 +491,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 			con->disconnect_from_host();
 	}
 
-	dev->_update_stream_texture_state(false);
+	dev->call_deferred("_update_stream_texture_state", false);
 	_log("Connection thread stopped", LogLevel::LL_Debug);
 }
 
@@ -514,7 +514,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<Stre
 	uint32_t prev_time = os->get_ticks_msec();
 	uint32_t prev_ping_sending_time = prev_time;
 	bool ping_sended = false;
-
+	
 	while (!con_thread->break_connection && connection->is_connected_to_host()) {
 		dev->connection_mutex->lock();
 		if (con_thread->break_connection || !connection->is_connected_to_host())
@@ -611,6 +611,11 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<Stre
 				goto end_recv;
 
 			Ref<GRPacket> pack = GRPacket::create(buf);
+			if (pack.is_null()) {
+				ERR_PRINT("GRPacket is null");
+				continue;
+			}
+
 			GRPacket::PacketType type = pack->get_type();
 
 			switch (type) {
@@ -619,7 +624,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<Stre
 				case GRPacket::PacketType::ImageData: {
 					Ref<GRPacketImageData> data = pack;
 					if (data.is_null()) {
-						ERR_FAIL_MSG("GRPacketImageData is null");
+						ERR_PRINT("GRPacketImageData is null");
 						goto end_recv;
 					}
 
@@ -1042,7 +1047,7 @@ end:
 	w[3] = Input::get_singleton()->get_magnetometer();
 	w.release();
 
-	if (data.size()) {
+	if (!data.empty()) {
 		collected_input_data.append_array(uint322bytes(data.size() + 4)); // block size
 		collected_input_data.append_array(data);
 	}
@@ -1077,15 +1082,12 @@ void GRInputCollector::set_capture_when_hover(bool value) {
 	capture_pointer_only_when_hover_control = value;
 }
 
-void GRInputCollector::set_gr_device(GRClient *_dev) {
-	dev = _dev;
-}
-
 void GRInputCollector::set_tex_rect(TextureRect *tr) {
 	texture_rect = tr;
 }
 
 PoolByteArray GRInputCollector::get_collected_input_data() {
+	// TODO maybe it must be deferred and async return back to thread
 	PoolByteArray res;
 
 	// sensors
@@ -1108,6 +1110,13 @@ GRInputCollector::GRInputCollector() {
 
 GRInputCollector::~GRInputCollector() {
 	sensors.resize(0);
+	if (this_in_client)
+		*this_in_client = nullptr;
 }
 
 #endif // !NO_GODOTREMOTE_CLIENT
+
+GRTextureRect::~GRTextureRect() {
+	if (this_in_client)
+		*this_in_client = nullptr;
+}

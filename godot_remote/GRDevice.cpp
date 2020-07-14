@@ -114,3 +114,9 @@ int GRDevice::get_status() {
 GRDevice::GRDevice() {
 	port = GLOBAL_GET(GodotRemote::ps_port_name);
 }
+
+GRDevice::~GRDevice() {
+	if (GodotRemote::get_singleton()) {
+		GodotRemote::get_singleton()->device = nullptr;
+	}
+}

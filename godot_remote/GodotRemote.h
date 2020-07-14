@@ -9,6 +9,7 @@
 class GodotRemote : public Reference {
 	GDCLASS(GodotRemote, Reference);
 
+	friend class GRDevice;
 	static GodotRemote *singleton;
 
 public:

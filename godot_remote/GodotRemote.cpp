@@ -41,7 +41,7 @@ GodotRemote::GodotRemote() {
 }
 
 GodotRemote::~GodotRemote() {
-	compress_buffer.resize(0);
+	remove_remote_device();
 }
 
 void GodotRemote::_bind_methods() {
@@ -142,7 +142,7 @@ bool GodotRemote::create_remote_device(DeviceType type) {
 }
 
 bool GodotRemote::start_remote_device() {
-	if (device) {
+	if (device && !device->is_queued_for_deletion()) {
 		device->start();
 		return true;
 	}
@@ -150,7 +150,7 @@ bool GodotRemote::start_remote_device() {
 }
 
 bool GodotRemote::remove_remote_device() {
-	if (device) {
+	if (device && !device->is_queued_for_deletion()) {
 		device->stop();
 		device->queue_delete();
 		device = nullptr;

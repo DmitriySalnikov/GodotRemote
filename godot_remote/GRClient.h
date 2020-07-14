@@ -7,6 +7,7 @@
 #include "core/io/ip_address.h"
 #include "core/io/stream_peer_tcp.h"
 #include "scene/main/node.h"
+#include "scene/gui/texture_rect.h"
 
 class GRClient : public GRDevice {
 	GDCLASS(GRClient, GRDevice);
@@ -59,7 +60,6 @@ private:
 		}
 
 		~ConnectionThreadParams() {
-			dev = nullptr;
 			close_thread();
 			if (peer.is_valid()) {
 				peer.unref();
@@ -71,7 +71,7 @@ private:
 	bool is_connection_working = false;
 	Node *settings_menu_node = nullptr;
 	class Control *control_to_show_in = nullptr;
-	class TextureRect *tex_shows_stream = nullptr;
+	class GRTextureRect *tex_shows_stream = nullptr;
 	class GRInputCollector *input_collector = nullptr;
 	Ref<ConnectionThreadParams> thread_connection = nullptr;
 
@@ -162,9 +162,12 @@ public:
 
 class GRInputCollector : public Node {
 	GDCLASS(GRInputCollector, Node);
+	friend GRClient;
 
 private:
 	GRClient *dev = nullptr;
+	GRInputCollector **this_in_client = nullptr; //somebody help
+
 	class TextureRect *texture_rect = nullptr;
 	PoolByteArray collected_input_data;
 	class Control *parent;
@@ -187,13 +190,23 @@ public:
 	bool is_capture_when_hover();
 	void set_capture_when_hover(bool value);
 
-	void set_gr_device(GRClient *_dev);
 	void set_tex_rect(class TextureRect *tr);
 
 	PoolByteArray get_collected_input_data();
 
 	GRInputCollector();
 	~GRInputCollector();
+};
+
+class GRTextureRect : public TextureRect {
+	GDCLASS(GRTextureRect, TextureRect);
+	friend GRClient;
+
+	GRClient *dev;
+	GRTextureRect **this_in_client = nullptr;
+
+public:
+	~GRTextureRect();
 };
 
 #endif // !NO_GODOTREMOTE_CLIENT
