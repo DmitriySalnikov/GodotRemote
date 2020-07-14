@@ -46,18 +46,21 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_connection_type", "type"), &GRClient::set_connection_type);
 	ClassDB::bind_method(D_METHOD("set_target_send_fps", "fps"), &GRClient::set_target_send_fps);
 	ClassDB::bind_method(D_METHOD("set_stretch_mode", "mode"), &GRClient::set_stretch_mode);
+	ClassDB::bind_method(D_METHOD("set_texture_filtering", "is_filtered"), &GRClient::set_texture_filtering);
 
 	ClassDB::bind_method(D_METHOD("is_capture_on_focus"), &GRClient::is_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("is_capture_when_hover"), &GRClient::is_capture_when_hover);
 	ClassDB::bind_method(D_METHOD("get_connection_type"), &GRClient::get_connection_type);
 	ClassDB::bind_method(D_METHOD("get_target_send_fps"), &GRClient::get_target_send_fps);
 	ClassDB::bind_method(D_METHOD("get_stretch_mode"), &GRClient::get_stretch_mode);
+	ClassDB::bind_method(D_METHOD("get_texture_filtering"), &GRClient::get_texture_filtering);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "connection_type", PROPERTY_HINT_ENUM, "WiFi,ADB"), "set_connection_type", "get_connection_type");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), "set_target_send_fps", "get_target_send_fps");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Fill,Keep Aspect"), "set_stretch_mode", "get_stretch_mode");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "texture_filtering"), "set_texture_filtering", "get_texture_filtering");
 
 	BIND_ENUM_CONSTANT(CONNECTION_ADB);
 	BIND_ENUM_CONSTANT(CONNECTION_WiFi);
@@ -164,7 +167,7 @@ void GRClient::_internal_call_only_deffered_stop() {
 	}
 	send_queue_mutex->unlock();
 	connection_mutex->unlock();
-	
+
 	call_deferred("_update_stream_texture_state", false);
 	set_status(WorkingStatus::Stopped);
 }
@@ -200,7 +203,7 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 
 		input_collector->set_capture_on_focus(capture_only_when_control_in_focus);
 		input_collector->set_tex_rect(tex_shows_stream);
-		input_collector->dev= this;
+		input_collector->dev = this;
 		input_collector->this_in_client = &input_collector;
 
 		signal_connection_state = true; // force execute update function
@@ -260,6 +263,14 @@ void GRClient::set_stretch_mode(int stretch) {
 
 int GRClient::get_stretch_mode() {
 	return stretch_mode;
+}
+
+void GRClient::set_texture_filtering(bool is_filtering) {
+	is_filtering_enabled = is_filtering;
+}
+
+bool GRClient::get_texture_filtering() {
+	return is_filtering_enabled;
 }
 
 bool GRClient::is_stream_active() {
@@ -341,6 +352,11 @@ void GRClient::_update_texture_from_iamge(Ref<Image> img) {
 			tex->create_from_image(img);
 			tex_shows_stream->set_texture(tex);
 		}
+
+		uint32_t new_flags = Texture::FLAG_MIPMAPS | (is_filtering_enabled ? Texture::FLAG_FILTER : 0);
+		if (tex->get_flags() != new_flags) {
+			tex->set_flags(new_flags);
+		}
 	}
 }
 
@@ -421,7 +437,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 	Ref<ConnectionThreadParams> con_thread = (ConnectionThreadParams *)p_userdata;
 	GRClient *dev = con_thread->dev;
 	Ref<StreamPeerTCP> con = con_thread->peer;
-	
+
 	OS *os = OS::get_singleton();
 	Thread::set_name("GRemote_connection");
 
@@ -514,7 +530,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<Stre
 	uint32_t prev_time = os->get_ticks_msec();
 	uint32_t prev_ping_sending_time = prev_time;
 	bool ping_sended = false;
-	
+
 	while (!con_thread->break_connection && connection->is_connected_to_host()) {
 		dev->connection_mutex->lock();
 		if (con_thread->break_connection || !connection->is_connected_to_host())

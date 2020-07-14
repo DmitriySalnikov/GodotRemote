@@ -111,7 +111,7 @@ class GRSViewport : public Viewport {
 protected:
 	Viewport *main_vp = nullptr;
 	class GRSViewportRenderer *renderer = nullptr;
-	float rendering_scale = 0.5f;
+	float rendering_scale = 0.3f;
 	float auto_scale = 0.5f;
 
 	static void _bind_methods();

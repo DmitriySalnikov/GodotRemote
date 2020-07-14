@@ -79,6 +79,7 @@ private:
 	const String ip_validator_pattern = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 	Ref<class RegEx> ip_validator;
 
+	bool is_filtering_enabled = true;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
@@ -142,6 +143,8 @@ public:
 	int get_target_send_fps();
 	void set_stretch_mode(int stretch);
 	int get_stretch_mode();
+	void set_texture_filtering(bool is_filtering);
+	bool get_texture_filtering();
 
 	bool is_stream_active();
 	bool is_connected_to_host();

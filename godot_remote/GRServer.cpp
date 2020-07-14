@@ -146,14 +146,12 @@ void GRServer::_internal_call_only_deffered_stop() {
 
 	if (server_thread_listen) {
 		Thread::wait_to_finish(server_thread_listen);
+		server_thread_listen = nullptr;
 	}
 	if (t_image_encode) {
 		Thread::wait_to_finish(t_image_encode);
 		t_image_encode = nullptr;
 	}
-
-	//delete server_thread_listen;
-	server_thread_listen = nullptr;
 
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
 		remove_child(resize_viewport);
