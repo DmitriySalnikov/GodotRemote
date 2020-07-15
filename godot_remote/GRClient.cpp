@@ -855,9 +855,11 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		return;
 	}
 
-	if (collected_input_data.size() > 1024 * 8) {
+	_THREAD_SAFE_LOCK_
+	if (collected_input_data.size() > 1024 * 16) {
 		collected_input_data.resize(0);
 	}
+	_THREAD_SAFE_UNLOCK_
 
 	// TODO maybe later i change it to update less frequent
 	_update_stream_rect();
@@ -1068,8 +1070,10 @@ end:
 	w.release();
 
 	if (!data.empty()) {
+		_THREAD_SAFE_LOCK_
 		collected_input_data.append_array(uint322bytes(data.size() + 4)); // block size
 		collected_input_data.append_array(data);
+		_THREAD_SAFE_UNLOCK_
 	}
 }
 
@@ -1116,8 +1120,10 @@ PoolByteArray GRInputCollector::get_collected_input_data() {
 	res.append_array(var2bytes(sensors));
 
 	// other input events
+	_THREAD_SAFE_LOCK_
 	res.append_array(collected_input_data);
 	collected_input_data.resize(0);
+	_THREAD_SAFE_UNLOCK_
 
 	return res;
 }

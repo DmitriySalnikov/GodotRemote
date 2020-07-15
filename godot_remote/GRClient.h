@@ -168,6 +168,7 @@ class GRInputCollector : public Node {
 	GDCLASS(GRInputCollector, Node);
 	friend GRClient;
 
+	_THREAD_SAFE_CLASS_
 private:
 	GRClient *dev = nullptr;
 	GRInputCollector **this_in_client = nullptr; //somebody help
