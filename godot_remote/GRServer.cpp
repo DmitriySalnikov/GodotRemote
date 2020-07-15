@@ -15,6 +15,8 @@
 using namespace GRUtils;
 
 void GRServer::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("_load_settings"), &GRServer::_load_settings);
+
 	ClassDB::bind_method(D_METHOD("get_settings_node"), &GRServer::get_settings_node);
 	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRServer::get_gr_viewport);
 
@@ -89,8 +91,7 @@ GRServer::GRServer() :
 	set_name("GodotRemoteServer");
 	tcp_server.instance();
 	connection_mutex = Mutex::create();
-	ips = new ImgProcessingStorage(this);
-	_load_settings();
+	call_deferred("_load_settings");
 	init_server_utils();
 }
 
@@ -98,7 +99,6 @@ GRServer::~GRServer() {
 	if (get_status() == (int)WorkingStatus::Working) {
 		_internal_call_only_deffered_stop();
 	}
-	delete ips;
 	connection_mutex->unlock();
 	memdelete(connection_mutex);
 	deinit_server_utils();
@@ -117,9 +117,13 @@ void GRServer::_internal_call_only_deffered_start() {
 	set_status(WorkingStatus::Starting);
 	_log("Starting GodotRemote server");
 
-	stop_device = false;
-	server_thread_listen = Thread::create(&_thread_listen, this);
-	t_image_encode = Thread::create(&_thread_image_processing, ips);
+	if (server_thread_listen.is_valid()) {
+		server_thread_listen->close_thread();
+		server_thread_listen.unref();
+	}
+	server_thread_listen.instance();
+	server_thread_listen->dev = this;
+	server_thread_listen->thread_ref = Thread::create(&_thread_listen, server_thread_listen.ptr());
 
 	if (!resize_viewport) {
 		resize_viewport = memnew(GRSViewport);
@@ -141,16 +145,9 @@ void GRServer::_internal_call_only_deffered_stop() {
 	set_status(WorkingStatus::Stopping);
 	_log("Stopping GodotRemote server");
 
-	stop_device = true;
-	break_connection = true;
-
-	if (server_thread_listen) {
-		Thread::wait_to_finish(server_thread_listen);
-		server_thread_listen = nullptr;
-	}
-	if (t_image_encode) {
-		Thread::wait_to_finish(t_image_encode);
-		t_image_encode = nullptr;
+	if (server_thread_listen.is_valid()) {
+		server_thread_listen->close_thread();
+		server_thread_listen.unref();
 	}
 
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
@@ -201,7 +198,7 @@ void GRServer::_adjust_viewport_scale() {
 
 end:
 	resize_viewport->auto_scale = scale;
-	resize_viewport->_update_size();
+	resize_viewport->call_deferred("_update_size");
 }
 
 void GRServer::_load_settings() {
@@ -225,7 +222,7 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 			switch (k) {
 				case GodotRemote::TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS:
 					if ((bool)value == true) {
-						_load_settings();
+						call_deferred("_load_settings");
 						return;
 					}
 					break;
@@ -257,18 +254,17 @@ void GRServer::_reset_counters() {
 
 void GRServer::_thread_listen(void *p_userdata) {
 	Thread::set_name("GR_listen_thread");
-	GRServer *dev = (GRServer *)p_userdata;
+	Ref<ListenerThreadParams> this_thread_info = (ListenerThreadParams *)p_userdata;
+	GRServer *dev = this_thread_info->dev;
 	Ref<TCP_Server> srv = dev->tcp_server;
-	Thread *t_connection = nullptr;
 	OS *os = OS::get_singleton();
-	bool is_client_connected = false;
-	Ref<StreamPeerTCP> connection;
+	Ref<ConnectionThreadParams> connection_thread_info;
 	Error err = OK;
 
 	srv->listen(dev->port);
 	_log("Start listening port " + str(dev->port));
 
-	while (!dev->stop_device) {
+	while (!this_thread_info->stop_thread) {
 		if (!srv->is_listening()) {
 			err = srv->listen(dev->port);
 			_log("Start listening port " + str(dev->port));
@@ -298,21 +294,20 @@ void GRServer::_thread_listen(void *p_userdata) {
 			}
 		}
 
-		if (connection.is_null() || !connection->is_connected_to_host()) {
-			dev->break_connection = true;
-		}
-
-		if (dev->break_connection) {
-			if (t_connection) {
-				_log("Waiting connection thread...", LogLevel::LL_Debug);
-				Thread::wait_to_finish(t_connection);
-				t_connection = nullptr;
+		if (connection_thread_info.is_valid()) {
+			if (connection_thread_info->peer.is_null()) {
+				connection_thread_info->break_connection = true;
 			}
-			is_client_connected = false;
+
+			if (connection_thread_info->finished || connection_thread_info->break_connection) {
+				_log("Waiting connection thread...", LogLevel::LL_Debug);
+				connection_thread_info->close_thread();
+				connection_thread_info.unref();
+			}
 		}
 
 		if (srv->is_connection_available()) {
-			if (!is_client_connected) {
+			if (connection_thread_info.is_null()) {
 				Ref<StreamPeerTCP> con = srv->take_connection();
 				con->set_no_delay(true);
 				String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
@@ -320,12 +315,11 @@ void GRServer::_thread_listen(void *p_userdata) {
 				AuthResult res = _auth_client(dev, con);
 				switch (res) {
 					case AuthResult::OK:
-						dev->break_connection = false;
-						is_client_connected = true;
-
-						t_connection = Thread::create(&_thread_connection, new StartThreadArgs(dev, con));
+						connection_thread_info.instance();
+						connection_thread_info->dev = dev;
+						connection_thread_info->peer = con;
+						connection_thread_info->thread_ref = Thread::create(&_thread_connection, connection_thread_info.ptr());
 						_log("New connection from " + address);
-						connection = con;
 						break;
 					case AuthResult::Error:
 						_log("Refusing connection. Wrong client. " + address);
@@ -344,8 +338,11 @@ void GRServer::_thread_listen(void *p_userdata) {
 				}
 
 			} else {
-				//_log("Refusing connection. Already connected. " + address, LogLevel::LL_Debug);
-				//con->disconnect_from_host();
+				// with instant disconnect client can crash
+				/*Ref<StreamPeerTCP> con = srv->take_connection();
+				String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
+				_log("Refusing connection. Already connected. " + address, LogLevel::LL_Debug);
+				con->disconnect_from_host();*/
 				os->delay_usec(16_ms);
 			}
 		} else {
@@ -354,24 +351,22 @@ void GRServer::_thread_listen(void *p_userdata) {
 		}
 	}
 
-	dev->break_connection = true;
-	dev->stop_device = true;
-
-	if (t_connection) {
-		_log("Stopping device thread", LogLevel::LL_Debug);
-		Thread::wait_to_finish(t_connection);
-		t_connection = nullptr;
+	if (connection_thread_info.is_valid()) {
+		_log("Closing connection thread...", LogLevel::LL_Debug);
+		connection_thread_info->break_connection = true;
+		connection_thread_info->close_thread();
+		connection_thread_info.unref();
 	}
 
 	dev->tcp_server->stop();
+	this_thread_info->finished = true;
 }
 
 void GRServer::_thread_connection(void *p_userdata) {
-	StartThreadArgs *args = (StartThreadArgs *)p_userdata;
-	Ref<StreamPeerTCP> connection = args->con;
-	GRServer *dev = args->dev;
-	ImgProcessingStorage *ips = dev->ips;
-	delete args;
+	Ref<ConnectionThreadParams> thread_info = (ConnectionThreadParams *)p_userdata;
+	Ref<StreamPeerTCP> connection = thread_info->peer;
+	GRServer *dev = thread_info->dev;
+	dev->_reset_counters();
 
 	Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
 	ppeer->set_stream_peer(connection);
@@ -384,14 +379,14 @@ void GRServer::_thread_connection(void *p_userdata) {
 	String address = str(connection->get_connected_host()) + ":" + str(connection->get_connected_port());
 	Thread::set_name("GR_connection " + address);
 
-	dev->_reset_counters();
+	Ref<ImgProcessingStorage> ips;
 
 	uint32_t prev_time = os->get_ticks_msec();
 	uint32_t prev_ping_sending_time = prev_time;
 	uint32_t prev_send_image_time = prev_time;
 	bool ping_sended = false;
 
-	while (!dev->break_connection && connection->is_connected_to_host()) {
+	while (!thread_info->break_connection && connection.is_valid() && !connection->is_queued_for_deletion() && connection->is_connected_to_host()) {
 		bool nothing_happens = true;
 		int send_data_time_ms = (1000 / dev->target_send_fps);
 
@@ -400,28 +395,29 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 		// IMAGE
 		uint32_t time = os->get_ticks_msec();
-		if (time - prev_time > send_data_time_ms && !ips->is_new_data) {
+		if (time - prev_time > send_data_time_ms && ips.is_null()) {
 			nothing_happens = false;
 			prev_time = time;
 
-			ips->tex = dev->resize_viewport->get_texture();
+			ips.instance();
+			ips->start(dev->resize_viewport->get_texture(), dev->jpg_quality);
 		}
 		// if image compressed to jpg and data is ready
-		if (ips->is_new_data) {
+		if (ips.is_valid() && ips->is_new_data) {
 			nothing_happens = false;
 
 			Ref<GRPacketImageData> pack(memnew(GRPacketImageData));
 
-			if (ips->ret_data.size() == 0) {
-				_log("Cant encode image!", LogLevel::LL_Error);
-				ips->is_new_data = false;
-				os->delay_usec(1_ms);
+			if (ips->ret_data.empty()) {
+				_log("Image data is empty!", LogLevel::LL_Error);
+				ips->close();
+				ips.unref();
 				goto end_send;
 			}
 			pack->set_image_data(ips->ret_data);
-
 			err = ppeer->put_var(pack->get_data());
-			ips->is_new_data = false;
+			ips->close();
+			ips.unref();
 
 			// avg fps
 			time = os->get_ticks_msec();
@@ -543,37 +539,17 @@ void GRServer::_thread_connection(void *p_userdata) {
 	}
 
 	_log("Closing connection thread with address: " + address, LogLevel::LL_Debug);
-	dev->_load_settings();
-	dev->break_connection = true;
-}
 
-void GRServer::_thread_image_processing(void *p_userdata) {
-	Thread::set_name("GR_image_encoding");
-
-	ImgProcessingStorage *ips = (ImgProcessingStorage *)p_userdata;
-	GRServer *dev = ips->dev;
-	OS *os = OS::get_singleton();
-
-	while (!dev->stop_device) {
-
-		if (ips->tex.is_valid() && !ips->is_new_data) {
-			TimeCountInit();
-
-			Ref<Image> img = ips->tex->get_data();
-			TimeCount("Get Image Data From Viewport");
-
-			if (img.is_null()) {
-				os->delay_usec(1_ms);
-				continue;
-			}
-
-			ips->ret_data = compress_jpg(img, dev->jpg_quality, GRUtils::SUBSAMPLING_H2V2);
-			ips->is_new_data = true;
-			ips->tex.unref();
-		}
-
-		os->delay_usec(1_ms);
+	if (ips.is_valid()) {
+		ips->close();
+		ips.unref();
 	}
+
+	thread_info->peer.unref();
+	thread_info->break_connection = true;
+	dev->call_deferred("_load_settings");
+
+	thread_info->finished = true;
 }
 
 GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<StreamPeerTCP> con) {
@@ -863,7 +839,91 @@ const uint8_t *GRServer::_read_abstract_input_data(InputEvent *ie, const Vector2
 }
 
 //////////////////////////////////////////////
-////////////// GRSViewport //////////////////
+////////// ImgProcessingStorage //////////////
+//////////////////////////////////////////////
+
+void GRServer::ImgProcessingStorage::_get_texture_data_from_main_thread() {
+	TimeCountInit();
+
+	Ref<Image> img;
+	img.instance();
+	img->copy_internals_from(tex->get_data());
+	img->convert(Image::FORMAT_RGBA8);
+	PoolByteArray data = img->get_data();
+	img_data = PoolByteArray();
+	Error err = img_data.resize(data.size());
+	auto w = img_data.write();
+	auto r = data.read();
+
+	if (err == OK && !data.empty() && !img_data.empty() && w.ptr()&& r.ptr()) {
+
+
+		memcpy(w.ptr(), r.ptr(), data.size());
+		w.release();
+		r.release();
+
+		width = img->get_width();
+		height = img->get_height();
+		bytes_in_color = 4;
+
+		TimeCount("Image prepare");
+		_thread_process = Thread::create(&GRServer::ImgProcessingStorage::_processing_thread, this);
+	} else {
+		width = 0;
+		height = 0;
+		bytes_in_color = 0;
+		finished = true;
+		is_new_data = true;
+
+		_log("Can't copy viewport image data", LogLevel::LL_Error);
+	}
+}
+
+void GRServer::ImgProcessingStorage::_processing_thread(void *p_user) {
+	Ref<ImgProcessingStorage> ips = (ImgProcessingStorage *)p_user;
+	if (ips.is_null())
+		return;
+
+	if (!ips->img_data.empty()) {
+		ips->ret_data = compress_jpg(ips->img_data, ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRUtils::SUBSAMPLING_H2V2);
+		ips->is_new_data = true;
+
+		ips->tex.unref();
+		ips->img_data.resize(0);
+	} else {
+		ips->img_data.resize(0);
+		ips->is_new_data = true;
+	}
+	ips->finished = true;
+}
+
+void GRServer::ImgProcessingStorage::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("_get_texture_data_from_main_thread"), &GRServer::ImgProcessingStorage::_get_texture_data_from_main_thread);
+}
+
+void GRServer::ImgProcessingStorage::start(Ref<ViewportTexture> _tex, int _jpg_quality) {
+	jpg_quality = _jpg_quality;
+	tex = _tex;
+
+	call_deferred("_get_texture_data_from_main_thread");
+}
+
+void GRServer::ImgProcessingStorage::close() {
+	if (_thread_process) {
+		Thread::wait_to_finish(_thread_process);
+		memdelete(_thread_process);
+		_thread_process = nullptr;
+	}
+}
+
+GRServer::ImgProcessingStorage::~ImgProcessingStorage() {
+	close();
+	ret_data.resize(0);
+	tex.unref();
+}
+
+//////////////////////////////////////////////
+////////////// GRSViewport ///////////////////
 //////////////////////////////////////////////
 
 void GRSViewport::_bind_methods() {
@@ -926,7 +986,7 @@ void GRSViewport::_update_size() {
 
 void GRSViewport::set_rendering_scale(float val) {
 	rendering_scale = val;
-	_update_size();
+	call_deferred("_update_size");
 }
 
 float GRSViewport::get_rendering_scale() {

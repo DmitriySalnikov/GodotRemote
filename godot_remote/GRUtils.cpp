@@ -134,17 +134,10 @@ String str_arr(const uint8_t *data, const int size, const bool force_full, const
 };
 
 #ifndef NO_GODOTREMOTE_SERVER
-PoolByteArray compress_jpg(Ref<Image> orig_img, int quality, int subsampling) {
+PoolByteArray compress_jpg(PoolByteArray &img_data, int width, int height, int bytes_for_color, int quality, int subsampling) {
 	PoolByteArray res;
-	ERR_FAIL_COND_V(!orig_img.ptr(), res);
+	ERR_FAIL_COND_V(img_data.empty(), res);
 	ERR_FAIL_COND_V(quality < 1 || quality > 100, res);
-	TimeCountInit();
-
-	Image img;
-	img.copy_internals_from(orig_img);
-	TimeCount("Copy img");
-	img.convert(Image::FORMAT_RGBA8);
-	TimeCount("Convert img");
 
 	jpge::params params;
 	params.m_quality = quality;
@@ -152,22 +145,25 @@ PoolByteArray compress_jpg(Ref<Image> orig_img, int quality, int subsampling) {
 
 	ERR_FAIL_COND_V(!params.check(), res);
 	auto rb = compress_buffer.read();
-	auto ri = img.get_data().read();
-
+	auto ri = img_data.read();
 	int size = compress_buffer.size();
+
+	TimeCountInit();
+
 	ERR_FAIL_COND_V_MSG(!jpge::compress_image_to_jpeg_file_in_memory(
 								(void *)rb.ptr(),
 								size,
-								img.get_width(),
-								img.get_height(),
-								4,
+								width,
+								height,
+								bytes_for_color,
 								(const unsigned char *)ri.ptr(),
 								params),
 			res, "Can't compress image.");
 
+	TimeCount("Compress img");
+
 	rb.release();
 	ri.release();
-	TimeCount("Compress img");
 
 	res.append_array(compress_buffer.subarray(0, size - 1));
 	TimeCount("Combine arrays");

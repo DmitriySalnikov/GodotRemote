@@ -48,6 +48,7 @@ private:
 		class Thread *thread_ref = nullptr;
 		bool break_connection = false;
 		bool stop_thread = false;
+		bool finished = false;
 
 		void close_thread() {
 			break_connection = true;

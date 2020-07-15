@@ -1,26 +1,25 @@
 # SCsub
-
 Import('env')
 
 module_env = env.Clone()
 
-if ARGUMENTS.get('godot_remote_no_default_resources', 'no') == 'yes':
+if ARGUMENTS.get('godot_remote_no_default_resources', False) == True:
     module_env.Append(CPPDEFINES=["NO_GODOTREMOTE_DEFAULT_RESOURCES"])
-if ARGUMENTS.get('godot_remote_disable_server', 'no') == 'yes':
+if ARGUMENTS.get('godot_remote_disable_server', False) == True:
     module_env.Append(CPPDEFINES=["NO_GODOTREMOTE_SERVER"])
-if ARGUMENTS.get('godot_remote_disable_client', 'no') == 'yes':
+if ARGUMENTS.get('godot_remote_disable_client', False) == True:
     module_env.Append(CPPDEFINES=["NO_GODOTREMOTE_CLIENT"])
 
 if env["platform"] == "x11":
     module_env.Append(CCFLAGS=['-O2']) # Flags for C and C++ code
     module_env.Append(CXXFLAGS=['-std=c++11']) # Flags for C++ code only
     
-    if ARGUMENTS.get('godot_remote_shared', 'no') == 'yes':
+    if ARGUMENTS.get('godot_remote_shared', False) == True:
         sources = []
         module_env.add_source_files(sources, "*.cpp")
         module_env.Append(CCFLAGS=['-fPIC']) # Flags for C and C++ code
         module_env['LIBS'] = []
-        module_env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME']=True
+        module_env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME'] = True
         shared_lib = module_env.SharedLibrary(target='#bin/godot_remote', source=sources)
 
         shared_lib_shim = shared_lib[0].name.rsplit('.', 1)[0]

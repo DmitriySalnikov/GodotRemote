@@ -72,7 +72,7 @@ extern void init_server_utils();
 extern void deinit_server_utils();
 extern PoolByteArray compress_buffer;
 extern int compress_buffer_size_mb;
-extern PoolByteArray compress_jpg(Ref<Image> orig_img, int quality, int subsampling);
+extern PoolByteArray compress_jpg(PoolByteArray &img_data, int width, int height, int bytes_for_color = 4, int quality = 75, int subsampling = Subsampling::SUBSAMPLING_H2V2);
 #endif
 
 extern void _log(const Variant &val, LogLevel lvl = LogLevel::LL_Normal);

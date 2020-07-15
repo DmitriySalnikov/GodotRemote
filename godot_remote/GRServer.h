@@ -13,33 +13,80 @@ class GRServer : public GRDevice {
 	GDCLASS(GRServer, GRDevice);
 
 private:
-	class ImgProcessingStorage {
+	class ImgProcessingStorage : public Reference {
+		GDCLASS(ImgProcessingStorage, Reference);
+
+	private:
+
+		Thread *_thread_process = nullptr;
+		bool finished = false;
+		PoolByteArray img_data;
+		int width, height, bytes_in_color, jpg_quality;
+
+		void _get_texture_data_from_main_thread();
+		static void _processing_thread(void *p_user);
+
+	protected:
+		static void _bind_methods();
+
 	public:
-		GRServer *dev = nullptr;
 		Ref<ViewportTexture> tex;
 		PoolByteArray ret_data;
 		bool is_new_data = false;
 
-		ImgProcessingStorage(GRServer *d) {
-			dev = d;
+		void start(Ref<ViewportTexture> _tex, int _jpg_quality);
+		void close();
+
+		~ImgProcessingStorage();
+	};
+
+	class ListenerThreadParams : public Reference {
+		GDCLASS(ListenerThreadParams, Reference);
+
+	public:
+		GRServer *dev = nullptr;
+		class Thread *thread_ref = nullptr;
+		bool stop_thread = false;
+		bool finished = false;
+
+		void close_thread() {
+			stop_thread = true;
+			if (thread_ref) {
+				Thread::wait_to_finish(thread_ref);
+				memdelete(thread_ref);
+				thread_ref = nullptr;
+			}
 		}
-		~ImgProcessingStorage() {
-			ret_data.resize(0);
-			tex.unref();
+
+		~ListenerThreadParams() {
+			close_thread();
 		}
 	};
 
-	class StartThreadArgs {
+	class ConnectionThreadParams : public Reference {
+		GDCLASS(ConnectionThreadParams, Reference);
+
 	public:
 		GRServer *dev = nullptr;
-		Ref<StreamPeerTCP> con;
-		StartThreadArgs(GRServer *d, Ref<StreamPeerTCP> c) {
-			dev = d;
-			con = c;
+		class Ref<StreamPeerTCP> peer;
+		class Thread *thread_ref = nullptr;
+		bool break_connection = false;
+		bool finished = false;
+
+		void close_thread() {
+			break_connection = true;
+			if (thread_ref) {
+				Thread::wait_to_finish(thread_ref);
+				memdelete(thread_ref);
+				thread_ref = nullptr;
+			}
 		}
-		~StartThreadArgs() {
-			dev = nullptr;
-			con.unref();
+
+		~ConnectionThreadParams() {
+			close_thread();
+			if (peer.is_valid()) {
+				peer.unref();
+			}
 		}
 	};
 
@@ -49,16 +96,11 @@ private:
 		VersionMismatch,
 	};
 
-	ImgProcessingStorage *ips = nullptr;
 	Node *settings_menu_node = nullptr;
 	Mutex *connection_mutex = nullptr;
-	Thread *server_thread_listen = nullptr;
-	Thread *t_image_encode = nullptr;
+	Ref<ListenerThreadParams> server_thread_listen;
 	Ref<TCP_Server> tcp_server;
 	class GRSViewport *resize_viewport = nullptr;
-
-	bool stop_device = false;
-	bool break_connection = false;
 
 	bool auto_adjust_scale = false;
 	int jpg_quality = 75;
@@ -74,7 +116,6 @@ private:
 
 	static void _thread_listen(void *p_userdata);
 	static void _thread_connection(void *p_userdata);
-	static void _thread_image_processing(void *p_userdata);
 
 	static AuthResult _auth_client(GRServer *dev, Ref<StreamPeerTCP> con);
 	static bool _parse_input_data(const PoolByteArray &p_data);

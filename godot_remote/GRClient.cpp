@@ -162,6 +162,9 @@ void GRClient::_internal_call_only_deffered_stop() {
 
 	connection_mutex->lock();
 	if (thread_connection.is_valid()) {
+		thread_connection->break_connection = true;
+		thread_connection->stop_thread = true;
+		connection_mutex->unlock();
 		thread_connection->close_thread();
 		thread_connection.unref();
 	}
@@ -509,13 +512,13 @@ void GRClient::_thread_connection(void *p_userdata) {
 
 	dev->call_deferred("_update_stream_texture_state", false);
 	_log("Connection thread stopped", LogLevel::LL_Debug);
+	con_thread->finished = true;
 }
 
 void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<StreamPeerTCP> connection) {
 	GRClient *dev = con_thread->dev;
 
 	Thread *_img_thread = nullptr;
-	Thread *img_proc = nullptr;
 	bool _is_processing_img = false;
 
 	OS *os = OS::get_singleton();
@@ -686,6 +689,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<Stre
 		if (nothing_happens)
 			os->delay_usec(1_ms);
 	}
+	dev->connection_mutex->unlock();
 
 	if (_img_thread) {
 		Thread::wait_to_finish(_img_thread);
