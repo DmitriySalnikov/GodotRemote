@@ -47,6 +47,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_target_send_fps", "fps"), &GRClient::set_target_send_fps);
 	ClassDB::bind_method(D_METHOD("set_stretch_mode", "mode"), &GRClient::set_stretch_mode);
 	ClassDB::bind_method(D_METHOD("set_texture_filtering", "is_filtered"), &GRClient::set_texture_filtering);
+	ClassDB::bind_method(D_METHOD("set_password", "password"), &GRClient::set_password);
 
 	ClassDB::bind_method(D_METHOD("is_capture_on_focus"), &GRClient::is_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("is_capture_when_hover"), &GRClient::is_capture_when_hover);
@@ -54,6 +55,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_target_send_fps"), &GRClient::get_target_send_fps);
 	ClassDB::bind_method(D_METHOD("get_stretch_mode"), &GRClient::get_stretch_mode);
 	ClassDB::bind_method(D_METHOD("get_texture_filtering"), &GRClient::get_texture_filtering);
+	ClassDB::bind_method(D_METHOD("get_password"), &GRClient::get_password);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
@@ -61,6 +63,7 @@ void GRClient::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), "set_target_send_fps", "get_target_send_fps");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Fill,Keep Aspect"), "set_stretch_mode", "get_stretch_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "texture_filtering"), "set_texture_filtering", "get_texture_filtering");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
 
 	BIND_ENUM_CONSTANT(CONNECTION_ADB);
 	BIND_ENUM_CONSTANT(CONNECTION_WiFi);
@@ -332,6 +335,14 @@ void GRClient::set_input_buffer(int mb) {
 	restart();
 }
 
+void GRClient::set_password(String _pass) {
+	password = _pass;
+}
+
+String GRClient::get_password() {
+	return password;
+}
+
 bool GRClient::is_connected_to_host() {
 	if (thread_connection.is_valid() && thread_connection->peer.is_valid()) {
 		return thread_connection->peer->is_connected_to_host() && is_connection_working;
@@ -458,9 +469,8 @@ void GRClient::_thread_connection(void *p_userdata) {
 		String address = (String)ip + ":" + str(dev->port);
 		Error err = con->connect_to_host(ip, dev->port);
 
-		if (err == OK) {
-			_log("Connecting to " + address, LogLevel::LL_Debug);
-		} else {
+		_log("Connecting to " + address);
+		if (err) {
 			switch (err) {
 				case FAILED:
 					_log("Failed to open socket or can't connect to host", LogLevel::LL_Error);
@@ -485,29 +495,52 @@ void GRClient::_thread_connection(void *p_userdata) {
 
 		if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
 			_log("Timeout! Connect to " + address + " failed.", LogLevel::LL_Debug);
-			os->delay_usec(50_ms);
+			os->delay_usec(200_ms);
 			continue;
 		}
 
 		con->set_no_delay(true);
 
-		if (_auth_on_server(con)) {
-			_log("Successful connected to " + address);
+		bool long_wait = false;
+		GRDevice::AuthResult res = _auth_on_server(dev, con);
+		switch (res) {
+			case GRDevice::AuthResult::OK: {
+				_log("Successful connected to " + address);
 
-			dev->call_deferred("_update_stream_texture_state", true);
+				dev->call_deferred("_update_stream_texture_state", true);
 
-			con_thread->break_connection = false;
-			dev->is_connection_working = true;
-			dev->call_deferred("emit_signal", "connection_state_changed", true);
+				con_thread->break_connection = false;
+				con_thread->peer = con;
+				dev->is_connection_working = true;
+				dev->call_deferred("emit_signal", "connection_state_changed", true);
 
-			_connection_loop(con_thread, con);
+				_connection_loop(con_thread);
 
-			dev->is_connection_working = false;
-			dev->call_deferred("emit_signal", "connection_state_changed", false);
+				dev->is_connection_working = false;
+				dev->call_deferred("emit_signal", "connection_state_changed", false);
+				break;
+			}
+			case GRDevice::AuthResult::Error:
+			case GRDevice::AuthResult::Timeout:
+			case GRDevice::AuthResult::RefuseConnection:
+			case GRDevice::AuthResult::VersionMismatch:
+			case GRDevice::AuthResult::IncorrectPassword:
+				long_wait = true;
+				break;
+			case GRDevice::AuthResult::PasswordRequired:
+				break;
+			default:
+				_log("Unknown error code: " + str((int)res) + ". Disconnecting. " + address);
+				break;
 		}
 
-		if (con->is_connected_to_host())
+		if (con->is_connected_to_host()) {
 			con->disconnect_from_host();
+		}
+
+		if (long_wait) {
+			os->delay_usec(888_ms);
+		}
 	}
 
 	dev->call_deferred("_update_stream_texture_state", false);
@@ -515,8 +548,9 @@ void GRClient::_thread_connection(void *p_userdata) {
 	con_thread->finished = true;
 }
 
-void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread, Ref<StreamPeerTCP> connection) {
+void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 	GRClient *dev = con_thread->dev;
+	Ref<StreamPeerTCP> connection = con_thread->peer;
 
 	Thread *_img_thread = nullptr;
 	bool _is_processing_img = false;
@@ -719,61 +753,89 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 	delete ips;
 }
 
-bool GRClient::_auth_on_server(Ref<StreamPeerTCP> con) {
-	// Auth Packet
-	// 4bytes GodotRemote Header
-	// 4bytes Body Size
-	// 3byte  Version
-	// ....
-	//
-	// total body size = 3
-	//
-	// must receive
-	// 4bytes GodotRemote Header
-	// 1byte  error code
-
-	PoolByteArray data;
-	data.append_array(get_packet_header()); // header
-
-	/* everything after "body size" */
-	PoolByteArray auth;
-	auth.append_array(get_version()); // version
-
-	/* finalize */
-	data.append_array(int322bytes(auth.size())); // body size
-	data.append_array(auth);
-
-	auto r = data.read();
-	Error err = con->put_data(r.ptr(), data.size());
-	r.release();
-
-	if (err == OK) {
-		PoolByteArray h;
-		h.resize(5);
-		auto w = h.write();
-		err = con->get_data(w.ptr(), 5);
-		w.release();
-
-		if (err != OK)
-			return false;
-
-		r = h.read();
-		if (validate_packet(r.ptr())) {
-			AuthErrorCode e = (AuthErrorCode)r[4];
-
-			switch (e) {
-				case GRUtils::AuthErrorCode::OK:
-					return true;
-				case GRUtils::AuthErrorCode::VersionMismatch:
-					_log("Can't connect to server. Version mismatch.");
-					return false;
-			}
-		}
-	} else {
-		return false;
+GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<StreamPeerTCP> &con) {
+#define wait_one_packet(_n)                                              \
+	uint32_t time = OS::get_singleton()->get_ticks_msec();               \
+	while (ppeer->get_available_packet_count() == 0) {                   \
+		if (OS::get_singleton()->get_ticks_msec() - time > 150) {        \
+			_log("Timeout: " + str(_n), LogLevel::LL_Debug);             \
+			goto timeout;                                                \
+		}                                                                \
+		OS::get_singleton()->delay_usec(1_ms);                           \
+	}                                                                    \
+	if (ppeer->get_available_packet_count() > 1) {                       \
+		_log("Got more then one packet:" + str(_n), LogLevel::LL_Debug); \
+		goto wrong_packet_count;                                         \
 	}
 
-	return false;
+	Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
+	ppeer->set_stream_peer(con);
+	String address = CON_ADDRESS(con);
+
+	Error err = OK;
+	Variant ret;
+	// GET
+	wait_one_packet("first_packet");
+	err = ppeer->get_var(ret);
+	if (err) {
+		_log("Can't get first authorization packet from server. Code: " + str(err), LogLevel::LL_Error);
+		return GRDevice::AuthResult::Error;
+	}
+
+	if ((int)ret == (int)GRDevice::AuthResult::RefuseConnection) {
+		_log("Connection refused", LogLevel::LL_Error);
+		return GRDevice::AuthResult::RefuseConnection;
+	}
+	if ((int)ret == (int)GRDevice::AuthResult::TryToConnect) {
+		Dictionary data;
+		data["version"] = get_version();
+		data["password"] = dev->password;
+
+		// PUT
+		err = ppeer->put_var(data);
+		if (err) {
+			_log("Can't put authorization data to server. Code: " + str(err), LogLevel::LL_Error);
+			return GRDevice::AuthResult::Error;
+		}
+
+		// GET
+		wait_one_packet("result");
+		err = ppeer->get_var(ret);
+		if (err) {
+			_log("Can't get final authorization packet from server. Code: " + str(err), LogLevel::LL_Error);
+			return GRDevice::AuthResult::Error;
+		}
+
+		if ((int)ret == (int)GRDevice::AuthResult::OK) {
+			return GRDevice::AuthResult::OK;
+		} else {
+			GRDevice::AuthResult r = (GRDevice::AuthResult)(int)ret;
+			switch (r) {
+				case GRDevice::AuthResult::Error:
+					_log("Can't connect to server", LogLevel::LL_Error);
+					return r;
+				case GRDevice::AuthResult::VersionMismatch:
+					_log("Version mismatch", LogLevel::LL_Error);
+					return r;
+				case GRDevice::AuthResult::IncorrectPassword:
+					_log("Incorrect password", LogLevel::LL_Error);
+					return r;
+			}
+		}
+	}
+
+	return GRDevice::AuthResult::Error;
+
+timeout:
+	con->disconnect_from_host();
+	_log("Connection timeout. Disconnecting");
+	return GRDevice::AuthResult::Timeout;
+wrong_packet_count:
+	con->disconnect_from_host();
+	_log("Got more then 1 packet on authorization. Refusing");
+	return GRDevice::AuthResult::Error;
+
+#undef wait_one_packet
 }
 
 //////////////////////////////////////////////
@@ -856,7 +918,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	}
 
 	_THREAD_SAFE_LOCK_
-	if (collected_input_data.size() > 1024 * 16) {
+	if (collected_input_data.size() > 1024 * 1) {
 		collected_input_data.resize(0);
 	}
 	_THREAD_SAFE_UNLOCK_
@@ -1062,13 +1124,6 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 
 end:
 
-	auto w = sensors.write();
-	w[0] = Input::get_singleton()->get_accelerometer();
-	w[1] = Input::get_singleton()->get_gravity();
-	w[2] = Input::get_singleton()->get_gyroscope();
-	w[3] = Input::get_singleton()->get_magnetometer();
-	w.release();
-
 	if (!data.empty()) {
 		_THREAD_SAFE_LOCK_
 		collected_input_data.append_array(uint322bytes(data.size() + 4)); // block size
@@ -1084,9 +1139,19 @@ void GRInputCollector::_notification(int p_notification) {
 	switch (p_notification) {
 		case NOTIFICATION_ENTER_TREE: {
 			parent = cast_to<Control>(get_parent());
-		}
-		default:
 			break;
+		}
+		case NOTIFICATION_PROCESS: {
+			_THREAD_SAFE_LOCK_
+			auto w = sensors.write();
+			w[0] = Input::get_singleton()->get_accelerometer();
+			w[1] = Input::get_singleton()->get_gravity();
+			w[2] = Input::get_singleton()->get_gyroscope();
+			w[3] = Input::get_singleton()->get_magnetometer();
+			w.release();
+			_THREAD_SAFE_UNLOCK_
+			break;
+		}
 	}
 }
 
@@ -1111,8 +1176,8 @@ void GRInputCollector::set_tex_rect(TextureRect *tr) {
 }
 
 PoolByteArray GRInputCollector::get_collected_input_data() {
-	// TODO maybe it must be deferred and async return back to thread
 	PoolByteArray res;
+	_THREAD_SAFE_LOCK_
 
 	// sensors
 	res.append_array(uint322bytes(12 * sensors.size() + 8 + 4 + 1)); // +8 - sensors header, +4 - this value, +1 - type
@@ -1120,24 +1185,29 @@ PoolByteArray GRInputCollector::get_collected_input_data() {
 	res.append_array(var2bytes(sensors));
 
 	// other input events
-	_THREAD_SAFE_LOCK_
 	res.append_array(collected_input_data);
 	collected_input_data.resize(0);
-	_THREAD_SAFE_UNLOCK_
 
+	_THREAD_SAFE_UNLOCK_
 	return res;
 }
 
 GRInputCollector::GRInputCollector() {
+	_THREAD_SAFE_LOCK_
 	parent = nullptr;
+	set_process(true);
 	set_process_input(true);
 	sensors.resize(4);
+	_THREAD_SAFE_UNLOCK_
 }
 
 GRInputCollector::~GRInputCollector() {
+	_THREAD_SAFE_LOCK_
 	sensors.resize(0);
+	collected_input_data.resize(0);
 	if (this_in_client)
 		*this_in_client = nullptr;
+	_THREAD_SAFE_UNLOCK_
 }
 
 #endif // !NO_GODOTREMOTE_CLIENT

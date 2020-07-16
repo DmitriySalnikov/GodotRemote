@@ -20,6 +20,7 @@ String GodotRemote::ps_jpg_quality_name = "debug/godot_remote/server/jpg_quality
 String GodotRemote::ps_jpg_buffer_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
 String GodotRemote::ps_auto_adjust_scale_name = "debug/godot_remote/server/auto_adjust_scale";
 String GodotRemote::ps_scale_of_sending_stream_name = "debug/godot_remote/server/scale_of_sending_stream";
+String GodotRemote::ps_password_name = "debug/godot_remote/server/password";
 
 GodotRemote *GodotRemote::get_singleton() {
 	return singleton;
@@ -177,6 +178,7 @@ void GodotRemote::register_and_load_settings() {
 	DEF_(ps_config_adb_name, true, PropertyInfo(Variant::BOOL, ps_config_adb_name));
 	DEF_(ps_auto_adjust_scale_name, false, PropertyInfo(Variant::BOOL, ps_auto_adjust_scale_name));
 	DEF_(ps_scale_of_sending_stream_name, 0.3f, PropertyInfo(Variant::REAL, ps_scale_of_sending_stream_name, PROPERTY_HINT_RANGE, "0,1,0.01"));
+	DEF_(ps_password_name, "", PropertyInfo(Variant::STRING, ps_password_name));
 
 #undef DEF_SET
 #undef DEF_

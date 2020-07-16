@@ -15,25 +15,18 @@ int current_loglevel =
 #else
 		LogLevel::LL_Warning;
 #endif
+
 PoolByteArray internal_PACKET_HEADER = PoolByteArray();
 PoolByteArray internal_VERSION = PoolByteArray();
+
 #ifndef NO_GODOTREMOTE_SERVER
 int compress_buffer_size_mb = 4;
 PoolByteArray compress_buffer = PoolByteArray();
 #endif
 
 void init() {
-	if (internal_PACKET_HEADER.empty()) {
-		internal_PACKET_HEADER.append(47);
-		internal_PACKET_HEADER.append(52);
-		internal_PACKET_HEADER.append(48);
-		internal_PACKET_HEADER.append(44);
-	}
-	if (internal_VERSION.empty()) {
-		internal_VERSION.append(1);
-		internal_VERSION.append(0);
-		internal_VERSION.append(0);
-	}
+	GR_PACKET_HEADER('G', 'R', 'H', 'D');
+	GR_VERSION(1, 0, 0);
 }
 
 void deinit() {
@@ -437,10 +430,32 @@ bool validate_packet(const uint8_t *data) {
 	return false;
 }
 
+bool validate_version(const PoolByteArray &data) {
+	if (data.size() < 2)
+		return false;
+	if (data[0] == internal_VERSION[0] && data[1] == internal_VERSION[1])
+		return true;
+	return false;
+}
+
 bool validate_version(const uint8_t *data) {
 	if (data[0] == internal_VERSION[0] && data[1] == internal_VERSION[1])
 		return true;
 	return false;
+}
+
+bool compare_pool_byte_arrays(const PoolByteArray &a, const PoolByteArray &b) {
+	if (a.size() != b.size())
+		return false;
+	auto r_a = a.read();
+	auto r_b = b.read();
+	for (int i = 0; i<a.size(); i++)
+	{
+		if (r_a[i] != r_b[i])
+			return false;
+	}
+
+	return true;
 }
 
 void set_gravity(const Vector3 &p_gravity) {

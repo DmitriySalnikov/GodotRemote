@@ -34,6 +34,17 @@ public:
 		Starting,
 	};
 
+	enum class AuthResult {
+		OK = 0,
+		Error = 1,
+		Timeout = 2,
+		TryToConnect = 3,
+		RefuseConnection = 4,
+		VersionMismatch = 5,
+		IncorrectPassword = 6,
+		PasswordRequired = 7,
+	};
+
 private:
 	WorkingStatus working_status = WorkingStatus::Stopped;
 

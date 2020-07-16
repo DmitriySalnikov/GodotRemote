@@ -27,6 +27,23 @@
 
 #endif // DEBUG_ENABLED
 
+#define GR_VERSION(x, y, z)         \
+	if (internal_VERSION.empty()) { \
+		internal_VERSION.append(x); \
+		internal_VERSION.append(y); \
+		internal_VERSION.append(z); \
+	}
+
+#define GR_PACKET_HEADER(a, b, c, d)      \
+	if (internal_PACKET_HEADER.empty()) { \
+		internal_PACKET_HEADER.append(a); \
+		internal_PACKET_HEADER.append(b); \
+		internal_PACKET_HEADER.append(c); \
+		internal_PACKET_HEADER.append(d); \
+	}
+
+#define CON_ADDRESS(con) str(con->get_connected_host()) + ":" + str(con->get_connected_port())
+
 // Get Project Setting
 #define GET_PS(setting_name) \
 	ProjectSettings::get_singleton()->get_setting(setting_name)
@@ -112,7 +129,10 @@ extern float bytes2float(const uint8_t *data);
 extern double bytes2double(const uint8_t *data);
 
 extern bool validate_packet(const uint8_t *data);
+extern bool validate_version(const PoolByteArray &data);
 extern bool validate_version(const uint8_t *data);
+
+extern bool compare_pool_byte_arrays(const PoolByteArray &a, const PoolByteArray &b);
 
 extern void set_gravity(const Vector3 &p_gravity);
 extern void set_accelerometer(const Vector3 &p_accel);

@@ -24,16 +24,19 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_auto_adjust_scale"), &GRServer::set_auto_adjust_scale);
 	ClassDB::bind_method(D_METHOD("set_jpg_quality"), &GRServer::set_jpg_quality);
 	ClassDB::bind_method(D_METHOD("set_render_scale"), &GRServer::set_render_scale);
+	ClassDB::bind_method(D_METHOD("set_password", "password"), &GRServer::set_password);
 
 	ClassDB::bind_method(D_METHOD("get_target_send_fps"), &GRServer::get_target_send_fps);
 	ClassDB::bind_method(D_METHOD("get_auto_adjust_scale"), &GRServer::get_auto_adjust_scale);
 	ClassDB::bind_method(D_METHOD("get_jpg_quality"), &GRServer::get_jpg_quality);
 	ClassDB::bind_method(D_METHOD("get_render_scale"), &GRServer::get_render_scale);
+	ClassDB::bind_method(D_METHOD("get_password"), &GRServer::get_password);
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps"), "set_target_send_fps", "get_target_send_fps");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "get_auto_adjust_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "jpg_quality"), "set_jpg_quality", "get_jpg_quality");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "render_scale"), "set_render_scale", "get_render_scale");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
 }
 
 void GRServer::_notification(int p_notification) {
@@ -84,6 +87,14 @@ float GRServer::get_render_scale() {
 	if (resize_viewport)
 		return resize_viewport->get_rendering_scale();
 	return -1;
+}
+
+void GRServer::set_password(String _pass) {
+	password = _pass;
+}
+
+String GRServer::get_password() {
+	return password;
 }
 
 GRServer::GRServer() :
@@ -204,6 +215,7 @@ end:
 void GRServer::_load_settings() {
 	jpg_quality = GET_PS(GodotRemote::ps_jpg_quality_name);
 	auto_adjust_scale = GET_PS(GodotRemote::ps_auto_adjust_scale_name);
+	password = GET_PS(GodotRemote::ps_password_name);
 
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
 		resize_viewport->set_rendering_scale(GET_PS(GodotRemote::ps_scale_of_sending_stream_name));
@@ -307,43 +319,32 @@ void GRServer::_thread_listen(void *p_userdata) {
 		}
 
 		if (srv->is_connection_available()) {
-			if (connection_thread_info.is_null()) {
-				Ref<StreamPeerTCP> con = srv->take_connection();
-				con->set_no_delay(true);
-				String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
+			Ref<StreamPeerTCP> con = srv->take_connection();
+			con->set_no_delay(true);
+			String address = CON_ADDRESS(con);
 
-				AuthResult res = _auth_client(dev, con);
+			if (connection_thread_info.is_null()) {
+				GRDevice::AuthResult res = _auth_client(dev, con);
 				switch (res) {
-					case AuthResult::OK:
+					case GRDevice::AuthResult::OK:
 						connection_thread_info.instance();
 						connection_thread_info->dev = dev;
 						connection_thread_info->peer = con;
 						connection_thread_info->thread_ref = Thread::create(&_thread_connection, connection_thread_info.ptr());
 						_log("New connection from " + address);
 						break;
-					case AuthResult::Error:
-						_log("Refusing connection. Wrong client. " + address);
-						con->disconnect_from_host();
-						os->delay_usec(16_ms);
-						continue;
-					case AuthResult::VersionMismatch:
-						_log("Refusing connection. Version mismatch. " + address);
-						con->disconnect_from_host();
-						os->delay_usec(16_ms);
+					case GRDevice::AuthResult::Error:
+					case GRDevice::AuthResult::VersionMismatch:
+					case GRDevice::AuthResult::RefuseConnection:
+					case GRDevice::AuthResult::IncorrectPassword:
 						continue;
 					default:
-						_log("Unknown error code. Disconnecting." + address);
-						con->disconnect_from_host();
-						break;
+						_log("Unknown error code. Disconnecting. " + address);
+						continue;
 				}
 
 			} else {
-				// with instant disconnect client can crash
-				/*Ref<StreamPeerTCP> con = srv->take_connection();
-				String address = str(con->get_connected_host()) + ":" + str(con->get_connected_port());
-				_log("Refusing connection. Already connected. " + address, LogLevel::LL_Debug);
-				con->disconnect_from_host();*/
-				os->delay_usec(16_ms);
+				GRDevice::AuthResult res = _auth_client(dev, con, true);
 			}
 		} else {
 			_log("Waiting...", LogLevel::LL_Debug);
@@ -376,7 +377,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 	OS *os = OS::get_singleton();
 	Error err = Error::OK;
 
-	String address = str(connection->get_connected_host()) + ":" + str(connection->get_connected_port());
+	String address = CON_ADDRESS(connection);
 	Thread::set_name("GR_connection " + address);
 
 	Ref<ImgProcessingStorage> ips;
@@ -552,74 +553,104 @@ void GRServer::_thread_connection(void *p_userdata) {
 	thread_info->finished = true;
 }
 
-GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<StreamPeerTCP> con) {
-	// Auth Packet
-	// 4bytes GodotRemote Header
-	// 4bytes Body Size
-	// 3byte  Version
-	// ....
-	//
-	// total body size = 3
-	//
-	// must receive
-	// 4bytes GodotRemote Header
-	// 1byte  error code
-	//
-	// total return size = 5
-
-	PoolByteArray data;
-	data.resize(8);
-	auto w = data.write();
-	Error err = con->get_data(w.ptr(), 8);
-	w.release();
-
-	if (err == OK) {
-		auto r = data.read();
-		if (!validate_packet(r.ptr()))
-			return AuthResult::Error;
-
-		int size = bytes2int32(r.ptr() + 4);
-		r.release();
-
-		if (size != 3) // body size must be equal to 3
-			return AuthResult::Error;
-
-		PoolByteArray body;
-		body.resize(size);
-		w = body.write();
-
-		// get body data
-		err = con->get_data(w.ptr(), size);
-		if (err != OK)
-			return AuthResult::Error;
-		w.release();
-
-		PoolByteArray ret;
-		// prepare response packet
-		ret.append_array(get_packet_header());
-
-		r = body.read();
-		if (!validate_version(r.ptr())) {
-			ret.append((int)AuthErrorCode::VersionMismatch);
-			auto rr = ret.read();
-			con->put_data(rr.ptr(), ret.size());
-			return AuthResult::VersionMismatch;
-		}
-		r.release();
-
-		// send back final validation packet
-		ret.append((int)AuthErrorCode::OK);
-		r = ret.read();
-		err = con->put_data(r.ptr(), ret.size());
-		r.release();
-		if (err == OK) {
-			return AuthResult::OK;
-		}
-
-		return AuthResult::Error;
+GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<StreamPeerTCP> &con, bool refuse_connection) {
+// _v - variable definition, _n - dict key, _c - fail condition, _e - error message, _r - return value on fail condition
+#define dict_get(_t, _v, _n, _c, _e, _r) \
+	_t _v;                               \
+	if (dict.has(_n))                    \
+		_v = (_t)dict[_n];               \
+	else                                 \
+		goto error_dict;                 \
+	if (_c) {                            \
+		ppeer->put_var((int)_r);         \
+		_log(_e, LogLevel::LL_Error);    \
+		return _r;                       \
+	}
+#define wait_one_packet(_n)                                              \
+	uint32_t time = OS::get_singleton()->get_ticks_msec();               \
+	while (ppeer->get_available_packet_count() == 0) {                   \
+		if (OS::get_singleton()->get_ticks_msec() - time > 150) {        \
+			_log("Timeout: " + str(_n), LogLevel::LL_Debug);             \
+			goto timeout;                                                \
+		}                                                                \
+		OS::get_singleton()->delay_usec(1_ms);                           \
+	}                                                                    \
+	if (ppeer->get_available_packet_count() > 1) {                       \
+		_log("Got more then one packet:" + str(_n), LogLevel::LL_Debug); \
+		goto wrong_packet_count;                                         \
 	}
 
-	return AuthResult::Error;
+	Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
+	ppeer->set_stream_peer(con);
+	String address = CON_ADDRESS(con);
+
+	Error err = OK;
+	Variant res;
+	if (!refuse_connection) {
+		// PUT
+		err = ppeer->put_var((int)GRDevice::AuthResult::TryToConnect);
+		if (err) {
+			_log("Can't send authorization init packet to " + address + ". Code: " + str(err), LogLevel::LL_Error);
+			return GRDevice::AuthResult::Error;
+		}
+
+		// GET
+		wait_one_packet("auth_data");
+		err = ppeer->get_var(res);
+		if (err) {
+			_log("Can't get authorization data from client to " + address + ". Code: " + str(err), LogLevel::LL_Error);
+			return GRDevice::AuthResult::Error;
+		}
+
+		Dictionary dict = res;
+		if (dict.empty()) {
+			goto error_dict;
+		} else {
+			dict_get(PoolByteArray, ver, "version",
+					ver.empty(), "Version field is empty or does not exists. " + address,
+					GRDevice::AuthResult::VersionMismatch);
+
+			if (!validate_version(ver)) {
+				_log("Version mismatch", LogLevel::LL_Error);
+				return GRDevice::AuthResult::VersionMismatch;
+			}
+
+			if (!dev->password.empty()) {
+				dict_get(String, password, "password",
+						password != dev->password, "Incorrect password. " + address,
+						GRDevice::AuthResult::IncorrectPassword);
+			}
+		}
+
+		// PUT
+		err = ppeer->put_var((int)GRDevice::AuthResult::OK);
+		if (err) {
+			_log("Can't send final authorization packet from client to " + address + ". Code: " + str(err), LogLevel::LL_Error);
+			return GRDevice::AuthResult::Error;
+		}
+
+		return GRDevice::AuthResult::OK;
+
+	error_dict:
+		_log("Got invalid authorization data from client. " + address);
+		return GRDevice::AuthResult::Error;
+
+	} else {
+		// PUT
+		Error err = con->put_data((uint8_t *)GRDevice::AuthResult::RefuseConnection, 1);
+		return GRDevice::AuthResult::RefuseConnection;
+	}
+timeout:
+	con->disconnect_from_host();
+	_log("Connection timeout. Refusing " + address);
+	return GRDevice::AuthResult::Timeout;
+wrong_packet_count:
+	con->disconnect_from_host();
+	_log("Got more then 1 packet on authorization. Refusing " + address);
+	return GRDevice::AuthResult::Error;
+
+#undef dict_get
+#undef wait_one_packet
 }
 
 bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
@@ -855,8 +886,7 @@ void GRServer::ImgProcessingStorage::_get_texture_data_from_main_thread() {
 	auto w = img_data.write();
 	auto r = data.read();
 
-	if (err == OK && !data.empty() && !img_data.empty() && w.ptr()&& r.ptr()) {
-
+	if (err == OK && !data.empty() && !img_data.empty() && w.ptr() && r.ptr()) {
 
 		memcpy(w.ptr(), r.ptr(), data.size());
 		w.release();

@@ -33,6 +33,7 @@ public:
 	static String ps_jpg_quality_name;
 	static String ps_scale_of_sending_stream_name;
 	static String ps_auto_adjust_scale_name;
+	static String ps_password_name;
 
 private:
 	bool is_autostart = false;

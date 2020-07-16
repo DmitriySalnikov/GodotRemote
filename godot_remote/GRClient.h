@@ -24,6 +24,7 @@ public:
 	};
 
 private:
+
 	class ImgProcessingStorage {
 	public:
 		GRClient *dev = nullptr;
@@ -44,7 +45,7 @@ private:
 
 	public:
 		GRClient *dev = nullptr;
-		class Ref<StreamPeerTCP> peer;
+		Ref<StreamPeerTCP> peer;
 		class Thread *thread_ref = nullptr;
 		bool break_connection = false;
 		bool stop_thread = false;
@@ -80,6 +81,7 @@ private:
 	const String ip_validator_pattern = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
 	Ref<class RegEx> ip_validator;
 
+	String password;
 	bool is_filtering_enabled = true;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
@@ -122,8 +124,8 @@ private:
 	static void _thread_connection(void *p_userdata);
 	static void _thread_image_decoder(void *p_userdata);
 
-	static void _connection_loop(Ref<ConnectionThreadParams> con_thread, class Ref<StreamPeerTCP> connection);
-	static bool _auth_on_server(Ref<StreamPeerTCP> con);
+	static void _connection_loop(Ref<ConnectionThreadParams> con_thread);
+	static GRDevice::AuthResult _auth_on_server(GRClient *dev, Ref<StreamPeerTCP> &con);
 
 protected:
 	static void _bind_methods();
@@ -146,6 +148,8 @@ public:
 	int get_stretch_mode();
 	void set_texture_filtering(bool is_filtering);
 	bool get_texture_filtering();
+	void set_password(String _pass);
+	String get_password();
 
 	bool is_stream_active();
 	bool is_connected_to_host();

@@ -68,7 +68,7 @@ private:
 
 	public:
 		GRServer *dev = nullptr;
-		class Ref<StreamPeerTCP> peer;
+		Ref<StreamPeerTCP> peer;
 		class Thread *thread_ref = nullptr;
 		bool break_connection = false;
 		bool finished = false;
@@ -90,18 +90,13 @@ private:
 		}
 	};
 
-	enum class AuthResult {
-		OK,
-		Error,
-		VersionMismatch,
-	};
-
 	Node *settings_menu_node = nullptr;
 	Mutex *connection_mutex = nullptr;
 	Ref<ListenerThreadParams> server_thread_listen;
 	Ref<TCP_Server> tcp_server;
 	class GRSViewport *resize_viewport = nullptr;
 
+	String password;
 	bool auto_adjust_scale = false;
 	int jpg_quality = 75;
 	int target_send_fps = 25;
@@ -117,7 +112,7 @@ private:
 	static void _thread_listen(void *p_userdata);
 	static void _thread_connection(void *p_userdata);
 
-	static AuthResult _auth_client(GRServer *dev, Ref<StreamPeerTCP> con);
+	static AuthResult _auth_client(GRServer *dev, Ref<StreamPeerTCP> &con, bool refuse_connection = false);
 	static bool _parse_input_data(const PoolByteArray &p_data);
 	static const uint8_t *_read_abstract_input_data(class InputEvent *ie, const Vector2 &vs, const uint8_t *data);
 
@@ -134,6 +129,8 @@ public:
 	int get_target_send_fps();
 	void set_render_scale(float _scale);
 	float get_render_scale();
+	void set_password(String _pass);
+	String get_password();
 
 	virtual void _internal_call_only_deffered_start() override;
 	virtual void _internal_call_only_deffered_stop() override;
