@@ -16,6 +16,7 @@ using namespace GRUtils;
 
 void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_load_settings"), &GRServer::_load_settings);
+	ClassDB::bind_method(D_METHOD("_remove_resize_viewport", "vp"), &GRServer::_remove_resize_viewport);
 
 	ClassDB::bind_method(D_METHOD("get_settings_node"), &GRServer::get_settings_node);
 	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRServer::get_gr_viewport);
@@ -161,13 +162,17 @@ void GRServer::_internal_call_only_deffered_stop() {
 		server_thread_listen.unref();
 	}
 
-	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
-		remove_child(resize_viewport);
-		memdelete(resize_viewport);
-		//resize_viewport->queue_delete();
-		resize_viewport = nullptr;
-	}
+	call_deferred("_remove_resize_viewport", resize_viewport);
+	resize_viewport = nullptr;
 	set_status(WorkingStatus::Stopped);
+}
+
+void GRServer::_remove_resize_viewport(Node *node) {
+	GRSViewport *vp = cast_to<GRSViewport>(node);
+	if (vp && !vp->is_queued_for_deletion()) {
+		remove_child(vp);
+		memdelete(vp);
+	}
 }
 
 GRSViewport *GRServer::get_gr_viewport() {

@@ -106,6 +106,7 @@ private:
 
 	void _load_settings();
 	void _update_settings_from_client(const Dictionary settings);
+	void _remove_resize_viewport(Node* vp);
 
 	virtual void _reset_counters() override;
 
