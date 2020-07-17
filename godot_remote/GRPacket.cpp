@@ -1,5 +1,6 @@
 /* GRPacket.cpp */
 #include "GRPacket.h"
+#include "core/os/os.h"
 
 using namespace GRUtils;
 
@@ -25,8 +26,8 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 	switch (type) {
 		case PacketType::None:
 			ERR_FAIL_V_MSG(Ref<GRPacket>(), "Can't create abstract GRPacket!");
-		case PacketType::InitData:
-			break;
+		case PacketType::SyncTime:
+			CREATE(GRPacketSyncTime);
 		case PacketType::ImageData:
 			CREATE(GRPacketImageData);
 		case PacketType::InputData:
@@ -47,22 +48,50 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 }
 
 //////////////////////////////////////////////////////////////////////////
+// SYNC TIME
+
+Ref<StreamPeerBuffer> GRPacketSyncTime::_get_data() {
+	auto buf = GRPacket::_get_data();
+	buf->put_var(OS::get_singleton()->get_ticks_usec());
+	return buf;
+}
+
+bool GRPacketSyncTime::_create(Ref<StreamPeerBuffer> buf) {
+	GRPacket::_create(buf);
+	time = buf->get_var();
+	return true;
+}
+
+uint64_t GRPacketSyncTime::get_time() {
+	return time;
+}
+
+//////////////////////////////////////////////////////////////////////////
 // IMAGE DATA
 Ref<StreamPeerBuffer> GRPacketImageData::_get_data() {
 	auto buf = GRPacket::_get_data();
 	buf->put_var(img_data);
+	buf->put_var(start_time); // send time
 	return buf;
 }
 
 bool GRPacketImageData::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
-
 	img_data = buf->get_var();
+	start_time = buf->get_var(); // send time
 	return true;
 }
 
 PoolByteArray GRPacketImageData::get_image_data() {
 	return img_data;
+}
+
+uint64_t GRPacketImageData::get_start_time() {
+	return start_time;
+}
+
+void GRPacketImageData::set_start_time(uint64_t time) {
+	start_time = time;
 }
 
 void GRPacketImageData::set_image_data(PoolByteArray &buf) {

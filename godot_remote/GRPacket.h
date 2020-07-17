@@ -11,7 +11,7 @@ class GRPacket : public Reference {
 public:
 	enum class PacketType {
 		None = 0,
-		InitData = 1,
+		SyncTime = 1,
 		ImageData = 2,
 		InputData = 3,
 		ServerSettings = 4,
@@ -32,11 +32,29 @@ protected:
 	};
 
 public:
+	virtual PacketType get_type() { return PacketType::None; };
 	static Ref<GRPacket> create(const PoolByteArray &bytes);
 	PoolByteArray get_data() {
 		return _get_data()->get_data_array();
 	};
-	virtual PacketType get_type() { return PacketType::None; };
+};
+
+//////////////////////////////////////////////////////////////////////////
+// SyncTime
+class GRPacketSyncTime : public GRPacket {
+	GDCLASS(GRPacketSyncTime, GRPacket);
+	friend GRPacket;
+
+	uint64_t time = 0;
+
+protected:
+	virtual Ref<StreamPeerBuffer> _get_data() override;
+	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+
+public:
+	virtual PacketType get_type() override { return PacketType::SyncTime; };
+
+	uint64_t get_time();
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -46,16 +64,19 @@ class GRPacketImageData : public GRPacket {
 	friend GRPacket;
 
 	PoolByteArray img_data;
+	uint64_t start_time = 0;
 
 protected:
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
 public:
-	PoolByteArray get_image_data();
-	void set_image_data(PoolByteArray &buf);
-
 	virtual PacketType get_type() override { return PacketType::ImageData; };
+
+	PoolByteArray get_image_data();
+	uint64_t get_start_time();
+	void set_start_time(uint64_t time);
+	void set_image_data(PoolByteArray &buf);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -71,10 +92,10 @@ protected:
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
 public:
+	virtual PacketType get_type() override { return PacketType::InputData; };
+
 	PoolByteArray get_input_data();
 	void set_input_data(PoolByteArray &buf);
-
-	virtual PacketType get_type() override { return PacketType::InputData; };
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -90,11 +111,11 @@ protected:
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
 public:
+	virtual PacketType get_type() override { return PacketType::ServerSettings; };
+
 	Dictionary get_settings();
 	void set_settings(Dictionary &_settings);
 	void add_setting(int _setting, Variant value);
-
-	virtual PacketType get_type() override { return PacketType::ServerSettings; };
 };
 
 //////////////////////////////////////////////////////////////////////////

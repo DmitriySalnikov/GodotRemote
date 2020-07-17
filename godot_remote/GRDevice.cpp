@@ -2,6 +2,8 @@
 #include "GRDevice.h"
 #include "GodotRemote.h"
 
+using namespace GRUtils;
+
 void GRDevice::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_start"), &GRDevice::_internal_call_only_deffered_start);
 	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_stop"), &GRDevice::_internal_call_only_deffered_stop);
@@ -50,20 +52,16 @@ void GRDevice::_reset_counters() {
 	avg_ping = 0;
 }
 
-void GRDevice::_update_avg_ping(uint32_t ping) {
-	avg_ping = (avg_ping * avg_ping_smoothing) + ((float)ping * (1.f - avg_ping_smoothing));
+void GRDevice::_update_avg_ping(uint64_t ping) {
+	if (!ping)
+		return;
+	avg_ping = (avg_ping * avg_ping_smoothing) + ((float)(ping / 1000.f) * (1.f - avg_ping_smoothing));
 }
 
-void GRDevice::_update_avg_fps(uint32_t frametime) {
-	if (!frametime) {
-		//avg_fps = (avg_fps * avg_fps_smoothing);
+void GRDevice::_update_avg_fps(uint64_t frametime) {
+	if (!frametime)
 		return;
-	}
-	// TODO need more tests to understand strange fps pick with high fps
-	if (frametime == 1) {
-		return;
-	}
-	avg_fps = (avg_fps * avg_fps_smoothing) + ((1000.f / frametime) * (1.f - avg_fps_smoothing));
+	avg_fps = (avg_fps * avg_fps_smoothing) + ((float)(1000000.f / frametime) * (1.f - avg_fps_smoothing));
 }
 
 void GRDevice::set_status(WorkingStatus status) {

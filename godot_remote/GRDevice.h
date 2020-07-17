@@ -51,14 +51,16 @@ private:
 protected:
 	float avg_ping = 0;
 	float avg_fps = 0;
-	float avg_ping_smoothing = 0.4f;
-	float avg_fps_smoothing = 0.8f;
+	float avg_ping_smoothing = 0.5f;
+	float avg_fps_smoothing = 0.9f;
 
 	void set_status(WorkingStatus status);
-	void _update_avg_ping(uint32_t ping);
-	void _update_avg_fps(uint32_t frametime);
+	void _update_avg_ping(uint64_t ping);
+	void _update_avg_fps(uint64_t frametime);
 
 	virtual void _reset_counters();
+	virtual void _internal_call_only_deffered_start() = 0;
+	virtual void _internal_call_only_deffered_stop() = 0;
 
 	static void _bind_methods();
 
@@ -75,8 +77,6 @@ public:
 	void restart();
 	void _internal_call_only_deffered_restart();
 
-	virtual void _internal_call_only_deffered_start() = 0;
-	virtual void _internal_call_only_deffered_stop() = 0;
 	virtual int get_status();
 
 	GRDevice();

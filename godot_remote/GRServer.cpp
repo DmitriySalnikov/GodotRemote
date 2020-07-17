@@ -387,10 +387,16 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 	Ref<ImgProcessingStorage> ips;
 
-	uint32_t prev_time = os->get_ticks_msec();
-	uint32_t prev_ping_sending_time = prev_time;
-	uint32_t prev_send_image_time = prev_time;
+	uint32_t time = os->get_ticks_msec();
+	//uint32_t prev_send_sync_time = time;
+	uint32_t prev_process_image_time = time;
+
+	uint64_t time64 = os->get_ticks_usec();
+	uint64_t prev_send_image_time = time64;
+	uint64_t prev_ping_sending_time = time64;
+
 	bool ping_sended = false;
+	bool time_synced = false;
 
 	while (!thread_info->break_connection && connection.is_valid() && !connection->is_queued_for_deletion() && connection->is_connected_to_host()) {
 		bool nothing_happens = true;
@@ -399,11 +405,28 @@ void GRServer::_thread_connection(void *p_userdata) {
 		///////////////////////////////////////////////////////////////////
 		// SENDING
 
-		// IMAGE
-		uint32_t time = os->get_ticks_msec();
-		if (time - prev_time > send_data_time_ms && ips.is_null()) {
+		// TIME SYNC
+		//time = os->get_ticks_msec();
+		//if (time - prev_send_sync_time > 1000) {
+		if (!time_synced) {
+			time_synced = true;
 			nothing_happens = false;
-			prev_time = time;
+			_log("Sending sync time");
+			//prev_send_sync_time = time;
+			Ref<GRPacketSyncTime> pack(memnew(GRPacketSyncTime));
+			err = ppeer->put_var(pack->get_data());
+			if (err) {
+				_log("Can't send sync time data! Code: " + str(err), LogLevel::LL_Error);
+				goto end_send;
+			}
+		}
+
+		// IMAGE
+		time = os->get_ticks_msec();
+		if (time - prev_process_image_time > send_data_time_ms && ips.is_null() &&
+				dev->resize_viewport && !dev->resize_viewport->is_queued_for_deletion()) {
+			nothing_happens = false;
+			prev_process_image_time = time;
 
 			ips.instance();
 			ips->start(dev->resize_viewport->get_texture(), dev->jpg_quality);
@@ -421,32 +444,34 @@ void GRServer::_thread_connection(void *p_userdata) {
 				goto end_send;
 			}
 			pack->set_image_data(ips->ret_data);
+			pack->set_start_time(os->get_ticks_usec());
+
 			err = ppeer->put_var(pack->get_data());
 			ips->close();
 			ips.unref();
 
 			// avg fps
-			time = os->get_ticks_msec();
-			dev->_update_avg_fps(time - prev_send_image_time);
+			time64 = os->get_ticks_usec();
+			dev->_update_avg_fps(time64 - prev_send_image_time);
 			dev->_adjust_viewport_scale();
-			prev_send_image_time = time;
+			prev_send_image_time = time64;
 
 			if (err) {
-				_log("Cant send image data! Code: " + str(err), LogLevel::LL_Error);
+				_log("Can't send image data! Code: " + str(err), LogLevel::LL_Error);
 				goto end_send;
 			}
 		}
 
 		// PING
-		time = os->get_ticks_msec();
-		if ((os->get_ticks_msec() - prev_ping_sending_time) > 100 && !ping_sended) {
-			prev_ping_sending_time = time;
+		time64 = os->get_ticks_usec();
+		if ((time64 - prev_ping_sending_time) > 100_ms && !ping_sended) {
 			nothing_happens = false;
 			ping_sended = true;
 
 			Ref<GRPacketPing> pack(memnew(GRPacketPing));
 			err = ppeer->put_var(pack->get_data());
 
+			prev_ping_sending_time = time64;
 			if (err) {
 				_log("Send ping failed with code: " + str(err), LogLevel::LL_Error);
 				goto end_send;
@@ -462,7 +487,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 		///////////////////////////////////////////////////////////////////
 		// RECEIVING
 		uint32_t recv_start_time = os->get_ticks_msec();
-		while (connection->is_connected_to_host() && ppeer->get_available_packet_count() > 0 && (os->get_ticks_msec() - recv_start_time) < send_data_time_ms) {
+		while (connection->is_connected_to_host() && ppeer->get_available_packet_count() > 0 && (os->get_ticks_msec() - recv_start_time) < send_data_time_ms / 2) {
 			nothing_happens = false;
 			Variant res;
 			err = ppeer->get_var(res);
@@ -483,7 +508,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 			//_log((int)type);
 
 			switch (type) {
-				case GRPacket::PacketType::InitData: {
+				case GRPacket::PacketType::SyncTime: {
 					ERR_PRINT("NOT IMPLEMENTED");
 					break;
 				}
@@ -494,7 +519,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 				case GRPacket::PacketType::InputData: {
 					Ref<GRPacketInputData> data = pack;
 					if (data.is_null()) {
-						ERR_PRINT("Incorrect GRPacketInputData");
+						_log("Incorrect GRPacketInputData", LogLevel::LL_Error);
 						break;
 					}
 					if (!_parse_input_data(data->get_input_data())) {
@@ -507,7 +532,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 				case GRPacket::PacketType::ServerSettings: {
 					Ref<GRPacketServerSettings> data = pack;
 					if (data.is_null()) {
-						ERR_PRINT("Incorrect GRPacketServerSettings");
+						_log("Incorrect GRPacketServerSettings", LogLevel::LL_Error);
 						break;
 					}
 					dev->_update_settings_from_client(data->get_settings());
@@ -528,7 +553,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 					break;
 				}
 				case GRPacket::PacketType::Pong: {
-					dev->_update_avg_ping(os->get_ticks_msec() - prev_ping_sending_time);
+					dev->_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
 					ping_sended = false;
 					break;
 				}
@@ -584,6 +609,11 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<StreamPeerTCP> &c
 		_log("Got more then one packet:" + str(_n), LogLevel::LL_Debug); \
 		goto wrong_packet_count;                                         \
 	}
+#define packet_error_check(_t)              \
+	if (err) {                              \
+		_log(_t, LogLevel::LL_Error);       \
+		return GRDevice::AuthResult::Error; \
+	}
 
 	Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
 	ppeer->set_stream_peer(con);
@@ -592,20 +622,14 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<StreamPeerTCP> &c
 	Error err = OK;
 	Variant res;
 	if (!refuse_connection) {
-		// PUT
+		// PUT client can try to connect
 		err = ppeer->put_var((int)GRDevice::AuthResult::TryToConnect);
-		if (err) {
-			_log("Can't send authorization init packet to " + address + ". Code: " + str(err), LogLevel::LL_Error);
-			return GRDevice::AuthResult::Error;
-		}
+		packet_error_check("Can't send authorization init packet to " + address + ". Code: " + str(err));
 
-		// GET
+		// GET auth data
 		wait_one_packet("auth_data");
 		err = ppeer->get_var(res);
-		if (err) {
-			_log("Can't get authorization data from client to " + address + ". Code: " + str(err), LogLevel::LL_Error);
-			return GRDevice::AuthResult::Error;
-		}
+		packet_error_check("Can't get authorization data from client to " + address + ". Code: " + str(err));
 
 		Dictionary dict = res;
 		if (dict.empty()) {
@@ -627,12 +651,9 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<StreamPeerTCP> &c
 			}
 		}
 
-		// PUT
+		// PUT auth ok
 		err = ppeer->put_var((int)GRDevice::AuthResult::OK);
-		if (err) {
-			_log("Can't send final authorization packet from client to " + address + ". Code: " + str(err), LogLevel::LL_Error);
-			return GRDevice::AuthResult::Error;
-		}
+		packet_error_check("Can't send final authorization packet from client to " + address + ". Code: " + str(err));
 
 		return GRDevice::AuthResult::OK;
 
@@ -641,7 +662,7 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<StreamPeerTCP> &c
 		return GRDevice::AuthResult::Error;
 
 	} else {
-		// PUT
+		// PUT refuse connection
 		Error err = con->put_data((uint8_t *)GRDevice::AuthResult::RefuseConnection, 1);
 		return GRDevice::AuthResult::RefuseConnection;
 	}
@@ -656,6 +677,7 @@ wrong_packet_count:
 
 #undef dict_get
 #undef wait_one_packet
+#undef packet_error_check
 }
 
 bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
@@ -881,11 +903,13 @@ const uint8_t *GRServer::_read_abstract_input_data(InputEvent *ie, const Vector2
 void GRServer::ImgProcessingStorage::_get_texture_data_from_main_thread() {
 	TimeCountInit();
 
+	_THREAD_SAFE_LOCK_
 	Ref<Image> img;
 	img.instance();
 	img->copy_internals_from(tex->get_data());
 	img->convert(Image::FORMAT_RGBA8);
 	PoolByteArray data = img->get_data();
+
 	img_data = PoolByteArray();
 	Error err = img_data.resize(data.size());
 	auto w = img_data.write();
@@ -912,6 +936,7 @@ void GRServer::ImgProcessingStorage::_get_texture_data_from_main_thread() {
 
 		_log("Can't copy viewport image data", LogLevel::LL_Error);
 	}
+	_THREAD_SAFE_UNLOCK_
 }
 
 void GRServer::ImgProcessingStorage::_processing_thread(void *p_user) {
@@ -919,17 +944,19 @@ void GRServer::ImgProcessingStorage::_processing_thread(void *p_user) {
 	if (ips.is_null())
 		return;
 
-	if (!ips->img_data.empty()) {
+	ips->_THREAD_SAFE_LOCK_ if (!ips->img_data.empty()) {
 		ips->ret_data = compress_jpg(ips->img_data, ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRUtils::SUBSAMPLING_H2V2);
 		ips->is_new_data = true;
 
 		ips->tex.unref();
 		ips->img_data.resize(0);
-	} else {
+	}
+	else {
 		ips->img_data.resize(0);
 		ips->is_new_data = true;
 	}
-	ips->finished = true;
+	ips->_THREAD_SAFE_UNLOCK_
+			ips->finished = true;
 }
 
 void GRServer::ImgProcessingStorage::_bind_methods() {
@@ -952,9 +979,12 @@ void GRServer::ImgProcessingStorage::close() {
 }
 
 GRServer::ImgProcessingStorage::~ImgProcessingStorage() {
+	_THREAD_SAFE_LOCK_
 	close();
+	img_data.resize(0);
 	ret_data.resize(0);
 	tex.unref();
+	_THREAD_SAFE_UNLOCK_
 }
 
 //////////////////////////////////////////////

@@ -15,7 +15,7 @@ class GRServer : public GRDevice {
 private:
 	class ImgProcessingStorage : public Reference {
 		GDCLASS(ImgProcessingStorage, Reference);
-
+		_THREAD_SAFE_CLASS_
 	private:
 
 		Thread *_thread_process = nullptr;
@@ -118,6 +118,9 @@ private:
 	static const uint8_t *_read_abstract_input_data(class InputEvent *ie, const Vector2 &vs, const uint8_t *data);
 
 protected:
+	virtual void _internal_call_only_deffered_start() override;
+	virtual void _internal_call_only_deffered_stop() override;
+
 	static void _bind_methods();
 	void _notification(int p_notification);
 
@@ -133,8 +136,6 @@ public:
 	void set_password(String _pass);
 	String get_password();
 
-	virtual void _internal_call_only_deffered_start() override;
-	virtual void _internal_call_only_deffered_stop() override;
 
 	GRSViewport *get_gr_viewport();
 	class Node *get_settings_node();

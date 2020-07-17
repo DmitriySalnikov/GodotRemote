@@ -93,7 +93,10 @@ private:
 	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
-	uint32_t prev_display_image_time = 60;
+
+	uint64_t prev_display_image_time = 0;
+	uint64_t sync_time_client = 0;
+	uint64_t sync_time_server = 0;
 
 	// NO SIGNAL screen
 	uint32_t prev_valid_connection_time = 0;
@@ -128,6 +131,9 @@ private:
 	static GRDevice::AuthResult _auth_on_server(GRClient *dev, Ref<StreamPeerTCP> &con);
 
 protected:
+	virtual void _internal_call_only_deffered_start() override;
+	virtual void _internal_call_only_deffered_stop() override;
+
 	static void _bind_methods();
 	void _notification(int p_notification);
 
@@ -161,8 +167,6 @@ public:
 	void set_server_setting(int param, Variant value);
 	void disable_overriding_server_settings();
 
-	virtual void _internal_call_only_deffered_start() override;
-	virtual void _internal_call_only_deffered_stop() override;
 
 	GRClient();
 	~GRClient();
