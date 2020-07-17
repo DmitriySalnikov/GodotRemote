@@ -369,10 +369,6 @@ void GRClient::_update_texture_from_iamge(Ref<Image> img) {
 			tex->set_flags(new_flags);
 		}
 	}
-
-	uint64_t time = OS::get_singleton()->get_ticks_usec();
-	_update_avg_fps(time - prev_display_image_time);
-	prev_display_image_time = time;
 }
 
 void GRClient::_update_stream_texture_state(bool is_has_signal) {
@@ -427,7 +423,6 @@ void GRClient::_reset_counters() {
 	GRDevice::_reset_counters();
 	sync_time_client = 0;
 	sync_time_server = 0;
-	prev_display_image_time = 0;
 }
 
 void GRClient::set_server_setting(int param, Variant value) {
@@ -459,7 +454,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 	Thread::set_name("GRemote_connection");
 
 	while (!con_thread->stop_thread) {
-		if (os->get_ticks_msec() - dev->prev_valid_connection_time > 1000) {
+		if (os->get_ticks_usec() - dev->prev_valid_connection_time > 1000_ms) {
 			dev->call_deferred("_update_stream_texture_state", false);
 		}
 
@@ -505,7 +500,12 @@ void GRClient::_thread_connection(void *p_userdata) {
 		con->set_no_delay(true);
 
 		bool long_wait = false;
-		GRDevice::AuthResult res = _auth_on_server(dev, con);
+
+		Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
+		ppeer->set_stream_peer(con);
+		ppeer->set_input_buffer_max_size(dev->input_buffer_size_in_mb * 1024 * 1024);
+
+		GRDevice::AuthResult res = _auth_on_server(dev, ppeer);
 		switch (res) {
 			case GRDevice::AuthResult::OK: {
 				_log("Successful connected to " + address);
@@ -514,10 +514,14 @@ void GRClient::_thread_connection(void *p_userdata) {
 
 				con_thread->break_connection = false;
 				con_thread->peer = con;
+				con_thread->ppeer = ppeer;
 				dev->is_connection_working = true;
 				dev->call_deferred("emit_signal", "connection_state_changed", true);
 
 				_connection_loop(con_thread);
+
+				con_thread->peer.unref();
+				con_thread->ppeer.unref();
 
 				dev->is_connection_working = false;
 				dev->call_deferred("emit_signal", "connection_state_changed", false);
@@ -554,6 +558,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 	GRClient *dev = con_thread->dev;
 	Ref<StreamPeerTCP> connection = con_thread->peer;
+	Ref<PacketPeerStream> ppeer = con_thread->ppeer;
 
 	Thread *_img_thread = nullptr;
 	bool _is_processing_img = false;
@@ -561,17 +566,16 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 	OS *os = OS::get_singleton();
 	Error err = Error::OK;
 
-	Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
-	ppeer->set_stream_peer(connection);
-	ppeer->set_input_buffer_max_size(dev->input_buffer_size_in_mb * 1024 * 1024);
-
 	dev->_reset_counters();
 
-	uint32_t time = os->get_ticks_msec();
-	uint32_t prev_send_input_time = time;
+	List<Ref<GRPacketImageData> > stream_queue;
 
 	uint64_t time64 = os->get_ticks_usec();
+	uint64_t prev_send_input_time = time64;
 	uint64_t prev_ping_sending_time = time64;
+	uint64_t next_image_required_frametime = time64;
+	uint64_t prev_display_image_time = time64 - 16_ms;
+
 	bool ping_sended = false;
 
 	while (!con_thread->break_connection && connection->is_connected_to_host()) {
@@ -588,17 +592,17 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 		}
 
 		bool nothing_happens = true;
-		uint32_t start_while_time = 0;
-		dev->prev_valid_connection_time = time;
-		int send_data_time_ms = (1000 / dev->send_data_fps);
+		uint64_t start_while_time = 0;
+		dev->prev_valid_connection_time = time64;
+		int send_data_time_us = (1000000 / dev->send_data_fps);
 
 		///////////////////////////////////////////////////////////////////
 		// SENDING
 
 		// INPUT
-		time = os->get_ticks_msec();
-		if ((time - prev_send_input_time) > send_data_time_ms) {
-			prev_send_input_time = time;
+		time64 = os->get_ticks_usec();
+		if ((time64 - prev_send_input_time) > send_data_time_us) {
+			prev_send_input_time = time64;
 			nothing_happens = false;
 
 			PoolByteArray d = dev->input_collector->get_collected_input_data();
@@ -634,8 +638,8 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 		}
 
 		// SEND QUEUE
-		start_while_time = os->get_ticks_msec();
-		while (!dev->send_queue.empty() && (os->get_ticks_msec() - start_while_time) <= send_data_time_ms / 3) {
+		start_while_time = os->get_ticks_usec();
+		while (!dev->send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
 			dev->send_queue_mutex->lock();
 
 			Ref<GRPacket> packet = dev->send_queue.front()->get();
@@ -660,8 +664,43 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 		///////////////////////////////////////////////////////////////////
 		// RECEIVING
-		start_while_time = os->get_ticks_msec();
-		while (ppeer->get_available_packet_count() > 0 && (os->get_ticks_msec() - start_while_time) <= send_data_time_ms / 3) {
+
+		// Send to processing one of buffered images
+		time64 = os->get_ticks_usec();
+		if (!_is_processing_img && !stream_queue.empty() && time64 >= next_image_required_frametime) {
+			nothing_happens = false;
+			Ref<GRPacketImageData> pack = stream_queue.front()->get();
+			stream_queue.pop_front();
+			if (pack.is_null()) {
+				_log("Queued image data is null", LogLevel::LL_Error);
+				goto end_img_process;
+			}
+
+			next_image_required_frametime = time64 + pack->get_frametime() * 0.8;
+
+			dev->_update_avg_fps(time64 - prev_display_image_time);
+			prev_display_image_time = time64;
+
+			if (_img_thread) {
+				Thread::wait_to_finish(_img_thread);
+				memdelete(_img_thread);
+				_img_thread = nullptr;
+			}
+
+			ImgProcessingStorage *ips = new ImgProcessingStorage(dev);
+			ips->tex_data = pack->get_image_data();
+			ips->_is_processing_img = &_is_processing_img;
+			_img_thread = Thread::create(&_thread_image_decoder, ips);
+		}
+	end_img_process:
+
+		if (stream_queue.size() > 10) {
+			stream_queue.clear();
+		}
+
+		// Get some packets
+		start_while_time = os->get_ticks_usec();
+		while (ppeer->get_available_packet_count() > 0 && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
 			nothing_happens = false;
 
 			Variant buf;
@@ -698,18 +737,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 						continue;
 					}
 
-					if (!_is_processing_img) {
-						if (_img_thread) {
-							Thread::wait_to_finish(_img_thread);
-							memdelete(_img_thread);
-							_img_thread = nullptr;
-						}
-
-						ImgProcessingStorage *ips = new ImgProcessingStorage(dev);
-						ips->tex_data = data->get_image_data();
-						ips->_is_processing_img = &_is_processing_img;
-						_img_thread = Thread::create(&_thread_image_decoder, ips);
-					}
+					stream_queue.push_back(data);
 					break;
 				}
 				case GRPacket::PacketType::InputData: {
@@ -770,19 +798,15 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 	delete ips;
 }
 
-GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<StreamPeerTCP> &con) {
-#define wait_one_packet(_n)                                              \
-	uint32_t time = OS::get_singleton()->get_ticks_msec();               \
-	while (ppeer->get_available_packet_count() == 0) {                   \
-		if (OS::get_singleton()->get_ticks_msec() - time > 150) {        \
-			_log("Timeout: " + str(_n), LogLevel::LL_Debug);             \
-			goto timeout;                                                \
-		}                                                                \
-		OS::get_singleton()->delay_usec(1_ms);                           \
-	}                                                                    \
-	if (ppeer->get_available_packet_count() > 1) {                       \
-		_log("Got more then one packet:" + str(_n), LogLevel::LL_Debug); \
-		goto wrong_packet_count;                                         \
+GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<PacketPeerStream> &ppeer) {
+#define wait_packet(_n)                                           \
+	uint32_t time = OS::get_singleton()->get_ticks_msec();        \
+	while (ppeer->get_available_packet_count() == 0) {            \
+		if (OS::get_singleton()->get_ticks_msec() - time > 150) { \
+			_log("Timeout: " + str(_n), LogLevel::LL_Debug);      \
+			goto timeout;                                         \
+		}                                                         \
+		OS::get_singleton()->delay_usec(1_ms);                    \
 	}
 #define packet_error_check(_t)              \
 	if (err) {                              \
@@ -790,14 +814,13 @@ GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<StreamPeerTCP>
 		return GRDevice::AuthResult::Error; \
 	}
 
-	Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
-	ppeer->set_stream_peer(con);
+	Ref<StreamPeerTCP> con = ppeer->get_stream_peer();
 	String address = CON_ADDRESS(con);
 
 	Error err = OK;
 	Variant ret;
 	// GET first packet
-	wait_one_packet("first_packet");
+	wait_packet("first_packet");
 	err = ppeer->get_var(ret);
 	packet_error_check("Can't get first authorization packet from server. Code: " + str(err));
 
@@ -815,7 +838,7 @@ GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<StreamPeerTCP>
 		packet_error_check("Can't put authorization data to server. Code: " + str(err));
 
 		// GET result
-		wait_one_packet("result");
+		wait_packet("result");
 		err = ppeer->get_var(ret);
 		packet_error_check("Can't get final authorization packet from server. Code: " + str(err));
 
@@ -843,12 +866,8 @@ timeout:
 	con->disconnect_from_host();
 	_log("Connection timeout. Disconnecting");
 	return GRDevice::AuthResult::Timeout;
-wrong_packet_count:
-	con->disconnect_from_host();
-	_log("Got more then 1 packet on authorization. Refusing");
-	return GRDevice::AuthResult::Error;
 
-#undef wait_one_packet
+#undef wait_packet
 #undef packet_error_check
 }
 

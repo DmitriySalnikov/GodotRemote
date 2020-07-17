@@ -312,7 +312,7 @@ void GRServer::_thread_listen(void *p_userdata) {
 		}
 
 		if (connection_thread_info.is_valid()) {
-			if (connection_thread_info->peer.is_null()) {
+			if (connection_thread_info->ppeer.is_null()) {
 				connection_thread_info->break_connection = true;
 			}
 
@@ -328,13 +328,17 @@ void GRServer::_thread_listen(void *p_userdata) {
 			con->set_no_delay(true);
 			String address = CON_ADDRESS(con);
 
+			Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
+			ppeer->set_stream_peer(con);
+			ppeer->set_output_buffer_max_size(compress_buffer.size());
+
 			if (connection_thread_info.is_null()) {
-				GRDevice::AuthResult res = _auth_client(dev, con);
+				GRDevice::AuthResult res = _auth_client(dev, ppeer);
 				switch (res) {
 					case GRDevice::AuthResult::OK:
 						connection_thread_info.instance();
 						connection_thread_info->dev = dev;
-						connection_thread_info->peer = con;
+						connection_thread_info->ppeer = ppeer;
 						connection_thread_info->thread_ref = Thread::create(&_thread_connection, connection_thread_info.ptr());
 						_log("New connection from " + address);
 						break;
@@ -349,7 +353,7 @@ void GRServer::_thread_listen(void *p_userdata) {
 				}
 
 			} else {
-				GRDevice::AuthResult res = _auth_client(dev, con, true);
+				GRDevice::AuthResult res = _auth_client(dev, ppeer, true);
 			}
 		} else {
 			_log("Waiting...", LogLevel::LL_Debug);
@@ -370,13 +374,10 @@ void GRServer::_thread_listen(void *p_userdata) {
 
 void GRServer::_thread_connection(void *p_userdata) {
 	Ref<ConnectionThreadParams> thread_info = (ConnectionThreadParams *)p_userdata;
-	Ref<StreamPeerTCP> connection = thread_info->peer;
+	Ref<StreamPeerTCP> connection = thread_info->ppeer->get_stream_peer();
+	Ref<PacketPeerStream> ppeer = thread_info->ppeer;
 	GRServer *dev = thread_info->dev;
 	dev->_reset_counters();
-
-	Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
-	ppeer->set_stream_peer(connection);
-	ppeer->set_output_buffer_max_size(compress_buffer.size());
 
 	GodotRemote *gr = GodotRemote::get_singleton();
 	OS *os = OS::get_singleton();
@@ -387,31 +388,28 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 	Ref<ImgProcessingStorage> ips;
 
-	uint32_t time = os->get_ticks_msec();
-	//uint32_t prev_send_sync_time = time;
-	uint32_t prev_process_image_time = time;
-
 	uint64_t time64 = os->get_ticks_usec();
 	uint64_t prev_send_image_time = time64;
 	uint64_t prev_ping_sending_time = time64;
+	uint64_t prev_process_image_time = time64;
+	//uint64_t prev_send_sync_time = time64;
 
 	bool ping_sended = false;
 	bool time_synced = false;
 
 	while (!thread_info->break_connection && connection.is_valid() && !connection->is_queued_for_deletion() && connection->is_connected_to_host()) {
 		bool nothing_happens = true;
-		int send_data_time_ms = (1000 / dev->target_send_fps);
+		uint64_t send_data_time_us = (1000000 / dev->target_send_fps);
 
 		///////////////////////////////////////////////////////////////////
 		// SENDING
 
 		// TIME SYNC
-		//time = os->get_ticks_msec();
-		//if (time - prev_send_sync_time > 1000) {
+		//time = os->get_ticks_usec();
+		//if (time - prev_send_sync_time > 1000_ms) {
 		if (!time_synced) {
 			time_synced = true;
 			nothing_happens = false;
-			_log("Sending sync time");
 			//prev_send_sync_time = time;
 			Ref<GRPacketSyncTime> pack(memnew(GRPacketSyncTime));
 			err = ppeer->put_var(pack->get_data());
@@ -422,11 +420,11 @@ void GRServer::_thread_connection(void *p_userdata) {
 		}
 
 		// IMAGE
-		time = os->get_ticks_msec();
-		if (time - prev_process_image_time > send_data_time_ms && ips.is_null() &&
+		time64 = os->get_ticks_usec();
+		if (time64 - prev_process_image_time >= send_data_time_us && ips.is_null() &&
 				dev->resize_viewport && !dev->resize_viewport->is_queued_for_deletion()) {
 			nothing_happens = false;
-			prev_process_image_time = time;
+			prev_process_image_time = time64;
 
 			ips.instance();
 			ips->start(dev->resize_viewport->get_texture(), dev->jpg_quality);
@@ -443,15 +441,16 @@ void GRServer::_thread_connection(void *p_userdata) {
 				ips.unref();
 				goto end_send;
 			}
+
 			pack->set_image_data(ips->ret_data);
 			pack->set_start_time(os->get_ticks_usec());
+			pack->set_frametime(send_data_time_us);
 
 			err = ppeer->put_var(pack->get_data());
 			ips->close();
 			ips.unref();
 
 			// avg fps
-			time64 = os->get_ticks_usec();
 			dev->_update_avg_fps(time64 - prev_send_image_time);
 			dev->_adjust_viewport_scale();
 			prev_send_image_time = time64;
@@ -486,8 +485,8 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 		///////////////////////////////////////////////////////////////////
 		// RECEIVING
-		uint32_t recv_start_time = os->get_ticks_msec();
-		while (connection->is_connected_to_host() && ppeer->get_available_packet_count() > 0 && (os->get_ticks_msec() - recv_start_time) < send_data_time_ms / 2) {
+		uint64_t recv_start_time = os->get_ticks_usec();
+		while (connection->is_connected_to_host() && ppeer->get_available_packet_count() > 0 && (os->get_ticks_usec() - recv_start_time) < send_data_time_us / 2) {
 			nothing_happens = false;
 			Variant res;
 			err = ppeer->get_var(res);
@@ -576,14 +575,17 @@ void GRServer::_thread_connection(void *p_userdata) {
 		ips.unref();
 	}
 
-	thread_info->peer.unref();
+	if (ppeer.is_valid()) {
+		ppeer.unref();
+	}
+	thread_info->ppeer.unref();
 	thread_info->break_connection = true;
 	dev->call_deferred("_load_settings");
 
 	thread_info->finished = true;
 }
 
-GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<StreamPeerTCP> &con, bool refuse_connection) {
+GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, bool refuse_connection) {
 // _v - variable definition, _n - dict key, _c - fail condition, _e - error message, _r - return value on fail condition
 #define dict_get(_t, _v, _n, _c, _e, _r) \
 	_t _v;                               \
@@ -596,18 +598,14 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<StreamPeerTCP> &c
 		_log(_e, LogLevel::LL_Error);    \
 		return _r;                       \
 	}
-#define wait_one_packet(_n)                                              \
-	uint32_t time = OS::get_singleton()->get_ticks_msec();               \
-	while (ppeer->get_available_packet_count() == 0) {                   \
-		if (OS::get_singleton()->get_ticks_msec() - time > 150) {        \
-			_log("Timeout: " + str(_n), LogLevel::LL_Debug);             \
-			goto timeout;                                                \
-		}                                                                \
-		OS::get_singleton()->delay_usec(1_ms);                           \
-	}                                                                    \
-	if (ppeer->get_available_packet_count() > 1) {                       \
-		_log("Got more then one packet:" + str(_n), LogLevel::LL_Debug); \
-		goto wrong_packet_count;                                         \
+#define wait_packet(_n)                                           \
+	uint32_t time = OS::get_singleton()->get_ticks_msec();        \
+	while (ppeer->get_available_packet_count() == 0) {            \
+		if (OS::get_singleton()->get_ticks_msec() - time > 150) { \
+			_log("Timeout: " + str(_n), LogLevel::LL_Debug);      \
+			goto timeout;                                         \
+		}                                                         \
+		OS::get_singleton()->delay_usec(1_ms);                    \
 	}
 #define packet_error_check(_t)              \
 	if (err) {                              \
@@ -615,8 +613,7 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<StreamPeerTCP> &c
 		return GRDevice::AuthResult::Error; \
 	}
 
-	Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
-	ppeer->set_stream_peer(con);
+	Ref<StreamPeerTCP> con = ppeer->get_stream_peer();
 	String address = CON_ADDRESS(con);
 
 	Error err = OK;
@@ -627,7 +624,7 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<StreamPeerTCP> &c
 		packet_error_check("Can't send authorization init packet to " + address + ". Code: " + str(err));
 
 		// GET auth data
-		wait_one_packet("auth_data");
+		wait_packet("auth_data");
 		err = ppeer->get_var(res);
 		packet_error_check("Can't get authorization data from client to " + address + ". Code: " + str(err));
 
@@ -670,13 +667,9 @@ timeout:
 	con->disconnect_from_host();
 	_log("Connection timeout. Refusing " + address);
 	return GRDevice::AuthResult::Timeout;
-wrong_packet_count:
-	con->disconnect_from_host();
-	_log("Got more then 1 packet on authorization. Refusing " + address);
-	return GRDevice::AuthResult::Error;
 
 #undef dict_get
-#undef wait_one_packet
+#undef wait_packet
 #undef packet_error_check
 }
 

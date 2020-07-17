@@ -65,6 +65,7 @@ class GRPacketImageData : public GRPacket {
 
 	PoolByteArray img_data;
 	uint64_t start_time = 0;
+	uint32_t frametime = 0;
 
 protected:
 	virtual Ref<StreamPeerBuffer> _get_data() override;
@@ -75,8 +76,10 @@ public:
 
 	PoolByteArray get_image_data();
 	uint64_t get_start_time();
+	uint64_t get_frametime();
 	void set_start_time(uint64_t time);
 	void set_image_data(PoolByteArray &buf);
+	void set_frametime(uint64_t _frametime);
 };
 
 //////////////////////////////////////////////////////////////////////////

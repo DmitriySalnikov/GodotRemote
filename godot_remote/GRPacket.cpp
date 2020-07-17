@@ -72,6 +72,7 @@ Ref<StreamPeerBuffer> GRPacketImageData::_get_data() {
 	auto buf = GRPacket::_get_data();
 	buf->put_var(img_data);
 	buf->put_var(start_time); // send time
+	buf->put_var(frametime);
 	return buf;
 }
 
@@ -79,6 +80,7 @@ bool GRPacketImageData::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
 	img_data = buf->get_var();
 	start_time = buf->get_var(); // send time
+	frametime = buf->get_var();
 	return true;
 }
 
@@ -90,12 +92,20 @@ uint64_t GRPacketImageData::get_start_time() {
 	return start_time;
 }
 
+uint64_t GRPacketImageData::get_frametime() {
+	return frametime;
+}
+
 void GRPacketImageData::set_start_time(uint64_t time) {
 	start_time = time;
 }
 
 void GRPacketImageData::set_image_data(PoolByteArray &buf) {
 	img_data = buf;
+}
+
+void GRPacketImageData::set_frametime(uint64_t _frametime) {
+	frametime = _frametime;
 }
 
 //////////////////////////////////////////////////////////////////////////

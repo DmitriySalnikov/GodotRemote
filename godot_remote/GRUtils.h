@@ -19,11 +19,19 @@
 	GRUtils::_log(str + String(": ") + String::num_real((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0) + " ms", GRUtils::LogLevel::LL_Debug); \
 	simple_time_counter = OS::get_singleton()->get_ticks_usec()
 
+// Bind constant with custom name
+#define BIND_ENUM_CONSTANT_CUSTOM(m_constant, m_name) \
+	ClassDB::bind_integer_constant(get_class_static(), __constant_get_enum_name(((int)(m_constant)), m_name), m_name, ((int)(m_constant)));
+
 #else
 
 #define TimeCountInit()
 #define TimeCountReset()
 #define TimeCount(str)
+
+// Bind constant with custom name
+#define BIND_ENUM_CONSTANT_CUSTOM(m_constant, m_name) \
+	ClassDB::bind_integer_constant(get_class_static(), StringName(), m_name, ((int)(m_constant)));
 
 #endif // DEBUG_ENABLED
 
@@ -50,9 +58,6 @@
 // Get Project Setting and set it to variable
 #define GET_PS_SET(variable_to_store, setting_name) \
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
-// Bind constant with custom name
-#define BIND_ENUM_CONSTANT_CUSTOM(m_constant, m_name) \
-	ClassDB::bind_integer_constant(get_class_static(), __constant_get_enum_name((int)m_constant, m_name), m_name, (int)m_constant);
 namespace GRUtils {
 
 enum LogLevel {

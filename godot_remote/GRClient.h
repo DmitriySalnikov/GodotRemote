@@ -6,8 +6,8 @@
 #include "GRDevice.h"
 #include "core/io/ip_address.h"
 #include "core/io/stream_peer_tcp.h"
-#include "scene/main/node.h"
 #include "scene/gui/texture_rect.h"
+#include "scene/main/node.h"
 
 class GRClient : public GRDevice {
 	GDCLASS(GRClient, GRDevice);
@@ -24,11 +24,11 @@ public:
 	};
 
 private:
-
 	class ImgProcessingStorage {
 	public:
 		GRClient *dev = nullptr;
 		PoolByteArray tex_data;
+		uint64_t framerate = 0;
 		bool *_is_processing_img = nullptr;
 
 		ImgProcessingStorage(GRClient *_dev) {
@@ -46,6 +46,7 @@ private:
 	public:
 		GRClient *dev = nullptr;
 		Ref<StreamPeerTCP> peer;
+		Ref<PacketPeerStream> ppeer;
 		class Thread *thread_ref = nullptr;
 		bool break_connection = false;
 		bool stop_thread = false;
@@ -66,7 +67,10 @@ private:
 			if (peer.is_valid()) {
 				peer.unref();
 			}
-		}
+			if (ppeer.is_valid()) {
+				ppeer.unref();
+			}
+		};
 	};
 
 	bool is_deleting = false;
@@ -94,12 +98,11 @@ private:
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
 
-	uint64_t prev_display_image_time = 0;
 	uint64_t sync_time_client = 0;
 	uint64_t sync_time_server = 0;
 
 	// NO SIGNAL screen
-	uint32_t prev_valid_connection_time = 0;
+	uint64_t prev_valid_connection_time = 0;
 	bool signal_connection_state = false;
 	Ref<class ImageTexture> custom_no_signal_texture;
 	Ref<class Material> custom_no_signal_material;
@@ -128,7 +131,7 @@ private:
 	static void _thread_image_decoder(void *p_userdata);
 
 	static void _connection_loop(Ref<ConnectionThreadParams> con_thread);
-	static GRDevice::AuthResult _auth_on_server(GRClient *dev, Ref<StreamPeerTCP> &con);
+	static GRDevice::AuthResult _auth_on_server(GRClient *dev, Ref<PacketPeerStream> &con);
 
 protected:
 	virtual void _internal_call_only_deffered_start() override;
@@ -166,7 +169,6 @@ public:
 
 	void set_server_setting(int param, Variant value);
 	void disable_overriding_server_settings();
-
 
 	GRClient();
 	~GRClient();

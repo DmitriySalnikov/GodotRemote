@@ -17,7 +17,6 @@ private:
 		GDCLASS(ImgProcessingStorage, Reference);
 		_THREAD_SAFE_CLASS_
 	private:
-
 		Thread *_thread_process = nullptr;
 		bool finished = false;
 		PoolByteArray img_data;
@@ -68,7 +67,7 @@ private:
 
 	public:
 		GRServer *dev = nullptr;
-		Ref<StreamPeerTCP> peer;
+		Ref<PacketPeerStream> ppeer;
 		class Thread *thread_ref = nullptr;
 		bool break_connection = false;
 		bool finished = false;
@@ -84,8 +83,8 @@ private:
 
 		~ConnectionThreadParams() {
 			close_thread();
-			if (peer.is_valid()) {
-				peer.unref();
+			if (ppeer.is_valid()) {
+				ppeer.unref();
 			}
 		}
 	};
@@ -99,21 +98,21 @@ private:
 	String password;
 	bool auto_adjust_scale = false;
 	int jpg_quality = 75;
-	int target_send_fps = 25;
+	int target_send_fps = 60;
 
 	float prev_avg_fps = 0;
 	void _adjust_viewport_scale();
 
 	void _load_settings();
 	void _update_settings_from_client(const Dictionary settings);
-	void _remove_resize_viewport(Node* vp);
+	void _remove_resize_viewport(Node *vp);
 
 	virtual void _reset_counters() override;
 
 	static void _thread_listen(void *p_userdata);
 	static void _thread_connection(void *p_userdata);
 
-	static AuthResult _auth_client(GRServer *dev, Ref<StreamPeerTCP> &con, bool refuse_connection = false);
+	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, bool refuse_connection = false);
 	static bool _parse_input_data(const PoolByteArray &p_data);
 	static const uint8_t *_read_abstract_input_data(class InputEvent *ie, const Vector2 &vs, const uint8_t *data);
 
@@ -135,7 +134,6 @@ public:
 	float get_render_scale();
 	void set_password(String _pass);
 	String get_password();
-
 
 	GRSViewport *get_gr_viewport();
 	class Node *get_settings_node();
