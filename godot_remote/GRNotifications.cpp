@@ -2,6 +2,7 @@
 #include "GRNotifications.h"
 #include "GRUtils.h"
 #include "GodotRemote.h"
+#include "core/engine.h"
 #include "scene/animation/tween.h"
 #include "scene/gui/box_container.h"
 #include "scene/gui/button.h"
@@ -242,6 +243,9 @@ GRNotifications::GRNotifications() {
 
 	set_name("Notifications");
 
+	if (Engine::get_singleton()->is_editor_hint())
+		return;
+
 	notifications_enabled = GET_PS(GodotRemote::ps_notifications_enabled_name);
 	notifications_position = (NotificationsPosition)(int)GET_PS(GodotRemote::ps_noticications_position_name);
 	notifications_duration = GET_PS(GodotRemote::ps_notifications_duration_name);
@@ -263,6 +267,7 @@ GRNotifications::GRNotifications() {
 GRNotifications::~GRNotifications() {
 	if (this == singleton)
 		singleton = nullptr;
+	call_deferred("_remove_list");
 }
 
 void GRNotifications::_remove_list() {

@@ -238,9 +238,9 @@ void GodotRemote::_create_notification_manager() {
 }
 
 void GodotRemote::_remove_notifications_manager() {
-	if (GRNotifications::get_singleton()) {
-		if (!GRNotifications::get_singleton()->is_queued_for_deletion())
-			SceneTree::get_singleton()->get_root()->remove_child(GRNotifications::get_singleton());
+	GRNotificationPanel::clear_styles();
+	if (GRNotifications::get_singleton() && !GRNotifications::get_singleton()->is_queued_for_deletion()) {
+		SceneTree::get_singleton()->get_root()->remove_child(GRNotifications::get_singleton());
 		memdelete(GRNotifications::get_singleton());
 	}
 }
