@@ -12,6 +12,8 @@
 class GRClient : public GRDevice {
 	GDCLASS(GRClient, GRDevice);
 
+	friend class GRTextureRect;
+
 public:
 	enum ConnectionType {
 		CONNECTION_WiFi = 0,
@@ -104,11 +106,13 @@ private:
 	// NO SIGNAL screen
 	uint64_t prev_valid_connection_time = 0;
 	bool signal_connection_state = false;
+	bool no_signal_is_vertical = false;
 	Ref<class ImageTexture> custom_no_signal_texture;
 	Ref<class Material> custom_no_signal_material;
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 	Ref<class Image> no_signal_image;
+	Ref<class Image> no_signal_vertical_image;
 	Ref<class ShaderMaterial> no_signal_mat;
 #endif
 
@@ -217,10 +221,15 @@ class GRTextureRect : public TextureRect {
 	GDCLASS(GRTextureRect, TextureRect);
 	friend GRClient;
 
-	GRClient *dev;
+	GRClient *dev = nullptr;
 	GRTextureRect **this_in_client = nullptr;
+	void _tex_size_changed();
+
+protected:
+	static void _bind_methods();
 
 public:
+	GRTextureRect();
 	~GRTextureRect();
 };
 

@@ -18,6 +18,9 @@ extern const char *Txt_CRT_Shader;
 extern const unsigned int Bin_NoSignalPNG_size;
 extern const unsigned char Bin_NoSignalPNG[];
 
+extern const unsigned int Bin_NoSignalVerticalPNG_size;
+extern const unsigned char Bin_NoSignalVerticalPNG[];
+
 } // namespace GRResources
 
 #endif // !GRRESOURCES_H

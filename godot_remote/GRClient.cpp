@@ -100,6 +100,10 @@ GRClient::GRClient() :
 	GetPoolVectorFromBin(tmp_no_signal, GRResources::Bin_NoSignalPNG);
 	no_signal_image->load_png_from_buffer(tmp_no_signal);
 
+	no_signal_vertical_image.instance();
+	GetPoolVectorFromBin(tmp_no_signal_vert, GRResources::Bin_NoSignalVerticalPNG);
+	no_signal_vertical_image->load_png_from_buffer(tmp_no_signal_vert);
+
 	Ref<Shader> shader;
 	shader.instance();
 	shader->set_code(GRResources::Txt_CRT_Shader);
@@ -121,6 +125,7 @@ GRClient::~GRClient() {
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 	no_signal_mat.unref();
 	no_signal_image.unref();
+	no_signal_vertical_image.unref();
 #endif
 }
 
@@ -180,10 +185,12 @@ void GRClient::_internal_call_only_deffered_stop() {
 
 void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
+		tex_shows_stream->dev = nullptr;
 		tex_shows_stream->queue_delete();
 		tex_shows_stream = nullptr;
 	}
 	if (input_collector && !input_collector->is_queued_for_deletion()) {
+		input_collector->dev = nullptr;
 		input_collector->queue_delete();
 		input_collector = nullptr;
 	}
@@ -219,10 +226,15 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 
 void GRClient::set_custom_no_signal_texture(Ref<Texture> custom_tex) {
 	custom_no_signal_texture = custom_tex;
+
+	signal_connection_state = !signal_connection_state; // force execute update function
+	_update_stream_texture_state(!signal_connection_state);
 }
 
 void GRClient::set_custom_no_signal_material(Ref<Material> custom_mat) {
 	custom_no_signal_material = custom_mat;
+	signal_connection_state = !signal_connection_state; // force execute update function
+	_update_stream_texture_state(!signal_connection_state);
 }
 
 bool GRClient::is_capture_on_focus() {
@@ -351,14 +363,11 @@ bool GRClient::is_connected_to_host() {
 }
 
 void GRClient::_update_texture_from_iamge(Ref<Image> img) {
-	// avg fps
-
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		Ref<ImageTexture> tex = tex_shows_stream->get_texture();
 		if (tex.is_valid()) {
 			tex->create_from_image(img);
 		} else {
-			Ref<ImageTexture> tex;
 			tex.instance();
 			tex->create_from_image(img);
 			tex_shows_stream->set_texture(tex);
@@ -397,14 +406,7 @@ void GRClient::_update_stream_texture_state(bool is_has_signal) {
 			}
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 			else {
-				Ref<ImageTexture> tex = tex_shows_stream->get_texture();
-				if (tex.is_valid()) {
-					tex->create_from_image(no_signal_image);
-				} else {
-					tex.instance();
-					tex->create_from_image(no_signal_image);
-					tex_shows_stream->set_texture(tex);
-				}
+				_update_texture_from_iamge(no_signal_is_vertical ? no_signal_vertical_image : no_signal_image);
 			}
 #endif
 			if (custom_no_signal_material.is_valid()) {
@@ -1243,9 +1245,31 @@ GRInputCollector::~GRInputCollector() {
 	_THREAD_SAFE_UNLOCK_
 }
 
-#endif // !NO_GODOTREMOTE_CLIENT
+void GRTextureRect::_tex_size_changed() {
+	if (dev) {
+		Vector2 v = get_size();
+		bool is_vertical = (v.x / v.y) < 1.f;
+		if (is_vertical != dev->no_signal_is_vertical) {
+			if (!dev->signal_connection_state && dev->custom_no_signal_texture.is_null()) {
+				dev->_update_texture_from_iamge(is_vertical ? dev->no_signal_vertical_image : dev->no_signal_image);
+			}
+			dev->no_signal_is_vertical = is_vertical;
+		}
+	}
+}
+
+void GRTextureRect::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("_tex_size_changed"), &GRTextureRect::_tex_size_changed);
+}
+
+GRTextureRect::GRTextureRect() {
+	connect("resized", this, "_tex_size_changed");
+}
 
 GRTextureRect::~GRTextureRect() {
 	if (this_in_client)
 		*this_in_client = nullptr;
+	disconnect("resized", this, "_tex_size_changed");
 }
+
+#endif // !NO_GODOTREMOTE_CLIENT

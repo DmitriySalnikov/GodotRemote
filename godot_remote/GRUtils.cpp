@@ -46,6 +46,7 @@ void deinit_server_utils() {
 #endif
 
 void _log(const Variant &val, LogLevel lvl) {
+#ifdef DEBUG_ENABLED
 	if (lvl >= current_loglevel && lvl < LogLevel::LL_None) {
 		if (lvl == LogLevel::LL_Error) {
 			print_error("[GodotRemote Error] " + str(val));
@@ -55,6 +56,7 @@ void _log(const Variant &val, LogLevel lvl) {
 			print_line("[GodotRemote] " + str(val));
 		}
 	}
+#endif
 }
 
 String str_arr(const Array arr, const bool force_full, const int max_shown_items) {

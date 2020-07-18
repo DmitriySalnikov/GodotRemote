@@ -35,6 +35,11 @@
 
 #endif // DEBUG_ENABLED
 
+// Add new notification with auto updating existing notification
+#define NOTIFICATION(_title, _text) GRNotifications::add_notification(_title, _text, true)
+// Force add new notification
+#define NOTIFICATION_NEW(_title, _text) GRNotifications::add_notification(_title, _text, false)
+
 #define GR_VERSION(x, y, z)         \
 	if (internal_VERSION.empty()) { \
 		internal_VERSION.append(x); \
@@ -98,8 +103,8 @@ extern PoolByteArray compress_jpg(PoolByteArray &img_data, int width, int height
 #endif
 
 extern void _log(const Variant &val, LogLevel lvl = LogLevel::LL_Normal);
-extern String str(const Variant &val);
 
+extern String str(const Variant &val);
 extern String str_arr(const Array arr, const bool force_full = false, const int max_shown_items = 32);
 extern String str_arr(const Dictionary arr, const bool force_full = false, const int max_shown_items = 32);
 extern String str_arr(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64);
@@ -179,6 +184,7 @@ static String str_arr(PoolVector<T> arr, const bool force_full = false, const in
 	return res + " ]";
 };
 
+#ifdef DEBUG_ENABLED
 static void log_array(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {
 	_log(str_arr(data, size, force_full, max_shown_items), lvl);
 }
@@ -192,6 +198,13 @@ template <class T>
 static void log_array(const PoolVector<T> data, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {
 	_log(str_arr(data, force_full, max_shown_items), lvl);
 }
+#else
+static void log_array(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {}
+static void log_array(const Array data, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {}
+static void log_array(const Dictionary data, const bool force_full = false, const int max_shown_items = 32, LogLevel lvl = LogLevel::LL_Normal) {}
+template <class T>
+static void log_array(const PoolVector<T> data, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {}
+#endif
 
 template <class T = Variant>
 static T bytes2var(const PoolByteArray &data, bool allow_objects = false) {
