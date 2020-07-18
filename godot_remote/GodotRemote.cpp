@@ -89,16 +89,19 @@ void GodotRemote::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_notifications_position", "position"), &GodotRemote::set_notifications_position);
 	ClassDB::bind_method(D_METHOD("set_notifications_enabled", "enabled"), &GodotRemote::set_notifications_enabled);
 	ClassDB::bind_method(D_METHOD("set_notifications_duration", "duration"), &GodotRemote::set_notifications_duration);
+	ClassDB::bind_method(D_METHOD("set_notifications_style", "style"), &GodotRemote::set_notifications_style);
 
 	ClassDB::bind_method(D_METHOD("get_notifications_layer"), &GodotRemote::get_notifications_layer);
 	ClassDB::bind_method(D_METHOD("get_notifications_position"), &GodotRemote::get_notifications_position);
 	ClassDB::bind_method(D_METHOD("get_notifications_enabled"), &GodotRemote::get_notifications_enabled);
 	ClassDB::bind_method(D_METHOD("get_notifications_duration"), &GodotRemote::get_notifications_duration);
+	ClassDB::bind_method(D_METHOD("get_notifications_style"), &GodotRemote::get_notifications_style);
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_layer"), "set_notifications_layer", "get_notifications_layer");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_position"), "set_notifications_position", "get_notifications_position");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_enabled"), "set_notifications_enabled", "get_notifications_enabled");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_duration"), "set_notifications_duration", "get_notifications_duration");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "notifications_enabled"), "set_notifications_enabled", "get_notifications_enabled");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "notifications_duration"), "set_notifications_duration", "get_notifications_duration");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "notifications_style"), "set_notifications_style", "get_notifications_style");
 
 	BIND_ENUM_CONSTANT_CUSTOM(GRNotifications::NotificationsPosition::TL, "NOTIFICATIONS_POSITION_TL");
 	BIND_ENUM_CONSTANT_CUSTOM(GRNotifications::NotificationsPosition::TC, "NOTIFICATIONS_POSITION_TC");
@@ -309,6 +312,12 @@ void GodotRemote::set_notifications_duration(float _duration) const {
 }
 float GodotRemote::get_notifications_duration() const {
 	return GRNotifications::get_notifications_duration();
+}
+void GodotRemote::set_notifications_style(Ref<GRNotificationStyle> _style) const {
+	GRNotifications::set_notifications_style(_style);
+}
+Ref<GRNotificationStyle> GodotRemote::get_notifications_style() const {
+	return GRNotifications::get_notifications_style();
 }
 void GodotRemote::add_notification(String title, String text, bool update_existing) const {
 	GRNotifications::add_notification(title, text, update_existing);

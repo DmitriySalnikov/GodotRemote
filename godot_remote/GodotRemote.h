@@ -72,6 +72,9 @@ public:
 	void set_notifications_duration(float _duration) const;
 	float get_notifications_duration() const;
 
+	void set_notifications_style(Ref<class GRNotificationStyle> _style) const;
+	Ref<class GRNotificationStyle> get_notifications_style() const;
+
 	void add_notification(String title, String text, bool update_existing = true) const;
 	void remove_notification(String title, bool all_entries = true) const;
 	void remove_notification_exact(Node *_notif) const;

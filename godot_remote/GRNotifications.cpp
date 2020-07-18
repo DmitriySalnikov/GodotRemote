@@ -12,9 +12,7 @@ using namespace GRUtils;
 
 GRNotifications *GRNotifications::singleton = nullptr;
 
-Ref<StyleBoxFlat> GRNotificationPanel::default_style;
-Ref<StyleBoxEmpty> GRNotificationPanel::close_normal_style;
-Ref<StyleBoxEmpty> GRNotificationPanel::close_pressed_style;
+Ref<GRNotificationStyle> GRNotificationPanel::_default_style;
 
 Array GRNotifications::get_all_notifications() {
 	Array arr;
@@ -140,6 +138,18 @@ void GRNotifications::set_notifications_duration(float _duration) {
 		singleton->notifications_duration = _duration;
 }
 
+Ref<GRNotificationStyle> GRNotifications::get_notifications_style() {
+	if (singleton)
+		return singleton->style;
+	return Ref<GRNotificationStyle>();
+}
+
+void GRNotifications::set_notifications_style(Ref<GRNotificationStyle> _style) {
+	if (singleton) {
+		singleton->style = _style;
+	}
+}
+
 void GRNotifications::add_notification(String title, String text, bool update_existing) {
 	if (singleton) {
 		singleton->call_deferred("_add_notification", title, text, update_existing);
@@ -187,7 +197,7 @@ void GRNotifications::_add_notification(String title, String text, bool update_e
 
 	set_new_data:
 
-		np->set_data(this, title, text);
+		np->set_data(this, title, text, style);
 
 		// FORCE UPDATE SIZE OF CONTEINER
 		notif_list_node->call("_size_changed");
@@ -294,62 +304,68 @@ void GRNotificationPanel::_setup_tween(Tween *_tween) {
 	_tween->interpolate_callback(this, duration, "_remove_this_notification", Variant(), Variant(), Variant(), Variant(), Variant());
 }
 
-Ref<StyleBoxFlat> GRNotificationPanel::get_default_style() {
-	if (default_style.is_valid()) {
-		return default_style;
+void GRNotificationPanel::_update_style() {
+	Ref<GRNotificationStyle> s = get_style();
+	if (style.is_valid())
+		s = style;
+
+	add_style_override("panel", s->get_panel_style());
+	title_node->add_font_override("font", s->get_title_font());
+	text_node->add_font_override("font", s->get_text_font());
+	close_node->set_theme(s->get_close_button_theme());
+	close_node->add_font_override("font", s->get_title_font());
+}
+
+Ref<GRNotificationStyle> GRNotificationPanel::get_style() {
+	if (_default_style.is_valid()) {
+		return _default_style;
 	}
-	default_style.instance();
-	default_style->set_bg_color(Color(0.172549f, 0.188235f, 0.305882f, 0.300588f));
-	default_style->set_corner_detail(1);
-	default_style->set_border_width_all(1);
-	default_style->set_border_color(Color(0.482353f, 0.47451f, 0.52549f, 0.686275f));
-	default_style->set_shadow_color(Color(0, 0, 0, 0.254902f));
-	default_style->set_shadow_size(2);
-	default_style->set_default_margin(MARGIN_BOTTOM, 4);
-	default_style->set_default_margin(MARGIN_LEFT, 4);
-	default_style->set_default_margin(MARGIN_RIGHT, 4);
-	default_style->set_default_margin(MARGIN_TOP, 5);
+	_default_style.instance();
 
-	return default_style;
-}
+	Ref<StyleBoxFlat> panel(memnew(StyleBoxFlat));
+	panel->set_bg_color(Color(0.172549f, 0.188235f, 0.305882f, 0.300588f));
+	panel->set_corner_detail(1);
+	panel->set_border_width_all(1);
+	panel->set_border_color(Color(0.482353f, 0.47451f, 0.52549f, 0.686275f));
+	panel->set_shadow_color(Color(0, 0, 0, 0.254902f));
+	panel->set_shadow_size(2);
+	panel->set_default_margin(MARGIN_BOTTOM, 4);
+	panel->set_default_margin(MARGIN_LEFT, 4);
+	panel->set_default_margin(MARGIN_RIGHT, 4);
+	panel->set_default_margin(MARGIN_TOP, 5);
+	_default_style->set_panel_style(panel);
 
-Ref<StyleBoxEmpty> GRNotificationPanel::get_close_normal_style() {
-	if (close_normal_style.is_valid())
-		return close_normal_style;
-	close_normal_style.instance();
-	close_normal_style->set_default_margin(MARGIN_BOTTOM, 1);
-	close_normal_style->set_default_margin(MARGIN_LEFT, 1);
-	close_normal_style->set_default_margin(MARGIN_RIGHT, 1);
-	close_normal_style->set_default_margin(MARGIN_TOP, 1);
+	Ref<StyleBoxEmpty> btn_nrm(memnew(StyleBoxEmpty));
+	btn_nrm->set_default_margin(MARGIN_BOTTOM, 1);
+	btn_nrm->set_default_margin(MARGIN_LEFT, 1);
+	btn_nrm->set_default_margin(MARGIN_RIGHT, 1);
+	btn_nrm->set_default_margin(MARGIN_TOP, 1);
 
-	return close_normal_style;
-}
+	Ref<StyleBoxEmpty> btn_prsd(memnew(StyleBoxEmpty));
+	btn_prsd->set_default_margin(MARGIN_BOTTOM, 0);
+	btn_prsd->set_default_margin(MARGIN_LEFT, 1);
+	btn_prsd->set_default_margin(MARGIN_RIGHT, 1);
+	btn_prsd->set_default_margin(MARGIN_TOP, 2);
 
-Ref<StyleBoxEmpty> GRNotificationPanel::get_close_pressed_style() {
-	if (close_pressed_style.is_valid())
-		return close_pressed_style;
-	close_pressed_style.instance();
-	close_pressed_style->set_default_margin(MARGIN_BOTTOM, 0);
-	close_pressed_style->set_default_margin(MARGIN_LEFT, 1);
-	close_pressed_style->set_default_margin(MARGIN_RIGHT, 1);
-	close_pressed_style->set_default_margin(MARGIN_TOP, 2);
+	Ref<Theme> close_btn_theme(memnew(Theme));
+	close_btn_theme->set_stylebox("hover", "Button", btn_nrm);
+	close_btn_theme->set_stylebox("normal", "Button", btn_nrm);
+	close_btn_theme->set_stylebox("pressed", "Button", btn_prsd);
+	_default_style->set_close_button_theme(close_btn_theme);
 
-	return close_pressed_style;
+	return _default_style;
 }
 
 void GRNotificationPanel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_remove_this_notification"), &GRNotificationPanel::_remove_this_notification);
+
+	ClassDB::bind_method(D_METHOD("get_title"), &GRNotificationPanel::get_title);
+	ClassDB::bind_method(D_METHOD("get_text"), &GRNotificationPanel::get_text);
 }
 
 void GRNotificationPanel::clear_styles() {
-	if (default_style.is_valid())
-		default_style.unref();
-
-	if (close_normal_style.is_valid())
-		close_normal_style.unref();
-
-	if (close_pressed_style.is_valid())
-		close_pressed_style.unref();
+	if (_default_style.is_valid())
+		_default_style.unref();
 }
 
 void GRNotificationPanel::set_notification_position(GRNotifications::NotificationsPosition position) {
@@ -369,11 +385,13 @@ void GRNotificationPanel::set_notification_position(GRNotifications::Notificatio
 	}
 }
 
-void GRNotificationPanel::set_data(GRNotifications *_owner, String title, String text) {
+void GRNotificationPanel::set_data(GRNotifications *_owner, String title, String text, Ref<GRNotificationStyle> _style) {
 	owner = _owner;
 	title_node->set_text(title);
 	text_node->set_text(text);
+	style = _style;
 
+	_update_style();
 	_setup_tween(tween_node);
 	tween_node->start();
 
@@ -394,7 +412,6 @@ GRNotificationPanel::GRNotificationPanel() {
 	set_name("NotificationPanel");
 
 	set_mouse_filter(Control::MouseFilter::MOUSE_FILTER_IGNORE);
-	add_style_override("panel", get_default_style());
 
 	vbox_node = memnew(VBoxContainer);
 	hbox_node = memnew(HBoxContainer);
@@ -432,15 +449,71 @@ GRNotificationPanel::GRNotificationPanel() {
 
 	close_node->set_text("[x]");
 	close_node->set_focus_mode(Control::FOCUS_NONE);
-	close_node->add_style_override("hover", get_close_normal_style());
-	close_node->add_style_override("pressed", get_close_pressed_style());
-	close_node->add_style_override("focus", get_close_normal_style());
-	close_node->add_style_override("disabled", get_close_normal_style());
-	close_node->add_style_override("normal", get_close_normal_style());
 	close_node->connect("pressed", this, "_remove_this_notification");
 
 	_setup_tween(tween_node);
+	_update_style();
 }
 
 GRNotificationPanel::~GRNotificationPanel() {
+	if (style.is_valid())
+		style.unref();
+}
+
+// STYLE REF
+
+void GRNotificationStyle::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("set_panel_style"), &GRNotificationStyle::set_panel_style);
+	ClassDB::bind_method(D_METHOD("set_close_button_theme"), &GRNotificationStyle::set_close_button_theme);
+	ClassDB::bind_method(D_METHOD("set_title_font"), &GRNotificationStyle::set_title_font);
+	ClassDB::bind_method(D_METHOD("set_text_font"), &GRNotificationStyle::set_text_font);
+
+	ClassDB::bind_method(D_METHOD("get_panel_style"), &GRNotificationStyle::get_panel_style);
+	ClassDB::bind_method(D_METHOD("get_close_button_theme"), &GRNotificationStyle::get_close_button_theme);
+	ClassDB::bind_method(D_METHOD("get_title_font"), &GRNotificationStyle::get_title_font);
+	ClassDB::bind_method(D_METHOD("get_text_font"), &GRNotificationStyle::get_text_font);
+
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "panel_style"), "set_panel_style", "get_panel_style");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "close_button_theme"), "set_close_button_theme", "get_close_button_theme");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "title_font"), "set_title_font", "get_title_font");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "text_font"), "set_text_font", "get_text_font");
+}
+
+GRNotificationStyle::~GRNotificationStyle() {
+	panel_style.unref();
+	close_button_theme.unref();
+	title_font.unref();
+	text_font.unref();
+}
+
+void GRNotificationStyle::set_panel_style(Ref<StyleBox> style) {
+	panel_style = style;
+}
+
+Ref<StyleBox> GRNotificationStyle::get_panel_style() {
+	return panel_style;
+}
+
+void GRNotificationStyle::set_close_button_theme(Ref<Theme> theme) {
+	close_button_theme = theme;
+}
+
+Ref<Theme> GRNotificationStyle::get_close_button_theme() {
+	return close_button_theme;
+}
+
+void GRNotificationStyle::set_title_font(Ref<Font> font) {
+	title_font = font;
+}
+
+Ref<Font> GRNotificationStyle::get_title_font() {
+	return title_font;
+}
+
+void GRNotificationStyle::set_text_font(Ref<Font> font) {
+	text_font = font;
+}
+
+Ref<Font> GRNotificationStyle::get_text_font() {
+	return text_font;
 }
