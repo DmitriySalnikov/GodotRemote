@@ -1,8 +1,9 @@
 /* GodotRemote.cpp */
 #include "GodotRemote.h"
-#include "GRDevice.h"
-#include "GRServer.h"
 #include "GRClient.h"
+#include "GRDevice.h"
+#include "GRNotifications.h"
+#include "GRServer.h"
 #include "core/os/os.h"
 #include "core/project_settings.h"
 #include "editor/editor_node.h"
@@ -15,6 +16,11 @@ using namespace GRUtils;
 
 String GodotRemote::ps_autoload_name = "debug/godot_remote/general/autostart";
 String GodotRemote::ps_port_name = "debug/godot_remote/general/port";
+
+String GodotRemote::ps_notifications_enabled_name = "debug/godot_remote/notifications/notifications_enabled";
+String GodotRemote::ps_noticications_position_name = "debug/godot_remote/notifications/noticications_position";
+String GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notifications/notifications_duration";
+
 String GodotRemote::ps_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
 String GodotRemote::ps_jpg_quality_name = "debug/godot_remote/server/jpg_quality";
 String GodotRemote::ps_jpg_buffer_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
@@ -37,15 +43,21 @@ GodotRemote::GodotRemote() {
 #endif
 
 	register_and_load_settings();
-	if (is_autostart && !Engine::get_singleton()->is_editor_hint())
-		call_deferred("create_and_start_device");
+	if (!Engine::get_singleton()->is_editor_hint()) {
+		call_deferred("_create_notification_manager");
+		if (is_autostart)
+			call_deferred("create_and_start_device");
+	}
 }
 
 GodotRemote::~GodotRemote() {
 	remove_remote_device();
+	_remove_notifications_manager();
 }
 
 void GodotRemote::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("_create_notification_manager"), &GodotRemote::_create_notification_manager);
+
 	ClassDB::bind_method(D_METHOD("create_and_start_device", "device_type"), &GodotRemote::create_and_start_device, DEFVAL(DeviceType::DEVICE_Auto));
 	ClassDB::bind_method(D_METHOD("create_remote_device", "device_type"), &GodotRemote::create_remote_device, DEFVAL(DeviceType::DEVICE_Auto));
 	ClassDB::bind_method(D_METHOD("start_remote_device"), &GodotRemote::start_remote_device);
@@ -65,6 +77,35 @@ void GodotRemote::_bind_methods() {
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::RENDER_SCALE, "SERVER_PARAM_RENDER_SCALE");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::JPG_QUALITY, "SERVER_PARAM_JPG_QUALITY");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::SEND_FPS, "SERVER_PARAM_SEND_FPS");
+
+	// GRNotifications
+	ClassDB::bind_method(D_METHOD("get_all_notifications"), &GodotRemote::get_all_notifications);
+	ClassDB::bind_method(D_METHOD("add_notification", "title", "text", "update_existing"), &GodotRemote::add_notification, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("remove_notification", "title", "is_all_entries"), &GodotRemote::remove_notification, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("remove_notification_exact", "notification"), &GodotRemote::remove_notification_exact);
+	ClassDB::bind_method(D_METHOD("clear_notifications"), &GodotRemote::clear_notifications);
+
+	ClassDB::bind_method(D_METHOD("set_notifications_layer", "position"), &GodotRemote::set_notifications_layer);
+	ClassDB::bind_method(D_METHOD("set_notifications_position", "position"), &GodotRemote::set_notifications_position);
+	ClassDB::bind_method(D_METHOD("set_notifications_enabled", "enabled"), &GodotRemote::set_notifications_enabled);
+	ClassDB::bind_method(D_METHOD("set_notifications_duration", "duration"), &GodotRemote::set_notifications_duration);
+
+	ClassDB::bind_method(D_METHOD("get_notifications_layer"), &GodotRemote::get_notifications_layer);
+	ClassDB::bind_method(D_METHOD("get_notifications_position"), &GodotRemote::get_notifications_position);
+	ClassDB::bind_method(D_METHOD("get_notifications_enabled"), &GodotRemote::get_notifications_enabled);
+	ClassDB::bind_method(D_METHOD("get_notifications_duration"), &GodotRemote::get_notifications_duration);
+
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_layer"), "set_notifications_layer", "get_notifications_layer");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_position"), "set_notifications_position", "get_notifications_position");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_enabled"), "set_notifications_enabled", "get_notifications_enabled");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_duration"), "set_notifications_duration", "get_notifications_duration");
+
+	BIND_ENUM_CONSTANT_CUSTOM(GRNotifications::NotificationsPosition::TL, "NOTIFICATIONS_POSITION_TL");
+	BIND_ENUM_CONSTANT_CUSTOM(GRNotifications::NotificationsPosition::TC, "NOTIFICATIONS_POSITION_TC");
+	BIND_ENUM_CONSTANT_CUSTOM(GRNotifications::NotificationsPosition::TR, "NOTIFICATIONS_POSITION_TR");
+	BIND_ENUM_CONSTANT_CUSTOM(GRNotifications::NotificationsPosition::BL, "NOTIFICATIONS_POSITION_BL");
+	BIND_ENUM_CONSTANT_CUSTOM(GRNotifications::NotificationsPosition::BC, "NOTIFICATIONS_POSITION_BC");
+	BIND_ENUM_CONSTANT_CUSTOM(GRNotifications::NotificationsPosition::BR, "NOTIFICATIONS_POSITION_BR");
 
 	// GRUtils
 	BIND_ENUM_CONSTANT(SUBSAMPLING_Y_ONLY);
@@ -173,15 +214,35 @@ void GodotRemote::register_and_load_settings() {
 
 	DEF_SET(is_autostart, ps_autoload_name, true, PropertyInfo(Variant::BOOL, ps_autoload_name));
 	DEF_(ps_port_name, 52341, PropertyInfo(Variant::INT, ps_port_name, PROPERTY_HINT_RANGE, "0,65535"));
+
+	DEF_(ps_notifications_enabled_name, true, PropertyInfo(Variant::BOOL, ps_notifications_enabled_name));
+	DEF_(ps_noticications_position_name, (int)GRNotifications::NotificationsPosition::TC, PropertyInfo(Variant::INT, ps_noticications_position_name, PROPERTY_HINT_ENUM, "TopLeft,TopCenter,TopRight,BottomLeft,BottomCenter,BottomRight"));
+	DEF_(ps_notifications_duration_name, 2.f, PropertyInfo(Variant::REAL, ps_notifications_duration_name, PROPERTY_HINT_RANGE, "0,100, 0.01"));
+
+	DEF_(ps_config_adb_name, true, PropertyInfo(Variant::BOOL, ps_config_adb_name));
+	DEF_(ps_scale_of_sending_stream_name, 0.3f, PropertyInfo(Variant::REAL, ps_scale_of_sending_stream_name, PROPERTY_HINT_RANGE, "0,1,0.01"));
 	DEF_(ps_jpg_quality_name, 75, PropertyInfo(Variant::INT, ps_jpg_quality_name, PROPERTY_HINT_RANGE, "0,100"));
 	DEF_(ps_jpg_buffer_mb_size_name, 4, PropertyInfo(Variant::INT, ps_jpg_buffer_mb_size_name, PROPERTY_HINT_RANGE, "1,128"));
-	DEF_(ps_config_adb_name, true, PropertyInfo(Variant::BOOL, ps_config_adb_name));
 	DEF_(ps_auto_adjust_scale_name, false, PropertyInfo(Variant::BOOL, ps_auto_adjust_scale_name));
-	DEF_(ps_scale_of_sending_stream_name, 0.3f, PropertyInfo(Variant::REAL, ps_scale_of_sending_stream_name, PROPERTY_HINT_RANGE, "0,1,0.01"));
 	DEF_(ps_password_name, "", PropertyInfo(Variant::STRING, ps_password_name));
 
 #undef DEF_SET
+#undef DEF_SET_ENUM
 #undef DEF_
+}
+
+void GodotRemote::_create_notification_manager() {
+	GRNotifications *notif = memnew(GRNotifications);
+	SceneTree::get_singleton()->get_root()->call_deferred("add_child", notif);
+	SceneTree::get_singleton()->get_root()->call_deferred("move_child", notif, 0);
+}
+
+void GodotRemote::_remove_notifications_manager() {
+	if (GRNotifications::get_singleton()) {
+		if (!GRNotifications::get_singleton()->is_queued_for_deletion())
+			SceneTree::get_singleton()->get_root()->remove_child(GRNotifications::get_singleton());
+		memdelete(GRNotifications::get_singleton());
+	}
 }
 
 void GodotRemote::create_and_start_device(DeviceType type) {
@@ -215,16 +276,68 @@ void GodotRemote::_adb_port_forwarding() {
 
 #endif
 
-//if (Engine::get_singleton()->is_editor_hint()) {
-//	if (EditorExport::get_singleton()) {
-//		int c = EditorExport::get_singleton()->get_export_platform_count();
-//		for (int i = 0; i < c; i++) {
-//			auto p = EditorExport::get_singleton()->get_export_platform(i);
-//			_log(p->get_os_name());
-//			int c2 = p->get_options_count();
-//			for (int i = 0; i < c2; i++) {
-//				_log(p->get_option_label(i));
-//			}
-//		}
-//	}
-//}
+//////////////////////////////////////////////////////////////////////////
+// EXTERNAL FUNCTIONS
+
+// GRNotifications
+Array GodotRemote::get_all_notifications() const {
+	return GRNotifications::get_all_notifications();
+}
+void GodotRemote::set_notifications_layer(int layer) const {
+	if (GRNotifications::get_singleton())
+		GRNotifications::get_singleton()->set_layer(layer);
+}
+int GodotRemote::get_notifications_layer() const {
+	if (GRNotifications::get_singleton())
+		return GRNotifications::get_singleton()->get_layer();
+	return 0;
+}
+void GodotRemote::set_notifications_position(int positon) const {
+	GRNotifications::set_notifications_position(positon);
+}
+int GodotRemote::get_notifications_position() const {
+	return GRNotifications::get_notifications_position();
+}
+void GodotRemote::set_notifications_enabled(bool _enabled) const {
+	GRNotifications::set_notifications_enabled(_enabled);
+}
+bool GodotRemote::get_notifications_enabled() const {
+	return GRNotifications::get_notifications_enabled();
+}
+void GodotRemote::set_notifications_duration(float _duration) const {
+	GRNotifications::set_notifications_duration(_duration);
+}
+float GodotRemote::get_notifications_duration() const {
+	return GRNotifications::get_notifications_duration();
+}
+void GodotRemote::add_notification(String title, String text, bool update_existing) const {
+	GRNotifications::add_notification(title, text, update_existing);
+}
+void GodotRemote::remove_notification(String title, bool all_entries) const {
+	GRNotifications::remove_notification(title, all_entries);
+}
+void GodotRemote::remove_notification_exact(Node *_notif) const {
+	GRNotifications::remove_notification_exact(_notif);
+}
+void GodotRemote::clear_notifications() const {
+	GRNotifications::clear_notifications();
+}
+// GRNotifications end
+
+// GRUtils functions binds for GDScript
+void GodotRemote::set_log_level(int lvl) const {
+	GRUtils::set_log_level((GRUtils::LogLevel)lvl);
+}
+void GodotRemote::set_gravity(const Vector3 &p_gravity) const {
+	GRUtils::set_gravity(p_gravity);
+}
+void GodotRemote::set_accelerometer(const Vector3 &p_accel) const {
+	GRUtils::set_accelerometer(p_accel);
+}
+void GodotRemote::set_magnetometer(const Vector3 &p_magnetometer) const {
+	GRUtils::set_magnetometer(p_magnetometer);
+}
+void GodotRemote::set_gyroscope(const Vector3 &p_gyroscope) const {
+	GRUtils::set_gyroscope(p_gyroscope);
+}
+// GRUtils end

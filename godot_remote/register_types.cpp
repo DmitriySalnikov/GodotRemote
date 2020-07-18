@@ -2,9 +2,10 @@
 
 #include "register_types.h"
 
-#include "GRDevice.h"
-#include "GRServer.h"
 #include "GRClient.h"
+#include "GRDevice.h"
+#include "GRNotifications.h"
+#include "GRServer.h"
 #include "GRUtils.h"
 #include "GodotRemote.h"
 #include "core/class_db.h"
@@ -18,6 +19,9 @@ void register_godot_remote_types() {
 	ClassDB::register_class<GodotRemote>();
 	Engine::get_singleton()->add_singleton(Engine::Singleton("GodotRemote", memnew(GodotRemote)));
 	GRUtils::init();
+
+	ClassDB::register_class<GRNotifications>();
+	ClassDB::register_class<GRNotificationPanel>();
 
 	ClassDB::register_virtual_class<GRDevice>();
 	ClassDB::register_class<GRServer>();

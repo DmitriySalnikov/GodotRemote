@@ -110,7 +110,7 @@ int GRDevice::get_status() {
 }
 
 GRDevice::GRDevice() {
-	port = GLOBAL_GET(GodotRemote::ps_port_name);
+	port = GET_PS(GodotRemote::ps_port_name);
 }
 
 GRDevice::~GRDevice() {
