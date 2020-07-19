@@ -21,6 +21,23 @@ extern const unsigned char Bin_NoSignalPNG[];
 extern const unsigned int Bin_NoSignalVerticalPNG_size;
 extern const unsigned char Bin_NoSignalVerticalPNG[];
 
+// NOTIFICATION ICONS
+
+extern const unsigned int Bin_CloseIconPNG_size;
+extern const unsigned char Bin_CloseIconPNG[];
+
+extern const unsigned int Bin_ConnectedIconPNG_size;
+extern const unsigned char Bin_ConnectedIconPNG[];
+
+extern const unsigned int Bin_DisconnectedIconPNG_size;
+extern const unsigned char Bin_DisconnectedIconPNG[];
+
+extern const unsigned int Bin_ErrorIconPNG_size;
+extern const unsigned char Bin_ErrorIconPNG[];
+
+extern const unsigned int Bin_WarningIconPNG_size;
+extern const unsigned char Bin_WarningIconPNG[];
+
 } // namespace GRResources
 
 #endif // !GRRESOURCES_H

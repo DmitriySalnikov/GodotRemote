@@ -21,7 +21,7 @@
 
 // Bind constant with custom name
 #define BIND_ENUM_CONSTANT_CUSTOM(m_constant, m_name) \
-	ClassDB::bind_integer_constant(get_class_static(), __constant_get_enum_name(((int)(m_constant)), m_name), m_name, ((int)(m_constant)));
+	ClassDB::bind_integer_constant(get_class_static(), __constant_get_enum_name(m_constant, m_name), m_name, ((int)(m_constant)));
 
 #else
 
@@ -35,10 +35,8 @@
 
 #endif // DEBUG_ENABLED
 
-// Add new notification with auto updating existing notification
-#define NOTIFICATION(_title, _text) GRNotifications::add_notification(_title, _text, true)
-// Force add new notification
-#define NOTIFICATION_NEW(_title, _text) GRNotifications::add_notification(_title, _text, false)
+#define max(x,y) (x > y ? x : y)
+#define min(x,y) (x < y ? x : y)
 
 #define GR_VERSION(x, y, z)         \
 	if (internal_VERSION.empty()) { \
@@ -99,7 +97,7 @@ extern void init_server_utils();
 extern void deinit_server_utils();
 extern PoolByteArray compress_buffer;
 extern int compress_buffer_size_mb;
-extern PoolByteArray compress_jpg(PoolByteArray &img_data, int width, int height, int bytes_for_color = 4, int quality = 75, int subsampling = Subsampling::SUBSAMPLING_H2V2);
+extern Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width, int height, int bytes_for_color = 4, int quality = 75, int subsampling = Subsampling::SUBSAMPLING_H2V2);
 #endif
 
 extern void _log(const Variant &val, LogLevel lvl = LogLevel::LL_Normal);

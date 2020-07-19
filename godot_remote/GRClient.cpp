@@ -3,6 +3,7 @@
 #ifndef NO_GODOTREMOTE_CLIENT
 
 #include "GRClient.h"
+#include "GRNotifications.h"
 #include "GRPacket.h"
 #include "GRResources.h"
 #include "GodotRemote.h"
@@ -519,6 +520,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 				con_thread->ppeer = ppeer;
 				dev->is_connection_working = true;
 				dev->call_deferred("emit_signal", "connection_state_changed", true);
+				GRNotifications::add_notification("Connected", "Connected to " + address, NotificationIcon::Connected);
 
 				_connection_loop(con_thread);
 
@@ -567,6 +569,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 	OS *os = OS::get_singleton();
 	Error err = Error::OK;
+	String address = CON_ADDRESS(connection);
 
 	dev->_reset_counters();
 
@@ -661,6 +664,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after sending!", LogLevel::LL_Error);
+			GRNotifications::add_notification("Error", "Lost connection after sending data!", NotificationIcon::Error);
 			continue;
 		}
 
@@ -767,10 +771,24 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 	end_recv:
 		dev->connection_mutex->unlock();
 
+		if (!connection->is_connected_to_host()) {
+			_log("Lost connection after receiving!", LogLevel::LL_Error);
+			GRNotifications::add_notification("Error", "Lost connection after receiving data!", NotificationIcon::Error);
+			continue;
+		}
+
 		if (nothing_happens)
 			os->delay_usec(1_ms);
 	}
 	dev->connection_mutex->unlock();
+
+	if (connection->is_connected_to_host()) {
+		_log("Lost connection to " + address, LogLevel::LL_Error);
+		GRNotifications::add_notification("Disconnected", "Closing connection to " + address, NotificationIcon::Disconnected);
+	} else {
+		_log("Closing connection to " + address, LogLevel::LL_Error);
+		GRNotifications::add_notification("Disconnected", "Lost connection to " + address, NotificationIcon::Disconnected);
+	}
 
 	if (_img_thread) {
 		Thread::wait_to_finish(_img_thread);
@@ -790,11 +808,12 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 	Ref<Image> img(memnew(Image));
 
 	TimeCountInit();
-	if (img->load_jpg_from_buffer(ips->tex_data) == OK) {
+	if (!img->load_jpg_from_buffer(ips->tex_data)) { // OK
 		dev->call_deferred("_update_texture_from_iamge", img);
 		TimeCount("Decode Image Time");
 	} else {
 		_log("Can't decode JPG image.", LogLevel::LL_Error);
+		GRNotifications::add_notification("Stream Error", "Can't decode JPG image.", NotificationIcon::Error);
 	}
 	*ips->_is_processing_img = false;
 	delete ips;

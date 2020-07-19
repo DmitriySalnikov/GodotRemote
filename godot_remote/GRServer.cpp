@@ -3,6 +3,7 @@
 #ifndef NO_GODOTREMOTE_SERVER
 
 #include "GRServer.h"
+#include "GRNotifications.h"
 #include "GRPacket.h"
 #include "GodotRemote.h"
 #include "core/input_map.h"
@@ -33,7 +34,7 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_render_scale"), &GRServer::get_render_scale);
 	ClassDB::bind_method(D_METHOD("get_password"), &GRServer::get_password);
 
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps"), "set_target_send_fps", "get_target_send_fps");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_stream_fps"), "set_target_send_fps", "get_target_send_fps");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "get_auto_adjust_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "jpg_quality"), "set_jpg_quality", "get_jpg_quality");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "render_scale"), "set_render_scale", "get_render_scale");
@@ -72,11 +73,11 @@ int GRServer::get_jpg_quality() {
 
 void GRServer::set_target_send_fps(int fps) {
 	ERR_FAIL_COND(fps <= 0);
-	target_send_fps = fps;
+	target_stream_fps = fps;
 }
 
 int GRServer::get_target_send_fps() {
-	return target_send_fps;
+	return target_stream_fps;
 }
 
 void GRServer::set_render_scale(float _scale) {
@@ -142,6 +143,8 @@ void GRServer::_internal_call_only_deffered_start() {
 		add_child(resize_viewport);
 	}
 	set_status(WorkingStatus::Working);
+
+	GRNotifications::add_notification("Godot Remote Server Status", "Server started");
 }
 
 void GRServer::_internal_call_only_deffered_stop() {
@@ -165,6 +168,8 @@ void GRServer::_internal_call_only_deffered_stop() {
 	call_deferred("_remove_resize_viewport", resize_viewport);
 	resize_viewport = nullptr;
 	set_status(WorkingStatus::Stopped);
+
+	GRNotifications::add_notification("Godot Remote Server Status", "Server stopped");
 }
 
 void GRServer::_remove_resize_viewport(Node *node) {
@@ -201,9 +206,9 @@ void GRServer::_adjust_viewport_scale() {
 	}
 	_log(prev_avg_fps);
 
-	if (prev_avg_fps < target_send_fps - 4) {
+	if (prev_avg_fps < target_stream_fps - 4) {
 		scale -= 0.001f;
-	} else if (prev_avg_fps > target_send_fps - 1) {
+	} else if (prev_avg_fps > target_stream_fps - 1) {
 		scale += 0.0012f;
 	}
 
@@ -218,17 +223,40 @@ end:
 }
 
 void GRServer::_load_settings() {
+	// only updated by server itself
+	password = GET_PS(GodotRemote::ps_password_name);
+
+	// can be updated by client
+	target_stream_fps = GET_PS(GodotRemote::ps_server_stream_fps_name);
 	jpg_quality = GET_PS(GodotRemote::ps_jpg_quality_name);
 	auto_adjust_scale = GET_PS(GodotRemote::ps_auto_adjust_scale_name);
-	password = GET_PS(GodotRemote::ps_password_name);
 
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
 		resize_viewport->set_rendering_scale(GET_PS(GodotRemote::ps_scale_of_sending_stream_name));
 	}
+
+	// notification
+	const String title = "Server settings updated";
+	GRNotificationPanelUpdatable *np = cast_to<GRNotificationPanelUpdatable>(GRNotifications::get_notification(title));
+	if (np) {
+		np->clear_lines();
+	}
+
+	GRNotifications::add_notification_or_update_line(title, "title", "Loaded default server settings");
+	GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(jpg_quality));
+	GRNotifications::add_notification_or_update_line(title, "fps", "Stream FPS: " + str(target_stream_fps));
+	GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(GET_PS(GodotRemote::ps_scale_of_sending_stream_name)));
+	GRNotifications::add_notification_or_update_line(title, "auto_scale", "Auto adjust scale: " + str(auto_adjust_scale)); // TODO not completed
 }
 
 void GRServer::_update_settings_from_client(const Dictionary settings) {
 	Array keys = settings.keys();
+	const String title = "Server settings updated";
+
+	GRNotificationPanelUpdatable *np = cast_to<GRNotificationPanelUpdatable>(GRNotifications::get_notification(title));
+	if (np) {
+		np->remove_updatable_line("title");
+	}
 
 	for (int i = 0; i < settings.size(); i++) {
 		Variant key = keys[i];
@@ -238,20 +266,34 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 			GodotRemote::TypesOfServerSettings k = (GodotRemote::TypesOfServerSettings)(int)key;
 			switch (k) {
 				case GodotRemote::TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS:
-					if ((bool)value == true) {
+					if ((bool)value) {
 						call_deferred("_load_settings");
 						return;
 					}
 					break;
-				case GodotRemote::TypesOfServerSettings::JPG_QUALITY:
-					set_jpg_quality(value);
+				case GodotRemote::TypesOfServerSettings::JPG_QUALITY: {
+					if (jpg_quality != (int)value) {
+						GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str((int)value));
+						set_jpg_quality(value);
+					}
 					break;
-				case GodotRemote::TypesOfServerSettings::SEND_FPS:
-					set_target_send_fps(value);
+				}
+				case GodotRemote::TypesOfServerSettings::SEND_FPS: {
+					if (target_stream_fps != (int)value) {
+						GRNotifications::add_notification_or_update_line(title, "fps", "Stream FPS: " + str((int)value));
+						set_target_send_fps(value);
+					}
 					break;
-				case GodotRemote::TypesOfServerSettings::RENDER_SCALE:
-					set_render_scale(value);
+				}
+				case GodotRemote::TypesOfServerSettings::RENDER_SCALE: {
+					if (resize_viewport) {
+						if (resize_viewport->get_rendering_scale() != (float)value) {
+							GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(value));
+							resize_viewport->set_rendering_scale(value);
+						}
+					}
 					break;
+				}
 				default:
 					_log("Unknown server setting with code: " + str((int)k));
 					break;
@@ -277,39 +319,60 @@ void GRServer::_thread_listen(void *p_userdata) {
 	OS *os = OS::get_singleton();
 	Ref<ConnectionThreadParams> connection_thread_info;
 	Error err = OK;
-
-	srv->listen(dev->port);
-	_log("Start listening port " + str(dev->port));
+	bool listening_error_notification_shown = false;
 
 	while (!this_thread_info->stop_thread) {
 		if (!srv->is_listening()) {
 			err = srv->listen(dev->port);
-			_log("Start listening port " + str(dev->port));
 
 			if (err != OK) {
-
 				switch (err) {
-					case ERR_UNAVAILABLE:
-						_log("Socket listening unavailable");
+					case ERR_UNAVAILABLE: {
+						String txt = "Socket listening unavailable";
+						_log(txt, LogLevel::LL_Error);
+						if (!listening_error_notification_shown)
+							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::Error, true, 1.25f);
 						break;
-					case ERR_ALREADY_IN_USE:
-						_log("Socket already in use");
+					}
+					case ERR_ALREADY_IN_USE: {
+						String txt = "Socket already in use";
+						_log(txt, LogLevel::LL_Error);
+						if (!listening_error_notification_shown)
+							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::Error, true, 1.25f);
 						break;
-					case ERR_INVALID_PARAMETER:
-						_log("Invalid listening address");
+					}
+					case ERR_INVALID_PARAMETER: {
+						String txt = "Invalid listening address";
+						_log(txt, LogLevel::LL_Error);
+						if (!listening_error_notification_shown)
+							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::Error, true, 1.25f);
 						break;
-					case ERR_CANT_CREATE:
-						_log("Can't bind listener");
+					}
+					case ERR_CANT_CREATE: {
+						String txt = "Can't bind listener";
+						_log(txt, LogLevel::LL_Error);
+						if (!listening_error_notification_shown)
+							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::Error, true, 1.25f);
 						break;
-					case FAILED:
-						_log("Failed to start listening");
+					}
+					case FAILED: {
+						String txt = "Failed to start listening";
+						_log(txt, LogLevel::LL_Error);
+						if (!listening_error_notification_shown)
+							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::Error, true, 1.25f);
 						break;
+					}
 				}
 
+				listening_error_notification_shown = true;
 				os->delay_usec(1000_ms);
 				continue;
+			} else {
+				_log("Start listening port " + str(dev->port), LogLevel::LL_Normal);
+				GRNotifications::add_notification("Start listening", "Start listening on port: " + str(dev->port), NotificationIcon::Connected, true);
 			}
 		}
+		listening_error_notification_shown = false;
 
 		if (connection_thread_info.is_valid()) {
 			if (connection_thread_info->ppeer.is_null()) {
@@ -341,11 +404,20 @@ void GRServer::_thread_listen(void *p_userdata) {
 						connection_thread_info->ppeer = ppeer;
 						connection_thread_info->thread_ref = Thread::create(&_thread_connection, connection_thread_info.ptr());
 						_log("New connection from " + address);
+
+						GRNotifications::add_notification("Connected", "Client connected: " + address, NotificationIcon::Connected);
 						break;
-					case GRDevice::AuthResult::Error:
+
 					case GRDevice::AuthResult::VersionMismatch:
-					case GRDevice::AuthResult::RefuseConnection:
+						GRNotifications::add_notification("Authorization Error", address + "\nVersion mismatch", NotificationIcon::Warning);
+						break;
+
 					case GRDevice::AuthResult::IncorrectPassword:
+						GRNotifications::add_notification("Authorization Error", address + "\nIncorrect password", NotificationIcon::Warning);
+						break;
+
+					case GRDevice::AuthResult::Error:
+					case GRDevice::AuthResult::RefuseConnection:
 						continue;
 					default:
 						_log("Unknown error code. Disconnecting. " + address);
@@ -399,7 +471,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 	while (!thread_info->break_connection && connection.is_valid() && !connection->is_queued_for_deletion() && connection->is_connected_to_host()) {
 		bool nothing_happens = true;
-		uint64_t send_data_time_us = (1000000 / dev->target_send_fps);
+		uint64_t send_data_time_us = (1000000 / dev->target_stream_fps);
 
 		///////////////////////////////////////////////////////////////////
 		// SENDING
@@ -480,6 +552,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after sending!", LogLevel::LL_Error);
+			GRNotifications::add_notification("Error", "Lost connection after sending data!");
 			continue;
 		}
 
@@ -564,11 +637,23 @@ void GRServer::_thread_connection(void *p_userdata) {
 		}
 	end_recv:
 
+		if (!connection->is_connected_to_host()) {
+			_log("Lost connection after receiving!", LogLevel::LL_Error);
+			GRNotifications::add_notification("Error", "Lost connection after receiving data!");
+			continue;
+		}
+
 		if (nothing_happens) // for less cpu using
 			os->delay_usec(1_ms);
 	}
 
 	_log("Closing connection thread with address: " + address, LogLevel::LL_Debug);
+
+	if (connection->is_connected_to_host()) {
+		GRNotifications::add_notification("Disconnected", "Closing connection with " + address, NotificationIcon::Disconnected, false);
+	} else {
+		GRNotifications::add_notification("Disconnected", "Client disconnected: " + address, NotificationIcon::Disconnected, false);
+	}
 
 	if (ips.is_valid()) {
 		ips->close();
@@ -938,7 +1023,10 @@ void GRServer::ImgProcessingStorage::_processing_thread(void *p_user) {
 		return;
 
 	ips->_THREAD_SAFE_LOCK_ if (!ips->img_data.empty()) {
-		ips->ret_data = compress_jpg(ips->img_data, ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRUtils::SUBSAMPLING_H2V2);
+		Error err = compress_jpg(ips->ret_data, ips->img_data, ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRUtils::SUBSAMPLING_H2V2);
+		if (err) {
+			GRNotifications::add_notification("Stream Error", "Can't compress stream image. Code: " + str(err));
+		}
 		ips->is_new_data = true;
 
 		ips->tex.unref();

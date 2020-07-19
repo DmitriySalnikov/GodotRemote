@@ -22,6 +22,7 @@ void register_godot_remote_types() {
 
 	ClassDB::register_class<GRNotifications>();
 	ClassDB::register_class<GRNotificationPanel>();
+	ClassDB::register_class<GRNotificationPanelUpdatable>();
 	ClassDB::register_class<GRNotificationStyle>();
 
 	ClassDB::register_virtual_class<GRDevice>();

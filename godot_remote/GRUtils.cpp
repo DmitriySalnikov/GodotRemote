@@ -129,16 +129,16 @@ String str_arr(const uint8_t *data, const int size, const bool force_full, const
 };
 
 #ifndef NO_GODOTREMOTE_SERVER
-PoolByteArray compress_jpg(PoolByteArray &img_data, int width, int height, int bytes_for_color, int quality, int subsampling) {
+Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width, int height, int bytes_for_color, int quality, int subsampling) {
 	PoolByteArray res;
-	ERR_FAIL_COND_V(img_data.empty(), res);
-	ERR_FAIL_COND_V(quality < 1 || quality > 100, res);
+	ERR_FAIL_COND_V(img_data.empty(), Error::ERR_INVALID_PARAMETER);
+	ERR_FAIL_COND_V(quality < 1 || quality > 100, Error::ERR_INVALID_PARAMETER);
 
 	jpge::params params;
 	params.m_quality = quality;
 	params.m_subsampling = (jpge::subsampling_t)subsampling;
 
-	ERR_FAIL_COND_V(!params.check(), res);
+	ERR_FAIL_COND_V(!params.check(), Error::ERR_INVALID_PARAMETER);
 	auto rb = compress_buffer.read();
 	auto ri = img_data.read();
 	int size = compress_buffer.size();
@@ -153,7 +153,7 @@ PoolByteArray compress_jpg(PoolByteArray &img_data, int width, int height, int b
 								bytes_for_color,
 								(const unsigned char *)ri.ptr(),
 								params),
-			res, "Can't compress image.");
+			Error::FAILED, "Can't compress image.");
 
 	TimeCount("Compress img");
 
@@ -164,7 +164,9 @@ PoolByteArray compress_jpg(PoolByteArray &img_data, int width, int height, int b
 	TimeCount("Combine arrays");
 
 	_log("JPG size: " + str(res.size()), LogLevel::LL_Debug);
-	return res;
+
+	ret = res;
+	return Error::OK;
 }
 #endif
 
@@ -451,8 +453,7 @@ bool compare_pool_byte_arrays(const PoolByteArray &a, const PoolByteArray &b) {
 		return false;
 	auto r_a = a.read();
 	auto r_b = b.read();
-	for (int i = 0; i<a.size(); i++)
-	{
+	for (int i = 0; i < a.size(); i++) {
 		if (r_a[i] != r_b[i])
 			return false;
 	}

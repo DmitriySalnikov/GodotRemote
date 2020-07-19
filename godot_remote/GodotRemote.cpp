@@ -22,6 +22,7 @@ String GodotRemote::ps_noticications_position_name = "debug/godot_remote/notific
 String GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notifications/notifications_duration";
 
 String GodotRemote::ps_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
+String GodotRemote::ps_server_stream_fps_name = "debug/godot_remote/server/stream_fps";
 String GodotRemote::ps_jpg_quality_name = "debug/godot_remote/server/jpg_quality";
 String GodotRemote::ps_jpg_buffer_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
 String GodotRemote::ps_auto_adjust_scale_name = "debug/godot_remote/server/auto_adjust_scale";
@@ -74,13 +75,18 @@ void GodotRemote::_bind_methods() {
 	BIND_ENUM_CONSTANT(DEVICE_Standalone);
 
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS, "USE_INTERNAL_SERVER_SETTINGS");
-	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::RENDER_SCALE, "SERVER_PARAM_RENDER_SCALE");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::JPG_QUALITY, "SERVER_PARAM_JPG_QUALITY");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::SEND_FPS, "SERVER_PARAM_SEND_FPS");
+	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::RENDER_SCALE, "SERVER_PARAM_RENDER_SCALE");
 
 	// GRNotifications
+	ClassDB::bind_method(D_METHOD("get_notification", "title"), &GodotRemote::get_notification);
 	ClassDB::bind_method(D_METHOD("get_all_notifications"), &GodotRemote::get_all_notifications);
-	ClassDB::bind_method(D_METHOD("add_notification", "title", "text", "update_existing"), &GodotRemote::add_notification, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("get_notifications_with_title", "title"), &GodotRemote::get_notifications_with_title);
+
+	ClassDB::bind_method(D_METHOD("add_notification_or_append_string", "title", "text", "add_to_new_line"), &GodotRemote::add_notification_or_append_string, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("add_notification_or_update_line", "title", "id", "text", "icon", "duration_multiplier"), &GodotRemote::add_notification_or_update_line, DEFVAL(1.f));
+	ClassDB::bind_method(D_METHOD("add_notification", "title", "text", "notification_icon", "update_existing", "duration_multiplier"), &GodotRemote::add_notification, DEFVAL((int)NotificationIcon::None), DEFVAL(true), DEFVAL(1.f));
 	ClassDB::bind_method(D_METHOD("remove_notification", "title", "is_all_entries"), &GodotRemote::remove_notification, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("remove_notification_exact", "notification"), &GodotRemote::remove_notification_exact);
 	ClassDB::bind_method(D_METHOD("clear_notifications"), &GodotRemote::clear_notifications);
@@ -102,6 +108,12 @@ void GodotRemote::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "notifications_enabled"), "set_notifications_enabled", "get_notifications_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "notifications_duration"), "set_notifications_duration", "get_notifications_duration");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "notifications_style"), "set_notifications_style", "get_notifications_style");
+
+	BIND_ENUM_CONSTANT_CUSTOM(NotificationIcon::None, "NOTIFICATION_ICON_NONE");
+	BIND_ENUM_CONSTANT_CUSTOM(NotificationIcon::Error, "NOTIFICATION_ICON_ERROR");
+	BIND_ENUM_CONSTANT_CUSTOM(NotificationIcon::Warning, "NOTIFICATION_ICON_WARNING");
+	BIND_ENUM_CONSTANT_CUSTOM(NotificationIcon::Connected, "NOTIFICATION_ICON_CONNECTED");
+	BIND_ENUM_CONSTANT_CUSTOM(NotificationIcon::Disconnected, "NOTIFICATION_ICON_DISCONNECTED");
 
 	BIND_ENUM_CONSTANT_CUSTOM(GRNotifications::NotificationsPosition::TL, "NOTIFICATIONS_POSITION_TL");
 	BIND_ENUM_CONSTANT_CUSTOM(GRNotifications::NotificationsPosition::TC, "NOTIFICATIONS_POSITION_TC");
@@ -220,14 +232,20 @@ void GodotRemote::register_and_load_settings() {
 
 	DEF_(ps_notifications_enabled_name, true, PropertyInfo(Variant::BOOL, ps_notifications_enabled_name));
 	DEF_(ps_noticications_position_name, (int)GRNotifications::NotificationsPosition::TC, PropertyInfo(Variant::INT, ps_noticications_position_name, PROPERTY_HINT_ENUM, "TopLeft,TopCenter,TopRight,BottomLeft,BottomCenter,BottomRight"));
-	DEF_(ps_notifications_duration_name, 2.f, PropertyInfo(Variant::REAL, ps_notifications_duration_name, PROPERTY_HINT_RANGE, "0,100, 0.01"));
+	DEF_(ps_notifications_duration_name, 3.f, PropertyInfo(Variant::REAL, ps_notifications_duration_name, PROPERTY_HINT_RANGE, "0,100, 0.01"));
 
+	// const server settings
 	DEF_(ps_config_adb_name, true, PropertyInfo(Variant::BOOL, ps_config_adb_name));
+	DEF_(ps_jpg_buffer_mb_size_name, 4, PropertyInfo(Variant::INT, ps_jpg_buffer_mb_size_name, PROPERTY_HINT_RANGE, "1,128"));
+
+	// only server can change this settings
+	DEF_(ps_password_name, "", PropertyInfo(Variant::STRING, ps_password_name));
+
+	// client can change this settings
+	DEF_(ps_server_stream_fps_name, 60, PropertyInfo(Variant::INT, ps_server_stream_fps_name, PROPERTY_HINT_RANGE, "1,1000"));
 	DEF_(ps_scale_of_sending_stream_name, 0.3f, PropertyInfo(Variant::REAL, ps_scale_of_sending_stream_name, PROPERTY_HINT_RANGE, "0,1,0.01"));
 	DEF_(ps_jpg_quality_name, 75, PropertyInfo(Variant::INT, ps_jpg_quality_name, PROPERTY_HINT_RANGE, "0,100"));
-	DEF_(ps_jpg_buffer_mb_size_name, 4, PropertyInfo(Variant::INT, ps_jpg_buffer_mb_size_name, PROPERTY_HINT_RANGE, "1,128"));
 	DEF_(ps_auto_adjust_scale_name, false, PropertyInfo(Variant::BOOL, ps_auto_adjust_scale_name));
-	DEF_(ps_password_name, "", PropertyInfo(Variant::STRING, ps_password_name));
 
 #undef DEF_SET
 #undef DEF_SET_ENUM
@@ -282,9 +300,16 @@ void GodotRemote::_adb_port_forwarding() {
 //////////////////////////////////////////////////////////////////////////
 // EXTERNAL FUNCTIONS
 
+GRNotificationPanel *GodotRemote::get_notification(String title) const {
+	return GRNotifications::get_notification(title);
+}
+
 // GRNotifications
 Array GodotRemote::get_all_notifications() const {
 	return GRNotifications::get_all_notifications();
+}
+Array GodotRemote::get_notifications_with_title(String title) const {
+	return GRNotifications::get_notifications_with_title(title);
 }
 void GodotRemote::set_notifications_layer(int layer) const {
 	if (GRNotifications::get_singleton())
@@ -319,8 +344,14 @@ void GodotRemote::set_notifications_style(Ref<GRNotificationStyle> _style) const
 Ref<GRNotificationStyle> GodotRemote::get_notifications_style() const {
 	return GRNotifications::get_notifications_style();
 }
-void GodotRemote::add_notification(String title, String text, bool update_existing) const {
-	GRNotifications::add_notification(title, text, update_existing);
+void GodotRemote::add_notification_or_append_string(String title, String text, bool new_string) {
+	GRNotifications::add_notification_or_append_string(title, text, new_string);
+}
+void GodotRemote::add_notification_or_update_line(String title, String id, String text, int icon, float duration_multiplier) const {
+	GRNotifications::add_notification_or_update_line(title, id, text, icon, duration_multiplier);
+}
+void GodotRemote::add_notification(String title, String text, int icon, bool update_existing, float duration_multiplier) const {
+	GRNotifications::add_notification(title, text, icon, update_existing, duration_multiplier);
 }
 void GodotRemote::remove_notification(String title, bool all_entries) const {
 	GRNotifications::remove_notification(title, all_entries);

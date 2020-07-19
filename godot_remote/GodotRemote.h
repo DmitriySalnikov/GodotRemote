@@ -31,6 +31,7 @@ public:
 	static String ps_notifications_duration_name;
 	static String ps_port_name;
 	static String ps_config_adb_name;
+	static String ps_server_stream_fps_name;
 	static String ps_jpg_buffer_mb_size_name;
 	static String ps_jpg_quality_name;
 	static String ps_scale_of_sending_stream_name;
@@ -58,7 +59,9 @@ protected:
 
 public:
 	// GRNotifications
+	class GRNotificationPanel *get_notification(String title) const;
 	Array get_all_notifications() const;
+	Array get_notifications_with_title(String title) const;
 
 	void set_notifications_layer(int layer) const;
 	int get_notifications_layer() const;
@@ -75,7 +78,9 @@ public:
 	void set_notifications_style(Ref<class GRNotificationStyle> _style) const;
 	Ref<class GRNotificationStyle> get_notifications_style() const;
 
-	void add_notification(String title, String text, bool update_existing = true) const;
+	void add_notification_or_append_string(String title, String text, bool new_string = true);
+	void add_notification_or_update_line(String title, String id, String text, int icon, float duration_multiplier = 1.f) const;
+	void add_notification(String title, String text, int icon, bool update_existing = true, float duration_multiplier = 1.f) const;
 	void remove_notification(String title, bool all_entries = true) const;
 	void remove_notification_exact(Node *_notif) const;
 	void clear_notifications() const;

@@ -98,7 +98,7 @@ private:
 	String password;
 	bool auto_adjust_scale = false;
 	int jpg_quality = 75;
-	int target_send_fps = 60;
+	int target_stream_fps = 60;
 
 	float prev_avg_fps = 0;
 	void _adjust_viewport_scale();
