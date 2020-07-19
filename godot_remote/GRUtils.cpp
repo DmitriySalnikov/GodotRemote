@@ -9,12 +9,7 @@
 #endif
 
 namespace GRUtils {
-int current_loglevel =
-#ifdef DEBUG_ENABLED
-		LogLevel::LL_Normal;
-#else
-		LogLevel::LL_Warning;
-#endif
+int current_loglevel = LogLevel::LL_Normal;
 
 PoolByteArray internal_PACKET_HEADER = PoolByteArray();
 PoolByteArray internal_VERSION = PoolByteArray();
@@ -27,6 +22,8 @@ PoolByteArray compress_buffer = PoolByteArray();
 void init() {
 	GR_PACKET_HEADER('G', 'R', 'H', 'D');
 	GR_VERSION(1, 0, 0);
+
+	GET_PS_SET(current_loglevel, GodotRemote::ps_loglevel_name);
 }
 
 void deinit() {

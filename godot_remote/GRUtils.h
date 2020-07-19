@@ -64,11 +64,11 @@
 namespace GRUtils {
 
 enum LogLevel {
-	LL_None = 255,
 	LL_Debug = 0,
 	LL_Normal = 1,
 	LL_Warning = 2,
 	LL_Error = 3,
+	LL_None,
 };
 
 enum class AuthErrorCode {

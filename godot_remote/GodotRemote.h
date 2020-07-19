@@ -26,6 +26,7 @@ public:
 	};
 
 	static String ps_autoload_name;
+	static String ps_loglevel_name;
 	static String ps_notifications_enabled_name;
 	static String ps_noticications_position_name;
 	static String ps_notifications_duration_name;

@@ -16,6 +16,7 @@ using namespace GRUtils;
 
 String GodotRemote::ps_autoload_name = "debug/godot_remote/general/autostart";
 String GodotRemote::ps_port_name = "debug/godot_remote/general/port";
+String GodotRemote::ps_loglevel_name = "debug/godot_remote/general/log_level";
 
 String GodotRemote::ps_notifications_enabled_name = "debug/godot_remote/notifications/notifications_enabled";
 String GodotRemote::ps_noticications_position_name = "debug/godot_remote/notifications/noticications_position";
@@ -229,6 +230,7 @@ void GodotRemote::register_and_load_settings() {
 
 	DEF_SET(is_autostart, ps_autoload_name, true, PropertyInfo(Variant::BOOL, ps_autoload_name));
 	DEF_(ps_port_name, 52341, PropertyInfo(Variant::INT, ps_port_name, PROPERTY_HINT_RANGE, "0,65535"));
+	DEF_(ps_loglevel_name, GRUtils::LogLevel::LL_Normal, PropertyInfo(Variant::INT, ps_loglevel_name, PROPERTY_HINT_ENUM, "Debug,Normal,Warning,Error,None"));
 
 	DEF_(ps_notifications_enabled_name, true, PropertyInfo(Variant::BOOL, ps_notifications_enabled_name));
 	DEF_(ps_noticications_position_name, (int)GRNotifications::NotificationsPosition::TC, PropertyInfo(Variant::INT, ps_noticications_position_name, PROPERTY_HINT_ENUM, "TopLeft,TopCenter,TopRight,BottomLeft,BottomCenter,BottomRight"));
