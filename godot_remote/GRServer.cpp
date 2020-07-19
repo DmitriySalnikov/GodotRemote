@@ -396,26 +396,29 @@ void GRServer::_thread_listen(void *p_userdata) {
 			ppeer->set_output_buffer_max_size(compress_buffer.size());
 
 			if (connection_thread_info.is_null()) {
-				GRDevice::AuthResult res = _auth_client(dev, ppeer);
+				Dictionary ret_data;
+				GRDevice::AuthResult res = _auth_client(dev, ppeer, ret_data);
+				String dev_id = "";
+
+				if (ret_data.has("id")) {
+					dev_id = ret_data["id"];
+				}
+
 				switch (res) {
 					case GRDevice::AuthResult::OK:
 						connection_thread_info.instance();
+						connection_thread_info->device_id = dev_id;
+
 						connection_thread_info->dev = dev;
 						connection_thread_info->ppeer = ppeer;
 						connection_thread_info->thread_ref = Thread::create(&_thread_connection, connection_thread_info.ptr());
 						_log("New connection from " + address);
 
-						GRNotifications::add_notification("Connected", "Client connected: " + address, NotificationIcon::Connected);
+						GRNotifications::add_notification("Connected", "Client connected: " + address + "\nDevice ID: " + connection_thread_info->device_id, NotificationIcon::Connected);
 						break;
 
 					case GRDevice::AuthResult::VersionMismatch:
-						GRNotifications::add_notification("Authorization Error", address + "\nVersion mismatch", NotificationIcon::Warning);
-						break;
-
 					case GRDevice::AuthResult::IncorrectPassword:
-						GRNotifications::add_notification("Authorization Error", address + "\nIncorrect password", NotificationIcon::Warning);
-						break;
-
 					case GRDevice::AuthResult::Error:
 					case GRDevice::AuthResult::RefuseConnection:
 						continue;
@@ -425,7 +428,8 @@ void GRServer::_thread_listen(void *p_userdata) {
 				}
 
 			} else {
-				GRDevice::AuthResult res = _auth_client(dev, ppeer, true);
+				Dictionary ret_data;
+				GRDevice::AuthResult res = _auth_client(dev, ppeer, ret_data, true);
 			}
 		} else {
 			_log("Waiting...", LogLevel::LL_Debug);
@@ -670,7 +674,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 	thread_info->finished = true;
 }
 
-GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, bool refuse_connection) {
+GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection) {
 // _v - variable definition, _n - dict key, _c - fail condition, _e - error message, _r - return value on fail condition
 #define dict_get(_t, _v, _n, _c, _e, _r) \
 	_t _v;                               \
@@ -680,7 +684,7 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream>
 		goto error_dict;                 \
 	if (_c) {                            \
 		ppeer->put_var((int)_r);         \
-		_log(_e, LogLevel::LL_Error);    \
+		_log(_e, LogLevel::LL_Debug);    \
 		return _r;                       \
 	}
 #define wait_packet(_n)                                           \
@@ -694,7 +698,7 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream>
 	}
 #define packet_error_check(_t)              \
 	if (err) {                              \
-		_log(_t, LogLevel::LL_Error);       \
+		_log(_t, LogLevel::LL_Debug);       \
 		return GRDevice::AuthResult::Error; \
 	}
 
@@ -717,6 +721,12 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream>
 		if (dict.empty()) {
 			goto error_dict;
 		} else {
+			dict_get(String, id, "id",
+					id.empty(), "Device ID field is empty or does not exists. " + address,
+					GRDevice::AuthResult::VersionMismatch);
+
+			ret_data["id"] = id;
+
 			dict_get(PoolByteArray, ver, "version",
 					ver.empty(), "Version field is empty or does not exists. " + address,
 					GRDevice::AuthResult::VersionMismatch);

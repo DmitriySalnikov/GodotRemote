@@ -8,11 +8,11 @@
 #include "GRResources.h"
 #include "GodotRemote.h"
 #include "core/input_map.h"
+#include "core/io/ip.h"
 #include "core/io/tcp_server.h"
 #include "core/os/input_event.h"
 #include "core/os/thread_safe.h"
 #include "main/input_default.h"
-#include "modules/regex/regex.h"
 #include "scene/gui/control.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
@@ -49,6 +49,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_stretch_mode", "mode"), &GRClient::set_stretch_mode);
 	ClassDB::bind_method(D_METHOD("set_texture_filtering", "is_filtered"), &GRClient::set_texture_filtering);
 	ClassDB::bind_method(D_METHOD("set_password", "password"), &GRClient::set_password);
+	ClassDB::bind_method(D_METHOD("set_device_id", "id"), &GRClient::set_device_id);
 
 	ClassDB::bind_method(D_METHOD("is_capture_on_focus"), &GRClient::is_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("is_capture_when_hover"), &GRClient::is_capture_when_hover);
@@ -57,6 +58,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_stretch_mode"), &GRClient::get_stretch_mode);
 	ClassDB::bind_method(D_METHOD("get_texture_filtering"), &GRClient::get_texture_filtering);
 	ClassDB::bind_method(D_METHOD("get_password"), &GRClient::get_password);
+	ClassDB::bind_method(D_METHOD("get_device_id"), &GRClient::get_device_id);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
@@ -65,6 +67,7 @@ void GRClient::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Fill,Keep Aspect"), "set_stretch_mode", "get_stretch_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "texture_filtering"), "set_texture_filtering", "get_texture_filtering");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "device_id"), "set_device_id", "get_device_id");
 
 	BIND_ENUM_CONSTANT(CONNECTION_ADB);
 	BIND_ENUM_CONSTANT(CONNECTION_WiFi);
@@ -88,10 +91,10 @@ void GRClient::_notification(int p_notification) {
 
 GRClient::GRClient() :
 		GRDevice() {
-	ip_validator.instance();
-	ip_validator->compile(ip_validator_pattern);
-
 	set_name("GodotRemoteClient");
+
+	Math::randomize();
+	device_id = str(Math::randd() * Math::rand()).md5_text().substr(0, 6);
 
 	send_queue_mutex = Mutex::create();
 	connection_mutex = Mutex::create();
@@ -304,41 +307,35 @@ bool GRClient::set_ip(String ip, bool ipv4) {
 	return set_address(ip, port, ipv4);
 }
 
-// TODO try to resolve address
-/*IP_Address ip;
-if (p_host.is_valid_ip_address())
-	ip = p_host;
-else
-	ip = IP::get_singleton()->resolve_hostname(p_host);*/
-
 bool GRClient::set_address(String ip, uint16_t _port, bool ipv4) {
-	String prev = (String)server_address;
-	int prevPort = port;
+	bool all_ok = false;
 
-	bool is_invalid = false;
-
-	if (ipv4) {
-		auto res = ip_validator->search(ip);
-		if (res.is_null()) {
-			is_invalid = true;
-			goto end;
+	IP_Address adr;
+	if (ip.is_valid_ip_address()) {
+		adr = ip;
+		if (adr.is_valid()) {
+			server_address = ip;
+			port = _port;
+			restart();
+			all_ok = true;
+		} else {
+			_log("Address is invalid: " + ip, LogLevel::LL_Error);
+			GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + ip, NotificationIcon::Error);
+		}
+	} else {
+		adr = IP::get_singleton()->resolve_hostname(adr);
+		if (adr.is_valid()) {
+			_log("Resolved address for " + ip + "\n" + adr, LogLevel::LL_Debug);
+			server_address = ip;
+			port = _port;
+			restart();
+			all_ok = true;
+		} else {
+			_log("Can't resolve address for " + ip, LogLevel::LL_Error);
+			GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + ip, NotificationIcon::Error);
 		}
 	}
 
-	server_address = ip;
-	port = _port;
-
-end:
-	bool all_ok = true;
-	if (!server_address.is_valid() || is_invalid) {
-		ERR_PRINT(ip + " is an invalid address!");
-		_log(ip + " is an invalid address!");
-		server_address = IP_Address(prev);
-		port = prevPort;
-		all_ok = false;
-	}
-
-	restart();
 	return all_ok;
 }
 
@@ -354,6 +351,15 @@ void GRClient::set_password(String _pass) {
 
 String GRClient::get_password() {
 	return password;
+}
+
+void GRClient::set_device_id(String _id) {
+	ERR_FAIL_COND(_id.empty());
+	device_id = _id;
+}
+
+String GRClient::get_device_id() {
+	return device_id;
 }
 
 bool GRClient::is_connected_to_host() {
@@ -455,6 +461,9 @@ void GRClient::_thread_connection(void *p_userdata) {
 
 	OS *os = OS::get_singleton();
 	Thread::set_name("GRemote_connection");
+	GRDevice::AuthResult prev_auth_error = GRDevice::AuthResult::OK;
+
+	const String con_error_title = "Connection Error";
 
 	while (!con_thread->stop_thread) {
 		if (os->get_ticks_usec() - dev->prev_valid_connection_time > 1000_ms) {
@@ -465,12 +474,36 @@ void GRClient::_thread_connection(void *p_userdata) {
 			con->disconnect_from_host();
 		}
 
-		IP_Address ip = dev->con_type == ConnectionType::CONNECTION_ADB ? IP_Address("127.0.0.1") : dev->server_address;
+		IP_Address adr;
+		if (dev->con_type == CONNECTION_ADB) {
+			adr = IP_Address("127.0.0.1");
+		} else {
+			if (dev->server_address.is_valid_ip_address()) {
+				adr = dev->server_address;
+				if (adr.is_valid()) {
+				} else {
+					_log("Address is invalid: " + dev->server_address, LogLevel::LL_Error);
+					if (prev_auth_error != GRDevice::AuthResult::Error)
+						GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + dev->server_address, NotificationIcon::Error);
+					prev_auth_error = GRDevice::AuthResult::Error;
+				}
+			} else {
+				adr = IP::get_singleton()->resolve_hostname(adr);
+				if (adr.is_valid()) {
+					_log("Resolved address for " + dev->server_address + "\n" + adr, LogLevel::LL_Debug);
+				} else {
+					_log("Can't resolve address for " + dev->server_address, LogLevel::LL_Error);
+					if (prev_auth_error != GRDevice::AuthResult::Error)
+						GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + dev->server_address, NotificationIcon::Error);
+					prev_auth_error = GRDevice::AuthResult::Error;
+				}
+			}
+		}
 
-		String address = (String)ip + ":" + str(dev->port);
-		Error err = con->connect_to_host(ip, dev->port);
+		String address = (String)adr + ":" + str(dev->port);
+		Error err = con->connect_to_host(adr, dev->port);
 
-		_log("Connecting to " + address);
+		_log("Connecting to " + address, LogLevel::LL_Debug);
 		if (err) {
 			switch (err) {
 				case FAILED:
@@ -495,7 +528,11 @@ void GRClient::_thread_connection(void *p_userdata) {
 		}
 
 		if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
-			_log("Timeout! Connect to " + address + " failed.", LogLevel::LL_Debug);
+			_log("Connection timed out with " + address, LogLevel::LL_Debug);
+			if (prev_auth_error != GRDevice::AuthResult::Timeout) {
+				GRNotifications::add_notification(con_error_title, "Connection timed out: " + dev->server_address, NotificationIcon::Warning);
+				prev_auth_error = GRDevice::AuthResult::Timeout;
+			}
 			os->delay_usec(200_ms);
 			continue;
 		}
@@ -532,18 +569,42 @@ void GRClient::_thread_connection(void *p_userdata) {
 				break;
 			}
 			case GRDevice::AuthResult::Error:
+				if (res != prev_auth_error)
+					GRNotifications::add_notification(con_error_title, "Can't connect to " + address, NotificationIcon::Error);
+				long_wait = true;
+				break;
 			case GRDevice::AuthResult::Timeout:
+				if (res != prev_auth_error)
+					GRNotifications::add_notification(con_error_title, "Timeout\n" + address, NotificationIcon::Error);
+				long_wait = true;
+				break;
 			case GRDevice::AuthResult::RefuseConnection:
+				if (res != prev_auth_error)
+					GRNotifications::add_notification(con_error_title, "Connection refused\n" + address, NotificationIcon::Error);
+				long_wait = true;
+				break;
 			case GRDevice::AuthResult::VersionMismatch:
+				if (res != prev_auth_error)
+					GRNotifications::add_notification(con_error_title, "Version mismatch\n" + address, NotificationIcon::Error);
+				long_wait = true;
+				break;
 			case GRDevice::AuthResult::IncorrectPassword:
+				if (res != prev_auth_error)
+					GRNotifications::add_notification(con_error_title, "Incorrect password\n" + address, NotificationIcon::Error);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::PasswordRequired:
+				if (res != prev_auth_error)
+					GRNotifications::add_notification(con_error_title, "Required password but it's not implemented.... " + address, NotificationIcon::Error);
 				break;
 			default:
+				if (res != prev_auth_error)
+					GRNotifications::add_notification(con_error_title, "Unknown error code: " + str((int)res) + "\n" + address, NotificationIcon::Error);
 				_log("Unknown error code: " + str((int)res) + ". Disconnecting. " + address);
 				break;
 		}
+
+		prev_auth_error = res;
 
 		if (con->is_connected_to_host()) {
 			con->disconnect_from_host();
@@ -831,7 +892,7 @@ GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<PacketPeerStre
 	}
 #define packet_error_check(_t)              \
 	if (err) {                              \
-		_log(_t, LogLevel::LL_Error);       \
+		_log(_t, LogLevel::LL_Debug);       \
 		return GRDevice::AuthResult::Error; \
 	}
 
@@ -851,6 +912,7 @@ GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<PacketPeerStre
 	}
 	if ((int)ret == (int)GRDevice::AuthResult::TryToConnect) {
 		Dictionary data;
+		data["id"] = dev->device_id;
 		data["version"] = get_version();
 		data["password"] = dev->password;
 

@@ -83,9 +83,8 @@ private:
 	class GRInputCollector *input_collector = nullptr;
 	Ref<ConnectionThreadParams> thread_connection = nullptr;
 
-	IP_Address server_address = String("127.0.0.1");
-	const String ip_validator_pattern = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
-	Ref<class RegEx> ip_validator;
+	String device_id = "UNKNOWN";
+	String server_address = String("127.0.0.1");
 
 	String password;
 	bool is_filtering_enabled = true;
@@ -163,6 +162,8 @@ public:
 	bool get_texture_filtering();
 	void set_password(String _pass);
 	String get_password();
+	void set_device_id(String _id);
+	String get_device_id();
 
 	bool is_stream_active();
 	bool is_connected_to_host();

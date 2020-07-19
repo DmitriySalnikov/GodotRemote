@@ -66,6 +66,7 @@ private:
 		GDCLASS(ConnectionThreadParams, Reference);
 
 	public:
+		String device_id = "";
 		GRServer *dev = nullptr;
 		Ref<PacketPeerStream> ppeer;
 		class Thread *thread_ref = nullptr;
@@ -112,7 +113,7 @@ private:
 	static void _thread_listen(void *p_userdata);
 	static void _thread_connection(void *p_userdata);
 
-	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, bool refuse_connection = false);
+	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection = false);
 	static bool _parse_input_data(const PoolByteArray &p_data);
 	static const uint8_t *_read_abstract_input_data(class InputEvent *ie, const Vector2 &vs, const uint8_t *data);
 
