@@ -26,8 +26,11 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_update_texture_from_iamge", "image"), &GRClient::_update_texture_from_iamge);
 	ClassDB::bind_method(D_METHOD("_update_stream_texture_state", "state"), &GRClient::_update_stream_texture_state);
 
+	ClassDB::bind_method(D_METHOD("send_packet", "packet"), &GRClient::send_packet);
+
 	ClassDB::bind_method(D_METHOD("set_control_to_show_in", "control_node", "position_in_node"), &GRClient::set_control_to_show_in, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_texture", "texture"), &GRClient::set_custom_no_signal_texture);
+	ClassDB::bind_method(D_METHOD("set_custom_no_signal_vertical_texture", "texture"), &GRClient::set_custom_no_signal_vertical_texture);
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_material", "material"), &GRClient::set_custom_no_signal_material);
 	ClassDB::bind_method(D_METHOD("set_address", "ip", "port", "ipv4"), &GRClient::set_address, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("set_ip", "ip", "ipv4"), &GRClient::set_ip, DEFVAL(true));
@@ -230,15 +233,17 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 
 void GRClient::set_custom_no_signal_texture(Ref<Texture> custom_tex) {
 	custom_no_signal_texture = custom_tex;
+	_update_stream_texture_state(signal_connection_state);
+}
 
-	signal_connection_state = !signal_connection_state; // force execute update function
-	_update_stream_texture_state(!signal_connection_state);
+void GRClient::set_custom_no_signal_vertical_texture(Ref<Texture> custom_tex) {
+	custom_no_signal_vertical_texture = custom_tex;
+	_update_stream_texture_state(signal_connection_state);
 }
 
 void GRClient::set_custom_no_signal_material(Ref<Material> custom_mat) {
 	custom_no_signal_material = custom_mat;
-	signal_connection_state = !signal_connection_state; // force execute update function
-	_update_stream_texture_state(!signal_connection_state);
+	_update_stream_texture_state(signal_connection_state);
 }
 
 bool GRClient::is_capture_on_focus() {
@@ -293,6 +298,14 @@ void GRClient::set_texture_filtering(bool is_filtering) {
 
 bool GRClient::get_texture_filtering() {
 	return is_filtering_enabled;
+}
+
+void GRClient::send_packet(Ref<GRPacket> packet) {
+	ERR_FAIL_COND(packet.is_null());
+
+	send_queue_mutex->lock();
+	send_queue.push_back(packet);
+	send_queue_mutex->unlock();
 }
 
 bool GRClient::is_stream_active() {
@@ -408,8 +421,10 @@ void GRClient::_update_stream_texture_state(bool is_has_signal) {
 			}
 			signal_connection_state = false;
 
-			if (custom_no_signal_texture.is_valid()) {
-				tex_shows_stream->set_texture(custom_no_signal_texture);
+			if (custom_no_signal_texture.is_valid() || custom_no_signal_vertical_texture.is_valid()) {
+				tex_shows_stream->set_texture(no_signal_is_vertical ?
+													  (custom_no_signal_vertical_texture.is_valid() ? custom_no_signal_vertical_texture : custom_no_signal_texture) :
+													  (custom_no_signal_texture.is_valid() ? custom_no_signal_texture : custom_no_signal_vertical_texture));
 			}
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 			else {
@@ -435,15 +450,14 @@ void GRClient::_reset_counters() {
 }
 
 void GRClient::set_server_setting(int param, Variant value) {
-	send_queue_mutex->lock();
 	Ref<GRPacketServerSettings> packet = _find_queued_packet_by_type<Ref<GRPacketServerSettings> >();
+
 	if (packet.is_null()) {
 		packet.instance();
-		send_queue.push_back(packet);
 	}
 
 	packet->add_setting(param, value);
-	send_queue_mutex->unlock();
+	send_packet(packet);
 }
 
 void GRClient::disable_overriding_server_settings() {
@@ -756,6 +770,9 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 			ImgProcessingStorage *ips = new ImgProcessingStorage(dev);
 			ips->tex_data = pack->get_image_data();
+			ips->compression_type = (ImageCompressionType)pack->get_compression_type();
+			ips->size = pack->get_size();
+			ips->format = pack->get_format();
 			ips->_is_processing_img = &_is_processing_img;
 			_img_thread = Thread::create(&_thread_image_decoder, ips);
 		}
@@ -865,16 +882,49 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 	ImgProcessingStorage *ips = (ImgProcessingStorage *)p_userdata;
 	*ips->_is_processing_img = true;
 
+	Error err = Error::OK;
 	GRClient *dev = ips->dev;
 	Ref<Image> img(memnew(Image));
+	ImageCompressionType type = ips->compression_type;
 
 	TimeCountInit();
-	if (!img->load_jpg_from_buffer(ips->tex_data)) { // OK
-		dev->call_deferred("_update_texture_from_iamge", img);
-		TimeCount("Decode Image Time");
-	} else {
-		_log("Can't decode JPG image.", LogLevel::LL_Error);
-		GRNotifications::add_notification("Stream Error", "Can't decode JPG image.", NotificationIcon::Error);
+	switch (type) {
+		case ImageCompressionType::Uncompressed: {
+			img->create(ips->size.x, ips->size.y, false, (Image::Format)ips->format, ips->tex_data);
+			if (!img->empty()) { // is OK
+				dev->call_deferred("_update_texture_from_iamge", img);
+				TimeCount("Create uncompressed Image");
+			} else {
+				_log("Incorrect uncompressed image data.", LogLevel::LL_Error);
+				GRNotifications::add_notification("Stream Error", "Incorrect uncompressed image data.", NotificationIcon::Error);
+			}
+			break;
+		}
+		case ImageCompressionType::JPG: {
+			err = img->load_jpg_from_buffer(ips->tex_data);
+			if (!err && !img->empty()) { // is OK
+				dev->call_deferred("_update_texture_from_iamge", img);
+				TimeCount("Decode Image Time");
+			} else {
+				_log("Can't decode JPG image.", LogLevel::LL_Error);
+				GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str(err), NotificationIcon::Error);
+			}
+			break;
+		}
+		case GRUtils::ImageCompressionType::PNG: {
+			err = img->load_png_from_buffer(ips->tex_data);
+			if (!err && !img->empty()) { // is OK
+				dev->call_deferred("_update_texture_from_iamge", img);
+				TimeCount("Decode Image Time");
+			} else {
+				_log("Can't decode PNG image.", LogLevel::LL_Error);
+				GRNotifications::add_notification("Stream Error", "Can't decode PNG image. Code: " + str(err), NotificationIcon::Error);
+			}
+			break;
+		}
+		default:
+			_log("Not implemented image decoder type: " + str((int)type), LogLevel::LL_Error);
+			break;
 	}
 	*ips->_is_processing_img = false;
 	delete ips;
@@ -1331,10 +1381,8 @@ void GRTextureRect::_tex_size_changed() {
 		Vector2 v = get_size();
 		bool is_vertical = (v.x / v.y) < 1.f;
 		if (is_vertical != dev->no_signal_is_vertical) {
-			if (!dev->signal_connection_state && dev->custom_no_signal_texture.is_null()) {
-				dev->_update_texture_from_iamge(is_vertical ? dev->no_signal_vertical_image : dev->no_signal_image);
-			}
 			dev->no_signal_is_vertical = is_vertical;
+			dev->_update_stream_texture_state(dev->signal_connection_state);
 		}
 	}
 }

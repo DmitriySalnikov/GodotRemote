@@ -24,6 +24,7 @@ String GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notific
 
 String GodotRemote::ps_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
 String GodotRemote::ps_server_stream_fps_name = "debug/godot_remote/server/stream_fps";
+String GodotRemote::ps_server_compression_type_name = "debug/godot_remote/server/compression_type";
 String GodotRemote::ps_jpg_quality_name = "debug/godot_remote/server/jpg_quality";
 String GodotRemote::ps_jpg_buffer_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
 String GodotRemote::ps_auto_adjust_scale_name = "debug/godot_remote/server/auto_adjust_scale";
@@ -76,6 +77,7 @@ void GodotRemote::_bind_methods() {
 	BIND_ENUM_CONSTANT(DEVICE_Standalone);
 
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS, "USE_INTERNAL_SERVER_SETTINGS");
+	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::COMPRESSION_TYPE, "SERVER_PARAM_COMPRESSION_TYPE");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::JPG_QUALITY, "SERVER_PARAM_JPG_QUALITY");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::SEND_FPS, "SERVER_PARAM_SEND_FPS");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::RENDER_SCALE, "SERVER_PARAM_RENDER_SCALE");
@@ -134,6 +136,10 @@ void GodotRemote::_bind_methods() {
 	BIND_ENUM_CONSTANT(LL_Normal);
 	BIND_ENUM_CONSTANT(LL_Warning);
 	BIND_ENUM_CONSTANT(LL_Error);
+
+	BIND_ENUM_CONSTANT_CUSTOM(ImageCompressionType::Uncompressed, "IMAGE_COMPRESSION_UNCOMPRESSED");
+	BIND_ENUM_CONSTANT_CUSTOM(ImageCompressionType::JPG, "IMAGE_COMPRESSION_JPG");
+	BIND_ENUM_CONSTANT_CUSTOM(ImageCompressionType::PNG, "IMAGE_COMPRESSION_PNG");
 
 	ClassDB::bind_method(D_METHOD("set_log_level", "level"), &GodotRemote::set_log_level);
 
@@ -244,6 +250,7 @@ void GodotRemote::register_and_load_settings() {
 	DEF_(ps_password_name, "", PropertyInfo(Variant::STRING, ps_password_name));
 
 	// client can change this settings
+	DEF_(ps_server_compression_type_name, (int)ImageCompressionType::JPG, PropertyInfo(Variant::INT, ps_server_compression_type_name, PROPERTY_HINT_ENUM, "Uncompressed,JPG,PNG"));
 	DEF_(ps_server_stream_fps_name, 60, PropertyInfo(Variant::INT, ps_server_stream_fps_name, PROPERTY_HINT_RANGE, "1,1000"));
 	DEF_(ps_scale_of_sending_stream_name, 0.3f, PropertyInfo(Variant::REAL, ps_scale_of_sending_stream_name, PROPERTY_HINT_RANGE, "0,1,0.01"));
 	DEF_(ps_jpg_quality_name, 75, PropertyInfo(Variant::INT, ps_jpg_quality_name, PROPERTY_HINT_RANGE, "0,100"));

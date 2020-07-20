@@ -31,6 +31,9 @@ private:
 		GRClient *dev = nullptr;
 		PoolByteArray tex_data;
 		uint64_t framerate = 0;
+		int format = 0;
+		GRUtils::ImageCompressionType compression_type = GRUtils::ImageCompressionType::Uncompressed;
+		Size2 size;
 		bool *_is_processing_img = nullptr;
 
 		ImgProcessingStorage(GRClient *_dev) {
@@ -106,7 +109,8 @@ private:
 	uint64_t prev_valid_connection_time = 0;
 	bool signal_connection_state = false;
 	bool no_signal_is_vertical = false;
-	Ref<class ImageTexture> custom_no_signal_texture;
+	Ref<class Texture> custom_no_signal_texture;
+	Ref<class Texture> custom_no_signal_vertical_texture;
 	Ref<class Material> custom_no_signal_material;
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
@@ -146,6 +150,7 @@ protected:
 public:
 	void set_control_to_show_in(class Control *ctrl, int position_in_node = 0);
 	void set_custom_no_signal_texture(Ref<Texture> custom_tex);
+	void set_custom_no_signal_vertical_texture(Ref<Texture> custom_tex);
 	void set_custom_no_signal_material(Ref<Material> custom_mat);
 
 	bool is_capture_on_focus();
@@ -165,6 +170,7 @@ public:
 	void set_device_id(String _id);
 	String get_device_id();
 
+	void send_packet(Ref<GRPacket> packet);
 	bool is_stream_active();
 	bool is_connected_to_host();
 	String get_ip();

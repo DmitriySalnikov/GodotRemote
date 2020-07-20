@@ -83,6 +83,12 @@ enum Subsampling {
 	SUBSAMPLING_H2V2 = 3
 };
 
+enum class ImageCompressionType {
+	Uncompressed = 0,
+	JPG = 1,
+	PNG = 2,
+};
+
 // DEFINES
 
 extern int current_loglevel;
@@ -239,4 +245,5 @@ static void set_log_level(LogLevel lvl) {
 
 VARIANT_ENUM_CAST(GRUtils::Subsampling)
 VARIANT_ENUM_CAST(GRUtils::LogLevel)
+VARIANT_ENUM_CAST(GRUtils::ImageCompressionType)
 #endif // !GRUTILS_H

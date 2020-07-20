@@ -63,6 +63,9 @@ class GRPacketImageData : public GRPacket {
 	GDCLASS(GRPacketImageData, GRPacket);
 	friend GRPacket;
 
+	GRUtils::ImageCompressionType compression = GRUtils::ImageCompressionType::Uncompressed;
+	Size2 size;
+	int format = 0;
 	PoolByteArray img_data;
 	uint64_t start_time = 0;
 	uint32_t frametime = 0;
@@ -75,10 +78,17 @@ public:
 	virtual PacketType get_type() override { return PacketType::ImageData; };
 
 	PoolByteArray get_image_data();
+	int get_compression_type();
+	Size2 get_size();
+	int get_format();
 	uint64_t get_start_time();
 	uint64_t get_frametime();
-	void set_start_time(uint64_t time);
+
 	void set_image_data(PoolByteArray &buf);
+	void set_compression_type(int type);
+	void set_size(Size2 _size);
+	void set_format(int _format);
+	void set_start_time(uint64_t time);
 	void set_frametime(uint64_t _frametime);
 };
 

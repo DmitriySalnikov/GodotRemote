@@ -70,6 +70,9 @@ uint64_t GRPacketSyncTime::get_time() {
 // IMAGE DATA
 Ref<StreamPeerBuffer> GRPacketImageData::_get_data() {
 	auto buf = GRPacket::_get_data();
+	buf->put_var((int)compression);
+	buf->put_var(size);
+	buf->put_var(format);
 	buf->put_var(img_data);
 	buf->put_var(start_time); // send time
 	buf->put_var(frametime);
@@ -78,6 +81,9 @@ Ref<StreamPeerBuffer> GRPacketImageData::_get_data() {
 
 bool GRPacketImageData::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
+	compression = (ImageCompressionType)(int)buf->get_var();
+	size = buf->get_var();
+	format = buf->get_var();
 	img_data = buf->get_var();
 	start_time = buf->get_var(); // send time
 	frametime = buf->get_var();
@@ -88,12 +94,28 @@ PoolByteArray GRPacketImageData::get_image_data() {
 	return img_data;
 }
 
+int GRPacketImageData::get_compression_type() {
+	return (int)compression;
+}
+
 uint64_t GRPacketImageData::get_start_time() {
 	return start_time;
 }
 
 uint64_t GRPacketImageData::get_frametime() {
 	return frametime;
+}
+
+Size2 GRPacketImageData::get_size() {
+	return size;
+}
+
+int GRPacketImageData::get_format() {
+	return format;
+}
+
+void GRPacketImageData::set_compression_type(int type) {
+	compression = (ImageCompressionType)type;
 }
 
 void GRPacketImageData::set_start_time(uint64_t time) {
@@ -106,6 +128,14 @@ void GRPacketImageData::set_image_data(PoolByteArray &buf) {
 
 void GRPacketImageData::set_frametime(uint64_t _frametime) {
 	frametime = _frametime;
+}
+
+void GRPacketImageData::set_size(Size2 _size) {
+	size = _size;
+}
+
+void GRPacketImageData::set_format(int _format) {
+	format = _format;
 }
 
 //////////////////////////////////////////////////////////////////////////

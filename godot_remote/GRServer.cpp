@@ -62,6 +62,14 @@ int GRServer::get_auto_adjust_scale() {
 	return auto_adjust_scale;
 }
 
+void GRServer::set_compression_type(int _type) {
+	compression_type = (ImageCompressionType)_type;
+}
+
+int GRServer::get_compression_type() {
+	return (int)compression_type;
+}
+
 void GRServer::set_jpg_quality(int _quality) {
 	ERR_FAIL_COND(_quality < 0 || _quality > 100);
 	jpg_quality = _quality;
@@ -227,6 +235,7 @@ void GRServer::_load_settings() {
 	password = GET_PS(GodotRemote::ps_password_name);
 
 	// can be updated by client
+	compression_type = (ImageCompressionType)(int)GET_PS(GodotRemote::ps_server_compression_type_name);
 	target_stream_fps = GET_PS(GodotRemote::ps_server_stream_fps_name);
 	jpg_quality = GET_PS(GodotRemote::ps_jpg_quality_name);
 	auto_adjust_scale = GET_PS(GodotRemote::ps_auto_adjust_scale_name);
@@ -243,6 +252,7 @@ void GRServer::_load_settings() {
 	}
 
 	GRNotifications::add_notification_or_update_line(title, "title", "Loaded default server settings");
+	GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str((int)compression_type));
 	GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(jpg_quality));
 	GRNotifications::add_notification_or_update_line(title, "fps", "Stream FPS: " + str(target_stream_fps));
 	GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(GET_PS(GodotRemote::ps_scale_of_sending_stream_name)));
@@ -261,6 +271,7 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 	for (int i = 0; i < settings.size(); i++) {
 		Variant key = keys[i];
 		Variant value = settings[key];
+		_log("Trying to set server setting from client with key: " + str((int)key) + " and value: " + str(value), LogLevel::LL_Debug);
 
 		if (key.get_type() == Variant::INT) {
 			GodotRemote::TypesOfServerSettings k = (GodotRemote::TypesOfServerSettings)(int)key;
@@ -271,6 +282,13 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 						return;
 					}
 					break;
+				case GodotRemote::TypesOfServerSettings::COMPRESSION_TYPE: {
+					if (compression_type != (ImageCompressionType)(int)value) {
+						GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str((int)value));
+						set_compression_type(value);
+					}
+					break;
+				}
 				case GodotRemote::TypesOfServerSettings::JPG_QUALITY: {
 					if (jpg_quality != (int)value) {
 						GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str((int)value));
@@ -503,6 +521,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 			prev_process_image_time = time64;
 
 			ips.instance();
+			ips->compression_type = dev->compression_type;
 			ips->start(dev->resize_viewport->get_texture(), dev->jpg_quality);
 		}
 		// if image compressed to jpg and data is ready
@@ -518,6 +537,9 @@ void GRServer::_thread_connection(void *p_userdata) {
 				goto end_send;
 			}
 
+			pack->set_compression_type((int)ips->compression_type);
+			pack->set_size(Size2(ips->width, ips->height));
+			pack->set_format(ips->format);
 			pack->set_image_data(ips->ret_data);
 			pack->set_start_time(os->get_ticks_usec());
 			pack->set_frametime(send_data_time_us);
@@ -991,12 +1013,10 @@ const uint8_t *GRServer::_read_abstract_input_data(InputEvent *ie, const Vector2
 void GRServer::ImgProcessingStorage::_get_texture_data_from_main_thread() {
 	TimeCountInit();
 
-	_THREAD_SAFE_LOCK_
-	Ref<Image> img;
+	_THREAD_SAFE_LOCK_;
 	img.instance();
-	img->copy_internals_from(tex->get_data());
-	img->convert(Image::FORMAT_RGBA8);
-	PoolByteArray data = img->get_data();
+	Ref<Image> orig_img = tex->get_data();
+	PoolByteArray data = orig_img->get_data();
 
 	img_data = PoolByteArray();
 	Error err = img_data.resize(data.size());
@@ -1004,20 +1024,23 @@ void GRServer::ImgProcessingStorage::_get_texture_data_from_main_thread() {
 	auto r = data.read();
 
 	if (err == OK && !data.empty() && !img_data.empty() && w.ptr() && r.ptr()) {
-
 		memcpy(w.ptr(), r.ptr(), data.size());
 		w.release();
 		r.release();
 
-		width = img->get_width();
-		height = img->get_height();
+		width = orig_img->get_width();
+		height = orig_img->get_height();
+		img->create(width, height, false, orig_img->get_format(), img_data);
+		img->convert(Image::FORMAT_RGBA8);
 		bytes_in_color = 4;
+		format = img->get_format();
 
 		TimeCount("Image prepare");
 		_thread_process = Thread::create(&GRServer::ImgProcessingStorage::_processing_thread, this);
 	} else {
 		width = 0;
 		height = 0;
+		format = 0;
 		bytes_in_color = 0;
 		finished = true;
 		is_new_data = true;
@@ -1032,22 +1055,37 @@ void GRServer::ImgProcessingStorage::_processing_thread(void *p_user) {
 	if (ips.is_null())
 		return;
 
-	ips->_THREAD_SAFE_LOCK_ if (!ips->img_data.empty()) {
-		Error err = compress_jpg(ips->ret_data, ips->img_data, ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRUtils::SUBSAMPLING_H2V2);
-		if (err) {
-			GRNotifications::add_notification("Stream Error", "Can't compress stream image. Code: " + str(err));
+	ips->_THREAD_SAFE_LOCK_;
+	switch (ips->compression_type) {
+		case GRUtils::ImageCompressionType::Uncompressed: {
+			ips->ret_data = ips->img_data;
+			break;
 		}
-		ips->is_new_data = true;
-
-		ips->tex.unref();
-		ips->img_data.resize(0);
+		case GRUtils::ImageCompressionType::JPG: {
+			if (!ips->img_data.empty()) {
+				Error err = compress_jpg(ips->ret_data, ips->img_data, ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRUtils::SUBSAMPLING_H2V2);
+				if (err) {
+					_log("Can't compress stream image JPG. Code: " + str(err), LogLevel::LL_Error);
+					GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str(err));
+				}
+			}
+			break;
+		}
+		case GRUtils::ImageCompressionType::PNG: {
+			ips->ret_data = ips->img->save_png_to_buffer();
+			if (ips->ret_data.empty()) {
+				_log("Can't compress stream image to PNG.", LogLevel::LL_Error);
+				GRNotifications::add_notification("Stream Error", "Can't compress stream image to PNG.");
+			}
+			break;
+		}
+		default:
+			_log("Not implemented compression type: " + str((int)ips->compression_type), LogLevel::LL_Error);
+			break;
 	}
-	else {
-		ips->img_data.resize(0);
-		ips->is_new_data = true;
-	}
-	ips->_THREAD_SAFE_UNLOCK_
-			ips->finished = true;
+	ips->_THREAD_SAFE_UNLOCK_;
+	ips->is_new_data = true;
+	ips->finished = true;
 }
 
 void GRServer::ImgProcessingStorage::_bind_methods() {
@@ -1072,9 +1110,10 @@ void GRServer::ImgProcessingStorage::close() {
 GRServer::ImgProcessingStorage::~ImgProcessingStorage() {
 	_THREAD_SAFE_LOCK_
 	close();
+	img.unref();
+	tex.unref();
 	img_data.resize(0);
 	ret_data.resize(0);
-	tex.unref();
 	_THREAD_SAFE_UNLOCK_
 }
 

@@ -19,8 +19,9 @@ private:
 	private:
 		Thread *_thread_process = nullptr;
 		bool finished = false;
+		Ref<Image> img;
 		PoolByteArray img_data;
-		int width, height, bytes_in_color, jpg_quality;
+		int bytes_in_color, jpg_quality;
 
 		void _get_texture_data_from_main_thread();
 		static void _processing_thread(void *p_user);
@@ -31,6 +32,8 @@ private:
 	public:
 		Ref<ViewportTexture> tex;
 		PoolByteArray ret_data;
+		GRUtils::ImageCompressionType compression_type = GRUtils::ImageCompressionType::Uncompressed;
+		int width, height, format;
 		bool is_new_data = false;
 
 		void start(Ref<ViewportTexture> _tex, int _jpg_quality);
@@ -98,6 +101,7 @@ private:
 
 	String password;
 	bool auto_adjust_scale = false;
+	GRUtils::ImageCompressionType compression_type = GRUtils::ImageCompressionType::Uncompressed;
 	int jpg_quality = 75;
 	int target_stream_fps = 60;
 
@@ -127,6 +131,8 @@ protected:
 public:
 	void set_auto_adjust_scale(bool _val);
 	int get_auto_adjust_scale();
+	void set_compression_type(int _type);
+	int get_compression_type();
 	void set_jpg_quality(int _quality);
 	int get_jpg_quality();
 	void set_target_send_fps(int fps);
