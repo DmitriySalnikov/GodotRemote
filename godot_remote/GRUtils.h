@@ -16,7 +16,7 @@
 #define TimeCountReset() simple_time_counter = OS::get_singleton()->get_ticks_usec()
 // Shows delta between this and previous counter. Need to call TimeCountInit before
 #define TimeCount(str)                                                                                                                                                 \
-	GRUtils::_log(str + String(": ") + String::num_real((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0) + " ms", GRUtils::LogLevel::LL_Debug); \
+	GRUtils::_log(str + String(": ") + String::num((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0, 3) + " ms", GRUtils::LogLevel::LL_Debug); \
 	simple_time_counter = OS::get_singleton()->get_ticks_usec()
 
 // Bind constant with custom name

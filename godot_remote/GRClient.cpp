@@ -571,7 +571,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 				con_thread->ppeer = ppeer;
 				dev->is_connection_working = true;
 				dev->call_deferred("emit_signal", "connection_state_changed", true);
-				GRNotifications::add_notification("Connected", "Connected to " + address, NotificationIcon::Connected);
+				GRNotifications::add_notification("Connected", "Connected to " + address, NotificationIcon::Success);
 
 				_connection_loop(con_thread);
 
@@ -862,10 +862,10 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 	if (connection->is_connected_to_host()) {
 		_log("Lost connection to " + address, LogLevel::LL_Error);
-		GRNotifications::add_notification("Disconnected", "Closing connection to " + address, NotificationIcon::Disconnected);
+		GRNotifications::add_notification("Disconnected", "Closing connection to " + address, NotificationIcon::Fail);
 	} else {
 		_log("Closing connection to " + address, LogLevel::LL_Error);
-		GRNotifications::add_notification("Disconnected", "Lost connection to " + address, NotificationIcon::Disconnected);
+		GRNotifications::add_notification("Disconnected", "Lost connection to " + address, NotificationIcon::Fail);
 	}
 
 	if (_img_thread) {

@@ -152,7 +152,7 @@ void GRServer::_internal_call_only_deffered_start() {
 	}
 	set_status(WorkingStatus::Working);
 
-	GRNotifications::add_notification("Godot Remote Server Status", "Server started");
+	GRNotifications::add_notification("Godot Remote Server Status", "Server started", NotificationIcon::Success);
 }
 
 void GRServer::_internal_call_only_deffered_stop() {
@@ -177,7 +177,7 @@ void GRServer::_internal_call_only_deffered_stop() {
 	resize_viewport = nullptr;
 	set_status(WorkingStatus::Stopped);
 
-	GRNotifications::add_notification("Godot Remote Server Status", "Server stopped");
+	GRNotifications::add_notification("Godot Remote Server Status", "Server stopped", NotificationIcon::Fail);
 }
 
 void GRServer::_remove_resize_viewport(Node *node) {
@@ -387,7 +387,7 @@ void GRServer::_thread_listen(void *p_userdata) {
 				continue;
 			} else {
 				_log("Start listening port " + str(dev->port), LogLevel::LL_Normal);
-				GRNotifications::add_notification("Start listening", "Start listening on port: " + str(dev->port), NotificationIcon::Connected, true);
+				GRNotifications::add_notification("Start listening", "Start listening on port: " + str(dev->port), NotificationIcon::Success, true);
 			}
 		}
 		listening_error_notification_shown = false;
@@ -432,7 +432,7 @@ void GRServer::_thread_listen(void *p_userdata) {
 						connection_thread_info->thread_ref = Thread::create(&_thread_connection, connection_thread_info.ptr());
 						_log("New connection from " + address);
 
-						GRNotifications::add_notification("Connected", "Client connected: " + address + "\nDevice ID: " + connection_thread_info->device_id, NotificationIcon::Connected);
+						GRNotifications::add_notification("Connected", "Client connected: " + address + "\nDevice ID: " + connection_thread_info->device_id, NotificationIcon::Success);
 						break;
 
 					case GRDevice::AuthResult::VersionMismatch:
@@ -578,7 +578,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after sending!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after sending data!");
+			GRNotifications::add_notification("Error", "Lost connection after sending data!", NotificationIcon::Error);
 			continue;
 		}
 
@@ -665,7 +665,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after receiving!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after receiving data!");
+			GRNotifications::add_notification("Error", "Lost connection after receiving data!", NotificationIcon::Error);
 			continue;
 		}
 
@@ -676,9 +676,9 @@ void GRServer::_thread_connection(void *p_userdata) {
 	_log("Closing connection thread with address: " + address, LogLevel::LL_Debug);
 
 	if (connection->is_connected_to_host()) {
-		GRNotifications::add_notification("Disconnected", "Closing connection with " + address, NotificationIcon::Disconnected, false);
+		GRNotifications::add_notification("Disconnected", "Closing connection with " + address, NotificationIcon::Fail, false);
 	} else {
-		GRNotifications::add_notification("Disconnected", "Client disconnected: " + address, NotificationIcon::Disconnected, false);
+		GRNotifications::add_notification("Disconnected", "Client disconnected: " + address, NotificationIcon::Fail, false);
 	}
 
 	if (ips.is_valid()) {
@@ -1009,40 +1009,18 @@ const uint8_t *GRServer::_read_abstract_input_data(InputEvent *ie, const Vector2
 //////////////////////////////////////////////
 ////////// ImgProcessingStorage //////////////
 //////////////////////////////////////////////
-
 void GRServer::ImgProcessingStorage::_get_texture_data_from_main_thread() {
 	TimeCountInit();
 
 	_THREAD_SAFE_LOCK_;
-	img.instance();
-	Ref<Image> orig_img = tex->get_data();
-	PoolByteArray data = orig_img->get_data();
+	img = tex->get_data(); // extremely slow
+	TimeCount("Get image data from VisualServer");
 
-	PoolByteArray img_data = PoolByteArray();
-	Error err = img_data.resize(data.size());
-	auto w = img_data.write();
-	auto r = data.read();
-
-	if (err == OK && !data.empty() && !img_data.empty() && w.ptr() && r.ptr()) {
-		memcpy(w.ptr(), r.ptr(), data.size());
-		w.release();
-		r.release();
-
-		width = orig_img->get_width();
-		height = orig_img->get_height();
-		img->create(width, height, false, orig_img->get_format(), img_data);
-
-		format = img->get_format();
-		TimeCount("Image prepare");
+	if (!img->empty()) {
 		_thread_process = Thread::create(&GRServer::ImgProcessingStorage::_processing_thread, this);
 	} else {
-		width = 0;
-		height = 0;
-		format = 0;
-		bytes_in_color = 0;
 		finished = true;
 		is_new_data = true;
-
 		_log("Can't copy viewport image data", LogLevel::LL_Error);
 	}
 	_THREAD_SAFE_UNLOCK_
@@ -1053,9 +1031,20 @@ void GRServer::ImgProcessingStorage::_processing_thread(void *p_user) {
 	if (ips.is_null())
 		return;
 
+	ips->width = ips->img->get_width();
+	ips->height = ips->img->get_height();
+
 	TimeCountInit();
-	if (ips->format != Image::FORMAT_RGBA8 || ips->format != Image::FORMAT_RGB8) {
+	ips->format = ips->img->get_format();
+	if (!(ips->format == Image::FORMAT_RGBA8 || ips->format == Image::FORMAT_RGB8)) {
 		ips->img->convert(Image::FORMAT_RGB8);
+		ips->format = ips->img->get_format();
+
+		if (ips->format != Image::FORMAT_RGB8) {
+			_log("Can't convert stream image to RGB8.", LogLevel::LL_Error);
+			GRNotifications::add_notification("Stream Error", "Can't convert stream image to RGB8.", NotificationIcon::Error);
+			goto end;
+		}
 		TimeCount("Image Convert");
 	}
 	ips->bytes_in_color = ips->img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
@@ -1074,7 +1063,7 @@ void GRServer::ImgProcessingStorage::_processing_thread(void *p_user) {
 				Error err = compress_jpg(ips->ret_data, ips->img->get_data(), ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRUtils::SUBSAMPLING_H2V2);
 				if (err) {
 					_log("Can't compress stream image JPG. Code: " + str(err), LogLevel::LL_Error);
-					GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str(err));
+					GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str(err), NotificationIcon::Error);
 				}
 			}
 			break;
@@ -1083,7 +1072,7 @@ void GRServer::ImgProcessingStorage::_processing_thread(void *p_user) {
 			ips->ret_data = ips->img->save_png_to_buffer();
 			if (ips->ret_data.empty()) {
 				_log("Can't compress stream image to PNG.", LogLevel::LL_Error);
-				GRNotifications::add_notification("Stream Error", "Can't compress stream image to PNG.");
+				GRNotifications::add_notification("Stream Error", "Can't compress stream image to PNG.", NotificationIcon::Error);
 			}
 			break;
 		}

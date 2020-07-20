@@ -154,14 +154,17 @@ Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width,
 
 	TimeCount("Compress img");
 
-	rb.release();
 	ri.release();
 
-	res.append_array(compress_buffer.subarray(0, size - 1));
+	res.resize(size);
+	auto wr = res.write();
+	memcpy(wr.ptr(), rb.ptr(), size);
+
 	TimeCount("Combine arrays");
 
 	_log("JPG size: " + str(res.size()), LogLevel::LL_Debug);
 
+	rb.release();
 	ret = res;
 	return Error::OK;
 }

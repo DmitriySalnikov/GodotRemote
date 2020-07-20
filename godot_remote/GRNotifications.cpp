@@ -76,7 +76,7 @@ void GRNotifications::_add_notification_or_append_string(String title, String te
 void GRNotifications::_add_notification_or_update_line(String title, String id, String text, int icon, float duration_multiplier) {
 	auto *np = cast_to<GRNotificationPanelUpdatable>(_get_notification(title));
 	if (np) {
-		_log("Updating existing updatable notification with Title: \"" + title + "\"" + " and Text:\"" + text + "\"", LogLevel::LL_Debug);
+		_log("Updating existing updatable notification with Title: \"" + title + "\" ID: \"" + id + "\" Text:\"" + text + "\"", LogLevel::LL_Debug);
 		np->set_updatable_line(this, title, id, text, (NotificationIcon)icon, duration_multiplier);
 	} else {
 
@@ -471,8 +471,8 @@ Ref<GRNotificationStyle> GRNotificationPanel::generate_default_style() {
 	res_style->set_close_button_icon(_default_close_texture);
 	SetIcon(NotificationIcon::Error);
 	SetIcon(NotificationIcon::Warning);
-	SetIcon(NotificationIcon::Connected);
-	SetIcon(NotificationIcon::Disconnected);
+	SetIcon(NotificationIcon::Success);
+	SetIcon(NotificationIcon::Fail);
 
 #undef SetIcon
 #endif
@@ -499,8 +499,8 @@ void GRNotificationPanel::_load_default_textures() {
 
 	LoadTex(NotificationIcon::Error, GRResources::Bin_ErrorIconPNG);
 	LoadTex(NotificationIcon::Warning, GRResources::Bin_WarningIconPNG);
-	LoadTex(NotificationIcon::Connected, GRResources::Bin_ConnectedIconPNG);
-	LoadTex(NotificationIcon::Disconnected, GRResources::Bin_DisconnectedIconPNG);
+	LoadTex(NotificationIcon::Success, GRResources::Bin_ConnectedIconPNG);
+	LoadTex(NotificationIcon::Fail, GRResources::Bin_DisconnectedIconPNG);
 
 	{
 		img.instance();

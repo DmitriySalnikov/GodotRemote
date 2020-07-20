@@ -13,8 +13,8 @@ enum class NotificationIcon {
 	None,
 	Error,
 	Warning,
-	Connected,
-	Disconnected,
+	Success,
+	Fail,
 
 	MAX,
 };
