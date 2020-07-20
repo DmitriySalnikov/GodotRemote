@@ -20,7 +20,6 @@ private:
 		Thread *_thread_process = nullptr;
 		bool finished = false;
 		Ref<Image> img;
-		PoolByteArray img_data;
 		int bytes_in_color, jpg_quality;
 
 		void _get_texture_data_from_main_thread();

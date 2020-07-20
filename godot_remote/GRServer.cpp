@@ -1018,7 +1018,7 @@ void GRServer::ImgProcessingStorage::_get_texture_data_from_main_thread() {
 	Ref<Image> orig_img = tex->get_data();
 	PoolByteArray data = orig_img->get_data();
 
-	img_data = PoolByteArray();
+	PoolByteArray img_data = PoolByteArray();
 	Error err = img_data.resize(data.size());
 	auto w = img_data.write();
 	auto r = data.read();
@@ -1031,10 +1031,8 @@ void GRServer::ImgProcessingStorage::_get_texture_data_from_main_thread() {
 		width = orig_img->get_width();
 		height = orig_img->get_height();
 		img->create(width, height, false, orig_img->get_format(), img_data);
-		img->convert(Image::FORMAT_RGBA8);
-		bytes_in_color = 4;
-		format = img->get_format();
 
+		format = img->get_format();
 		TimeCount("Image prepare");
 		_thread_process = Thread::create(&GRServer::ImgProcessingStorage::_processing_thread, this);
 	} else {
@@ -1055,15 +1053,25 @@ void GRServer::ImgProcessingStorage::_processing_thread(void *p_user) {
 	if (ips.is_null())
 		return;
 
+	TimeCountInit();
+	if (ips->format != Image::FORMAT_RGBA8 || ips->format != Image::FORMAT_RGB8) {
+		ips->img->convert(Image::FORMAT_RGB8);
+		TimeCount("Image Convert");
+	}
+	ips->bytes_in_color = ips->img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
+
+	if (ips->img->get_data().empty())
+		goto end;
+
 	ips->_THREAD_SAFE_LOCK_;
 	switch (ips->compression_type) {
 		case GRUtils::ImageCompressionType::Uncompressed: {
-			ips->ret_data = ips->img_data;
+			ips->ret_data = ips->img->get_data();
 			break;
 		}
 		case GRUtils::ImageCompressionType::JPG: {
-			if (!ips->img_data.empty()) {
-				Error err = compress_jpg(ips->ret_data, ips->img_data, ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRUtils::SUBSAMPLING_H2V2);
+			if (!ips->img->empty()) {
+				Error err = compress_jpg(ips->ret_data, ips->img->get_data(), ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRUtils::SUBSAMPLING_H2V2);
 				if (err) {
 					_log("Can't compress stream image JPG. Code: " + str(err), LogLevel::LL_Error);
 					GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str(err));
@@ -1084,6 +1092,8 @@ void GRServer::ImgProcessingStorage::_processing_thread(void *p_user) {
 			break;
 	}
 	ips->_THREAD_SAFE_UNLOCK_;
+end:
+
 	ips->is_new_data = true;
 	ips->finished = true;
 }
@@ -1112,7 +1122,6 @@ GRServer::ImgProcessingStorage::~ImgProcessingStorage() {
 	close();
 	img.unref();
 	tex.unref();
-	img_data.resize(0);
 	ret_data.resize(0);
 	_THREAD_SAFE_UNLOCK_
 }
