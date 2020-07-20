@@ -232,16 +232,16 @@ end:
 
 void GRServer::_load_settings() {
 	// only updated by server itself
-	password = GET_PS(GodotRemote::ps_password_name);
+	password = GET_PS(GodotRemote::ps_server_password_name);
 
 	// can be updated by client
 	compression_type = (ImageCompressionType)(int)GET_PS(GodotRemote::ps_server_compression_type_name);
 	target_stream_fps = GET_PS(GodotRemote::ps_server_stream_fps_name);
-	jpg_quality = GET_PS(GodotRemote::ps_jpg_quality_name);
-	auto_adjust_scale = GET_PS(GodotRemote::ps_auto_adjust_scale_name);
+	jpg_quality = GET_PS(GodotRemote::ps_server_jpg_quality_name);
+	auto_adjust_scale = GET_PS(GodotRemote::ps_server_auto_adjust_scale_name);
 
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
-		resize_viewport->set_rendering_scale(GET_PS(GodotRemote::ps_scale_of_sending_stream_name));
+		resize_viewport->set_rendering_scale(GET_PS(GodotRemote::ps_server_scale_of_sending_stream_name));
 	}
 
 	// notification
@@ -255,7 +255,7 @@ void GRServer::_load_settings() {
 	GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str((int)compression_type));
 	GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(jpg_quality));
 	GRNotifications::add_notification_or_update_line(title, "fps", "Stream FPS: " + str(target_stream_fps));
-	GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(GET_PS(GodotRemote::ps_scale_of_sending_stream_name)));
+	GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(GET_PS(GodotRemote::ps_server_scale_of_sending_stream_name)));
 	GRNotifications::add_notification_or_update_line(title, "auto_scale", "Auto adjust scale: " + str(auto_adjust_scale)); // TODO not completed
 }
 
@@ -924,6 +924,8 @@ bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
 				e->set_tilt(bytes2var<Vector2>(data + 4, 12));
 				e->set_relative(bytes2var<Vector2>(data + 16, 12) * vp_size);
 				e->set_speed(bytes2var<Vector2>(data + 28, 12) * vp_size);
+				_log(e->get_relative());
+				_log(e->get_speed());
 				ev = e;
 				break;
 			}
@@ -1189,7 +1191,7 @@ float GRSViewport::get_rendering_scale() {
 GRSViewport::GRSViewport() {
 	set_name("GRSViewport");
 
-	rendering_scale = GET_PS(GodotRemote::ps_scale_of_sending_stream_name);
+	rendering_scale = GET_PS(GodotRemote::ps_server_scale_of_sending_stream_name);
 
 	set_hdr(false);
 	set_disable_3d(true);

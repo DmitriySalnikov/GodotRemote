@@ -14,22 +14,22 @@ GodotRemote *GodotRemote::singleton = nullptr;
 
 using namespace GRUtils;
 
-String GodotRemote::ps_autoload_name = "debug/godot_remote/general/autostart";
-String GodotRemote::ps_port_name = "debug/godot_remote/general/port";
-String GodotRemote::ps_loglevel_name = "debug/godot_remote/general/log_level";
+String GodotRemote::ps_general_autoload_name = "debug/godot_remote/general/autostart";
+String GodotRemote::ps_general_port_name = "debug/godot_remote/general/port";
+String GodotRemote::ps_general_loglevel_name = "debug/godot_remote/general/log_level";
 
 String GodotRemote::ps_notifications_enabled_name = "debug/godot_remote/notifications/notifications_enabled";
 String GodotRemote::ps_noticications_position_name = "debug/godot_remote/notifications/noticications_position";
 String GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notifications/notifications_duration";
 
-String GodotRemote::ps_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
+String GodotRemote::ps_server_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
 String GodotRemote::ps_server_stream_fps_name = "debug/godot_remote/server/stream_fps";
 String GodotRemote::ps_server_compression_type_name = "debug/godot_remote/server/compression_type";
-String GodotRemote::ps_jpg_quality_name = "debug/godot_remote/server/jpg_quality";
-String GodotRemote::ps_jpg_buffer_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
-String GodotRemote::ps_auto_adjust_scale_name = "debug/godot_remote/server/auto_adjust_scale";
-String GodotRemote::ps_scale_of_sending_stream_name = "debug/godot_remote/server/scale_of_sending_stream";
-String GodotRemote::ps_password_name = "debug/godot_remote/server/password";
+String GodotRemote::ps_server_jpg_quality_name = "debug/godot_remote/server/jpg_quality";
+String GodotRemote::ps_server_jpg_buffer_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
+String GodotRemote::ps_server_auto_adjust_scale_name = "debug/godot_remote/server/auto_adjust_scale";
+String GodotRemote::ps_server_scale_of_sending_stream_name = "debug/godot_remote/server/scale_of_sending_stream";
+String GodotRemote::ps_server_password_name = "debug/godot_remote/server/password";
 
 GodotRemote *GodotRemote::get_singleton() {
 	return singleton;
@@ -39,18 +39,16 @@ GodotRemote::GodotRemote() {
 	if (!singleton)
 		singleton = this;
 
-#ifdef TOOLS_ENABLED
-	if (Engine::get_singleton()->is_editor_hint())
-		if (EditorNode::get_singleton())
-			EditorNode::get_singleton()->connect("play_pressed", this, "_run_emitted");
-#endif
-
 	register_and_load_settings();
 	if (!Engine::get_singleton()->is_editor_hint()) {
 		call_deferred("_create_notification_manager");
 		if (is_autostart)
 			call_deferred("create_and_start_device");
 	}
+
+#ifdef TOOLS_ENABLED
+	call_deferred("_prepare_editor");
+#endif
 }
 
 GodotRemote::~GodotRemote() {
@@ -68,6 +66,7 @@ void GodotRemote::_bind_methods() {
 #ifdef TOOLS_ENABLED
 	ClassDB::bind_method(D_METHOD("_adb_port_forwarding"), &GodotRemote::_adb_port_forwarding);
 	ClassDB::bind_method(D_METHOD("_run_emitted"), &GodotRemote::_run_emitted);
+	ClassDB::bind_method(D_METHOD("_prepare_editor"), &GodotRemote::_prepare_editor);
 #endif
 
 	ClassDB::bind_method(D_METHOD("get_device"), &GodotRemote::get_device);
@@ -234,27 +233,27 @@ void GodotRemote::register_and_load_settings() {
 	GLOBAL_DEF(name, def_val);    \
 	ProjectSettings::get_singleton()->set_custom_property_info(name, info)
 
-	DEF_SET(is_autostart, ps_autoload_name, true, PropertyInfo(Variant::BOOL, ps_autoload_name));
-	DEF_(ps_port_name, 52341, PropertyInfo(Variant::INT, ps_port_name, PROPERTY_HINT_RANGE, "0,65535"));
-	DEF_(ps_loglevel_name, GRUtils::LogLevel::LL_Normal, PropertyInfo(Variant::INT, ps_loglevel_name, PROPERTY_HINT_ENUM, "Debug,Normal,Warning,Error,None"));
+	DEF_SET(is_autostart, ps_general_autoload_name, true, PropertyInfo(Variant::BOOL, ps_general_autoload_name));
+	DEF_(ps_general_port_name, 52341, PropertyInfo(Variant::INT, ps_general_port_name, PROPERTY_HINT_RANGE, "0,65535"));
+	DEF_(ps_general_loglevel_name, GRUtils::LogLevel::LL_Normal, PropertyInfo(Variant::INT, ps_general_loglevel_name, PROPERTY_HINT_ENUM, "Debug,Normal,Warning,Error,None"));
 
 	DEF_(ps_notifications_enabled_name, true, PropertyInfo(Variant::BOOL, ps_notifications_enabled_name));
 	DEF_(ps_noticications_position_name, (int)GRNotifications::NotificationsPosition::TC, PropertyInfo(Variant::INT, ps_noticications_position_name, PROPERTY_HINT_ENUM, "TopLeft,TopCenter,TopRight,BottomLeft,BottomCenter,BottomRight"));
 	DEF_(ps_notifications_duration_name, 3.f, PropertyInfo(Variant::REAL, ps_notifications_duration_name, PROPERTY_HINT_RANGE, "0,100, 0.01"));
 
 	// const server settings
-	DEF_(ps_config_adb_name, true, PropertyInfo(Variant::BOOL, ps_config_adb_name));
-	DEF_(ps_jpg_buffer_mb_size_name, 4, PropertyInfo(Variant::INT, ps_jpg_buffer_mb_size_name, PROPERTY_HINT_RANGE, "1,128"));
+	DEF_(ps_server_config_adb_name, true, PropertyInfo(Variant::BOOL, ps_server_config_adb_name));
+	DEF_(ps_server_jpg_buffer_mb_size_name, 4, PropertyInfo(Variant::INT, ps_server_jpg_buffer_mb_size_name, PROPERTY_HINT_RANGE, "1,128"));
 
 	// only server can change this settings
-	DEF_(ps_password_name, "", PropertyInfo(Variant::STRING, ps_password_name));
+	DEF_(ps_server_password_name, "", PropertyInfo(Variant::STRING, ps_server_password_name));
 
 	// client can change this settings
 	DEF_(ps_server_compression_type_name, (int)ImageCompressionType::JPG, PropertyInfo(Variant::INT, ps_server_compression_type_name, PROPERTY_HINT_ENUM, "Uncompressed,JPG,PNG"));
 	DEF_(ps_server_stream_fps_name, 60, PropertyInfo(Variant::INT, ps_server_stream_fps_name, PROPERTY_HINT_RANGE, "1,1000"));
-	DEF_(ps_scale_of_sending_stream_name, 0.3f, PropertyInfo(Variant::REAL, ps_scale_of_sending_stream_name, PROPERTY_HINT_RANGE, "0,1,0.01"));
-	DEF_(ps_jpg_quality_name, 75, PropertyInfo(Variant::INT, ps_jpg_quality_name, PROPERTY_HINT_RANGE, "0,100"));
-	DEF_(ps_auto_adjust_scale_name, false, PropertyInfo(Variant::BOOL, ps_auto_adjust_scale_name));
+	DEF_(ps_server_scale_of_sending_stream_name, 0.3f, PropertyInfo(Variant::REAL, ps_server_scale_of_sending_stream_name, PROPERTY_HINT_RANGE, "0,1,0.01"));
+	DEF_(ps_server_jpg_quality_name, 75, PropertyInfo(Variant::INT, ps_server_jpg_quality_name, PROPERTY_HINT_RANGE, "0,100"));
+	DEF_(ps_server_auto_adjust_scale_name, false, PropertyInfo(Variant::BOOL, ps_server_auto_adjust_scale_name));
 
 #undef DEF_SET
 #undef DEF_SET_ENUM
@@ -285,17 +284,24 @@ void GodotRemote::create_and_start_device(DeviceType type) {
 #include "editor/editor_export.h"
 #include "editor/editor_settings.h"
 
+void GodotRemote::_prepare_editor() {
+	if (Engine::get_singleton()->is_editor_hint()) {
+		if (EditorNode::get_singleton())
+			EditorNode::get_singleton()->connect("play_pressed", this, "_run_emitted");
+	}
+}
+
 void GodotRemote::_run_emitted() {
 	// call_deferred because debugger can't connect to game if process blocks thread on start
-	if (GET_PS(ps_config_adb_name))
-		call_deferred("adb_port_forwarding");
+	if (GET_PS(ps_server_config_adb_name))
+		call_deferred("_adb_port_forwarding");
 }
 
 void GodotRemote::_adb_port_forwarding() {
 	List<String> args;
 	args.push_back("reverse");
-	args.push_back("tcp:" + str(GET_PS(ps_port_name)));
-	args.push_back("tcp:" + str(GET_PS(ps_port_name)));
+	args.push_back("tcp:" + str(GET_PS(ps_general_port_name)));
+	args.push_back("tcp:" + str(GET_PS(ps_general_port_name)));
 
 	String res;
 	Error err = OS::get_singleton()->execute(EditorSettings::get_singleton()->get_setting("export/android/adb"), args, true, nullptr, &res, nullptr, true);

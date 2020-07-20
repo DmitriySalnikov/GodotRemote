@@ -26,20 +26,22 @@ public:
 		RENDER_SCALE = 4,
 	};
 
-	static String ps_autoload_name;
-	static String ps_loglevel_name;
+	static String ps_general_autoload_name;
+	static String ps_general_port_name;
+	static String ps_general_loglevel_name;
+
 	static String ps_notifications_enabled_name;
 	static String ps_noticications_position_name;
 	static String ps_notifications_duration_name;
-	static String ps_port_name;
-	static String ps_config_adb_name;
+
+	static String ps_server_config_adb_name;
 	static String ps_server_stream_fps_name;
 	static String ps_server_compression_type_name;
-	static String ps_jpg_buffer_mb_size_name;
-	static String ps_jpg_quality_name;
-	static String ps_scale_of_sending_stream_name;
-	static String ps_auto_adjust_scale_name;
-	static String ps_password_name;
+	static String ps_server_jpg_buffer_mb_size_name;
+	static String ps_server_jpg_quality_name;
+	static String ps_server_scale_of_sending_stream_name;
+	static String ps_server_auto_adjust_scale_name;
+	static String ps_server_password_name;
 
 private:
 	bool is_autostart = false;
@@ -52,6 +54,7 @@ private:
 	void _create_notification_manager();
 	void _remove_notifications_manager();
 #ifdef TOOLS_ENABLED
+	void _prepare_editor();
 	void _run_emitted();
 	void _adb_port_forwarding();
 #endif

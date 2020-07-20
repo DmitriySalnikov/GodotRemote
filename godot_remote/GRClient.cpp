@@ -1061,7 +1061,8 @@ void GRInputCollector::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
 }
 
-#define fix(e) (e - stream_rect.position) / stream_rect.size
+#define fix(e) ((e - stream_rect.position) / stream_rect.size)
+#define fix_rel(e) ((e) / stream_rect.size) // TODO more tests!!
 
 #define data_append_defaults()                                                                                       \
 	data.append_array(uint322bytes(ie->get_device()));                                                               \
@@ -1151,8 +1152,11 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 
 			data.append_array(float2bytes(iemm->get_pressure()));
 			data.append_array(var2bytes(iemm->get_tilt()));
-			data.append_array(var2bytes(fix(iemm->get_relative())));
-			data.append_array(var2bytes(fix(iemm->get_speed())));
+			data.append_array(var2bytes(fix_rel(iemm->get_relative())));
+			data.append_array(var2bytes(fix_rel(iemm->get_speed())));
+
+			_log(iemm->get_relative());
+			_log(iemm->get_speed());
 
 			goto end;
 		}
@@ -1186,8 +1190,8 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 
 			data.append(iesd->get_index());
 			data.append_array(var2bytes(fix(iesd->get_position())));
-			data.append_array(var2bytes(fix(iesd->get_relative())));
-			data.append_array(var2bytes(fix(iesd->get_speed())));
+			data.append_array(var2bytes(fix_rel(iesd->get_relative())));
+			data.append_array(var2bytes(fix_rel(iesd->get_speed())));
 
 			goto end;
 		}
@@ -1215,7 +1219,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 			data.append((int)GRDevice::InputType::InputEventPanGesture);
 			data_append_defaults();
 
-			data.append_array(var2bytes(fix(iepg->get_delta())));
+			data.append_array(var2bytes(fix_rel(iepg->get_delta())));
 
 			goto end;
 		}

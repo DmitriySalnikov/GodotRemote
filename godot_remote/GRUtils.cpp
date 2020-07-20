@@ -23,7 +23,7 @@ void init() {
 	GR_PACKET_HEADER('G', 'R', 'H', 'D');
 	GR_VERSION(1, 0, 0);
 
-	GET_PS_SET(current_loglevel, GodotRemote::ps_loglevel_name);
+	GET_PS_SET(current_loglevel, GodotRemote::ps_general_loglevel_name);
 }
 
 void deinit() {
@@ -33,7 +33,7 @@ void deinit() {
 
 #ifndef NO_GODOTREMOTE_SERVER
 void init_server_utils() {
-	GET_PS_SET(compress_buffer_size_mb, GodotRemote::ps_jpg_buffer_mb_size_name);
+	GET_PS_SET(compress_buffer_size_mb, GodotRemote::ps_server_jpg_buffer_mb_size_name);
 	compress_buffer.resize((1024 * 1024) * compress_buffer_size_mb);
 }
 
