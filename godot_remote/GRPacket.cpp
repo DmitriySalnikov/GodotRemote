@@ -33,6 +33,8 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 			CREATE(GRPacketImageData);
 		case PacketType::InputData:
 			CREATE(GRPacketInputData);
+		case PacketType::MouseModeSync:
+			CREATE(GRPacketMouseModeSync);
 		case PacketType::ServerSettings:
 			CREATE(GRPacketServerSettings);
 		case PacketType::ServerSettingsRequest:
@@ -219,4 +221,26 @@ void GRPacketServerSettings::set_settings(Dictionary &_settings) {
 
 void GRPacketServerSettings::add_setting(int _setting, Variant value) {
 	settings[_setting] = value;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// MOUSE MODE SYNC
+
+Ref<StreamPeerBuffer> GRPacketMouseModeSync::_get_data() {
+	auto buf = GRPacket::_get_data();
+	buf->put_8(mouse_mode);
+	return buf;
+}
+
+bool GRPacketMouseModeSync::_create(Ref<StreamPeerBuffer> buf) {
+	GRPacket::_create(buf);
+	mouse_mode = (Input::MouseMode)buf->get_8();
+	return true;
+}
+Input::MouseMode GRPacketMouseModeSync::get_mouse_mode() {
+	return mouse_mode;
+}
+
+void GRPacketMouseModeSync::set_mouse_mode(Input::MouseMode _mode) {
+	mouse_mode = _mode;
 }

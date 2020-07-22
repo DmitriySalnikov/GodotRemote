@@ -475,8 +475,10 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 	GodotRemote *gr = GodotRemote::get_singleton();
 	OS *os = OS::get_singleton();
+	Input *input = Input::get_singleton();
 	Error err = Error::OK;
 
+	Input::MouseMode mouse_mode = Input::MOUSE_MODE_VISIBLE;
 	String address = CON_ADDRESS(connection);
 	Thread::set_name("GR_connection " + address);
 
@@ -491,9 +493,11 @@ void GRServer::_thread_connection(void *p_userdata) {
 	bool ping_sended = false;
 	bool time_synced = false;
 
+	TimeCountInit();
 	while (!thread_info->break_connection && connection.is_valid() && !connection->is_queued_for_deletion() && connection->is_connected_to_host()) {
 		bool nothing_happens = true;
 		uint64_t send_data_time_us = (1000000 / dev->target_stream_fps);
+		TimeCount("Cycle start");
 
 		///////////////////////////////////////////////////////////////////
 		// SENDING
@@ -511,6 +515,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 				_log("Can't send sync time data! Code: " + str(err), LogLevel::LL_Error);
 				goto end_send;
 			}
+			TimeCount("Sync Time Send");
 		}
 
 		// IMAGE
@@ -523,6 +528,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 			ips.instance();
 			ips->compression_type = dev->compression_type;
 			ips->start(dev->resize_viewport->get_texture(), dev->jpg_quality);
+			TimeCount("Send image to processing");
 		}
 		// if image compressed to jpg and data is ready
 		if (ips.is_valid() && ips->is_new_data) {
@@ -559,6 +565,21 @@ void GRServer::_thread_connection(void *p_userdata) {
 			}
 		}
 
+		if (input->get_mouse_mode() != mouse_mode) {
+			nothing_happens = false;
+			mouse_mode = input->get_mouse_mode();
+
+			Ref<GRPacketMouseModeSync> pack(memnew(GRPacketMouseModeSync));
+			pack->set_mouse_mode(mouse_mode);
+
+			err = ppeer->put_var(pack->get_data());
+			if (err) {
+				_log("Send mouse mode sync failed with code: " + str(err), LogLevel::LL_Error);
+				goto end_send;
+			}
+			TimeCount("Send image data");
+		}
+
 		// PING
 		time64 = os->get_ticks_usec();
 		if ((time64 - prev_ping_sending_time) > 100_ms && !ping_sended) {
@@ -573,6 +594,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 				_log("Send ping failed with code: " + str(err), LogLevel::LL_Error);
 				goto end_send;
 			}
+			TimeCount("Ping");
 		}
 	end_send:
 
@@ -654,6 +676,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 									set_gravity(s[1]);
 									set_gyroscope(s[2]);
 									set_magnetometer(s[3]);
+
 									break;
 								}
 								default: {
@@ -700,6 +723,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 				}
 			}
 		}
+		TimeCount("End receiving");
 	end_recv:
 
 		if (!connection->is_connected_to_host()) {
@@ -868,6 +892,7 @@ void GRServer::ImgProcessingStorage::_processing_thread(void *p_user) {
 			GRNotifications::add_notification("Stream Error", "Can't convert stream image to RGB8.", NotificationIcon::Error);
 			goto end;
 		}
+		
 		TimeCount("Image Convert");
 	}
 	ips->bytes_in_color = ips->img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;

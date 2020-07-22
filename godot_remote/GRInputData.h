@@ -62,7 +62,7 @@ public:
 			return _get_type();
 		}
 	};
-	static Ref<GRInputData> create(const PoolByteArray & buf);
+	static Ref<GRInputData> create(const PoolByteArray &buf);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -110,18 +110,18 @@ public:
 	static Ref<GRInputDataEvent> parse_event(const Ref<InputEvent> &ev, const Rect2 &rect);
 };
 
-#define INPUT_EVENT_DATA(__class, _parent, _type)                                               \
-	class __class : public _parent {                                                            \
-		GDCLASS(__class, _parent);                                                              \
-		friend GRInputDataEvent;                                                                        \
-		friend GRInputData;                                                                     \
-                                                                                                \
-	protected:                                                                                  \
+#define INPUT_EVENT_DATA(__class, _parent, _type)                                                 \
+	class __class : public _parent {                                                              \
+		GDCLASS(__class, _parent);                                                                \
+		friend GRInputDataEvent;                                                                  \
+		friend GRInputData;                                                                       \
+                                                                                                  \
+	protected:                                                                                    \
 		virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2 &rect) override; \
-		virtual void _parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) override;       \
-		virtual InputType _get_type() override { return _type; };                               \
-                                                                                                \
-	public:                                                                                     \
+		virtual void _parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) override;         \
+		virtual InputType _get_type() override { return _type; };                                 \
+                                                                                                  \
+	public:                                                                                       \
 	}
 
 INPUT_EVENT_DATA(GRIEDataWithModifiers, GRInputDataEvent, InputType::InputEventWithModifiers);

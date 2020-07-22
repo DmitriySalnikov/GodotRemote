@@ -11,6 +11,9 @@ enum class PacketType {
 	ImageData = 2,
 	InputData = 3,
 	ServerSettings = 4,
+	MouseModeSync = 5,
+
+	// Requests
 	ServerSettingsRequest = 253,
 	Ping = 254,
 	Pong = 255,
@@ -133,6 +136,25 @@ public:
 	Dictionary get_settings();
 	void set_settings(Dictionary &_settings);
 	void add_setting(int _setting, Variant value);
+};
+
+//////////////////////////////////////////////////////////////////////////
+// MouseStateSync
+class GRPacketMouseModeSync : public GRPacket {
+	GDCLASS(GRPacketMouseModeSync, GRPacket);
+	friend GRPacket;
+
+	Input::MouseMode mouse_mode;
+
+protected:
+	virtual Ref<StreamPeerBuffer> _get_data() override;
+	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+
+public:
+	virtual PacketType get_type() override { return PacketType::MouseModeSync; };
+
+	Input::MouseMode get_mouse_mode();
+	void set_mouse_mode(Input::MouseMode _mode);
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -43,6 +43,7 @@ void GRClient::_bind_methods() {
 
 	ADD_SIGNAL(MethodInfo("stream_state_changed", PropertyInfo(Variant::BOOL, "is_active")));
 	ADD_SIGNAL(MethodInfo("connection_state_changed", PropertyInfo(Variant::BOOL, "is_connected")));
+	ADD_SIGNAL(MethodInfo("mouse_mode_changed", PropertyInfo(Variant::INT, "mouse_mode")));
 
 	// SETGET
 	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "val"), &GRClient::set_capture_on_focus);
@@ -580,6 +581,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 
 				dev->is_connection_working = false;
 				dev->call_deferred("emit_signal", "connection_state_changed", false);
+				dev->call_deferred("emit_signal", "mouse_mode_changed", Input::MouseMode::MOUSE_MODE_VISIBLE);
 				break;
 			}
 			case GRDevice::AuthResult::Error:
@@ -655,13 +657,17 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 	uint64_t prev_ping_sending_time = time64;
 	uint64_t next_image_required_frametime = time64;
 	uint64_t prev_display_image_time = time64 - 16_ms;
+	uint64_t prev_cycle_time = 0;
 
 	bool ping_sended = false;
 
+	TimeCountInit();
 	while (!con_thread->break_connection && connection->is_connected_to_host()) {
 		dev->connection_mutex->lock();
 		if (con_thread->break_connection || !connection->is_connected_to_host())
 			break;
+		TimeCount("Cycle start");
+		uint64_t cycle_start_time = os->get_ticks_usec();
 
 		if (!_is_processing_img) {
 			if (_img_thread) {
@@ -696,6 +702,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 			} else {
 				_log("Can't get input data from input collector", LogLevel::LL_Error);
 			}
+			TimeCount("Input send");
 		}
 
 		// PING
@@ -712,6 +719,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 				_log("Send ping failed with code: " + str(err), LogLevel::LL_Error);
 				goto end_send;
 			}
+			TimeCount("Ping send");
 		}
 
 		// SEND QUEUE
@@ -732,6 +740,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 			}
 			dev->send_queue_mutex->unlock();
 		}
+		TimeCount("Send queue");
 	end_send:
 
 		if (!connection->is_connected_to_host()) {
@@ -754,7 +763,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 				goto end_img_process;
 			}
 
-			next_image_required_frametime = time64 + pack->get_frametime() * 0.8;
+			next_image_required_frametime = time64 + pack->get_frametime() - prev_cycle_time;
 
 			dev->_update_avg_fps(time64 - prev_display_image_time);
 			prev_display_image_time = time64;
@@ -772,6 +781,8 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 			ips->format = pack->get_format();
 			ips->_is_processing_img = &_is_processing_img;
 			_img_thread = Thread::create(&_thread_image_decoder, ips);
+
+			TimeCount("Get image from queue");
 		}
 	end_img_process:
 
@@ -821,7 +832,14 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 					stream_queue.push_back(data);
 					break;
 				}
-				case PacketType::InputData: {
+				case PacketType::MouseModeSync: {
+					Ref<GRPacketMouseModeSync> data = pack;
+					if (data.is_null()) {
+						_log("GRPacketMouseModeSync is null", LogLevel::LL_Error);
+						continue;
+					}
+
+					dev->emit_signal("mouse_mode_changed", data->get_mouse_mode());
 					break;
 				}
 				case PacketType::Ping: {
@@ -843,6 +861,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 					break;
 			}
 		}
+		TimeCount("End receiving");
 	end_recv:
 		dev->connection_mutex->unlock();
 
@@ -854,6 +873,8 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 		if (nothing_happens)
 			os->delay_usec(1_ms);
+
+		prev_cycle_time = os->get_ticks_usec() - cycle_start_time;
 	}
 	dev->connection_mutex->unlock();
 

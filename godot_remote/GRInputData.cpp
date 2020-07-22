@@ -107,17 +107,18 @@ Ref<GRInputDataEvent> GRInputDataEvent::parse_event(const Ref<InputEvent> &ev, c
 Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 	ERR_FAIL_COND_V(!data->get_size(), Ref<InputEvent>());
 
-#define CONSTRUCT(_i)                      \
-	{                                      \
-		Ref<_i> ev(memnew(_i));            \
-		return _construct_event(ev, rect); \
+#define CONSTRUCT(_i)                         \
+	{                                         \
+		Ref<_i> ev(memnew(_i));               \
+		return _construct_event(ev, vp_size); \
 	}
 
 	InputType type = _get_type();
 	ERR_FAIL_COND_V_MSG(type < InputType::InputEvent || type >= InputType::InputEventMAX, Ref<GRInputDataEvent>(), "Not InputEvent");
 
 	Rect2 vp_size = rect;
-	if (vp_size == Rect2()) {
+	if (vp_size.size.x == 0 && vp_size.size.y == 0 &&
+			vp_size.position.x == 0 && vp_size.position.y == 0) {
 		if (SceneTree::get_singleton() && SceneTree::get_singleton()->get_root()) {
 			vp_size = SceneTree::get_singleton()->get_root()->get_visible_rect();
 		}
@@ -162,9 +163,9 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 	return Ref<InputEvent>();
 }
 
-#define fix(e) ((e - rect.position) / rect.size)
-#define fix_rel(e) ((e) / rect.size)
-#define restore(e) ((e)*rect.size)
+#define fix(_e) ((((Vector2)_e) - rect.position) / rect.size)
+#define fix_rel(_e) (((Vector2)_e) / rect.size)
+#define restore(_e) (((Vector2)_e) * rect.size)
 
 #define CONSTRUCT(_type) Ref<InputEvent> _type::_construct_event(Ref<InputEvent> ev, const Rect2 &rect)
 #define PARSE(_type) void _type::_parse_event(const Ref<InputEvent> &ev, const Rect2 &rect)
