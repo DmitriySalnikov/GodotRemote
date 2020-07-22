@@ -84,7 +84,7 @@ private:
 	class Control *control_to_show_in = nullptr;
 	class GRTextureRect *tex_shows_stream = nullptr;
 	class GRInputCollector *input_collector = nullptr;
-	Ref<ConnectionThreadParams> thread_connection = nullptr;
+	Ref<ConnectionThreadParams> thread_connection;
 
 	String device_id = "UNKNOWN";
 	String server_address = String("127.0.0.1");
@@ -195,7 +195,7 @@ private:
 	GRInputCollector **this_in_client = nullptr; //somebody help
 
 	class TextureRect *texture_rect = nullptr;
-	PoolByteArray collected_input_data;
+	Vector<Ref<GRInputData> > collected_input_data;
 	class Control *parent;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
@@ -218,7 +218,7 @@ public:
 
 	void set_tex_rect(class TextureRect *tr);
 
-	PoolByteArray get_collected_input_data();
+	Ref<class GRPacketInputData> get_collected_input_data();
 
 	GRInputCollector();
 	~GRInputCollector();

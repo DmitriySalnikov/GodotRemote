@@ -1,5 +1,6 @@
 /* GRPacket.cpp */
 #include "GRPacket.h"
+#include "GRInputData.h"
 #include "core/os/os.h"
 
 using namespace GRUtils;
@@ -142,22 +143,56 @@ void GRPacketImageData::set_format(int _format) {
 // INPUT DATA
 Ref<StreamPeerBuffer> GRPacketInputData::_get_data() {
 	auto buf = GRPacket::_get_data();
-	buf->put_var(input_data);
+	int count = 0;
+
+	for (int i = 0; i < inputs.size(); i++) {
+		if (inputs[i].is_valid()) {
+			count++;
+		} else {
+			inputs.remove(i);
+			i--;
+		}
+	}
+	buf->put_32(count);
+
+	for (int i = 0; i < inputs.size(); i++) {
+		buf->put_var(((Ref<GRInputData>)inputs[i])->get_data());
+	}
 	return buf;
 }
 
 bool GRPacketInputData::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
-	input_data = buf->get_var();
+	int size = buf->get_32(); // get size
+	for (int i = 0; i < size; i++) {
+		Ref<GRInputData> id = GRInputData::create(buf->get_var());
+		if (id.is_null())
+			return false;
+		inputs.push_back(id);
+	}
 	return true;
 }
 
-PoolByteArray GRPacketInputData::get_input_data() {
-	return input_data;
+int GRPacketInputData::get_inputs_count() {
+	return inputs.size();
 }
 
-void GRPacketInputData::set_input_data(PoolByteArray &buf) {
-	input_data = buf;
+Ref<GRInputData> GRPacketInputData::get_input_data(int idx) {
+	ERR_FAIL_INDEX_V(idx, inputs.size(), Ref<GRInputData>());
+	return inputs[idx];
+}
+
+void GRPacketInputData::remove_input_data(int idx) {
+	ERR_FAIL_INDEX(idx, inputs.size());
+	inputs.remove(idx);
+}
+
+void GRPacketInputData::add_input_data(Ref<class GRInputData> &input) {
+	inputs.push_back(input);
+}
+
+void GRPacketInputData::set_input_data(Vector<Ref<class GRInputData> > &_inputs) {
+	inputs = _inputs;
 }
 
 //////////////////////////////////////////////////////////////////////////

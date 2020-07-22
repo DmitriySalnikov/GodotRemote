@@ -5,20 +5,21 @@
 #include "core/io/stream_peer.h"
 #include "core/reference.h"
 
+enum class PacketType {
+	None = 0,
+	SyncTime = 1,
+	ImageData = 2,
+	InputData = 3,
+	ServerSettings = 4,
+	ServerSettingsRequest = 253,
+	Ping = 254,
+	Pong = 255,
+};
+
+VARIANT_ENUM_CAST(PacketType)
+
 class GRPacket : public Reference {
 	GDCLASS(GRPacket, Reference);
-
-public:
-	enum class PacketType {
-		None = 0,
-		SyncTime = 1,
-		ImageData = 2,
-		InputData = 3,
-		ServerSettings = 4,
-		ServerSettingsRequest = 253,
-		Ping = 254,
-		Pong = 255,
-	};
 
 protected:
 	virtual Ref<StreamPeerBuffer> _get_data() {
@@ -98,7 +99,7 @@ class GRPacketInputData : public GRPacket {
 	GDCLASS(GRPacketInputData, GRPacket);
 	friend GRPacket;
 
-	PoolByteArray input_data;
+	Vector<Ref<class GRInputData> > inputs;
 
 protected:
 	virtual Ref<StreamPeerBuffer> _get_data() override;
@@ -107,8 +108,11 @@ protected:
 public:
 	virtual PacketType get_type() override { return PacketType::InputData; };
 
-	PoolByteArray get_input_data();
-	void set_input_data(PoolByteArray &buf);
+	int get_inputs_count();
+	Ref<class GRInputData> get_input_data(int idx);
+	void remove_input_data(int idx);
+	void add_input_data(Ref<class GRInputData> &input);
+	void set_input_data(Vector<Ref<class GRInputData> > &_inputs);
 };
 
 //////////////////////////////////////////////////////////////////////////

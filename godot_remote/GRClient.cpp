@@ -685,19 +685,16 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 			prev_send_input_time = time64;
 			nothing_happens = false;
 
-			PoolByteArray d = dev->input_collector->get_collected_input_data();
+			Ref<GRPacketInputData> pack = dev->input_collector->get_collected_input_data();
 
-			if (d.size() == 0)
-				goto end_send;
-
-			Ref<GRPacketInputData> pack(memnew(GRPacketInputData));
-			pack->set_input_data(d);
-
-			err = ppeer->put_var(pack->get_data());
-
-			if (err) {
-				_log("Put input data failed with code: " + str(err), LogLevel::LL_Error);
-				goto end_send;
+			if (pack.is_valid()) {
+				err = ppeer->put_var(pack->get_data());
+				if (err) {
+					_log("Put input data failed with code: " + str(err), LogLevel::LL_Error);
+					goto end_send;
+				}
+			} else {
+				_log("Can't get input data from input collector", LogLevel::LL_Error);
 			}
 		}
 
@@ -799,10 +796,10 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 				continue;
 			}
 
-			GRPacket::PacketType type = pack->get_type();
+			PacketType type = pack->get_type();
 
 			switch (type) {
-				case GRPacket::PacketType::SyncTime: {
+				case PacketType::SyncTime: {
 					Ref<GRPacketSyncTime> data = pack;
 					if (data.is_null()) {
 						_log("GRPacketSyncTime is null", LogLevel::LL_Error);
@@ -814,7 +811,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 					break;
 				}
-				case GRPacket::PacketType::ImageData: {
+				case PacketType::ImageData: {
 					Ref<GRPacketImageData> data = pack;
 					if (data.is_null()) {
 						_log("GRPacketImageData is null", LogLevel::LL_Error);
@@ -824,10 +821,10 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 					stream_queue.push_back(data);
 					break;
 				}
-				case GRPacket::PacketType::InputData: {
+				case PacketType::InputData: {
 					break;
 				}
-				case GRPacket::PacketType::Ping: {
+				case PacketType::Ping: {
 					Ref<GRPacketPong> pack(memnew(GRPacketPong));
 					err = ppeer->put_var(pack->get_data());
 					if (err) {
@@ -836,7 +833,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 					}
 					break;
 				}
-				case GRPacket::PacketType::Pong: {
+				case PacketType::Pong: {
 					dev->_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
 					ping_sended = false;
 					break;
@@ -1061,61 +1058,23 @@ void GRInputCollector::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
 }
 
-#define fix(e) ((e - stream_rect.position) / stream_rect.size)
-#define fix_rel(e) ((e) / stream_rect.size) // TODO more tests!!
-
-#define data_append_defaults()                                                                                       \
-	data.append_array(uint322bytes(ie->get_device()));                                                               \
-	if (iewm.is_valid()) {                                                                                           \
-		data.append((uint8_t)iewm->get_alt() | (uint8_t)iewm->get_shift() << 1 | (uint8_t)iewm->get_control() << 2 | \
-					(uint8_t)iewm->get_metakey() << 3 | (uint8_t)iewm->get_command() << 4);                          \
-	}                                                                                                                \
-	if (iem.is_valid()) {                                                                                            \
-		data.append_array(uint322bytes(iem->get_button_mask()));                                                     \
-		data.append_array(var2bytes(fix(iem->get_position())));                                                      \
-		data.append_array(var2bytes(fix(iem->get_global_position())));                                               \
-	}                                                                                                                \
-	if (ieg.is_valid()) {                                                                                            \
-		data.append_array(var2bytes(fix(ieg->get_position())));                                                      \
-	}
-
 void GRInputCollector::_input(Ref<InputEvent> ie) {
 	if (!parent || (capture_only_when_control_in_focus && !parent->has_focus()) || (dev && dev->get_status() != (int)GRDevice::WorkingStatus::Working) || !dev->is_stream_active()) {
 		return;
 	}
 
-	_THREAD_SAFE_LOCK_
-	if (collected_input_data.size() > 1024 * 1) {
+	_THREAD_SAFE_LOCK_;
+	if (collected_input_data.size() >= 128) {
 		collected_input_data.resize(0);
 	}
-	_THREAD_SAFE_UNLOCK_
+	_THREAD_SAFE_UNLOCK_;
 
 	// TODO maybe later i change it to update less frequent
 	_update_stream_rect();
 
-	PoolByteArray data;
-
-	Ref<InputEventMouse> iem = ie;
-	Ref<InputEventGesture> ieg = ie;
-	Ref<InputEventWithModifiers> iewm = ie;
-
 	if (ie.is_null()) {
 		_log("InputEvent is null", LogLevel::LL_Error);
 		goto end;
-	}
-
-	{
-		Ref<InputEventKey> iek = ie;
-		if (iek.is_valid()) {
-			data.append((int)GRDevice::InputType::InputEventKey);
-			data_append_defaults();
-
-			data.append((uint8_t)iek->is_pressed() | (uint8_t)iek->is_echo() << 1);
-			data.append_array(uint322bytes(iek->get_scancode()));
-			data.append_array(uint322bytes(iek->get_unicode()));
-
-			goto end;
-		}
 	}
 
 	{
@@ -1131,13 +1090,6 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 						return;
 				}
 			}
-			data.append((int)GRDevice::InputType::InputEventMouseButton);
-			data_append_defaults();
-
-			data.append_array(float2bytes(iemb->get_factor()));
-			data.append_array(uint162bytes(iemb->get_button_index()));
-			data.append((uint8_t)iemb->is_pressed() | (uint8_t)iemb->is_doubleclick() << 1);
-
 			goto end;
 		}
 	}
@@ -1147,17 +1099,6 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		if (iemm.is_valid()) {
 			if (!stream_rect.has_point(iemm->get_position()) && capture_pointer_only_when_hover_control)
 				return;
-			data.append((int)GRDevice::InputType::InputEventMouseMotion);
-			data_append_defaults();
-
-			data.append_array(float2bytes(iemm->get_pressure()));
-			data.append_array(var2bytes(iemm->get_tilt()));
-			data.append_array(var2bytes(fix_rel(iemm->get_relative())));
-			data.append_array(var2bytes(fix_rel(iemm->get_speed())));
-
-			_log(iemm->get_relative());
-			_log(iemm->get_speed());
-
 			goto end;
 		}
 	}
@@ -1169,13 +1110,6 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 				if (iest->is_pressed())
 					return;
 			}
-			data.append((int)GRDevice::InputType::InputEventScreenTouch);
-			data_append_defaults();
-
-			data.append(iest->get_index());
-			data.append_array(var2bytes(fix(iest->get_position())));
-			data.append(iest->is_pressed());
-
 			goto end;
 		}
 	}
@@ -1185,14 +1119,6 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		if (iesd.is_valid()) {
 			if (!stream_rect.has_point(iesd->get_position()) && capture_pointer_only_when_hover_control)
 				return;
-			data.append((int)GRDevice::InputType::InputEventScreenDrag);
-			data_append_defaults();
-
-			data.append(iesd->get_index());
-			data.append_array(var2bytes(fix(iesd->get_position())));
-			data.append_array(var2bytes(fix_rel(iesd->get_relative())));
-			data.append_array(var2bytes(fix_rel(iesd->get_speed())));
-
 			goto end;
 		}
 	}
@@ -1202,11 +1128,6 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		if (iemg.is_valid()) {
 			if (!stream_rect.has_point(iemg->get_position()) && capture_pointer_only_when_hover_control)
 				return;
-			data.append((int)GRDevice::InputType::InputEventMagnifyGesture);
-			data_append_defaults();
-
-			data.append_array(float2bytes(iemg->get_factor()));
-
 			goto end;
 		}
 	}
@@ -1216,94 +1137,19 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		if (iepg.is_valid()) {
 			if (!stream_rect.has_point(iepg->get_position()) && capture_pointer_only_when_hover_control)
 				return;
-			data.append((int)GRDevice::InputType::InputEventPanGesture);
-			data_append_defaults();
-
-			data.append_array(var2bytes(fix_rel(iepg->get_delta())));
-
 			goto end;
 		}
 	}
-
-	{
-		Ref<InputEventJoypadButton> iejb = ie;
-		if (iejb.is_valid()) {
-			data.append((int)GRDevice::InputType::InputEventJoypadButton);
-			data_append_defaults();
-
-			data.append_array(uint322bytes(iejb->get_button_index()));
-			data.append_array(float2bytes(iejb->get_pressure()));
-			data.append(iejb->is_pressed());
-
-			goto end;
-		}
-	}
-
-	{
-		Ref<InputEventJoypadMotion> iejm = ie;
-		if (iejm.is_valid()) {
-			data.append((int)GRDevice::InputType::InputEventJoypadMotion);
-			data_append_defaults();
-
-			data.append_array(uint322bytes(iejm->get_axis()));
-			data.append_array(float2bytes(iejm->get_axis_value()));
-
-			goto end;
-		}
-	}
-
-	{
-		Ref<InputEventAction> iea = ie;
-		if (iea.is_valid()) {
-			data.append((int)GRDevice::InputType::InputEventAction);
-			data_append_defaults();
-
-			PoolByteArray sd = var2bytes((String)iea->get_action());
-
-			data.append_array(uint322bytes(sd.size()));
-			data.append_array(sd);
-			data.append_array(float2bytes(iea->get_strength()));
-			data.append(iea->is_pressed());
-
-			goto end;
-		}
-	}
-
-	{
-		Ref<InputEventMIDI> iemidi = ie;
-		if (iemidi.is_valid()) {
-			data.append((int)GRDevice::InputType::InputEventMIDI);
-			data_append_defaults();
-
-			PoolIntArray midi;
-			midi.append(iemidi->get_channel());
-			midi.append(iemidi->get_message());
-			midi.append(iemidi->get_pitch());
-			midi.append(iemidi->get_velocity());
-			midi.append(iemidi->get_instrument());
-			midi.append(iemidi->get_pressure());
-			midi.append(iemidi->get_controller_number());
-			midi.append(iemidi->get_controller_value());
-
-			data.append_array(var2bytes(midi));
-
-			goto end;
-		}
-	}
-	_log("InputEvent type " + str(ie) + " not supported!", LogLevel::LL_Error);
 
 end:
 
-	if (!data.empty()) {
+	Ref<GRInputDataEvent> data = GRInputDataEvent::parse_event(ie, stream_rect);
+	if (data.is_valid()) {
 		_THREAD_SAFE_LOCK_
-		collected_input_data.append_array(uint322bytes(data.size() + 4)); // block size
-		collected_input_data.append_array(data);
+		collected_input_data.push_back(data);
 		_THREAD_SAFE_UNLOCK_
 	}
 }
-
-#undef fix
-#undef data_append_defaults
 
 void GRInputCollector::_notification(int p_notification) {
 	switch (p_notification) {
@@ -1345,20 +1191,18 @@ void GRInputCollector::set_tex_rect(TextureRect *tr) {
 	texture_rect = tr;
 }
 
-PoolByteArray GRInputCollector::get_collected_input_data() {
-	PoolByteArray res;
-	_THREAD_SAFE_LOCK_
+Ref<GRPacketInputData> GRInputCollector::get_collected_input_data() {
+	Ref<GRPacketInputData> res(memnew(GRPacketInputData));
+	Ref<GRInputDeviceSensorsData> s(memnew(GRInputDeviceSensorsData));
+	s->set_sensors(sensors);
 
-	// sensors
-	res.append_array(uint322bytes(12 * sensors.size() + 8 + 4 + 1)); // +8 - sensors header, +4 - this value, +1 - type
-	res.append((int)GRDevice::InputType::InputDeviceSensors);
-	res.append_array(var2bytes(sensors));
+	_THREAD_SAFE_LOCK_;
 
-	// other input events
-	res.append_array(collected_input_data);
+	collected_input_data.push_back(s);
+	res->set_input_data(collected_input_data);
 	collected_input_data.resize(0);
 
-	_THREAD_SAFE_UNLOCK_
+	_THREAD_SAFE_UNLOCK_;
 	return res;
 }
 

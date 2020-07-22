@@ -3,30 +3,12 @@
 
 #include "scene/main/node.h"
 #include "GRUtils.h"
+#include "GRInputData.h"
 
 class GRDevice : public Node {
 	GDCLASS(GRDevice, Node);
 
 public:
-	enum class InputType {
-		InputDeviceSensors = 0,
-		InputEvent = 1,
-		InputEventAction = 2,
-		InputEventGesture = 3,
-		InputEventJoypadButton = 4,
-		InputEventJoypadMotion = 5,
-		InputEventKey = 6,
-		InputEventMagnifyGesture = 7,
-		InputEventMIDI = 8,
-		InputEventMouse = 9,
-		InputEventMouseButton = 10,
-		InputEventMouseMotion = 11,
-		InputEventPanGesture = 12,
-		InputEventScreenDrag = 13,
-		InputEventScreenTouch = 14,
-		InputEventWithModifiers = 15,
-	};
-
 	enum class WorkingStatus {
 		Stopped,
 		Working,
@@ -84,4 +66,3 @@ public:
 };
 
 VARIANT_ENUM_CAST(GRDevice::WorkingStatus)
-VARIANT_ENUM_CAST(GRDevice::InputType)

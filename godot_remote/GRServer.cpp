@@ -602,32 +602,71 @@ void GRServer::_thread_connection(void *p_userdata) {
 				continue;
 			}
 
-			GRPacket::PacketType type = pack->get_type();
+			PacketType type = pack->get_type();
 			//_log((int)type);
 
 			switch (type) {
-				case GRPacket::PacketType::SyncTime: {
+				case PacketType::SyncTime: {
 					ERR_PRINT("NOT IMPLEMENTED");
 					break;
 				}
-				case GRPacket::PacketType::ImageData: {
+				case PacketType::ImageData: {
 					ERR_PRINT("NOT IMPLEMENTED");
 					break;
 				}
-				case GRPacket::PacketType::InputData: {
+				case PacketType::InputData: {
 					Ref<GRPacketInputData> data = pack;
 					if (data.is_null()) {
 						_log("Incorrect GRPacketInputData", LogLevel::LL_Error);
 						break;
 					}
-					if (!_parse_input_data(data->get_input_data())) {
-						connection->disconnect_from_host();
-						break;
-					}
 
+					for (int i = 0; i < data->get_inputs_count(); i++) {
+						Ref<GRInputData> id = data->get_input_data(i);
+						InputType ev_type = id->get_type();
+
+						if (ev_type >= InputType::InputEvent) {
+							Ref<GRInputDataEvent> ied = id;
+							if (ied.is_null()) {
+								_log("GRInputDataEvent is null", LogLevel::LL_Error);
+								continue;
+							}
+
+							Ref<InputEvent> ev = ied->construct_event();
+							if (ev.is_valid()) {
+								Input::get_singleton()->call_deferred("parse_input_event", ev);
+							}
+						} else {
+							switch (ev_type) {
+								case InputType::None: {
+									_log("Not valid input type! 0");
+									break;
+								}
+								case InputType::InputDeviceSensors: {
+									Ref<GRInputDeviceSensorsData> sd = id;
+									if (sd.is_null()) {
+										_log("GRInputDeviceSensorsData is null", LogLevel::LL_Error);
+										continue;
+									}
+
+									auto s = sd->get_sensors();
+									set_accelerometer(s[0]);
+									set_gravity(s[1]);
+									set_gyroscope(s[2]);
+									set_magnetometer(s[3]);
+									break;
+								}
+								default: {
+									_log("Not supported input type! " + str((int)ev_type), LogLevel::LL_Error);
+									continue;
+									break;
+								}
+							}
+						}
+					}
 					break;
 				}
-				case GRPacket::PacketType::ServerSettings: {
+				case PacketType::ServerSettings: {
 					Ref<GRPacketServerSettings> data = pack;
 					if (data.is_null()) {
 						_log("Incorrect GRPacketServerSettings", LogLevel::LL_Error);
@@ -636,11 +675,11 @@ void GRServer::_thread_connection(void *p_userdata) {
 					dev->_update_settings_from_client(data->get_settings());
 					break;
 				}
-				case GRPacket::PacketType::ServerSettingsRequest: {
+				case PacketType::ServerSettingsRequest: {
 					ERR_PRINT("NOT IMPLEMENTED");
 					break;
 				}
-				case GRPacket::PacketType::Ping: {
+				case PacketType::Ping: {
 					Ref<GRPacketPong> pack(memnew(GRPacketPong));
 					err = ppeer->put_var(pack->get_data());
 
@@ -650,7 +689,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 					}
 					break;
 				}
-				case GRPacket::PacketType::Pong: {
+				case PacketType::Pong: {
 					dev->_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
 					ping_sended = false;
 					break;
@@ -788,224 +827,6 @@ timeout:
 #undef dict_get
 #undef wait_packet
 #undef packet_error_check
-}
-
-bool GRServer::_parse_input_data(const PoolByteArray &p_data) {
-	InputMap *im = InputMap::get_singleton();
-	OS *os = OS::get_singleton();
-
-	auto data_r = p_data.read();
-	const uint8_t *data = data_r.ptr();
-	const int size = p_data.size();
-
-	Vector2 vp_size = SceneTree::get_singleton()->get_root()->get_visible_rect().get_size();
-
-	const uint8_t *end_offset = data + size;
-	while (data < end_offset) {
-		Ref<InputEvent> ev;
-
-		int length = decode_uint32(data); // block size
-		const uint8_t *next = data + length;
-		InputType type = (InputType)data[4];
-
-		if (data == next) {
-			_log("Incorrect Input Data!!! Something wrong with data received from client!\n" + str_arr(p_data, true) + "\n", LogLevel::LL_Error);
-			return false;
-		}
-
-		data += 5;
-
-		switch (type) {
-			case InputType::InputDeviceSensors: {
-				PoolVector3Array vecs = bytes2var(data, 12 * 4 + 8);
-
-				if (vecs.size() == 4) {
-					set_accelerometer(vecs[0]);
-					set_gravity(vecs[1]);
-					set_gyroscope(vecs[2]);
-					set_magnetometer(vecs[3]);
-				}
-
-				break;
-			}
-			case InputType::InputEventAction: {
-				Ref<InputEventAction> e;
-				e.instance();
-				data = _read_abstract_input_data(e.ptr(), vp_size, data);
-
-				int len = decode_uint32(data);
-				e->set_action(String::utf8((const char *)data + 4, len));
-				data += int64_t(4) + len;
-
-				if (im->has_action(e->get_action())) {
-					e->set_strength(decode_float(data));
-					e->set_pressed(*(data + 1));
-					ev = e;
-				}
-				break;
-			}
-			case InputType::InputEventJoypadButton: {
-				Ref<InputEventJoypadButton> e;
-				e.instance();
-				data = _read_abstract_input_data(e.ptr(), vp_size, data);
-
-				e->set_button_index(decode_uint32(data));
-				e->set_pressure(decode_float(data + 4));
-				e->set_pressed(*(data + 8));
-				ev = e;
-				break;
-			}
-			case InputType::InputEventJoypadMotion: {
-				Ref<InputEventJoypadMotion> e;
-				e.instance();
-				data = _read_abstract_input_data(e.ptr(), vp_size, data);
-
-				e->set_axis(decode_uint32(data));
-				e->set_axis_value(decode_float(data + 4));
-				ev = e;
-				break;
-			}
-			case InputType::InputEventKey: {
-				Ref<InputEventKey> e;
-				e.instance();
-				data = _read_abstract_input_data(e.ptr(), vp_size, data);
-
-				e->set_pressed((*(data)) & 1);
-				e->set_echo((*(data) >> 1) & 1);
-				e->set_scancode(decode_uint32(data + 1));
-				e->set_unicode(decode_uint32(data + 5));
-				ev = e;
-				break;
-			}
-			case InputType::InputEventMagnifyGesture: {
-				Ref<InputEventMagnifyGesture> e;
-				e.instance();
-				data = _read_abstract_input_data(e.ptr(), vp_size, data);
-
-				e->set_factor(decode_float(data));
-				ev = e;
-				break;
-			}
-			case InputType::InputEventMIDI: {
-				Ref<InputEventMIDI> e;
-				e.instance();
-				data = _read_abstract_input_data(e.ptr(), vp_size, data);
-
-				PoolIntArray p = bytes2var(data, 4 * 8 + 8);
-				e->set_channel(p[0]);
-				e->set_message(p[1]);
-				e->set_pitch(p[2]);
-				e->set_velocity(p[3]);
-				e->set_instrument(p[4]);
-				e->set_pressure(p[5]);
-				e->set_controller_number(p[6]);
-				e->set_controller_value(p[7]);
-				ev = e;
-				break;
-			}
-			case InputType::InputEventMouseButton: {
-				Ref<InputEventMouseButton> e;
-				e.instance();
-				data = _read_abstract_input_data(e.ptr(), vp_size, data);
-
-				e->set_factor(decode_float(data));
-				e->set_button_index(decode_uint16(data + 4));
-				e->set_pressed((*(data + 6)) & 1);
-				e->set_doubleclick((*(data + 6) >> 1) & 1);
-				ev = e;
-				break;
-			}
-			case InputType::InputEventMouseMotion: {
-				Ref<InputEventMouseMotion> e;
-				e.instance();
-				data = _read_abstract_input_data(e.ptr(), vp_size, data);
-
-				e->set_pressure(decode_float(data));
-				e->set_tilt(bytes2var<Vector2>(data + 4, 12));
-				e->set_relative(bytes2var<Vector2>(data + 16, 12) * vp_size);
-				e->set_speed(bytes2var<Vector2>(data + 28, 12) * vp_size);
-				_log(e->get_relative());
-				_log(e->get_speed());
-				ev = e;
-				break;
-			}
-			case InputType::InputEventPanGesture: {
-				Ref<InputEventPanGesture> e;
-				e.instance();
-				data = _read_abstract_input_data(e.ptr(), vp_size, data);
-
-				e->set_delta(bytes2var<Vector2>(data, 12) * vp_size);
-				ev = e;
-				break;
-			}
-			case InputType::InputEventScreenDrag: {
-				Ref<InputEventScreenDrag> e;
-				e.instance();
-				data = _read_abstract_input_data(e.ptr(), vp_size, data);
-
-				e->set_index(*(data));
-				e->set_position(bytes2var<Vector2>(data + 1, 12) * vp_size);
-				e->set_relative(bytes2var<Vector2>(data + 13, 12) * vp_size);
-				e->set_speed(bytes2var<Vector2>(data + 25, 12) * vp_size);
-				ev = e;
-				break;
-			}
-			case InputType::InputEventScreenTouch: {
-				Ref<InputEventScreenTouch> e;
-				e.instance();
-				data = _read_abstract_input_data(e.ptr(), vp_size, data);
-
-				e->set_index(*(data));
-				e->set_position(bytes2var<Vector2>(data + 1, 12) * vp_size);
-				e->set_pressed(*(data + 13));
-				ev = e;
-				break;
-			}
-			default: {
-				_log(String("Not supported InputEvent type: ") + str((int)type));
-				break;
-			}
-		}
-
-		data = next;
-		if (ev.is_valid()) {
-			Input::get_singleton()->call_deferred("parse_input_event", ev);
-		}
-	}
-
-	return true;
-}
-
-const uint8_t *GRServer::_read_abstract_input_data(InputEvent *ie, const Vector2 &vs, const uint8_t *data) {
-	ie->set_device(decode_uint32(data));
-	// TODO add ability to set custom device id or just -1/0 if we emulating input.
-	data += 4;
-
-	auto iewm = cast_to<InputEventWithModifiers>(ie);
-	if (iewm) {
-		iewm->set_alt(*data & (1 << 0));
-		iewm->set_shift(*data & (1 << 1));
-		iewm->set_control(*data & (1 << 2));
-		iewm->set_metakey(*data & (1 << 3));
-		iewm->set_command(*data & (1 << 4));
-		data += 1;
-	}
-
-	auto iem = cast_to<InputEventMouse>(ie);
-	if (iem) {
-		iem->set_button_mask(decode_uint32(data));
-		iem->set_position(vs * bytes2var<Vector2>(data + 4, 12));
-		iem->set_global_position(vs * bytes2var<Vector2>(data + 16, 12));
-		data += 28;
-	}
-
-	auto ieg = cast_to<InputEventGesture>(ie);
-	if (ieg) {
-		ieg->set_position(vs * bytes2var<Vector2>(data, 12));
-		data += 12;
-	}
-
-	return data;
 }
 
 //////////////////////////////////////////////
