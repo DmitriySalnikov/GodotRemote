@@ -159,8 +159,8 @@ public:
 	void set_capture_when_hover(bool value);
 	void set_connection_type(int type);
 	int get_connection_type();
-	void set_target_send_fps(int fps);
-	int get_target_send_fps();
+	void set_skip_frames(int fps);
+	int get_skip_frames();
 	void set_stretch_mode(int stretch);
 	int get_stretch_mode();
 	void set_texture_filtering(bool is_filtering);

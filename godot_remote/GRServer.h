@@ -13,34 +13,6 @@ class GRServer : public GRDevice {
 	GDCLASS(GRServer, GRDevice);
 
 private:
-	class ImgProcessingStorage : public Reference {
-		GDCLASS(ImgProcessingStorage, Reference);
-		_THREAD_SAFE_CLASS_
-	private:
-		Thread *_thread_process = nullptr;
-		bool finished = false;
-		Ref<Image> img;
-		int bytes_in_color, jpg_quality;
-
-		void _get_texture_data_from_main_thread();
-		static void _processing_thread(void *p_user);
-
-	protected:
-		static void _bind_methods();
-
-	public:
-		Ref<ViewportTexture> tex;
-		PoolByteArray ret_data;
-		GRUtils::ImageCompressionType compression_type = GRUtils::ImageCompressionType::Uncompressed;
-		int width, height, format;
-		bool is_new_data = false;
-
-		void start(Ref<ViewportTexture> _tex, int _jpg_quality);
-		void close();
-
-		~ImgProcessingStorage();
-	};
-
 	class ListenerThreadParams : public Reference {
 		GDCLASS(ListenerThreadParams, Reference);
 
@@ -97,12 +69,10 @@ private:
 	Ref<ListenerThreadParams> server_thread_listen;
 	Ref<TCP_Server> tcp_server;
 	class GRSViewport *resize_viewport = nullptr;
+	int client_connected = 0;
 
 	String password;
 	bool auto_adjust_scale = false;
-	GRUtils::ImageCompressionType compression_type = GRUtils::ImageCompressionType::Uncompressed;
-	int jpg_quality = 75;
-	int target_stream_fps = 60;
 
 	float prev_avg_fps = 0;
 	void _adjust_viewport_scale();
@@ -130,16 +100,19 @@ protected:
 public:
 	void set_auto_adjust_scale(bool _val);
 	int get_auto_adjust_scale();
-	void set_compression_type(int _type);
-	int get_compression_type();
-	void set_jpg_quality(int _quality);
-	int get_jpg_quality();
-	void set_target_send_fps(int fps);
-	int get_target_send_fps();
-	void set_render_scale(float _scale);
-	float get_render_scale();
 	void set_password(String _pass);
 	String get_password();
+
+	// VIEWPORT
+	bool set_compression_type(int _type);
+	int get_compression_type();
+	bool set_jpg_quality(int _quality);
+	int get_jpg_quality();
+	bool set_skip_frames(int fps);
+	int get_skip_frames();
+	bool set_render_scale(float _scale);
+	float get_render_scale();
+	// NOT VIEWPORT
 
 	GRSViewport *get_gr_viewport();
 	class Node *get_settings_node();
@@ -151,22 +124,63 @@ public:
 class GRSViewport : public Viewport {
 	GDCLASS(GRSViewport, Viewport);
 	friend GRServer;
+	friend class ImgProcessingStorage;
+	_THREAD_SAFE_CLASS_;
+
+public:
+	class ImgProcessingStorage : public Reference {
+		GDCLASS(ImgProcessingStorage, Reference);
+	public:
+		PoolByteArray ret_data;
+		GRUtils::ImageCompressionType compression_type = GRUtils::ImageCompressionType::Uncompressed;
+		int width, height, format;
+		int bytes_in_color, jpg_quality;
+
+		~ImgProcessingStorage() {
+			ret_data.resize(0);
+		}
+	};
+
+private:
+	Thread *_thread_process = nullptr;
+	Ref<Image> last_image;
+	Ref<ImgProcessingStorage> last_image_data;
+
+	void _close_thread();
+	void _set_img_data(Ref<ImgProcessingStorage> _data);
+	static void _processing_thread(void *p_user);
 
 protected:
 	Viewport *main_vp = nullptr;
 	class GRSViewportRenderer *renderer = nullptr;
 	float rendering_scale = 0.3f;
 	float auto_scale = 0.5f;
+	int jpg_quality = 80;
+	int skip_frames = 0;
+	GRUtils::ImageCompressionType compression_type = GRUtils::ImageCompressionType::Uncompressed;
+
+	char frames_from_prev_image = 0;
 
 	static void _bind_methods();
 	void _notification(int p_notification);
 	void _update_size();
 
 public:
+	Ref<ImgProcessingStorage> get_last_compressed_image_data();
+	bool has_compressed_image_data();
+	void force_get_image();
+
 	void set_rendering_scale(float val);
 	float get_rendering_scale();
+	void set_compression_type(int val);
+	int get_compression_type();
+	void set_jpg_quality(int _quality);
+	int get_jpg_quality();
+	void set_skip_frames(int skip);
+	int get_skip_frames();
 
 	GRSViewport();
+	~GRSViewport();
 };
 
 class GRSViewportRenderer : public Control {

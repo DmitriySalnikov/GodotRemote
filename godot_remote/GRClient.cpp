@@ -49,7 +49,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "val"), &GRClient::set_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("set_capture_when_hover", "val"), &GRClient::set_capture_when_hover);
 	ClassDB::bind_method(D_METHOD("set_connection_type", "type"), &GRClient::set_connection_type);
-	ClassDB::bind_method(D_METHOD("set_target_send_fps", "fps"), &GRClient::set_target_send_fps);
+	ClassDB::bind_method(D_METHOD("set_skip_frames", "fps"), &GRClient::set_skip_frames);
 	ClassDB::bind_method(D_METHOD("set_stretch_mode", "mode"), &GRClient::set_stretch_mode);
 	ClassDB::bind_method(D_METHOD("set_texture_filtering", "is_filtered"), &GRClient::set_texture_filtering);
 	ClassDB::bind_method(D_METHOD("set_password", "password"), &GRClient::set_password);
@@ -58,7 +58,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_capture_on_focus"), &GRClient::is_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("is_capture_when_hover"), &GRClient::is_capture_when_hover);
 	ClassDB::bind_method(D_METHOD("get_connection_type"), &GRClient::get_connection_type);
-	ClassDB::bind_method(D_METHOD("get_target_send_fps"), &GRClient::get_target_send_fps);
+	ClassDB::bind_method(D_METHOD("get_skip_frames"), &GRClient::get_skip_frames);
 	ClassDB::bind_method(D_METHOD("get_stretch_mode"), &GRClient::get_stretch_mode);
 	ClassDB::bind_method(D_METHOD("get_texture_filtering"), &GRClient::get_texture_filtering);
 	ClassDB::bind_method(D_METHOD("get_password"), &GRClient::get_password);
@@ -67,7 +67,7 @@ void GRClient::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "connection_type", PROPERTY_HINT_ENUM, "WiFi,ADB"), "set_connection_type", "get_connection_type");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), "set_target_send_fps", "get_target_send_fps");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), "set_skip_frames", "get_skip_frames");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Fill,Keep Aspect"), "set_stretch_mode", "get_stretch_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "texture_filtering"), "set_texture_filtering", "get_texture_filtering");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
@@ -275,12 +275,12 @@ int GRClient::get_connection_type() {
 	return con_type;
 }
 
-void GRClient::set_target_send_fps(int fps) {
+void GRClient::set_skip_frames(int fps) {
 	ERR_FAIL_COND(fps <= 0);
 	send_data_fps = fps;
 }
 
-int GRClient::get_target_send_fps() {
+int GRClient::get_skip_frames() {
 	return send_data_fps;
 }
 
@@ -763,7 +763,8 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 				goto end_img_process;
 			}
 
-			next_image_required_frametime = time64 + pack->get_frametime() - prev_cycle_time;
+			uint64_t frametime = pack->get_frametime() > 100_ms ? 100_ms : pack->get_frametime();
+			next_image_required_frametime = time64 + frametime - prev_cycle_time;
 
 			dev->_update_avg_fps(time64 - prev_display_image_time);
 			prev_display_image_time = time64;

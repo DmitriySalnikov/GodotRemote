@@ -35,7 +35,7 @@ public:
 	static String ps_notifications_duration_name;
 
 	static String ps_server_config_adb_name;
-	static String ps_server_stream_fps_name;
+	static String ps_server_stream_skip_frames_name;
 	static String ps_server_compression_type_name;
 	static String ps_server_jpg_buffer_mb_size_name;
 	static String ps_server_jpg_quality_name;

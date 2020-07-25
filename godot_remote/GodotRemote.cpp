@@ -23,7 +23,7 @@ String GodotRemote::ps_noticications_position_name = "debug/godot_remote/notific
 String GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notifications/notifications_duration";
 
 String GodotRemote::ps_server_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
-String GodotRemote::ps_server_stream_fps_name = "debug/godot_remote/server/stream_fps";
+String GodotRemote::ps_server_stream_skip_frames_name = "debug/godot_remote/server/stream_fps";
 String GodotRemote::ps_server_compression_type_name = "debug/godot_remote/server/compression_type";
 String GodotRemote::ps_server_jpg_quality_name = "debug/godot_remote/server/jpg_quality";
 String GodotRemote::ps_server_jpg_buffer_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
@@ -250,9 +250,9 @@ void GodotRemote::register_and_load_settings() {
 
 	// client can change this settings
 	DEF_(ps_server_compression_type_name, (int)ImageCompressionType::JPG, PropertyInfo(Variant::INT, ps_server_compression_type_name, PROPERTY_HINT_ENUM, "Uncompressed,JPG,PNG"));
-	DEF_(ps_server_stream_fps_name, 60, PropertyInfo(Variant::INT, ps_server_stream_fps_name, PROPERTY_HINT_RANGE, "1,1000"));
-	DEF_(ps_server_scale_of_sending_stream_name, 0.3f, PropertyInfo(Variant::REAL, ps_server_scale_of_sending_stream_name, PROPERTY_HINT_RANGE, "0,1,0.01"));
-	DEF_(ps_server_jpg_quality_name, 75, PropertyInfo(Variant::INT, ps_server_jpg_quality_name, PROPERTY_HINT_RANGE, "0,100"));
+	DEF_(ps_server_stream_skip_frames_name, 0, PropertyInfo(Variant::INT, ps_server_stream_skip_frames_name, PROPERTY_HINT_RANGE, "0,1000"));
+	DEF_(ps_server_scale_of_sending_stream_name, 0.25f, PropertyInfo(Variant::REAL, ps_server_scale_of_sending_stream_name, PROPERTY_HINT_RANGE, "0,1,0.01"));
+	DEF_(ps_server_jpg_quality_name, 80, PropertyInfo(Variant::INT, ps_server_jpg_quality_name, PROPERTY_HINT_RANGE, "0,100"));
 	DEF_(ps_server_auto_adjust_scale_name, false, PropertyInfo(Variant::BOOL, ps_server_auto_adjust_scale_name));
 
 #undef DEF_SET
