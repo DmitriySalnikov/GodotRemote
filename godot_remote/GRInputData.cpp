@@ -120,7 +120,8 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 	if (vp_size.size.x == 0 && vp_size.size.y == 0 &&
 			vp_size.position.x == 0 && vp_size.position.y == 0) {
 		if (SceneTree::get_singleton() && SceneTree::get_singleton()->get_root()) {
-			vp_size = SceneTree::get_singleton()->get_root()->get_visible_rect();
+			//vp_size = SceneTree::get_singleton()->get_root()->get_visible_rect();
+			vp_size = Rect2(OS::get_singleton()->get_window_size(), SceneTree::get_singleton()->get_root()->get_size());
 		}
 	}
 
@@ -163,9 +164,11 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 	return Ref<InputEvent>();
 }
 
-#define fix(_e) ((((Vector2)_e) - rect.position) / rect.size)
-#define fix_rel(_e) (((Vector2)_e) / rect.size)
-#define restore(_e) (((Vector2)_e) * rect.size)
+#define fix(_e) ((Vector2(_e) - rect.position) / rect.size)
+#define fix_rel(_e) (Vector2(_e) / rect.size)
+
+#define restore(_e) ((Vector2(_e) * rect.size) + ((rect.position - rect.size) / 2.f))
+#define restore_rel(_e) (Vector2(_e) * rect.size)
 
 #define CONSTRUCT(_type) Ref<InputEvent> _type::_construct_event(Ref<InputEvent> ev, const Rect2 &rect)
 #define PARSE(_type) void _type::_parse_event(const Ref<InputEvent> &ev, const Rect2 &rect)
@@ -274,8 +277,8 @@ CONSTRUCT(GRIEDataMouseMotion) {
 	Ref<InputEventMouseMotion> iemm = ev;
 	iemm->set_pressure(data->get_float());
 	iemm->set_tilt(data->get_var());
-	iemm->set_relative(restore(data->get_var()));
-	iemm->set_speed(restore(data->get_var()));
+	iemm->set_relative(restore_rel(data->get_var()));
+	iemm->set_speed(restore_rel(data->get_var()));
 	return iemm;
 }
 
@@ -314,8 +317,8 @@ CONSTRUCT(GRIEDataScreenDrag) {
 	Ref<InputEventScreenDrag> iesd = ev;
 	iesd->set_index(data->get_8());
 	iesd->set_position(restore(data->get_var()));
-	iesd->set_relative(restore(data->get_var()));
-	iesd->set_speed(restore(data->get_var()));
+	iesd->set_relative(restore_rel(data->get_var()));
+	iesd->set_speed(restore_rel(data->get_var()));
 	return iesd;
 }
 
@@ -348,7 +351,7 @@ PARSE(GRIEDataMagnifyGesture) {
 CONSTRUCT(GRIEDataPanGesture) {
 	GRIEDataGesture::_construct_event(ev, rect);
 	Ref<InputEventPanGesture> iepg = ev;
-	iepg->set_delta(restore(data->get_var()));
+	iepg->set_delta(restore_rel(data->get_var()));
 	return iepg;
 }
 
