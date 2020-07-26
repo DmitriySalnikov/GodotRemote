@@ -62,6 +62,21 @@ int GRServer::get_auto_adjust_scale() {
 	return auto_adjust_scale;
 }
 
+bool GRServer::set_video_stream_enabled(bool val) {
+	if (resize_viewport && !resize_viewport->is_queued_for_deletion() &&
+			resize_viewport->is_video_stream_enabled() != val) {
+		resize_viewport->set_video_stream_enabled(val);
+		return true;
+	}
+	return false;
+}
+
+bool GRServer::is_video_stream_enabled() {
+	if (resize_viewport && !resize_viewport->is_queued_for_deletion())
+		return resize_viewport->is_video_stream_enabled();
+	return false;
+}
+
 bool GRServer::set_compression_type(int _type) {
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion() &&
 			resize_viewport->get_compression_type() != _type) {
@@ -267,11 +282,13 @@ void GRServer::_load_settings() {
 
 	GRNotifications::add_notification_or_update_line(title, "auto_scale", "Auto adjust scale: " + str(auto_adjust_scale)); // TODO not completed
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
-		set_skip_frames(GET_PS(GodotRemote::ps_server_stream_skip_frames_name));
-		set_jpg_quality(GET_PS(GodotRemote::ps_server_jpg_quality_name));
+		set_video_stream_enabled((bool)GET_PS(GodotRemote::ps_server_stream_enabled_name));
 		set_compression_type((int)GET_PS(GodotRemote::ps_server_compression_type_name));
+		set_jpg_quality(GET_PS(GodotRemote::ps_server_jpg_quality_name));
 		set_render_scale(GET_PS(GodotRemote::ps_server_scale_of_sending_stream_name));
+		set_skip_frames(GET_PS(GodotRemote::ps_server_stream_skip_frames_name));
 
+		GRNotifications::add_notification_or_update_line(title, "stream", "Stream enabled: " + str(is_video_stream_enabled()));
 		GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str(get_render_scale()));
 		GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(get_jpg_quality()));
 		GRNotifications::add_notification_or_update_line(title, "fps", "Stream FPS: " + str(get_skip_frames()));
@@ -316,6 +333,12 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 						return;
 					}
 					break;
+				case GodotRemote::TypesOfServerSettings::VIDEO_STREAM_ENABLED: {
+					if (set_video_stream_enabled(value)) {
+						GRNotifications::add_notification_or_update_line(title, "stream", "Stream enabled: " + str((bool)value));
+					}
+					break;
+				}
 				case GodotRemote::TypesOfServerSettings::COMPRESSION_TYPE: {
 					if (set_compression_type(value)) {
 						GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str((int)value));
@@ -575,23 +598,30 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 			auto ips = dev->resize_viewport->get_last_compressed_image_data();
 
-			pack->set_compression_type((int)ips->compression_type);
-			pack->set_size(Size2(ips->width, ips->height));
-			pack->set_format(ips->format);
-			pack->set_image_data(ips->ret_data);
-			pack->set_start_time(os->get_ticks_usec());
-			pack->set_frametime(send_data_time_us);
+			if (!ips->ret_data.empty() || ips->is_empty) { // if not broken image or force empty image :)
+				pack->set_is_empty(ips->is_empty);
+				pack->set_compression_type((int)ips->compression_type);
+				pack->set_size(Size2(ips->width, ips->height));
+				pack->set_format(ips->format);
+				pack->set_image_data(ips->ret_data);
+				pack->set_start_time(os->get_ticks_usec());
+				pack->set_frametime(send_data_time_us);
 
-			err = ppeer->put_var(pack->get_data());
+				err = ppeer->put_var(pack->get_data());
 
-			// avg fps
-			dev->_update_avg_fps(time64 - prev_send_image_time);
-			dev->_adjust_viewport_scale();
-			prev_send_image_time = time64;
+				// avg fps
+				dev->_update_avg_fps(time64 - prev_send_image_time);
+				dev->_adjust_viewport_scale();
+				prev_send_image_time = time64;
 
-			if (err) {
-				_log("Can't send image data! Code: " + str(err), LogLevel::LL_Error);
-				goto end_send;
+				if (err) {
+					_log("Can't send image data! Code: " + str(err), LogLevel::LL_Error);
+					goto end_send;
+				}
+			}
+		} else {
+			if (!dev->is_video_stream_enabled()) {
+				dev->_update_avg_fps(0);
 			}
 		}
 
@@ -982,6 +1012,24 @@ void GRSViewport::_notification(int p_notification) {
 		case NOTIFICATION_PROCESS: {
 			_close_thread();
 
+			if (!video_stream_enabled) {
+				if (!is_empty_image_sended) {
+					is_empty_image_sended = true;
+					Ref<ImgProcessingStorage> ips(memnew(ImgProcessingStorage));
+					ips->width = 0;
+					ips->height = 0;
+					ips->format = Image::Format::FORMAT_RGB8;
+					ips->bytes_in_color = 3;
+					ips->jpg_quality = 1;
+					ips->is_empty = true;
+					_set_img_data(ips);
+				}
+
+				return;
+			}
+
+			is_empty_image_sended = false;
+
 			frames_from_prev_image++;
 			if (frames_from_prev_image > skip_frames) {
 				frames_from_prev_image = 0;
@@ -1058,11 +1106,19 @@ Ref<GRSViewport::ImgProcessingStorage> GRSViewport::get_last_compressed_image_da
 }
 
 bool GRSViewport::has_compressed_image_data() {
-	return last_image_data.is_valid() && !last_image_data->ret_data.empty();
+	return last_image_data.is_valid();
 }
 
 void GRSViewport::force_get_image() {
 	frames_from_prev_image = skip_frames;
+}
+
+void GRSViewport::set_video_stream_enabled(bool val) {
+	video_stream_enabled = val;
+}
+
+bool GRSViewport::is_video_stream_enabled() {
+	return video_stream_enabled;
 }
 
 void GRSViewport::set_rendering_scale(float val) {

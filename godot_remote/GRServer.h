@@ -104,6 +104,8 @@ public:
 	String get_password();
 
 	// VIEWPORT
+	bool set_video_stream_enabled(bool val);
+	bool is_video_stream_enabled();
 	bool set_compression_type(int _type);
 	int get_compression_type();
 	bool set_jpg_quality(int _quality);
@@ -135,6 +137,7 @@ public:
 		GRUtils::ImageCompressionType compression_type = GRUtils::ImageCompressionType::Uncompressed;
 		int width, height, format;
 		int bytes_in_color, jpg_quality;
+		bool is_empty = false;
 
 		~ImgProcessingStorage() {
 			ret_data.resize(0);
@@ -153,13 +156,15 @@ private:
 protected:
 	Viewport *main_vp = nullptr;
 	class GRSViewportRenderer *renderer = nullptr;
+	bool video_stream_enabled = true;
 	float rendering_scale = 0.3f;
 	float auto_scale = 0.5f;
 	int jpg_quality = 80;
 	int skip_frames = 0;
 	GRUtils::ImageCompressionType compression_type = GRUtils::ImageCompressionType::Uncompressed;
 
-	char frames_from_prev_image = 0;
+	uint16_t frames_from_prev_image = 0;
+	bool is_empty_image_sended = false;
 
 	static void _bind_methods();
 	void _notification(int p_notification);
@@ -170,6 +175,8 @@ public:
 	bool has_compressed_image_data();
 	void force_get_image();
 
+	void set_video_stream_enabled(bool val);
+	bool is_video_stream_enabled();
 	void set_rendering_scale(float val);
 	float get_rendering_scale();
 	void set_compression_type(int val);

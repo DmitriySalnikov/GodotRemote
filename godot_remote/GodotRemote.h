@@ -20,10 +20,11 @@ public:
 
 	enum class TypesOfServerSettings {
 		USE_INTERNAL_SERVER_SETTINGS = 0,
-		COMPRESSION_TYPE = 1,
-		JPG_QUALITY = 2,
-		SEND_FPS = 3,
-		RENDER_SCALE = 4,
+		VIDEO_STREAM_ENABLED = 1,
+		COMPRESSION_TYPE = 2,
+		JPG_QUALITY = 3,
+		SEND_FPS = 4,
+		RENDER_SCALE = 5,
 	};
 
 	static String ps_general_autoload_name;
@@ -36,6 +37,7 @@ public:
 
 	static String ps_server_config_adb_name;
 	static String ps_server_stream_skip_frames_name;
+	static String ps_server_stream_enabled_name;
 	static String ps_server_compression_type_name;
 	static String ps_server_jpg_buffer_mb_size_name;
 	static String ps_server_jpg_quality_name;

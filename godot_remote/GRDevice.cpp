@@ -53,14 +53,18 @@ void GRDevice::_reset_counters() {
 }
 
 void GRDevice::_update_avg_ping(uint64_t ping) {
-	if (!ping)
+	if (!ping) {
+		avg_ping = 0;
 		return;
+	}
 	avg_ping = (avg_ping * avg_ping_smoothing) + ((float)(ping / 1000.f) * (1.f - avg_ping_smoothing));
 }
 
 void GRDevice::_update_avg_fps(uint64_t frametime) {
-	if (!frametime)
+	if (!frametime) {
+		avg_fps = 0;
 		return;
+	}
 	avg_fps = (avg_fps * avg_fps_smoothing) + ((float)(1000000.f / frametime) * (1.f - avg_fps_smoothing));
 }
 

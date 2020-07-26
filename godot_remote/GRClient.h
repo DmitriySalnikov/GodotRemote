@@ -25,6 +25,12 @@ public:
 		STRETCH_FILL = 1,
 	};
 
+	enum StreamState {
+		STREAM_NO_SIGNAL = 0,
+		STREAM_ACTIVE = 1,
+		STREAM_NO_IMAGE = 2,
+	};
+
 private:
 	class ImgProcessingStorage {
 	public:
@@ -107,7 +113,7 @@ private:
 
 	// NO SIGNAL screen
 	uint64_t prev_valid_connection_time = 0;
-	bool signal_connection_state = false;
+	StreamState signal_connection_state = StreamState::STREAM_NO_SIGNAL;
 	bool no_signal_is_vertical = false;
 	Ref<class Texture> custom_no_signal_texture;
 	Ref<class Texture> custom_no_signal_vertical_texture;
@@ -131,7 +137,7 @@ private:
 	}
 
 	void _update_texture_from_iamge(Ref<Image> img);
-	void _update_stream_texture_state(bool is_has_signal);
+	void _update_stream_texture_state(StreamState _stream_state);
 	virtual void _reset_counters() override;
 
 	static void _thread_connection(void *p_userdata);
@@ -159,8 +165,8 @@ public:
 	void set_capture_when_hover(bool value);
 	void set_connection_type(int type);
 	int get_connection_type();
-	void set_skip_frames(int fps);
-	int get_skip_frames();
+	void set_target_send_fps(int fps);
+	int get_target_send_fps();
 	void set_stretch_mode(int stretch);
 	int get_stretch_mode();
 	void set_texture_filtering(bool is_filtering);
@@ -244,3 +250,4 @@ public:
 
 VARIANT_ENUM_CAST(GRClient::ConnectionType)
 VARIANT_ENUM_CAST(GRClient::StretchMode)
+VARIANT_ENUM_CAST(GRClient::StreamState)

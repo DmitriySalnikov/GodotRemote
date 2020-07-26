@@ -24,6 +24,7 @@ String GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notific
 
 String GodotRemote::ps_server_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
 String GodotRemote::ps_server_stream_skip_frames_name = "debug/godot_remote/server/stream_fps";
+String GodotRemote::ps_server_stream_enabled_name = "debug/godot_remote/server/video_stream_enabled";
 String GodotRemote::ps_server_compression_type_name = "debug/godot_remote/server/compression_type";
 String GodotRemote::ps_server_jpg_quality_name = "debug/godot_remote/server/jpg_quality";
 String GodotRemote::ps_server_jpg_buffer_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
@@ -76,6 +77,7 @@ void GodotRemote::_bind_methods() {
 	BIND_ENUM_CONSTANT(DEVICE_Standalone);
 
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS, "USE_INTERNAL_SERVER_SETTINGS");
+	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::VIDEO_STREAM_ENABLED, "SERVER_PARAM_VIDEO_STREAM_ENABLED");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::COMPRESSION_TYPE, "SERVER_PARAM_COMPRESSION_TYPE");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::JPG_QUALITY, "SERVER_PARAM_JPG_QUALITY");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::SEND_FPS, "SERVER_PARAM_SEND_FPS");
@@ -110,6 +112,9 @@ void GodotRemote::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "notifications_enabled"), "set_notifications_enabled", "get_notifications_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "notifications_duration"), "set_notifications_duration", "get_notifications_duration");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "notifications_style"), "set_notifications_style", "get_notifications_style");
+
+	ADD_SIGNAL(MethodInfo("device_added"));
+	ADD_SIGNAL(MethodInfo("device_removed"));
 
 	BIND_ENUM_CONSTANT_CUSTOM(NotificationIcon::None, "NOTIFICATION_ICON_NONE");
 	BIND_ENUM_CONSTANT_CUSTOM(NotificationIcon::Error, "NOTIFICATION_ICON_ERROR");
@@ -196,6 +201,7 @@ bool GodotRemote::create_remote_device(DeviceType type) {
 
 	if (d) {
 		device = d;
+		call_deferred("emit_signal", "device_added");
 		SceneTree::get_singleton()->get_root()->call_deferred("add_child", device);
 		SceneTree::get_singleton()->get_root()->call_deferred("move_child", device, 0);
 		return true;
@@ -217,6 +223,7 @@ bool GodotRemote::remove_remote_device() {
 		device->stop();
 		device->queue_delete();
 		device = nullptr;
+		call_deferred("emit_signal", "device_removed");
 		return true;
 	}
 	return false;
@@ -249,6 +256,7 @@ void GodotRemote::register_and_load_settings() {
 	DEF_(ps_server_password_name, "", PropertyInfo(Variant::STRING, ps_server_password_name));
 
 	// client can change this settings
+	DEF_(ps_server_stream_enabled_name, true, PropertyInfo(Variant::BOOL, ps_server_stream_enabled_name));
 	DEF_(ps_server_compression_type_name, (int)ImageCompressionType::JPG, PropertyInfo(Variant::INT, ps_server_compression_type_name, PROPERTY_HINT_ENUM, "Uncompressed,JPG,PNG"));
 	DEF_(ps_server_stream_skip_frames_name, 0, PropertyInfo(Variant::INT, ps_server_stream_skip_frames_name, PROPERTY_HINT_RANGE, "0,1000"));
 	DEF_(ps_server_scale_of_sending_stream_name, 0.25f, PropertyInfo(Variant::REAL, ps_server_scale_of_sending_stream_name, PROPERTY_HINT_RANGE, "0,1,0.01"));

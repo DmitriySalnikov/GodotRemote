@@ -41,7 +41,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_stream_active"), &GRClient::is_stream_active);
 	ClassDB::bind_method(D_METHOD("is_connected_to_host"), &GRClient::is_connected_to_host);
 
-	ADD_SIGNAL(MethodInfo("stream_state_changed", PropertyInfo(Variant::BOOL, "is_active")));
+	ADD_SIGNAL(MethodInfo("stream_state_changed", PropertyInfo(Variant::INT, "state", PROPERTY_HINT_ENUM)));
 	ADD_SIGNAL(MethodInfo("connection_state_changed", PropertyInfo(Variant::BOOL, "is_connected")));
 	ADD_SIGNAL(MethodInfo("mouse_mode_changed", PropertyInfo(Variant::INT, "mouse_mode")));
 
@@ -49,7 +49,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "val"), &GRClient::set_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("set_capture_when_hover", "val"), &GRClient::set_capture_when_hover);
 	ClassDB::bind_method(D_METHOD("set_connection_type", "type"), &GRClient::set_connection_type);
-	ClassDB::bind_method(D_METHOD("set_skip_frames", "fps"), &GRClient::set_skip_frames);
+	ClassDB::bind_method(D_METHOD("set_target_send_fps", "fps"), &GRClient::set_target_send_fps);
 	ClassDB::bind_method(D_METHOD("set_stretch_mode", "mode"), &GRClient::set_stretch_mode);
 	ClassDB::bind_method(D_METHOD("set_texture_filtering", "is_filtered"), &GRClient::set_texture_filtering);
 	ClassDB::bind_method(D_METHOD("set_password", "password"), &GRClient::set_password);
@@ -58,7 +58,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_capture_on_focus"), &GRClient::is_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("is_capture_when_hover"), &GRClient::is_capture_when_hover);
 	ClassDB::bind_method(D_METHOD("get_connection_type"), &GRClient::get_connection_type);
-	ClassDB::bind_method(D_METHOD("get_skip_frames"), &GRClient::get_skip_frames);
+	ClassDB::bind_method(D_METHOD("get_target_send_fps"), &GRClient::get_target_send_fps);
 	ClassDB::bind_method(D_METHOD("get_stretch_mode"), &GRClient::get_stretch_mode);
 	ClassDB::bind_method(D_METHOD("get_texture_filtering"), &GRClient::get_texture_filtering);
 	ClassDB::bind_method(D_METHOD("get_password"), &GRClient::get_password);
@@ -67,7 +67,7 @@ void GRClient::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "connection_type", PROPERTY_HINT_ENUM, "WiFi,ADB"), "set_connection_type", "get_connection_type");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), "set_skip_frames", "get_skip_frames");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), "set_target_send_fps", "get_target_send_fps");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Fill,Keep Aspect"), "set_stretch_mode", "get_stretch_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "texture_filtering"), "set_texture_filtering", "get_texture_filtering");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
@@ -78,6 +78,10 @@ void GRClient::_bind_methods() {
 
 	BIND_ENUM_CONSTANT(STRETCH_KEEP_ASPECT);
 	BIND_ENUM_CONSTANT(STRETCH_FILL);
+
+	BIND_ENUM_CONSTANT(STREAM_NO_SIGNAL);
+	BIND_ENUM_CONSTANT(STREAM_ACTIVE);
+	BIND_ENUM_CONSTANT(STREAM_NO_IMAGE);
 }
 
 void GRClient::_notification(int p_notification) {
@@ -159,7 +163,7 @@ void GRClient::_internal_call_only_deffered_start() {
 	thread_connection->peer.instance();
 	thread_connection->thread_ref = Thread::create(&_thread_connection, thread_connection.ptr());
 
-	call_deferred("_update_stream_texture_state", false);
+	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 	set_status(WorkingStatus::Working);
 }
 
@@ -187,7 +191,7 @@ void GRClient::_internal_call_only_deffered_stop() {
 	send_queue_mutex->unlock();
 	connection_mutex->unlock();
 
-	call_deferred("_update_stream_texture_state", false);
+	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 	set_status(WorkingStatus::Stopped);
 }
 
@@ -227,24 +231,24 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 		input_collector->dev = this;
 		input_collector->this_in_client = &input_collector;
 
-		signal_connection_state = true; // force execute update function
-		call_deferred("_update_stream_texture_state", false);
+		signal_connection_state = StreamState::STREAM_ACTIVE; // force execute update function
+		call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 	}
 }
 
 void GRClient::set_custom_no_signal_texture(Ref<Texture> custom_tex) {
 	custom_no_signal_texture = custom_tex;
-	_update_stream_texture_state(signal_connection_state);
+	call_deferred("_update_stream_texture_state", signal_connection_state);
 }
 
 void GRClient::set_custom_no_signal_vertical_texture(Ref<Texture> custom_tex) {
 	custom_no_signal_vertical_texture = custom_tex;
-	_update_stream_texture_state(signal_connection_state);
+	call_deferred("_update_stream_texture_state", signal_connection_state);
 }
 
 void GRClient::set_custom_no_signal_material(Ref<Material> custom_mat) {
 	custom_no_signal_material = custom_mat;
-	_update_stream_texture_state(signal_connection_state);
+	call_deferred("_update_stream_texture_state", signal_connection_state);
 }
 
 bool GRClient::is_capture_on_focus() {
@@ -275,12 +279,12 @@ int GRClient::get_connection_type() {
 	return con_type;
 }
 
-void GRClient::set_skip_frames(int fps) {
+void GRClient::set_target_send_fps(int fps) {
 	ERR_FAIL_COND(fps <= 0);
 	send_data_fps = fps;
 }
 
-int GRClient::get_skip_frames() {
+int GRClient::get_target_send_fps() {
 	return send_data_fps;
 }
 
@@ -385,61 +389,73 @@ bool GRClient::is_connected_to_host() {
 
 void GRClient::_update_texture_from_iamge(Ref<Image> img) {
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
-		Ref<ImageTexture> tex = tex_shows_stream->get_texture();
-		if (tex.is_valid()) {
-			tex->create_from_image(img);
-		} else {
-			tex.instance();
-			tex->create_from_image(img);
-			tex_shows_stream->set_texture(tex);
-		}
+		if (img.is_valid()) {
+			Ref<ImageTexture> tex = tex_shows_stream->get_texture();
+			if (tex.is_valid()) {
+				tex->create_from_image(img);
+			} else {
+				tex.instance();
+				tex->create_from_image(img);
+				tex_shows_stream->set_texture(tex);
+			}
 
-		uint32_t new_flags = Texture::FLAG_MIPMAPS | (is_filtering_enabled ? Texture::FLAG_FILTER : 0);
-		if (tex->get_flags() != new_flags) {
-			tex->set_flags(new_flags);
+			uint32_t new_flags = Texture::FLAG_MIPMAPS | (is_filtering_enabled ? Texture::FLAG_FILTER : 0);
+			if (tex->get_flags() != new_flags) {
+				tex->set_flags(new_flags);
+			}
+		} else {
+			tex_shows_stream->set_texture(nullptr);
 		}
 	}
 }
 
-void GRClient::_update_stream_texture_state(bool is_has_signal) {
+void GRClient::_update_stream_texture_state(StreamState is_has_signal) {
 	if (is_deleting)
 		return;
 
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
-		if (is_has_signal) {
-			tex_shows_stream->set_stretch_mode(stretch_mode == StretchMode::STRETCH_KEEP_ASPECT ? TextureRect::STRETCH_KEEP_ASPECT_CENTERED : TextureRect::STRETCH_SCALE);
-			tex_shows_stream->set_material(nullptr);
+		switch (is_has_signal) {
+			case GRClient::STREAM_NO_SIGNAL: {
+				tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
 
-			if (signal_connection_state != is_has_signal) {
-				call_deferred("emit_signal", "stream_state_changed", true);
-			}
-			signal_connection_state = true;
-		} else {
-			tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
-
-			if (signal_connection_state != is_has_signal) {
-				call_deferred("emit_signal", "stream_state_changed", false);
-			}
-			signal_connection_state = false;
-
-			if (custom_no_signal_texture.is_valid() || custom_no_signal_vertical_texture.is_valid()) {
-				tex_shows_stream->set_texture(no_signal_is_vertical ?
-													  (custom_no_signal_vertical_texture.is_valid() ? custom_no_signal_vertical_texture : custom_no_signal_texture) :
-													  (custom_no_signal_texture.is_valid() ? custom_no_signal_texture : custom_no_signal_vertical_texture));
-			}
+				if (custom_no_signal_texture.is_valid() || custom_no_signal_vertical_texture.is_valid()) {
+					tex_shows_stream->set_texture(no_signal_is_vertical ?
+														  (custom_no_signal_vertical_texture.is_valid() ? custom_no_signal_vertical_texture : custom_no_signal_texture) :
+														  (custom_no_signal_texture.is_valid() ? custom_no_signal_texture : custom_no_signal_vertical_texture));
+				}
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
-			else {
-				_update_texture_from_iamge(no_signal_is_vertical ? no_signal_vertical_image : no_signal_image);
-			}
+				else {
+					_update_texture_from_iamge(no_signal_is_vertical ? no_signal_vertical_image : no_signal_image);
+				}
 #endif
-			if (custom_no_signal_material.is_valid()) {
-				tex_shows_stream->set_material(custom_no_signal_material);
-			}
+				if (custom_no_signal_material.is_valid()) {
+					tex_shows_stream->set_material(custom_no_signal_material);
+				}
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
-			else {
-				tex_shows_stream->set_material(no_signal_mat);
-			}
+				else {
+					tex_shows_stream->set_material(no_signal_mat);
+				}
 #endif
+				break;
+			}
+			case GRClient::STREAM_ACTIVE: {
+				tex_shows_stream->set_stretch_mode(stretch_mode == StretchMode::STRETCH_KEEP_ASPECT ? TextureRect::STRETCH_KEEP_ASPECT_CENTERED : TextureRect::STRETCH_SCALE);
+				tex_shows_stream->set_material(nullptr);
+				break;
+			}
+			case GRClient::STREAM_NO_IMAGE:
+				tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_SCALE);
+				tex_shows_stream->set_material(nullptr);
+				tex_shows_stream->set_texture(nullptr);
+				break;
+			default:
+				_log("Wrong stream state!", LogLevel::LL_Error);
+				break;
+		}
+
+		if (signal_connection_state != is_has_signal) {
+			call_deferred("emit_signal", "stream_state_changed", is_has_signal);
+			signal_connection_state = is_has_signal;
 		}
 	}
 }
@@ -482,7 +498,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 
 	while (!con_thread->stop_thread) {
 		if (os->get_ticks_usec() - dev->prev_valid_connection_time > 1000_ms) {
-			dev->call_deferred("_update_stream_texture_state", false);
+			dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 		}
 
 		if (con->get_status() == StreamPeerTCP::STATUS_CONNECTED || con->get_status() == StreamPeerTCP::STATUS_CONNECTING) {
@@ -565,7 +581,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 			case GRDevice::AuthResult::OK: {
 				_log("Successful connected to " + address);
 
-				dev->call_deferred("_update_stream_texture_state", true);
+				dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
 
 				con_thread->break_connection = false;
 				con_thread->peer = con;
@@ -631,7 +647,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 		}
 	}
 
-	dev->call_deferred("_update_stream_texture_state", false);
+	dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 	_log("Connection thread stopped", LogLevel::LL_Debug);
 	con_thread->finished = true;
 }
@@ -653,11 +669,11 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 	List<Ref<GRPacketImageData> > stream_queue;
 
 	uint64_t time64 = os->get_ticks_usec();
+	uint64_t prev_cycle_time = 0;
 	uint64_t prev_send_input_time = time64;
 	uint64_t prev_ping_sending_time = time64;
 	uint64_t next_image_required_frametime = time64;
 	uint64_t prev_display_image_time = time64 - 16_ms;
-	uint64_t prev_cycle_time = 0;
 
 	bool ping_sended = false;
 
@@ -763,7 +779,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 				goto end_img_process;
 			}
 
-			uint64_t frametime = pack->get_frametime() > 100_ms ? 100_ms : pack->get_frametime();
+			uint64_t frametime = pack->get_frametime() > 1000_ms ? 1000_ms : pack->get_frametime();
 			next_image_required_frametime = time64 + frametime - prev_cycle_time;
 
 			dev->_update_avg_fps(time64 - prev_display_image_time);
@@ -776,16 +792,30 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 			}
 
 			ImgProcessingStorage *ips = new ImgProcessingStorage(dev);
-			ips->tex_data = pack->get_image_data();
-			ips->compression_type = (ImageCompressionType)pack->get_compression_type();
-			ips->size = pack->get_size();
-			ips->format = pack->get_format();
-			ips->_is_processing_img = &_is_processing_img;
-			_img_thread = Thread::create(&_thread_image_decoder, ips);
+			if (pack->get_is_empty()) {
+				dev->call_deferred("_update_texture_from_iamge", Ref<Image>());
+				dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
+			} else {
+				ips->tex_data = pack->get_image_data();
+				ips->compression_type = (ImageCompressionType)pack->get_compression_type();
+				ips->size = pack->get_size();
+				ips->format = pack->get_format();
+				ips->_is_processing_img = &_is_processing_img;
+				_img_thread = Thread::create(&_thread_image_decoder, ips);
+			}
 
 			TimeCount("Get image from queue");
 		}
 	end_img_process:
+
+		// check if image displayed less then few seconds ago. if not then remove texture
+		const double image_loss_time = 1.5;
+		if (os->get_ticks_usec() > prev_display_image_time + uint64_t(1000_ms * image_loss_time)) {
+			if (dev->signal_connection_state != StreamState::STREAM_NO_IMAGE) {
+				dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
+				dev->_reset_counters();
+			}
+		}
 
 		if (stream_queue.size() > 10) {
 			stream_queue.clear();
@@ -910,10 +940,8 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 	switch (type) {
 		case ImageCompressionType::Uncompressed: {
 			img->create(ips->size.x, ips->size.y, false, (Image::Format)ips->format, ips->tex_data);
-			if (!img->empty()) { // is OK
-				dev->call_deferred("_update_texture_from_iamge", img);
-				TimeCount("Create uncompressed Image");
-			} else {
+			if (img->empty()) { // is NOT OK
+				err = Error::FAILED;
 				_log("Incorrect uncompressed image data.", LogLevel::LL_Error);
 				GRNotifications::add_notification("Stream Error", "Incorrect uncompressed image data.", NotificationIcon::Error);
 			}
@@ -921,10 +949,7 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 		}
 		case ImageCompressionType::JPG: {
 			err = img->load_jpg_from_buffer(ips->tex_data);
-			if (!err && !img->empty()) { // is OK
-				dev->call_deferred("_update_texture_from_iamge", img);
-				TimeCount("Decode Image Time");
-			} else {
+			if (err || img->empty()) { // is NOT OK
 				_log("Can't decode JPG image.", LogLevel::LL_Error);
 				GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str(err), NotificationIcon::Error);
 			}
@@ -932,10 +957,7 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 		}
 		case GRUtils::ImageCompressionType::PNG: {
 			err = img->load_png_from_buffer(ips->tex_data);
-			if (!err && !img->empty()) { // is OK
-				dev->call_deferred("_update_texture_from_iamge", img);
-				TimeCount("Decode Image Time");
-			} else {
+			if (err || img->empty()) { // is NOT OK
 				_log("Can't decode PNG image.", LogLevel::LL_Error);
 				GRNotifications::add_notification("Stream Error", "Can't decode PNG image. Code: " + str(err), NotificationIcon::Error);
 			}
@@ -945,6 +967,16 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 			_log("Not implemented image decoder type: " + str((int)type), LogLevel::LL_Error);
 			break;
 	}
+
+	if (!err) { // is OK
+		TimeCount("Create Image Time");
+		dev->call_deferred("_update_texture_from_iamge", img);
+
+		if (dev->signal_connection_state != StreamState::STREAM_ACTIVE) {
+			dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_ACTIVE);
+		}
+	}
+
 	*ips->_is_processing_img = false;
 	delete ips;
 }
@@ -1252,7 +1284,7 @@ void GRTextureRect::_tex_size_changed() {
 		bool is_vertical = (v.x / v.y) < 1.f;
 		if (is_vertical != dev->no_signal_is_vertical) {
 			dev->no_signal_is_vertical = is_vertical;
-			dev->_update_stream_texture_state(dev->signal_connection_state);
+			dev->_update_stream_texture_state(dev->signal_connection_state); // update texture
 		}
 	}
 }
