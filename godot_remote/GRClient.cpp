@@ -48,6 +48,8 @@ void GRClient::_bind_methods() {
 	// SETGET
 	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "val"), &GRClient::set_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("set_capture_when_hover", "val"), &GRClient::set_capture_when_hover);
+	ClassDB::bind_method(D_METHOD("set_capture_pointer", "val"), &GRClient::set_capture_pointer);
+	ClassDB::bind_method(D_METHOD("set_capture_input", "val"), &GRClient::set_capture_input);
 	ClassDB::bind_method(D_METHOD("set_connection_type", "type"), &GRClient::set_connection_type);
 	ClassDB::bind_method(D_METHOD("set_target_send_fps", "fps"), &GRClient::set_target_send_fps);
 	ClassDB::bind_method(D_METHOD("set_stretch_mode", "mode"), &GRClient::set_stretch_mode);
@@ -57,6 +59,8 @@ void GRClient::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("is_capture_on_focus"), &GRClient::is_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("is_capture_when_hover"), &GRClient::is_capture_when_hover);
+	ClassDB::bind_method(D_METHOD("is_capture_pointer"), &GRClient::is_capture_pointer);
+	ClassDB::bind_method(D_METHOD("is_capture_input"), &GRClient::is_capture_input);
 	ClassDB::bind_method(D_METHOD("get_connection_type"), &GRClient::get_connection_type);
 	ClassDB::bind_method(D_METHOD("get_target_send_fps"), &GRClient::get_target_send_fps);
 	ClassDB::bind_method(D_METHOD("get_stretch_mode"), &GRClient::get_stretch_mode);
@@ -66,6 +70,8 @@ void GRClient::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_pointer"), "set_capture_pointer", "is_capture_pointer");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_input"), "set_capture_input", "is_capture_input");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "connection_type", PROPERTY_HINT_ENUM, "WiFi,ADB"), "set_connection_type", "get_connection_type");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), "set_target_send_fps", "get_target_send_fps");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Fill,Keep Aspect"), "set_stretch_mode", "get_stretch_mode");
@@ -226,7 +232,6 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 		control_to_show_in->move_child(tex_shows_stream, position_in_node);
 		control_to_show_in->add_child(input_collector);
 
-		input_collector->set_capture_on_focus(capture_only_when_control_in_focus);
 		input_collector->set_tex_rect(tex_shows_stream);
 		input_collector->dev = this;
 		input_collector->this_in_client = &input_collector;
@@ -252,23 +257,47 @@ void GRClient::set_custom_no_signal_material(Ref<Material> custom_mat) {
 }
 
 bool GRClient::is_capture_on_focus() {
-	return capture_only_when_control_in_focus;
+	if (input_collector && !input_collector->is_queued_for_deletion())
+		return input_collector->is_capture_on_focus();
+	return false;
 }
 
 void GRClient::set_capture_on_focus(bool value) {
-	capture_only_when_control_in_focus = value;
-
 	if (input_collector && !input_collector->is_queued_for_deletion())
-		input_collector->set_capture_on_focus(capture_only_when_control_in_focus);
+		input_collector->set_capture_on_focus(value);
 }
 
 bool GRClient::is_capture_when_hover() {
-	return capture_pointer_only_when_hover_control;
+	if (input_collector && !input_collector->is_queued_for_deletion())
+		return input_collector->is_capture_when_hover();
+	return false;
 }
 
 void GRClient::set_capture_when_hover(bool value) {
 	if (input_collector && !input_collector->is_queued_for_deletion())
-		input_collector->set_capture_when_hover(capture_pointer_only_when_hover_control);
+		input_collector->set_capture_when_hover(value);
+}
+
+bool GRClient::is_capture_pointer() {
+	if (input_collector && !input_collector->is_queued_for_deletion())
+		return input_collector->is_capture_pointer();
+	return false;
+}
+
+void GRClient::set_capture_pointer(bool value) {
+	if (input_collector && !input_collector->is_queued_for_deletion())
+		input_collector->set_capture_pointer(value);
+}
+
+bool GRClient::is_capture_input() {
+	if (input_collector && !input_collector->is_queued_for_deletion())
+		return input_collector->is_capture_input();
+	return false;
+}
+
+void GRClient::set_capture_input(bool value) {
+	if (input_collector && !input_collector->is_queued_for_deletion())
+		input_collector->set_capture_input(value);
 }
 
 void GRClient::set_connection_type(int type) {
@@ -793,6 +822,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 			ImgProcessingStorage *ips = new ImgProcessingStorage(dev);
 			if (pack->get_is_empty()) {
+				dev->_update_avg_fps(0);
 				dev->call_deferred("_update_texture_from_iamge", Ref<Image>());
 				dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
 			} else {
@@ -1107,13 +1137,18 @@ void GRInputCollector::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "value"), &GRInputCollector::set_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("is_capture_when_hover"), &GRInputCollector::is_capture_when_hover);
 	ClassDB::bind_method(D_METHOD("set_capture_when_hover", "value"), &GRInputCollector::set_capture_when_hover);
+	ClassDB::bind_method(D_METHOD("is_capture_pointer"), &GRInputCollector::is_capture_pointer);
+	ClassDB::bind_method(D_METHOD("set_capture_pointer", "value"), &GRInputCollector::set_capture_pointer);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_pointer"), "set_capture_pointer", "is_capture_pointer");
 }
 
 void GRInputCollector::_input(Ref<InputEvent> ie) {
-	if (!parent || (capture_only_when_control_in_focus && !parent->has_focus()) || (dev && dev->get_status() != (int)GRDevice::WorkingStatus::Working) || !dev->is_stream_active()) {
+	if (!parent || (capture_only_when_control_in_focus && !parent->has_focus()) ||
+			(dev && dev->get_status() != (int)GRDevice::WorkingStatus::Working) ||
+			!dev->is_stream_active() || !is_inside_tree()) {
 		return;
 	}
 
@@ -1128,13 +1163,13 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 
 	if (ie.is_null()) {
 		_log("InputEvent is null", LogLevel::LL_Error);
-		goto end;
+		return;
 	}
 
 	{
 		Ref<InputEventMouseButton> iemb = ie;
 		if (iemb.is_valid()) {
-			if (!stream_rect.has_point(iemb->get_position()) && capture_pointer_only_when_hover_control) {
+			if ((!stream_rect.has_point(iemb->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer) {
 				int idx = iemb->get_button_index();
 				if (idx == BUTTON_WHEEL_UP || idx == BUTTON_WHEEL_DOWN ||
 						idx == BUTTON_WHEEL_LEFT || idx == BUTTON_WHEEL_RIGHT) {
@@ -1151,7 +1186,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventMouseMotion> iemm = ie;
 		if (iemm.is_valid()) {
-			if (!stream_rect.has_point(iemm->get_position()) && capture_pointer_only_when_hover_control)
+			if ((!stream_rect.has_point(iemm->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer)
 				return;
 			goto end;
 		}
@@ -1160,7 +1195,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventScreenTouch> iest = ie;
 		if (iest.is_valid()) {
-			if (!stream_rect.has_point(iest->get_position()) && capture_pointer_only_when_hover_control) {
+			if ((!stream_rect.has_point(iest->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer) {
 				if (iest->is_pressed())
 					return;
 			}
@@ -1171,7 +1206,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventScreenDrag> iesd = ie;
 		if (iesd.is_valid()) {
-			if (!stream_rect.has_point(iesd->get_position()) && capture_pointer_only_when_hover_control)
+			if ((!stream_rect.has_point(iesd->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer)
 				return;
 			goto end;
 		}
@@ -1180,7 +1215,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventMagnifyGesture> iemg = ie;
 		if (iemg.is_valid()) {
-			if (!stream_rect.has_point(iemg->get_position()) && capture_pointer_only_when_hover_control)
+			if ((!stream_rect.has_point(iemg->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer)
 				return;
 			goto end;
 		}
@@ -1189,7 +1224,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventPanGesture> iepg = ie;
 		if (iepg.is_valid()) {
-			if (!stream_rect.has_point(iepg->get_position()) && capture_pointer_only_when_hover_control)
+			if ((!stream_rect.has_point(iepg->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer)
 				return;
 			goto end;
 		}
@@ -1209,6 +1244,10 @@ void GRInputCollector::_notification(int p_notification) {
 	switch (p_notification) {
 		case NOTIFICATION_ENTER_TREE: {
 			parent = cast_to<Control>(get_parent());
+			break;
+		}
+		case NOTIFICATION_EXIT_TREE: {
+			parent = nullptr;
 			break;
 		}
 		case NOTIFICATION_PROCESS: {
@@ -1239,6 +1278,22 @@ bool GRInputCollector::is_capture_when_hover() {
 
 void GRInputCollector::set_capture_when_hover(bool value) {
 	capture_pointer_only_when_hover_control = value;
+}
+
+bool GRInputCollector::is_capture_pointer() {
+	return !dont_capture_pointer;
+}
+
+void GRInputCollector::set_capture_pointer(bool value) {
+	dont_capture_pointer = !value;
+}
+
+bool GRInputCollector::is_capture_input() {
+	return is_processing_input();
+}
+
+void GRInputCollector::set_capture_input(bool value) {
+	set_process_input(value);
 }
 
 void GRInputCollector::set_tex_rect(TextureRect *tr) {
@@ -1277,6 +1332,10 @@ GRInputCollector::~GRInputCollector() {
 		*this_in_client = nullptr;
 	_THREAD_SAFE_UNLOCK_
 }
+
+//////////////////////////////////////////////
+/////////////// TEXTURE RECT /////////////////
+//////////////////////////////////////////////
 
 void GRTextureRect::_tex_size_changed() {
 	if (dev) {

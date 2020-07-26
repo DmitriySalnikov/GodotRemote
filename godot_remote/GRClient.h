@@ -97,8 +97,6 @@ private:
 
 	String password;
 	bool is_filtering_enabled = true;
-	bool capture_only_when_control_in_focus = false;
-	bool capture_pointer_only_when_hover_control = true;
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
 	Mutex *send_queue_mutex = nullptr;
@@ -163,6 +161,10 @@ public:
 	void set_capture_on_focus(bool value);
 	bool is_capture_when_hover();
 	void set_capture_when_hover(bool value);
+	bool is_capture_pointer();
+	void set_capture_pointer(bool value);
+	bool is_capture_input();
+	void set_capture_input(bool value);
 	void set_connection_type(int type);
 	int get_connection_type();
 	void set_target_send_fps(int fps);
@@ -205,6 +207,8 @@ private:
 	class Control *parent;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
+	bool dont_capture_pointer = false;
+	bool capture_input = true;
 	Rect2 stream_rect;
 	PoolVector3Array sensors;
 
@@ -221,6 +225,10 @@ public:
 	void set_capture_on_focus(bool value);
 	bool is_capture_when_hover();
 	void set_capture_when_hover(bool value);
+	bool is_capture_pointer();
+	void set_capture_pointer(bool value);
+	bool is_capture_input();
+	void set_capture_input(bool value);
 
 	void set_tex_rect(class TextureRect *tr);
 
