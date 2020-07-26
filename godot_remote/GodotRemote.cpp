@@ -19,11 +19,11 @@ String GodotRemote::ps_general_port_name = "debug/godot_remote/general/port";
 String GodotRemote::ps_general_loglevel_name = "debug/godot_remote/general/log_level";
 
 String GodotRemote::ps_notifications_enabled_name = "debug/godot_remote/notifications/notifications_enabled";
-String GodotRemote::ps_noticications_position_name = "debug/godot_remote/notifications/noticications_position";
+String GodotRemote::ps_noticications_position_name = "debug/godot_remote/notifications/notifications_position";
 String GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notifications/notifications_duration";
 
 String GodotRemote::ps_server_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
-String GodotRemote::ps_server_stream_skip_frames_name = "debug/godot_remote/server/stream_fps";
+String GodotRemote::ps_server_stream_skip_frames_name = "debug/godot_remote/server/skip_frames";
 String GodotRemote::ps_server_stream_enabled_name = "debug/godot_remote/server/video_stream_enabled";
 String GodotRemote::ps_server_compression_type_name = "debug/godot_remote/server/compression_type";
 String GodotRemote::ps_server_jpg_quality_name = "debug/godot_remote/server/jpg_quality";
