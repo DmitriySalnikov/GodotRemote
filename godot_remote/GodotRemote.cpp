@@ -23,6 +23,7 @@ String GodotRemote::ps_noticications_position_name = "debug/godot_remote/notific
 String GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notifications/notifications_duration";
 
 String GodotRemote::ps_server_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
+String GodotRemote::ps_server_custom_input_scene_name = "debug/godot_remote/server/custom_input_scene";
 String GodotRemote::ps_server_stream_skip_frames_name = "debug/godot_remote/server/skip_frames";
 String GodotRemote::ps_server_stream_enabled_name = "debug/godot_remote/server/video_stream_enabled";
 String GodotRemote::ps_server_compression_type_name = "debug/godot_remote/server/compression_type";
@@ -250,6 +251,7 @@ void GodotRemote::register_and_load_settings() {
 
 	// const server settings
 	DEF_(ps_server_config_adb_name, true, PropertyInfo(Variant::BOOL, ps_server_config_adb_name));
+	DEF_(ps_server_custom_input_scene_name, "", PropertyInfo(Variant::STRING, ps_server_custom_input_scene_name, PROPERTY_HINT_FILE, "*.tscn,*.scn"));
 	DEF_(ps_server_jpg_buffer_mb_size_name, 4, PropertyInfo(Variant::INT, ps_server_jpg_buffer_mb_size_name, PROPERTY_HINT_RANGE, "1,128"));
 
 	// only server can change this settings

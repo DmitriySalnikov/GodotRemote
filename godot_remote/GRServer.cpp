@@ -7,6 +7,9 @@
 #include "GRPacket.h"
 #include "GodotRemote.h"
 #include "core/input_map.h"
+#include "core/io/pck_packer.h"
+#include "core/os/dir_access.h"
+#include "core/os/file_access.h"
 #include "core/os/input_event.h"
 #include "core/os/thread_safe.h"
 #include "main/input_default.h"
@@ -146,6 +149,17 @@ String GRServer::get_password() {
 	return password;
 }
 
+void GRServer::set_custom_input_scene(String _scn) {
+	if (custom_input_scene != _scn) {
+		custom_input_scene = _scn;
+		custom_input_scene_was_updated = false;
+	}
+}
+
+String GRServer::get_custom_input_scene() {
+	return custom_input_scene;
+}
+
 GRServer::GRServer() :
 		GRDevice() {
 	set_name("GodotRemoteServer");
@@ -237,6 +251,10 @@ Node *GRServer::get_settings_node() {
 	return settings_menu_node;
 }
 
+void GRServer::force_update_custom_input_scene() {
+	custom_input_scene_was_updated = false;
+}
+
 void GRServer::_adjust_viewport_scale() {
 	if (!resize_viewport)
 		return;
@@ -276,6 +294,7 @@ void GRServer::_load_settings() {
 	GRNotifications::add_notification_or_update_line(title, "title", "Loaded default server settings");
 	// only updated by server itself
 	password = GET_PS(GodotRemote::ps_server_password_name);
+	set_custom_input_scene(GET_PS(GodotRemote::ps_server_custom_input_scene_name));
 
 	// can be updated by client
 	auto_adjust_scale = GET_PS(GodotRemote::ps_server_auto_adjust_scale_name); // TODO move to viewport
@@ -480,7 +499,10 @@ void GRServer::_thread_listen(void *p_userdata) {
 
 						connection_thread_info->dev = dev;
 						connection_thread_info->ppeer = ppeer;
+
+						dev->custom_input_scene_was_updated = dev->custom_input_scene.empty(); // because client dont have that scene by default
 						dev->client_connected++;
+
 						connection_thread_info->thread_ref = Thread::create(&_thread_connection, connection_thread_info.ptr());
 						_log("New connection from " + address);
 
@@ -533,8 +555,6 @@ void GRServer::_thread_connection(void *p_userdata) {
 	Input::MouseMode mouse_mode = Input::MOUSE_MODE_VISIBLE;
 	String address = CON_ADDRESS(connection);
 	Thread::set_name("GR_connection " + address);
-
-	//Ref<ImgProcessingStorage> ips;
 
 	uint64_t time64 = os->get_ticks_usec();
 	uint64_t prev_send_image_time = time64;
@@ -655,6 +675,26 @@ void GRServer::_thread_connection(void *p_userdata) {
 				goto end_send;
 			}
 			TimeCount("Ping");
+		}
+
+		// CUSTOM INPUT SCENE
+		if (!dev->custom_input_scene_was_updated) {
+			Ref<GRPacketCustomInputScene> pack;
+			if (!dev->custom_input_scene.empty()) {
+				pack = _create_custom_input_pack(dev->custom_input_scene);
+			} else {
+				pack.instance();
+			}
+
+			err = ppeer->put_var(pack->get_data());
+
+			if (err) {
+				_log("Send custom input failed with code: " + str(err), LogLevel::LL_Error);
+				goto end_send;
+			}
+			TimeCount("Custom input");
+
+			dev->custom_input_scene_was_updated = true;
 		}
 	end_send:
 
@@ -911,6 +951,96 @@ timeout:
 #undef dict_get
 #undef wait_packet
 #undef packet_error_check
+}
+
+Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_path) {
+	Ref<GRPacketCustomInputScene> pack = memnew(GRPacketCustomInputScene);
+	PoolStringArray files;
+	_scan_dir_for_files_recursive(_scene_path.get_base_dir(), files);
+
+	if (files.size()) {
+		String pck_file = _scene_path.get_base_dir() + "tmp.pck";
+		Ref<PCKPacker> pck = memnew(PCKPacker);
+		Error err = pck->pck_start(pck_file);
+
+		if (err) {
+			_log("Can't create PCK file. Code: " + str(err), LogLevel::LL_Error);
+		} else {
+
+			for (int i = 0; i < files.size(); i++) {
+				pck->add_file(files[i], files[i]);
+			}
+
+			err = pck->flush();
+			if (err) {
+				_log("Can't flush PCK file. Code: " + str(err), LogLevel::LL_Error);
+			} else {
+				FileAccess *file = FileAccess::open(pck_file, FileAccess::ModeFlags::READ, &err);
+				if (err) {
+					_log("Can't open PCK file for reading. Code: " + str(err), LogLevel::LL_Error);
+				} else {
+					PoolByteArray arr;
+					err = arr.resize(file->get_len());
+					if (err) {
+						_log("Can't resize temp buffer array. Code: " + str(err), LogLevel::LL_Error);
+					} else {
+						auto w = arr.write();
+						int res = file->get_buffer(w.ptr(), arr.size());
+						w.release();
+
+						if (res != arr.size()) {
+							_log("PCK was not fully read. " + str(res) + " of " + str(arr.size()), LogLevel::LL_Error);
+						} else {
+							memdelete(file);
+
+							pack->set_scene_path(_scene_path);
+							pack->set_scene_data(arr);
+
+							DirAccess *dir = DirAccess::open(_scene_path.get_base_dir());
+							if (dir) {
+								dir->remove(pck_file);
+								memdelete(dir);
+							}
+						}
+					}
+				}
+			}
+		}
+	} else {
+		_log("Files to pack not found!", LogLevel::LL_Error);
+	}
+
+	return pack;
+}
+
+void GRServer::_scan_dir_for_files_recursive(String _d, PoolStringArray &_arr) {
+	_d.replace("\\", "/");
+	if (!_d.ends_with("/")) {
+		_d += "/";
+	}
+
+	DirAccess *dir = DirAccess::open(_d);
+
+	dir->list_dir_begin();
+	String f = dir->get_next();
+	while (!f.empty()) {
+		if (f == "." || f == "..") {
+			f = dir->get_next();
+			continue;
+		}
+
+		String ff = _d + f;
+		if (dir->file_exists(ff)) {
+			_arr.append(ff);
+		} else {
+			_scan_dir_for_files_recursive(f, _arr);
+		}
+
+		f = dir->get_next();
+	}
+
+	dir->list_dir_end();
+	memdelete(dir);
 }
 
 //////////////////////////////////////////////

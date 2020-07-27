@@ -72,6 +72,8 @@ private:
 	int client_connected = 0;
 
 	String password;
+	String custom_input_scene;
+	bool custom_input_scene_was_updated = true;
 	bool auto_adjust_scale = false;
 
 	float prev_avg_fps = 0;
@@ -87,8 +89,8 @@ private:
 	static void _thread_connection(void *p_userdata);
 
 	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection = false);
-	static bool _parse_input_data(const PoolByteArray &p_data);
-	static const uint8_t *_read_abstract_input_data(class InputEvent *ie, const Vector2 &vs, const uint8_t *data);
+	static Ref<class GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path);
+	static void _scan_dir_for_files_recursive(String _dir, PoolStringArray &_arr);
 
 protected:
 	virtual void _internal_call_only_deffered_start() override;
@@ -102,6 +104,8 @@ public:
 	int get_auto_adjust_scale();
 	void set_password(String _pass);
 	String get_password();
+	void set_custom_input_scene(String _scn);
+	String get_custom_input_scene();
 
 	// VIEWPORT
 	bool set_video_stream_enabled(bool val);
@@ -118,6 +122,7 @@ public:
 
 	GRSViewport *get_gr_viewport();
 	class Node *get_settings_node();
+	void force_update_custom_input_scene();
 
 	GRServer();
 	~GRServer();

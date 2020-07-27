@@ -33,14 +33,20 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 			CREATE(GRPacketImageData);
 		case PacketType::InputData:
 			CREATE(GRPacketInputData);
-		case PacketType::MouseModeSync:
-			CREATE(GRPacketMouseModeSync);
 		case PacketType::ServerSettings:
 			CREATE(GRPacketServerSettings);
+		case PacketType::MouseModeSync:
+			CREATE(GRPacketMouseModeSync);
+		case PacketType::CustomInputScene:
+			CREATE(GRPacketCustomInputScene);
+
+			// Requests
 		case PacketType::ServerSettingsRequest:
 			CREATE(GRPacketServerSettingsRequest);
 		case PacketType::Ping:
 			CREATE(GRPacketPing);
+
+			// Responses
 		case PacketType::Pong:
 			CREATE(GRPacketPong);
 		default:
@@ -253,4 +259,37 @@ Input::MouseMode GRPacketMouseModeSync::get_mouse_mode() {
 
 void GRPacketMouseModeSync::set_mouse_mode(Input::MouseMode _mode) {
 	mouse_mode = _mode;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// MOUSE MODE SYNC
+
+Ref<StreamPeerBuffer> GRPacketCustomInputScene::_get_data() {
+	auto buf = GRPacket::_get_data();
+	buf->put_string(scene_path);
+	buf->put_var(scene_data);
+	return buf;
+}
+
+bool GRPacketCustomInputScene::_create(Ref<StreamPeerBuffer> buf) {
+	GRPacket::_create(buf);
+	scene_path = buf->get_string();
+	scene_data = buf->get_var();
+	return true;
+}
+
+String GRPacketCustomInputScene::get_scene_path() {
+	return scene_path;
+}
+
+void GRPacketCustomInputScene::set_scene_path(String _path) {
+	scene_path = _path;
+}
+
+PoolByteArray GRPacketCustomInputScene::get_scene_data() {
+	return scene_data;
+}
+
+void GRPacketCustomInputScene::set_scene_data(PoolByteArray _data) {
+	scene_data = _data;
 }

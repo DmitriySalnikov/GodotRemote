@@ -123,6 +123,9 @@ private:
 	Ref<class ShaderMaterial> no_signal_mat;
 #endif
 
+	Node *custom_input_scene = nullptr;
+	String custom_input_scene_tmp_pck_file = "user://custom_input_scene.pck";
+
 	template <class T>
 	T _find_queued_packet_by_type() {
 		for (auto e = send_queue.front(); e; e = e->next()) {
@@ -133,6 +136,9 @@ private:
 		}
 		return T();
 	}
+
+	void _load_custom_input_scene(Ref<class GRPacketCustomInputScene> _data);
+	void _remove_custom_input_scene();
 
 	void _update_texture_from_iamge(Ref<Image> img);
 	void _update_stream_texture_state(StreamState _stream_state);

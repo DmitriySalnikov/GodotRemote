@@ -36,6 +36,7 @@ public:
 	static String ps_notifications_duration_name;
 
 	static String ps_server_config_adb_name;
+	static String ps_server_custom_input_scene_name;
 	static String ps_server_stream_skip_frames_name;
 	static String ps_server_stream_enabled_name;
 	static String ps_server_compression_type_name;

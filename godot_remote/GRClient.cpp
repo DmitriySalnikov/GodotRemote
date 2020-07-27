@@ -8,8 +8,12 @@
 #include "GRResources.h"
 #include "GodotRemote.h"
 #include "core/input_map.h"
+#include "core/io/file_access_pack.h"
 #include "core/io/ip.h"
+#include "core/io/resource_loader.h"
 #include "core/io/tcp_server.h"
+#include "core/os/dir_access.h"
+#include "core/os/file_access.h"
 #include "core/os/input_event.h"
 #include "core/os/thread_safe.h"
 #include "main/input_default.h"
@@ -18,6 +22,7 @@
 #include "scene/main/scene_tree.h"
 #include "scene/main/viewport.h"
 #include "scene/resources/material.h"
+#include "scene/resources/packed_scene.h"
 #include "scene/resources/texture.h"
 
 using namespace GRUtils;
@@ -25,6 +30,8 @@ using namespace GRUtils;
 void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_update_texture_from_iamge", "image"), &GRClient::_update_texture_from_iamge);
 	ClassDB::bind_method(D_METHOD("_update_stream_texture_state", "state"), &GRClient::_update_stream_texture_state);
+	ClassDB::bind_method(D_METHOD("_load_custom_input_scene", "_data"), &GRClient::_load_custom_input_scene);
+	ClassDB::bind_method(D_METHOD("_remove_custom_input_scene"), &GRClient::_remove_custom_input_scene);
 
 	ClassDB::bind_method(D_METHOD("send_packet", "packet"), &GRClient::send_packet);
 
@@ -185,6 +192,7 @@ void GRClient::_internal_call_only_deffered_stop() {
 
 	_log("Stopping GodotRemote client", LogLevel::LL_Debug);
 	set_status(WorkingStatus::Stopping);
+	_remove_custom_input_scene();
 
 	connection_mutex->lock();
 	if (thread_connection.is_valid()) {
@@ -212,6 +220,7 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 		input_collector->queue_delete();
 		input_collector = nullptr;
 	}
+	_remove_custom_input_scene();
 
 	control_to_show_in = ctrl;
 
@@ -416,6 +425,79 @@ bool GRClient::is_connected_to_host() {
 	return false;
 }
 
+void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
+	_remove_custom_input_scene();
+
+	if (_data->get_scene_path().empty() || _data->get_scene_data().empty()) {
+		_log("Scene not specified or data is empty. Removing custom input scene", LogLevel::LL_Debug);
+	}
+
+	if (!control_to_show_in) {
+		_log("Not specified control to show", LogLevel::LL_Error);
+	}
+
+	Error err = Error::OK;
+	FileAccess *file = FileAccess::open(custom_input_scene_tmp_pck_file, FileAccess::ModeFlags::WRITE, &err);
+	if (err) {
+		_log("Can't open temp file to store custom input scene: " + custom_input_scene_tmp_pck_file + ", code: " + str(err), LogLevel::LL_Error);
+	} else {
+
+		auto r = _data->get_scene_data().read();
+		file->store_buffer(r.ptr(), _data->get_scene_data().size());
+		file->close();
+
+		if (PackedData::get_singleton()->is_disabled()) {
+			err = Error::FAILED;
+		} else {
+			err = PackedData::get_singleton()->add_pack(custom_input_scene_tmp_pck_file, true);
+		}
+
+		if (err) {
+			_log("Can't load PCK file: " + custom_input_scene_tmp_pck_file, LogLevel::LL_Error);
+		} else {
+
+			Ref<PackedScene> pck = ResourceLoader::load(_data->get_scene_path(), "", false, &err);
+			if (err) {
+				_log("Can't load scene file: " + _data->get_scene_path() + ", code: " + str(err), LogLevel::LL_Error);
+			} else {
+
+				custom_input_scene = pck->instance();
+				if (!custom_input_scene) {
+					_log("Can't instance scene from PCK file: " + custom_input_scene_tmp_pck_file + ", scene: " + _data->get_scene_path(), LogLevel::LL_Error);
+				} else {
+
+					control_to_show_in->add_child(custom_input_scene);
+				}
+			}
+		}
+	}
+
+	if (file) {
+		memdelete(file);
+	}
+}
+
+void GRClient::_remove_custom_input_scene() {
+	if (custom_input_scene && !custom_input_scene->is_queued_for_deletion()) {
+		custom_input_scene->queue_delete();
+		custom_input_scene = nullptr;
+
+		Error err = Error::OK;
+		DirAccess *dir = DirAccess::open(custom_input_scene_tmp_pck_file.get_base_dir(), &err);
+		if (err) {
+			_log("Can't open folder: " + custom_input_scene_tmp_pck_file.get_base_dir(), LogLevel::LL_Error);
+		} else {
+			if (dir && dir->file_exists(custom_input_scene_tmp_pck_file)) {
+				dir->remove(custom_input_scene_tmp_pck_file);
+			}
+		}
+
+		if (dir) {
+			memdelete(dir);
+		}
+	}
+}
+
 void GRClient::_update_texture_from_iamge(Ref<Image> img) {
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		if (img.is_valid()) {
@@ -528,6 +610,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 	while (!con_thread->stop_thread) {
 		if (os->get_ticks_usec() - dev->prev_valid_connection_time > 1000_ms) {
 			dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
+			dev->call_deferred("_remove_custom_input_scene");
 		}
 
 		if (con->get_status() == StreamPeerTCP::STATUS_CONNECTED || con->get_status() == StreamPeerTCP::STATUS_CONNECTING) {
@@ -901,6 +984,16 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 					}
 
 					dev->emit_signal("mouse_mode_changed", data->get_mouse_mode());
+					break;
+				}
+				case PacketType::CustomInputScene: {
+					Ref<GRPacketCustomInputScene> data = pack;
+					if (data.is_null()) {
+						_log("GRPacketCustomInputScene is null", LogLevel::LL_Error);
+						continue;
+					}
+
+					dev->call_deferred("_load_custom_input_scene", data);
 					break;
 				}
 				case PacketType::Ping: {

@@ -12,11 +12,14 @@ enum class PacketType {
 	InputData = 3,
 	ServerSettings = 4,
 	MouseModeSync = 5,
+	CustomInputScene = 6,
 
 	// Requests
-	ServerSettingsRequest = 253,
-	Ping = 254,
-	Pong = 255,
+	ServerSettingsRequest = 128,
+	Ping = 129,
+
+	// Responses
+	Pong = 192,
 };
 
 VARIANT_ENUM_CAST(PacketType)
@@ -142,7 +145,7 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// MouseStateSync
+// MouseModeSync
 class GRPacketMouseModeSync : public GRPacket {
 	GDCLASS(GRPacketMouseModeSync, GRPacket);
 	friend GRPacket;
@@ -158,6 +161,28 @@ public:
 
 	Input::MouseMode get_mouse_mode();
 	void set_mouse_mode(Input::MouseMode _mode);
+};
+
+//////////////////////////////////////////////////////////////////////////
+// MouseStateSync
+class GRPacketCustomInputScene : public GRPacket {
+	GDCLASS(GRPacketCustomInputScene, GRPacket);
+	friend GRPacket;
+
+	String scene_path;
+	PoolByteArray scene_data;
+
+protected:
+	virtual Ref<StreamPeerBuffer> _get_data() override;
+	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+
+public:
+	virtual PacketType get_type() override { return PacketType::CustomInputScene; };
+
+	String get_scene_path();
+	void set_scene_path(String _path);
+	PoolByteArray get_scene_data();
+	void set_scene_data(PoolByteArray _data);
 };
 
 //////////////////////////////////////////////////////////////////////////
