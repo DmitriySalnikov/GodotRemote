@@ -15,7 +15,7 @@
 #define TimeCountInit() int simple_time_counter = OS::get_singleton()->get_ticks_usec()
 #define TimeCountReset() simple_time_counter = OS::get_singleton()->get_ticks_usec()
 // Shows delta between this and previous counter. Need to call TimeCountInit before
-#define TimeCount(str)                                                                                                                                                 \
+#define TimeCount(str)                                                                                                                                               \
 	GRUtils::_log(str + String(": ") + String::num((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0, 3) + " ms", GRUtils::LogLevel::LL_Debug); \
 	simple_time_counter = OS::get_singleton()->get_ticks_usec()
 
@@ -35,8 +35,8 @@
 
 #endif // DEBUG_ENABLED
 
-#define max(x,y) (x > y ? x : y)
-#define min(x,y) (x < y ? x : y)
+#define max(x, y) (x > y ? x : y)
+#define min(x, y) (x < y ? x : y)
 
 #define GR_VERSION(x, y, z)         \
 	if (internal_VERSION.empty()) { \
@@ -106,12 +106,14 @@ extern int compress_buffer_size_mb;
 extern Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width, int height, int bytes_for_color = 4, int quality = 75, int subsampling = Subsampling::SUBSAMPLING_H2V2);
 #endif
 
+extern Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type);
+extern Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolByteArray &res, int type);
 extern void _log(const Variant &val, LogLevel lvl = LogLevel::LL_Normal);
 
 extern String str(const Variant &val);
-extern String str_arr(const Array arr, const bool force_full = false, const int max_shown_items = 32);
-extern String str_arr(const Dictionary arr, const bool force_full = false, const int max_shown_items = 32);
-extern String str_arr(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64);
+extern String str_arr(const Array arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ");
+extern String str_arr(const Dictionary arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ");
+extern String str_arr(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64, String separator = ", ");
 
 extern PoolByteArray var2bytes(const Variant &data, bool full_objects = false);
 
@@ -163,7 +165,7 @@ constexpr uint32_t operator"" _ms(unsigned long long val) {
 // IMPLEMENTATINS
 
 template <class T>
-static String str_arr(PoolVector<T> arr, const bool force_full = false, const int max_shown_items = 64) {
+static String str_arr(PoolVector<T> arr, const bool force_full = false, const int max_shown_items = 64, String separator = ", ") {
 	String res = "[ ";
 	int s = arr.size();
 	bool is_long = false;
@@ -176,7 +178,7 @@ static String str_arr(PoolVector<T> arr, const bool force_full = false, const in
 	for (int i = 0; i < s; i++) {
 		res += str(r[i]);
 		if (i != s - 1 || is_long) {
-			res += ", ";
+			res += separator;
 		}
 	}
 	r.release();
@@ -188,27 +190,29 @@ static String str_arr(PoolVector<T> arr, const bool force_full = false, const in
 	return res + " ]";
 };
 
-#ifdef DEBUG_ENABLED
-static void log_array(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {
-	_log(str_arr(data, size, force_full, max_shown_items), lvl);
-}
-static void log_array(const Array data, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {
-	_log(str_arr(data, force_full, max_shown_items), lvl);
-}
-static void log_array(const Dictionary data, const bool force_full = false, const int max_shown_items = 32, LogLevel lvl = LogLevel::LL_Normal) {
-	_log(str_arr(data, force_full, max_shown_items), lvl);
-}
 template <class T>
-static void log_array(const PoolVector<T> data, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {
-	_log(str_arr(data, force_full, max_shown_items), lvl);
-}
-#else
-static void log_array(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {}
-static void log_array(const Array data, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {}
-static void log_array(const Dictionary data, const bool force_full = false, const int max_shown_items = 32, LogLevel lvl = LogLevel::LL_Normal) {}
-template <class T>
-static void log_array(const PoolVector<T> data, const bool force_full = false, const int max_shown_items = 64, LogLevel lvl = LogLevel::LL_Normal) {}
-#endif
+static String str_arr(Vector<T> arr, const bool force_full = false, const int max_shown_items = 64, String separator = ", ") {
+	String res = "[ ";
+	int s = arr.size();
+	bool is_long = false;
+	if (s > max_shown_items && !force_full) {
+		s = max_shown_items;
+		is_long = true;
+	}
+
+	for (int i = 0; i < s; i++) {
+		res += str(arr[i]);
+		if (i != s - 1 || is_long) {
+			res += separator;
+		}
+	}
+
+	if (is_long) {
+		res += String::num_int64(int64_t(arr.size()) - s) + " more items...";
+	}
+
+	return res + " ]";
+};
 
 template <class T = Variant>
 static T bytes2var(const PoolByteArray &data, bool allow_objects = false) {

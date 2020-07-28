@@ -24,6 +24,8 @@ String GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notific
 
 String GodotRemote::ps_server_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
 String GodotRemote::ps_server_custom_input_scene_name = "debug/godot_remote/server/custom_input_scene";
+String GodotRemote::ps_server_custom_input_scene_compressed_name = "debug/godot_remote/server/send_custom_input_scene_compressed";
+String GodotRemote::ps_server_custom_input_scene_compression_type_name = "debug/godot_remote/server/custom_input_scene_compression_type";
 String GodotRemote::ps_server_stream_skip_frames_name = "debug/godot_remote/server/skip_frames";
 String GodotRemote::ps_server_stream_enabled_name = "debug/godot_remote/server/video_stream_enabled";
 String GodotRemote::ps_server_compression_type_name = "debug/godot_remote/server/compression_type";
@@ -81,7 +83,7 @@ void GodotRemote::_bind_methods() {
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::VIDEO_STREAM_ENABLED, "SERVER_PARAM_VIDEO_STREAM_ENABLED");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::COMPRESSION_TYPE, "SERVER_PARAM_COMPRESSION_TYPE");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::JPG_QUALITY, "SERVER_PARAM_JPG_QUALITY");
-	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::SEND_FPS, "SERVER_PARAM_SEND_FPS");
+	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::SKIP_FRAMES, "SERVER_PARAM_SKIP_FRAMES");
 	BIND_ENUM_CONSTANT_CUSTOM(TypesOfServerSettings::RENDER_SCALE, "SERVER_PARAM_RENDER_SCALE");
 
 	// GRNotifications
@@ -252,6 +254,8 @@ void GodotRemote::register_and_load_settings() {
 	// const server settings
 	DEF_(ps_server_config_adb_name, true, PropertyInfo(Variant::BOOL, ps_server_config_adb_name));
 	DEF_(ps_server_custom_input_scene_name, "", PropertyInfo(Variant::STRING, ps_server_custom_input_scene_name, PROPERTY_HINT_FILE, "*.tscn,*.scn"));
+	DEF_(ps_server_custom_input_scene_compressed_name, true, PropertyInfo(Variant::BOOL, ps_server_custom_input_scene_compressed_name));
+	DEF_(ps_server_custom_input_scene_compression_type_name, 0, PropertyInfo(Variant::INT, ps_server_custom_input_scene_compression_type_name, PROPERTY_HINT_ENUM, "FastLZ,DEFLATE,zstd,gzip"));
 	DEF_(ps_server_jpg_buffer_mb_size_name, 4, PropertyInfo(Variant::INT, ps_server_jpg_buffer_mb_size_name, PROPERTY_HINT_RANGE, "1,128"));
 
 	// only server can change this settings

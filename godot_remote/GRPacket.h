@@ -15,8 +15,7 @@ enum class PacketType {
 	CustomInputScene = 6,
 
 	// Requests
-	ServerSettingsRequest = 128,
-	Ping = 129,
+	Ping = 128,
 
 	// Responses
 	Pong = 192,
@@ -65,7 +64,7 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// ImageData
+// IMAGE DATA
 class GRPacketImageData : public GRPacket {
 	GDCLASS(GRPacketImageData, GRPacket);
 	friend GRPacket;
@@ -103,7 +102,7 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// InputData
+// INPUT DATA
 class GRPacketInputData : public GRPacket {
 	GDCLASS(GRPacketInputData, GRPacket);
 	friend GRPacket;
@@ -125,7 +124,7 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// ServerSettings
+// SERVER SETTINGS
 class GRPacketServerSettings : public GRPacket {
 	GDCLASS(GRPacketServerSettings, GRPacket);
 	friend GRPacket;
@@ -145,7 +144,7 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// MouseModeSync
+// MOUSE MODE SYNC
 class GRPacketMouseModeSync : public GRPacket {
 	GDCLASS(GRPacketMouseModeSync, GRPacket);
 	friend GRPacket;
@@ -164,12 +163,15 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// MouseStateSync
+// CUSTOM INPUT SCENE
 class GRPacketCustomInputScene : public GRPacket {
 	GDCLASS(GRPacketCustomInputScene, GRPacket);
 	friend GRPacket;
 
 	String scene_path;
+	bool compressed;
+	int compression_type;
+	int original_data_size;
 	PoolByteArray scene_data;
 
 protected:
@@ -183,6 +185,12 @@ public:
 	void set_scene_path(String _path);
 	PoolByteArray get_scene_data();
 	void set_scene_data(PoolByteArray _data);
+	bool is_compressed();
+	void set_compressed(bool val);
+	int get_original_size();
+	void set_original_size(int val);
+	int get_compression_type();
+	void set_compression_type(int val);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -203,7 +211,6 @@ public:
 		virtual PacketType get_type() override { return _type; };                             \
 	}
 
-BASIC_PACKET(GRPacketServerSettingsRequest, PacketType::ServerSettingsRequest);
 BASIC_PACKET(GRPacketPing, PacketType::Ping);
 BASIC_PACKET(GRPacketPong, PacketType::Pong);
 

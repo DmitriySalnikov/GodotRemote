@@ -8,11 +8,13 @@
 #include "GodotRemote.h"
 #include "core/input_map.h"
 #include "core/io/pck_packer.h"
+#include "core/io/resource_loader.h"
 #include "core/os/dir_access.h"
 #include "core/os/file_access.h"
 #include "core/os/input_event.h"
 #include "core/os/thread_safe.h"
 #include "main/input_default.h"
+#include "modules/regex/regex.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
 
@@ -25,23 +27,35 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_settings_node"), &GRServer::get_settings_node);
 	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRServer::get_gr_viewport);
 
+	ClassDB::bind_method(D_METHOD("set_video_stream_enabled"), &GRServer::set_video_stream_enabled);
 	ClassDB::bind_method(D_METHOD("set_skip_frames"), &GRServer::set_skip_frames);
 	ClassDB::bind_method(D_METHOD("set_auto_adjust_scale"), &GRServer::set_auto_adjust_scale);
 	ClassDB::bind_method(D_METHOD("set_jpg_quality"), &GRServer::set_jpg_quality);
 	ClassDB::bind_method(D_METHOD("set_render_scale"), &GRServer::set_render_scale);
 	ClassDB::bind_method(D_METHOD("set_password", "password"), &GRServer::set_password);
+	ClassDB::bind_method(D_METHOD("set_custom_input_scene", "_scn"), &GRServer::set_custom_input_scene);
+	ClassDB::bind_method(D_METHOD("set_custom_input_scene_compressed", "_is_compressed"), &GRServer::set_custom_input_scene_compressed);
+	ClassDB::bind_method(D_METHOD("set_custom_input_scene_compression_type", "_type"), &GRServer::set_custom_input_scene_compression_type);
 
+	ClassDB::bind_method(D_METHOD("is_video_stream_enabled"), &GRServer::is_video_stream_enabled);
 	ClassDB::bind_method(D_METHOD("get_skip_frames"), &GRServer::get_skip_frames);
 	ClassDB::bind_method(D_METHOD("get_auto_adjust_scale"), &GRServer::get_auto_adjust_scale);
 	ClassDB::bind_method(D_METHOD("get_jpg_quality"), &GRServer::get_jpg_quality);
 	ClassDB::bind_method(D_METHOD("get_render_scale"), &GRServer::get_render_scale);
 	ClassDB::bind_method(D_METHOD("get_password"), &GRServer::get_password);
+	ClassDB::bind_method(D_METHOD("get_custom_input_scene"), &GRServer::get_custom_input_scene);
+	ClassDB::bind_method(D_METHOD("is_custom_input_scene_compressed"), &GRServer::is_custom_input_scene_compressed);
+	ClassDB::bind_method(D_METHOD("get_custom_input_scene_compression_type"), &GRServer::get_custom_input_scene_compression_type);
 
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "video_stream_enabled"), "set_video_stream_enabled", "is_video_stream_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "skip_frames"), "set_skip_frames", "get_skip_frames");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "get_auto_adjust_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "jpg_quality"), "set_jpg_quality", "get_jpg_quality");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "render_scale"), "set_render_scale", "get_render_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene"), "set_custom_input_scene", "get_custom_input_scene");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene_compressed"), "set_custom_input_scene_compressed", "is_custom_input_scene_compressed");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene_compression_type"), "set_custom_input_scene_compression_type", "get_custom_input_scene_compression_type");
 }
 
 void GRServer::_notification(int p_notification) {
@@ -160,11 +174,29 @@ String GRServer::get_custom_input_scene() {
 	return custom_input_scene;
 }
 
+void GRServer::set_custom_input_scene_compressed(bool _is_compressed) {
+	custom_input_pck_compressed = _is_compressed;
+}
+
+bool GRServer::is_custom_input_scene_compressed() {
+	return custom_input_pck_compressed;
+}
+
+void GRServer::set_custom_input_scene_compression_type(int _type) {
+	custom_input_pck_compression_type = _type;
+}
+
+int GRServer::get_custom_input_scene_compression_type() {
+	return custom_input_pck_compression_type;
+}
+
 GRServer::GRServer() :
 		GRDevice() {
 	set_name("GodotRemoteServer");
 	tcp_server.instance();
 	connection_mutex = Mutex::create();
+	custom_input_scene_regex_resource_finder.instance();
+	custom_input_scene_regex_resource_finder->compile(custom_input_scene_regex_resource_finder_pattern);
 	init_server_utils();
 }
 
@@ -174,6 +206,7 @@ GRServer::~GRServer() {
 	}
 	connection_mutex->unlock();
 	memdelete(connection_mutex);
+	custom_input_scene_regex_resource_finder.unref();
 	deinit_server_utils();
 }
 
@@ -290,11 +323,15 @@ end:
 }
 
 void GRServer::_load_settings() {
+	using_client_settings = false;
+
 	const String title = "Server settings updated";
 	GRNotifications::add_notification_or_update_line(title, "title", "Loaded default server settings");
 	// only updated by server itself
 	password = GET_PS(GodotRemote::ps_server_password_name);
 	set_custom_input_scene(GET_PS(GodotRemote::ps_server_custom_input_scene_name));
+	set_custom_input_scene_compressed(GET_PS(GodotRemote::ps_server_custom_input_scene_compressed_name));
+	set_custom_input_scene_compression_type(GET_PS(GodotRemote::ps_server_custom_input_scene_compression_type_name));
 
 	// can be updated by client
 	auto_adjust_scale = GET_PS(GodotRemote::ps_server_auto_adjust_scale_name); // TODO move to viewport
@@ -310,7 +347,7 @@ void GRServer::_load_settings() {
 		GRNotifications::add_notification_or_update_line(title, "stream", "Stream enabled: " + str(is_video_stream_enabled()));
 		GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str(get_render_scale()));
 		GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(get_jpg_quality()));
-		GRNotifications::add_notification_or_update_line(title, "fps", "Stream FPS: " + str(get_skip_frames()));
+		GRNotifications::add_notification_or_update_line(title, "skip", "Skip Frames: " + str(get_skip_frames()));
 		GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(get_render_scale()));
 	} else {
 		_log("Resize viewport not found!", LogLevel::LL_Error);
@@ -325,6 +362,13 @@ void GRServer::_load_settings() {
 }
 
 void GRServer::_update_settings_from_client(const Dictionary settings) {
+#define SET_BODY(_func, _id, _text, _type)                                                       \
+	if (_func(value)) {                                                                          \
+		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type)value)); \
+		using_client_settings = true;                                                            \
+		using_client_settings_recently_updated = true;                                           \
+	}
+
 	Array keys = settings.keys();
 	const String title = "Server settings updated";
 
@@ -353,33 +397,23 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 					}
 					break;
 				case GodotRemote::TypesOfServerSettings::VIDEO_STREAM_ENABLED: {
-					if (set_video_stream_enabled(value)) {
-						GRNotifications::add_notification_or_update_line(title, "stream", "Stream enabled: " + str((bool)value));
-					}
+					SET_BODY(set_video_stream_enabled, "stream", "Stream enabled: ", bool);
 					break;
 				}
 				case GodotRemote::TypesOfServerSettings::COMPRESSION_TYPE: {
-					if (set_compression_type(value)) {
-						GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str((int)value));
-					}
+					SET_BODY(set_compression_type, "compression", "Compression type: ", int);
 					break;
 				}
 				case GodotRemote::TypesOfServerSettings::JPG_QUALITY: {
-					if (set_jpg_quality(value)) {
-						GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str((int)value));
-					}
+					SET_BODY(set_jpg_quality, "quality", "JPG Quality: ", int);
 					break;
 				}
-				case GodotRemote::TypesOfServerSettings::SEND_FPS: {
-					if (set_skip_frames(value)) {
-						GRNotifications::add_notification_or_update_line(title, "fps", "Stream FPS: " + str((int)value));
-					}
+				case GodotRemote::TypesOfServerSettings::SKIP_FRAMES: {
+					SET_BODY(set_skip_frames, "skip", "Skip Frames: ", int);
 					break;
 				}
 				case GodotRemote::TypesOfServerSettings::RENDER_SCALE: {
-					if (set_render_scale(value)) {
-						GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(value));
-					}
+					SET_BODY(set_render_scale, "scale", "Scale of stream: ", float);
 					break;
 				}
 				default:
@@ -388,6 +422,8 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 			}
 		}
 	}
+
+#undef SET_BODY
 }
 
 void GRServer::_reset_counters() {
@@ -557,6 +593,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 	Thread::set_name("GR_connection " + address);
 
 	uint64_t time64 = os->get_ticks_usec();
+	uint64_t prev_send_settings_time = time64;
 	uint64_t prev_send_image_time = time64;
 	uint64_t prev_ping_sending_time = time64;
 	uint64_t prev_process_image_time = time64;
@@ -645,6 +682,32 @@ void GRServer::_thread_connection(void *p_userdata) {
 			}
 		}
 
+		// SERVER SETTINGS
+		time64 = os->get_ticks_usec();
+		if (time64 - prev_send_settings_time > 1000_ms && dev->using_client_settings) {
+			prev_send_settings_time = time64;
+			if (dev->using_client_settings_recently_updated) {
+				dev->using_client_settings_recently_updated = false;
+			} else {
+				nothing_happens = false;
+
+				Ref<GRPacketServerSettings> pack(memnew(GRPacketServerSettings));
+				pack->add_setting((int)GodotRemote::TypesOfServerSettings::VIDEO_STREAM_ENABLED, dev->is_video_stream_enabled());
+				pack->add_setting((int)GodotRemote::TypesOfServerSettings::COMPRESSION_TYPE, dev->get_compression_type());
+				pack->add_setting((int)GodotRemote::TypesOfServerSettings::JPG_QUALITY, dev->get_jpg_quality());
+				pack->add_setting((int)GodotRemote::TypesOfServerSettings::RENDER_SCALE, dev->get_render_scale());
+				pack->add_setting((int)GodotRemote::TypesOfServerSettings::SKIP_FRAMES, dev->get_skip_frames());
+
+				err = ppeer->put_var(pack->get_data());
+				if (err) {
+					_log("Send server settings failed with code: " + str(err), LogLevel::LL_Error);
+					goto end_send;
+				}
+				TimeCount("Send server settings");
+			}
+		}
+
+		// MOUSE MODE
 		if (input->get_mouse_mode() != mouse_mode) {
 			nothing_happens = false;
 			mouse_mode = input->get_mouse_mode();
@@ -681,7 +744,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 		if (!dev->custom_input_scene_was_updated) {
 			Ref<GRPacketCustomInputScene> pack;
 			if (!dev->custom_input_scene.empty()) {
-				pack = _create_custom_input_pack(dev->custom_input_scene);
+				pack = dev->_create_custom_input_pack(dev->custom_input_scene, dev->custom_input_pck_compressed, dev->custom_input_pck_compression_type);
 			} else {
 				pack.instance();
 			}
@@ -797,10 +860,6 @@ void GRServer::_thread_connection(void *p_userdata) {
 						break;
 					}
 					dev->_update_settings_from_client(data->get_settings());
-					break;
-				}
-				case PacketType::ServerSettingsRequest: {
-					ERR_PRINT("NOT IMPLEMENTED");
 					break;
 				}
 				case PacketType::Ping: {
@@ -953,10 +1012,10 @@ timeout:
 #undef packet_error_check
 }
 
-Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_path) {
+Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_path, bool compress, int compression_type) {
 	Ref<GRPacketCustomInputScene> pack = memnew(GRPacketCustomInputScene);
-	PoolStringArray files;
-	_scan_dir_for_files_recursive(_scene_path.get_base_dir(), files);
+	Vector<String> files;
+	_scan_resource_for_dependencies_recursive(_scene_path, files);
 
 	if (files.size()) {
 		String pck_file = _scene_path.get_base_dir() + "tmp.pck";
@@ -967,39 +1026,67 @@ Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_
 			_log("Can't create PCK file. Code: " + str(err), LogLevel::LL_Error);
 		} else {
 
+			Error add_err = Error::OK;
 			for (int i = 0; i < files.size(); i++) {
-				pck->add_file(files[i], files[i]);
+				add_err = pck->add_file(files[i], files[i]);
+				if (add_err) {
+					_log("Can't add file to PCK. Code: " + str(add_err), LogLevel::LL_Error);
+					break;
+				}
 			}
 
-			err = pck->flush();
-			if (err) {
-				_log("Can't flush PCK file. Code: " + str(err), LogLevel::LL_Error);
-			} else {
-				FileAccess *file = FileAccess::open(pck_file, FileAccess::ModeFlags::READ, &err);
+			if (!add_err) {
+				err = pck->flush();
+
 				if (err) {
-					_log("Can't open PCK file for reading. Code: " + str(err), LogLevel::LL_Error);
+					_log("Can't flush PCK file. Code: " + str(err), LogLevel::LL_Error);
 				} else {
-					PoolByteArray arr;
-					err = arr.resize(file->get_len());
+
+					// if OK show which files added
+					_log("Files added to custom input PCK:\n" + str_arr(files, true, 0, ",\n"), LogLevel::LL_Normal);
+
+					FileAccess *file = FileAccess::open(pck_file, FileAccess::ModeFlags::READ, &err);
 					if (err) {
-						_log("Can't resize temp buffer array. Code: " + str(err), LogLevel::LL_Error);
+						_log("Can't open PCK file for reading. Code: " + str(err), LogLevel::LL_Error);
 					} else {
-						auto w = arr.write();
-						int res = file->get_buffer(w.ptr(), arr.size());
-						w.release();
-
-						if (res != arr.size()) {
-							_log("PCK was not fully read. " + str(res) + " of " + str(arr.size()), LogLevel::LL_Error);
+						PoolByteArray arr;
+						err = arr.resize(file->get_len());
+						if (err) {
+							_log("Can't resize temp buffer array. Code: " + str(err), LogLevel::LL_Error);
 						} else {
-							memdelete(file);
+							auto w = arr.write();
+							int res = file->get_buffer(w.ptr(), arr.size());
+							w.release();
 
-							pack->set_scene_path(_scene_path);
-							pack->set_scene_data(arr);
+							if (res != arr.size()) {
+								_log("PCK was not fully read. " + str(res) + " of " + str(arr.size()), LogLevel::LL_Error);
+							} else {
+								memdelete(file);
 
-							DirAccess *dir = DirAccess::open(_scene_path.get_base_dir());
-							if (dir) {
-								dir->remove(pck_file);
-								memdelete(dir);
+								if (compress) {
+									PoolByteArray com;
+									err = compress_bytes(arr, com, compression_type);
+									if (err) {
+										_log("Can't compress PCK data. Code: " + str(err), LogLevel::LL_Error);
+									}
+
+									pack->set_scene_path(_scene_path);
+									pack->set_scene_data(com);
+									pack->set_compressed(true);
+									pack->set_compression_type(compression_type);
+									pack->set_original_size(arr.size());
+								} else {
+									pack->set_scene_path(_scene_path);
+									pack->set_scene_data(arr);
+									pack->set_compressed(false);
+									pack->set_compression_type(0);
+								}
+
+								DirAccess *dir = DirAccess::open(_scene_path.get_base_dir());
+								if (dir) {
+									dir->remove(pck_file);
+									memdelete(dir);
+								}
 							}
 						}
 					}
@@ -1013,34 +1100,36 @@ Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_
 	return pack;
 }
 
-void GRServer::_scan_dir_for_files_recursive(String _d, PoolStringArray &_arr) {
-	_d.replace("\\", "/");
-	if (!_d.ends_with("/")) {
-		_d += "/";
+void GRServer::_scan_resource_for_dependencies_recursive(String _d, Vector<String> &_arr) {
+	if (_arr.find(_d, 0) == -1) {
+		_arr.push_back(_d);
+	} else {
+		return;
 	}
 
-	DirAccess *dir = DirAccess::open(_d);
+	Error err = Error::OK;
+	String text = FileAccess::get_file_as_string(_d, &err);
 
-	dir->list_dir_begin();
-	String f = dir->get_next();
-	while (!f.empty()) {
-		if (f == "." || f == "..") {
-			f = dir->get_next();
-			continue;
-		}
-
-		String ff = _d + f;
-		if (dir->file_exists(ff)) {
-			_arr.append(ff);
+	if (err) {
+		_log("Can't read file as text: " + _d, LogLevel::LL_Error);
+	} else {
+		String imp = _d + ".import";
+		text += FileAccess::get_file_as_string(imp, &err);
+		if (err) {
+			_log(".import file not found for " + imp, LogLevel::LL_Debug);
 		} else {
-			_scan_dir_for_files_recursive(f, _arr);
+			if (_arr.find(imp, 0) == -1) {
+				_arr.push_back(imp);
+			}
 		}
 
-		f = dir->get_next();
-	}
+		Array res = custom_input_scene_regex_resource_finder->search_all(text);
 
-	dir->list_dir_end();
-	memdelete(dir);
+		for (int i = 0; i < res.size(); i++) {
+			Ref<RegExMatch> rem = res[i];
+			_scan_resource_for_dependencies_recursive(rem->get_string(1), _arr);
+		}
+	}
 }
 
 //////////////////////////////////////////////

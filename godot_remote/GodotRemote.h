@@ -23,7 +23,7 @@ public:
 		VIDEO_STREAM_ENABLED = 1,
 		COMPRESSION_TYPE = 2,
 		JPG_QUALITY = 3,
-		SEND_FPS = 4,
+		SKIP_FRAMES = 4,
 		RENDER_SCALE = 5,
 	};
 
@@ -37,6 +37,8 @@ public:
 
 	static String ps_server_config_adb_name;
 	static String ps_server_custom_input_scene_name;
+	static String ps_server_custom_input_scene_compressed_name;
+	static String ps_server_custom_input_scene_compression_type_name;
 	static String ps_server_stream_skip_frames_name;
 	static String ps_server_stream_enabled_name;
 	static String ps_server_compression_type_name;

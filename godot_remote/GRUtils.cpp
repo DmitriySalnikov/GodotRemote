@@ -2,6 +2,7 @@
 
 #include "GRUtils.h"
 #include "GodotRemote.h"
+#include "core/io/compression.h"
 
 #ifndef NO_GODOTREMOTE_SERVER
 // richgel999/jpeg-compressor: https://github.com/richgel999/jpeg-compressor
@@ -56,7 +57,7 @@ void _log(const Variant &val, LogLevel lvl) {
 #endif
 }
 
-String str_arr(const Array arr, const bool force_full, const int max_shown_items) {
+String str_arr(const Array arr, const bool force_full, const int max_shown_items, String separator) {
 	String res = "[ ";
 	int s = arr.size();
 	bool is_long = false;
@@ -68,7 +69,7 @@ String str_arr(const Array arr, const bool force_full, const int max_shown_items
 	for (int i = 0; i < s; i++) {
 		res += str(arr[i]);
 		if (i != s - 1 || is_long) {
-			res += ", ";
+			res += separator;
 		}
 	}
 
@@ -79,7 +80,7 @@ String str_arr(const Array arr, const bool force_full, const int max_shown_items
 	return res + " ]";
 };
 
-String str_arr(const Dictionary arr, const bool force_full, const int max_shown_items) {
+String str_arr(const Dictionary arr, const bool force_full, const int max_shown_items, String separator) {
 	String res = "{ ";
 	int s = arr.size();
 	bool is_long = false;
@@ -91,7 +92,7 @@ String str_arr(const Dictionary arr, const bool force_full, const int max_shown_
 	for (int i = 0; i < s; i++) {
 		res += str(arr.get_key_at_index(i)) + " : " + str(arr.get_value_at_index(i));
 		if (i != s - 1 || is_long) {
-			res += ", ";
+			res += separator;
 		}
 	}
 
@@ -102,7 +103,7 @@ String str_arr(const Dictionary arr, const bool force_full, const int max_shown_
 	return res + " }";
 };
 
-String str_arr(const uint8_t *data, const int size, const bool force_full, const int max_shown_items) {
+String str_arr(const uint8_t *data, const int size, const bool force_full, const int max_shown_items, String separator) {
 	String res = "[ ";
 	int s = size;
 	bool is_long = false;
@@ -114,7 +115,7 @@ String str_arr(const uint8_t *data, const int size, const bool force_full, const
 	for (int i = 0; i < s; i++) {
 		res += String::num_uint64(data[i]);
 		if (i != s - 1 || is_long) {
-			res += ", ";
+			res += separator;
 		}
 	}
 
@@ -169,6 +170,52 @@ Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width,
 	return Error::OK;
 }
 #endif
+
+Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type) {
+	Error err = res.resize(bytes.size());
+	ERR_FAIL_COND_V_MSG(err, err, "Can't resize output array");
+
+	auto r = bytes.read();
+	auto w = res.write();
+	int size = Compression::compress(w.ptr(), r.ptr(), bytes.size(), (Compression::Mode)type);
+
+	r.release();
+	w.release();
+
+	if (size) {
+		res.resize(size);
+	} else {
+		ERR_PRINT("Can't resize output array after compression");
+		err = Error::FAILED;
+		res = PoolByteArray();
+	}
+
+	return err;
+}
+
+Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolByteArray &res, int type) {
+	Error err = res.resize(output_size);
+	ERR_FAIL_COND_V_MSG(err, err, "Can't resize output array");
+
+	auto r = bytes.read();
+	auto w = res.write();
+	int size = Compression::decompress(w.ptr(), output_size, r.ptr(), bytes.size(), (Compression::Mode)type);
+
+	r.release();
+	w.release();
+
+	if (output_size == -1) {
+		ERR_PRINT("Can't decompress bytes");
+		err = Error::FAILED;
+		res = PoolByteArray();
+	} else if (output_size != size) {
+		ERR_PRINT("Desired size not equal to real size");
+		err = Error::FAILED;
+		res = PoolByteArray();
+	}
+
+	return err;
+}
 
 String str(const Variant &val) {
 	Variant::Type type = val.get_type();

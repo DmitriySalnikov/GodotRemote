@@ -218,8 +218,13 @@ private:
 	Rect2 stream_rect;
 	PoolVector3Array sensors;
 
+	Dictionary mouse_buttons;
+	Dictionary screen_touches;
+
 protected:
+	void _collect_input(Ref<InputEvent> ie);
 	void _update_stream_rect();
+	void _release_pointers();
 
 	static void _bind_methods();
 

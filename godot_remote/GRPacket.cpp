@@ -41,8 +41,6 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 			CREATE(GRPacketCustomInputScene);
 
 			// Requests
-		case PacketType::ServerSettingsRequest:
-			CREATE(GRPacketServerSettingsRequest);
 		case PacketType::Ping:
 			CREATE(GRPacketPing);
 
@@ -50,7 +48,7 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 		case PacketType::Pong:
 			CREATE(GRPacketPong);
 		default:
-			ERR_FAIL_V_MSG(Ref<GRPacket>(), "Can't create unknown GRPacket!");
+			ERR_FAIL_V_MSG(Ref<GRPacket>(), "Can't create unknown GRPacket! Type: " + str((int)type));
 	}
 #undef CREATE
 	return Ref<GRPacket>();
@@ -262,11 +260,14 @@ void GRPacketMouseModeSync::set_mouse_mode(Input::MouseMode _mode) {
 }
 
 //////////////////////////////////////////////////////////////////////////
-// MOUSE MODE SYNC
+// CUSTOM INPUT SCENE
 
 Ref<StreamPeerBuffer> GRPacketCustomInputScene::_get_data() {
 	auto buf = GRPacket::_get_data();
 	buf->put_string(scene_path);
+	buf->put_8(compressed);
+	buf->put_8(compression_type);
+	buf->put_32(original_data_size);
 	buf->put_var(scene_data);
 	return buf;
 }
@@ -274,6 +275,9 @@ Ref<StreamPeerBuffer> GRPacketCustomInputScene::_get_data() {
 bool GRPacketCustomInputScene::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
 	scene_path = buf->get_string();
+	compressed = buf->get_8();
+	compression_type = buf->get_8();
+	original_data_size = buf->get_32();
 	scene_data = buf->get_var();
 	return true;
 }
@@ -292,4 +296,28 @@ PoolByteArray GRPacketCustomInputScene::get_scene_data() {
 
 void GRPacketCustomInputScene::set_scene_data(PoolByteArray _data) {
 	scene_data = _data;
+}
+
+bool GRPacketCustomInputScene::is_compressed() {
+	return compressed;
+}
+
+void GRPacketCustomInputScene::set_compressed(bool val) {
+	compressed = val;
+}
+
+int GRPacketCustomInputScene::get_original_size() {
+	return original_data_size;
+}
+
+void GRPacketCustomInputScene::set_original_size(int val) {
+	original_data_size = val;
+}
+
+int GRPacketCustomInputScene::get_compression_type() {
+	return compression_type;
+}
+
+void GRPacketCustomInputScene::set_compression_type(int val) {
+	compression_type = val;
 }

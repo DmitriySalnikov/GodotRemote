@@ -51,6 +51,7 @@ void GRClient::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("stream_state_changed", PropertyInfo(Variant::INT, "state", PROPERTY_HINT_ENUM)));
 	ADD_SIGNAL(MethodInfo("connection_state_changed", PropertyInfo(Variant::BOOL, "is_connected")));
 	ADD_SIGNAL(MethodInfo("mouse_mode_changed", PropertyInfo(Variant::INT, "mouse_mode")));
+	ADD_SIGNAL(MethodInfo("server_settings_received", PropertyInfo(Variant::DICTIONARY, "settings")));
 
 	// SETGET
 	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "val"), &GRClient::set_capture_on_focus);
@@ -430,10 +431,12 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 
 	if (_data->get_scene_path().empty() || _data->get_scene_data().empty()) {
 		_log("Scene not specified or data is empty. Removing custom input scene", LogLevel::LL_Debug);
+		return;
 	}
 
 	if (!control_to_show_in) {
 		_log("Not specified control to show", LogLevel::LL_Error);
+		return;
 	}
 
 	Error err = Error::OK;
@@ -442,31 +445,43 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 		_log("Can't open temp file to store custom input scene: " + custom_input_scene_tmp_pck_file + ", code: " + str(err), LogLevel::LL_Error);
 	} else {
 
-		auto r = _data->get_scene_data().read();
-		file->store_buffer(r.ptr(), _data->get_scene_data().size());
-		file->close();
-
-		if (PackedData::get_singleton()->is_disabled()) {
-			err = Error::FAILED;
+		PoolByteArray scene_data;
+		if (_data->is_compressed()) {
+			err = decompress_bytes(_data->get_scene_data(), _data->get_original_size(), scene_data, _data->get_compression_type());
 		} else {
-			err = PackedData::get_singleton()->add_pack(custom_input_scene_tmp_pck_file, true);
+			scene_data = _data->get_scene_data();
 		}
 
 		if (err) {
-			_log("Can't load PCK file: " + custom_input_scene_tmp_pck_file, LogLevel::LL_Error);
+			_log("Can't decompress or set scene_data: Code: " + str(err), LogLevel::LL_Error);
 		} else {
 
-			Ref<PackedScene> pck = ResourceLoader::load(_data->get_scene_path(), "", false, &err);
+			auto r = scene_data.read();
+			file->store_buffer(r.ptr(), scene_data.size());
+			file->close();
+
+			if (PackedData::get_singleton()->is_disabled()) {
+				err = Error::FAILED;
+			} else {
+				err = PackedData::get_singleton()->add_pack(custom_input_scene_tmp_pck_file, true);
+			}
+
 			if (err) {
-				_log("Can't load scene file: " + _data->get_scene_path() + ", code: " + str(err), LogLevel::LL_Error);
+				_log("Can't load PCK file: " + custom_input_scene_tmp_pck_file, LogLevel::LL_Error);
 			} else {
 
-				custom_input_scene = pck->instance();
-				if (!custom_input_scene) {
-					_log("Can't instance scene from PCK file: " + custom_input_scene_tmp_pck_file + ", scene: " + _data->get_scene_path(), LogLevel::LL_Error);
+				Ref<PackedScene> pck = ResourceLoader::load(_data->get_scene_path(), "", false, &err);
+				if (err) {
+					_log("Can't load scene file: " + _data->get_scene_path() + ", code: " + str(err), LogLevel::LL_Error);
 				} else {
 
-					control_to_show_in->add_child(custom_input_scene);
+					custom_input_scene = pck->instance();
+					if (!custom_input_scene) {
+						_log("Can't instance scene from PCK file: " + custom_input_scene_tmp_pck_file + ", scene: " + _data->get_scene_path(), LogLevel::LL_Error);
+					} else {
+
+						control_to_show_in->add_child(custom_input_scene);
+					}
 				}
 			}
 		}
@@ -976,6 +991,16 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 					stream_queue.push_back(data);
 					break;
 				}
+				case PacketType::ServerSettings: {
+					Ref<GRPacketServerSettings> data = pack;
+					if (data.is_null()) {
+						_log("GRPacketServerSettings is null", LogLevel::LL_Error);
+						continue;
+					}
+
+					dev->call_deferred("emit_signal", "server_settings_received", data->get_settings());
+					break;
+				}
 				case PacketType::MouseModeSync: {
 					Ref<GRPacketMouseModeSync> data = pack;
 					if (data.is_null()) {
@@ -983,7 +1008,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 						continue;
 					}
 
-					dev->emit_signal("mouse_mode_changed", data->get_mouse_mode());
+					dev->call_deferred("emit_signal", "mouse_mode_changed", data->get_mouse_mode());
 					break;
 				}
 				case PacketType::CustomInputScene: {
@@ -1223,6 +1248,41 @@ void GRInputCollector::_update_stream_rect() {
 	return;
 }
 
+void GRInputCollector::_collect_input(Ref<InputEvent> ie) {
+	Ref<GRInputDataEvent> data = GRInputDataEvent::parse_event(ie, stream_rect);
+	if (data.is_valid()) {
+		_THREAD_SAFE_LOCK_
+		collected_input_data.push_back(data);
+		_THREAD_SAFE_UNLOCK_
+	}
+}
+
+void GRInputCollector::_release_pointers() {
+	{
+		auto buttons = mouse_buttons.keys();
+		for (int i = 0; i < buttons.size(); i++) {
+			if (mouse_buttons[buttons[i]]) {
+				Ref<InputEventMouseButton> iemb(memnew(InputEventMouseButton));
+				iemb->set_button_index(buttons[i]);
+				iemb->set_pressed(false);
+				_collect_input(iemb);
+			}
+		}
+	}
+
+	{
+		auto touches = screen_touches.keys();
+		for (int i = 0; i < touches.size(); i++) {
+			if (screen_touches[touches[i]]) {
+				Ref<InputEventScreenTouch> iest(memnew(InputEventScreenTouch));
+				iest->set_index(touches[i]);
+				iest->set_pressed(false);
+				_collect_input(iest);
+			}
+		}
+	}
+}
+
 void GRInputCollector::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_input", "input_event"), &GRInputCollector::_input);
 
@@ -1246,7 +1306,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	}
 
 	_THREAD_SAFE_LOCK_;
-	if (collected_input_data.size() >= 128) {
+	if (collected_input_data.size() >= 256) {
 		collected_input_data.resize(0);
 	}
 	_THREAD_SAFE_UNLOCK_;
@@ -1262,14 +1322,15 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventMouseButton> iemb = ie;
 		if (iemb.is_valid()) {
+			int idx = iemb->get_button_index();
+			mouse_buttons[idx] = iemb->is_pressed();
+
 			if ((!stream_rect.has_point(iemb->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer) {
-				int idx = iemb->get_button_index();
 				if (idx == BUTTON_WHEEL_UP || idx == BUTTON_WHEEL_DOWN ||
 						idx == BUTTON_WHEEL_LEFT || idx == BUTTON_WHEEL_RIGHT) {
 					return;
 				} else {
-					if (iemb->is_pressed())
-						return;
+					return;
 				}
 			}
 			goto end;
@@ -1288,9 +1349,10 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventScreenTouch> iest = ie;
 		if (iest.is_valid()) {
+			int idx = iest->get_index();
+			screen_touches[idx] = iest->is_pressed();
 			if ((!stream_rect.has_point(iest->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer) {
-				if (iest->is_pressed())
-					return;
+				return;
 			}
 			goto end;
 		}
@@ -1325,12 +1387,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 
 end:
 
-	Ref<GRInputDataEvent> data = GRInputDataEvent::parse_event(ie, stream_rect);
-	if (data.is_valid()) {
-		_THREAD_SAFE_LOCK_
-		collected_input_data.push_back(data);
-		_THREAD_SAFE_UNLOCK_
-	}
+	_collect_input(ie);
 }
 
 void GRInputCollector::_notification(int p_notification) {
@@ -1378,6 +1435,9 @@ bool GRInputCollector::is_capture_pointer() {
 }
 
 void GRInputCollector::set_capture_pointer(bool value) {
+	if (!value) {
+		_release_pointers();
+	}
 	dont_capture_pointer = !value;
 }
 
