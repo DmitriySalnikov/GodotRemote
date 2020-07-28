@@ -1,9 +1,9 @@
 /* GRDevice.h */
 #pragma once
 
-#include "scene/main/node.h"
-#include "GRUtils.h"
 #include "GRInputData.h"
+#include "GRUtils.h"
+#include "scene/main/node.h"
 
 class GRDevice : public Node {
 	GDCLASS(GRDevice, Node);

@@ -72,7 +72,7 @@ public:
 	/// All functions below need to be called after init notification manager
 	/// For example call this after yield(get_tree(), "idle_frame")
 
-	static GRNotificationPanel* get_notification(String title);
+	static GRNotificationPanel *get_notification(String title);
 	static Array get_all_notifications();
 	static Array get_notifications_with_title(String title);
 
@@ -89,7 +89,7 @@ public:
 	// append text to existing notification or add new notification
 	static void add_notification_or_append_string(String title, String text, NotificationIcon icon = NotificationIcon::None, bool new_string = true, float duration_multiplier = 1.f);
 
-	static void add_notification_or_update_line(String title, String id,String text, int icon, float duration_multiplier = 1.f);
+	static void add_notification_or_update_line(String title, String id, String text, int icon, float duration_multiplier = 1.f);
 	// update text in existing notification or add new notification
 	static void add_notification_or_update_line(String title, String id, String text, NotificationIcon icon = NotificationIcon::None, float duration_multiplier = 1.f);
 

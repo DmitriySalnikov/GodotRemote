@@ -58,10 +58,15 @@ private:
 
 	void _create_notification_manager();
 	void _remove_notifications_manager();
+
 #ifdef TOOLS_ENABLED
+	int64_t adb_pid = 0;
+	class Timer *adb_start_timer = nullptr;
+
 	void _prepare_editor();
 	void _run_emitted();
 	void _adb_port_forwarding();
+	void _adb_start_timer_timeout();
 #endif
 
 protected:

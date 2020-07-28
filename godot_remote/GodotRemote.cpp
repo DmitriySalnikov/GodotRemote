@@ -8,6 +8,7 @@
 #include "core/project_settings.h"
 #include "editor/editor_node.h"
 #include "scene/main/scene_tree.h"
+#include "scene/main/timer.h"
 #include "scene/main/viewport.h"
 
 GodotRemote *GodotRemote::singleton = nullptr;
@@ -59,6 +60,10 @@ GodotRemote::GodotRemote() {
 GodotRemote::~GodotRemote() {
 	remove_remote_device();
 	_remove_notifications_manager();
+
+#ifdef TOOLS_ENABLED
+	call_deferred("_adb_start_timer_timeout");
+#endif
 }
 
 void GodotRemote::_bind_methods() {
@@ -72,6 +77,7 @@ void GodotRemote::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_adb_port_forwarding"), &GodotRemote::_adb_port_forwarding);
 	ClassDB::bind_method(D_METHOD("_run_emitted"), &GodotRemote::_run_emitted);
 	ClassDB::bind_method(D_METHOD("_prepare_editor"), &GodotRemote::_prepare_editor);
+	ClassDB::bind_method(D_METHOD("_adb_start_timer_timeout"), &GodotRemote::_adb_start_timer_timeout);
 #endif
 
 	ClassDB::bind_method(D_METHOD("get_device"), &GodotRemote::get_device);
@@ -253,7 +259,7 @@ void GodotRemote::register_and_load_settings() {
 	DEF_(ps_notifications_duration_name, 3.f, PropertyInfo(Variant::REAL, ps_notifications_duration_name, PROPERTY_HINT_RANGE, "0,100, 0.01"));
 
 	// const server settings
-	DEF_(ps_server_config_adb_name, true, PropertyInfo(Variant::BOOL, ps_server_config_adb_name));
+	DEF_(ps_server_config_adb_name, false, PropertyInfo(Variant::BOOL, ps_server_config_adb_name));
 	DEF_(ps_server_custom_input_scene_name, "", PropertyInfo(Variant::STRING, ps_server_custom_input_scene_name, PROPERTY_HINT_FILE, "*.tscn,*.scn"));
 	DEF_(ps_server_custom_input_scene_compressed_name, true, PropertyInfo(Variant::BOOL, ps_server_custom_input_scene_compressed_name));
 	DEF_(ps_server_custom_input_scene_compression_type_name, 0, PropertyInfo(Variant::INT, ps_server_custom_input_scene_compression_type_name, PROPERTY_HINT_ENUM, "FastLZ,DEFLATE,zstd,gzip"));
@@ -308,20 +314,48 @@ void GodotRemote::_prepare_editor() {
 
 void GodotRemote::_run_emitted() {
 	// call_deferred because debugger can't connect to game if process blocks thread on start
-	if (GET_PS(ps_server_config_adb_name))
+	if ((bool)GET_PS(ps_server_config_adb_name))
 		call_deferred("_adb_port_forwarding");
 }
 
 void GodotRemote::_adb_port_forwarding() {
+	String adb = EditorSettings::get_singleton()->get_setting("export/android/adb");
+
+	if (!adb.empty()) {
+		if (!adb_start_timer || adb_start_timer->is_queued_for_deletion()) {
+			adb_start_timer = memnew(Timer);
+			SceneTree::get_singleton()->get_root()->add_child(adb_start_timer);
+			adb_start_timer->set_one_shot(true);
+			adb_start_timer->set_autostart(false);
+			adb_start_timer->connect("timeout", this, "_adb_start_timer_timeout");
+		}
+
+		adb_start_timer->start(4.f);
+	} else {
+		_log("ADB path not specified.", LogLevel::LL_Debug);
+	}
+}
+
+void GodotRemote::_adb_start_timer_timeout() {
+	String adb = EditorSettings::get_singleton()->get_setting("export/android/adb");
 	List<String> args;
 	args.push_back("reverse");
+	args.push_back("--no-rebind");
 	args.push_back("tcp:" + str(GET_PS(ps_general_port_name)));
 	args.push_back("tcp:" + str(GET_PS(ps_general_port_name)));
 
-	String res;
-	Error err = OS::get_singleton()->execute(EditorSettings::get_singleton()->get_setting("export/android/adb"), args, true, nullptr, &res, nullptr, true);
-	if (err == OK) {
-		_log("ADB result: \n" + res);
+	Error err = OS::get_singleton()->execute(adb, args, true); // TODO freezes editor process on closing!!!!
+
+	if (err) {
+		String start_url = String("\"{0}\" reverse --no-rebind tcp:{1} tcp:{2}").format(varray(adb, GET_PS(ps_general_port_name), GET_PS(ps_general_port_name)));
+		_log("Can't execute adb port forwarding: '" + start_url + "' error code: " + str(err), LogLevel::LL_Error);
+	} else {
+		_log("ADB port configuring completed", LogLevel::LL_Normal);
+	}
+
+	if (adb_start_timer && !adb_start_timer->is_queued_for_deletion() && adb_start_timer->is_inside_tree()) {
+		adb_start_timer->queue_delete();
+		adb_start_timer = nullptr;
 	}
 }
 
