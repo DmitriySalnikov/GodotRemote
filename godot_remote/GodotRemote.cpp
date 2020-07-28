@@ -23,9 +23,6 @@ String GodotRemote::ps_noticications_position_name = "debug/godot_remote/notific
 String GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notifications/notifications_duration";
 
 String GodotRemote::ps_server_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
-String GodotRemote::ps_server_custom_input_scene_name = "debug/godot_remote/server/custom_input_scene";
-String GodotRemote::ps_server_custom_input_scene_compressed_name = "debug/godot_remote/server/send_custom_input_scene_compressed";
-String GodotRemote::ps_server_custom_input_scene_compression_type_name = "debug/godot_remote/server/custom_input_scene_compression_type";
 String GodotRemote::ps_server_stream_skip_frames_name = "debug/godot_remote/server/skip_frames";
 String GodotRemote::ps_server_stream_enabled_name = "debug/godot_remote/server/video_stream_enabled";
 String GodotRemote::ps_server_compression_type_name = "debug/godot_remote/server/compression_type";
@@ -34,6 +31,10 @@ String GodotRemote::ps_server_jpg_buffer_mb_size_name = "debug/godot_remote/serv
 String GodotRemote::ps_server_auto_adjust_scale_name = "debug/godot_remote/server/auto_adjust_scale";
 String GodotRemote::ps_server_scale_of_sending_stream_name = "debug/godot_remote/server/scale_of_sending_stream";
 String GodotRemote::ps_server_password_name = "debug/godot_remote/server/password";
+
+String GodotRemote::ps_server_custom_input_scene_name = "debug/godot_remote/server_custom_input_scene/custom_input_scene";
+String GodotRemote::ps_server_custom_input_scene_compressed_name = "debug/godot_remote/server_custom_input_scene/send_custom_input_scene_compressed";
+String GodotRemote::ps_server_custom_input_scene_compression_type_name = "debug/godot_remote/server_custom_input_scene/custom_input_scene_compression_type";
 
 GodotRemote *GodotRemote::get_singleton() {
 	return singleton;
