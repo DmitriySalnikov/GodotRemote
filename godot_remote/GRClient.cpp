@@ -593,6 +593,7 @@ void GRClient::_reset_counters() {
 }
 
 void GRClient::set_server_setting(int param, Variant value) {
+	send_queue_mutex->lock();
 	Ref<GRPacketServerSettings> packet = _find_queued_packet_by_type<Ref<GRPacketServerSettings> >();
 
 	if (packet.is_null()) {
@@ -601,6 +602,7 @@ void GRClient::set_server_setting(int param, Variant value) {
 
 	packet->add_setting(param, value);
 	send_packet(packet);
+	send_queue_mutex->unlock();
 }
 
 void GRClient::disable_overriding_server_settings() {
@@ -713,6 +715,11 @@ void GRClient::_thread_connection(void *p_userdata) {
 				con_thread->break_connection = false;
 				con_thread->peer = con;
 				con_thread->ppeer = ppeer;
+
+				if (dev->input_collector && !dev->input_collector->is_queued_for_deletion()) {
+					dev->input_collector->_client_connected();
+				}
+
 				dev->is_connection_working = true;
 				dev->call_deferred("emit_signal", "connection_state_changed", true);
 				GRNotifications::add_notification("Connected", "Connected to " + address, NotificationIcon::Success);
@@ -743,18 +750,15 @@ void GRClient::_thread_connection(void *p_userdata) {
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::VersionMismatch:
-				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Version mismatch\n" + address, NotificationIcon::Error);
+				GRNotifications::add_notification(con_error_title, "Version mismatch\n" + address, NotificationIcon::Error);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::IncorrectPassword:
-				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Incorrect password\n" + address, NotificationIcon::Error);
+				GRNotifications::add_notification(con_error_title, "Incorrect password\n" + address, NotificationIcon::Error);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::PasswordRequired:
-				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Required password but it's not implemented.... " + address, NotificationIcon::Error);
+				GRNotifications::add_notification(con_error_title, "Required password but it's not implemented.... " + address, NotificationIcon::Error);
 				break;
 			default:
 				if (res != prev_auth_error)
@@ -1130,14 +1134,17 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 }
 
 GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<PacketPeerStream> &ppeer) {
-#define wait_packet(_n)                                           \
-	uint32_t time = OS::get_singleton()->get_ticks_msec();        \
-	while (ppeer->get_available_packet_count() == 0) {            \
-		if (OS::get_singleton()->get_ticks_msec() - time > 150) { \
-			_log("Timeout: " + str(_n), LogLevel::LL_Debug);      \
-			goto timeout;                                         \
-		}                                                         \
-		OS::get_singleton()->delay_usec(1_ms);                    \
+#define wait_packet(_n)                                                                        \
+	time = OS::get_singleton()->get_ticks_msec();                                              \
+	while (ppeer->get_available_packet_count() == 0) {                                         \
+		if (OS::get_singleton()->get_ticks_msec() - time > 150) {                              \
+			_log("Connection timeout. Disconnecting. Waited: " + str(_n), LogLevel::LL_Debug); \
+			goto timeout;                                                                      \
+		}                                                                                      \
+		if (!con->is_connected_to_host()) {                                                    \
+			return GRDevice::AuthResult::Error;                                                \
+		}                                                                                      \
+		OS::get_singleton()->delay_usec(1_ms);                                                 \
 	}
 #define packet_error_check(_t)              \
 	if (err) {                              \
@@ -1147,6 +1154,7 @@ GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<PacketPeerStre
 
 	Ref<StreamPeerTCP> con = ppeer->get_stream_peer();
 	String address = CON_ADDRESS(con);
+	uint32_t time = 0;
 
 	Error err = OK;
 	Variant ret;
@@ -1401,14 +1409,24 @@ void GRInputCollector::_notification(int p_notification) {
 			break;
 		}
 		case NOTIFICATION_PROCESS: {
-			_THREAD_SAFE_LOCK_
+			_THREAD_SAFE_LOCK_;
 			auto w = sensors.write();
 			w[0] = Input::get_singleton()->get_accelerometer();
 			w[1] = Input::get_singleton()->get_gravity();
 			w[2] = Input::get_singleton()->get_gyroscope();
 			w[3] = Input::get_singleton()->get_magnetometer();
 			w.release();
-			_THREAD_SAFE_UNLOCK_
+			_THREAD_SAFE_UNLOCK_;
+
+			Vector2 size = OS::get_singleton()->get_window_size();
+			ScreenOrientation tmp_vert = size.x > size.y ? ScreenOrientation::HORIZONTAL : ScreenOrientation::VERTICAL;
+			if (tmp_vert != is_vertical) {
+				is_vertical = tmp_vert;
+				Ref<GRPacketClientRotation> pack(memnew(GRPacketClientRotation));
+				pack->set_vertical(is_vertical == ScreenOrientation::VERTICAL);
+				dev->send_packet(pack);
+			}
+
 			break;
 		}
 	}
@@ -1451,6 +1469,10 @@ void GRInputCollector::set_capture_input(bool value) {
 
 void GRInputCollector::set_tex_rect(TextureRect *tr) {
 	texture_rect = tr;
+}
+
+void GRInputCollector::_client_connected() {
+	is_vertical = ScreenOrientation::NONE;
 }
 
 Ref<GRPacketInputData> GRInputCollector::get_collected_input_data() {

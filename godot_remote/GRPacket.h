@@ -13,6 +13,7 @@ enum class PacketType {
 	ServerSettings = 4,
 	MouseModeSync = 5,
 	CustomInputScene = 6,
+	ClientRotation = 7,
 
 	// Requests
 	Ping = 128,
@@ -194,9 +195,28 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////
+// CLIENT DEVICE ROTATION
+class GRPacketClientRotation : public GRPacket {
+	GDCLASS(GRPacketClientRotation, GRPacket);
+	friend GRPacket;
+
+	bool vertical;
+
+protected:
+	virtual Ref<StreamPeerBuffer> _get_data() override;
+	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+
+public:
+	virtual PacketType get_type() override { return PacketType::ClientRotation; };
+
+	bool is_vertical();
+	void set_vertical(bool val);
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-// REQUESTS!
+//////////////////////////////////////////////////////////////////////////
+// REQUESTS AND RESPONSES
 
 #define BASIC_PACKET(_name, _type)                                                            \
 	class _name : public GRPacket {                                                           \

@@ -26,6 +26,7 @@ void GRServer::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_settings_node"), &GRServer::get_settings_node);
 	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRServer::get_gr_viewport);
+	ClassDB::bind_method(D_METHOD("force_update_custom_input_scene"), &GRServer::force_update_custom_input_scene);
 
 	ClassDB::bind_method(D_METHOD("set_video_stream_enabled"), &GRServer::set_video_stream_enabled);
 	ClassDB::bind_method(D_METHOD("set_skip_frames"), &GRServer::set_skip_frames);
@@ -56,6 +57,8 @@ void GRServer::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene"), "set_custom_input_scene", "get_custom_input_scene");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene_compressed"), "set_custom_input_scene_compressed", "is_custom_input_scene_compressed");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene_compression_type"), "set_custom_input_scene_compression_type", "get_custom_input_scene_compression_type");
+
+	ADD_SIGNAL(MethodInfo("client_orientation_changed", PropertyInfo(Variant::BOOL, "is_vertical")));
 }
 
 void GRServer::_notification(int p_notification) {
@@ -549,6 +552,7 @@ void GRServer::_thread_listen(void *p_userdata) {
 					case GRDevice::AuthResult::IncorrectPassword:
 					case GRDevice::AuthResult::Error:
 					case GRDevice::AuthResult::RefuseConnection:
+					case GRDevice::AuthResult::Timeout:
 						continue;
 					default:
 						_log("Unknown error code. Disconnecting. " + address);
@@ -862,6 +866,15 @@ void GRServer::_thread_connection(void *p_userdata) {
 					dev->_update_settings_from_client(data->get_settings());
 					break;
 				}
+				case PacketType::ClientRotation: {
+					Ref<GRPacketClientRotation> data = pack;
+					if (data.is_null()) {
+						_log("Incorrect GRPacketClientRotation", LogLevel::LL_Error);
+						break;
+					}
+					dev->call_deferred("emit_signal", "client_orientation_changed", data->is_vertical());
+					break;
+				}
 				case PacketType::Ping: {
 					Ref<GRPacketPong> pack(memnew(GRPacketPong));
 					err = ppeer->put_var(pack->get_data());
@@ -920,6 +933,12 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection) {
 // _v - variable definition, _n - dict key, _c - fail condition, _e - error message, _r - return value on fail condition
+#define packet_error_check(_t)              \
+	if (err) {                              \
+		_log(_t, LogLevel::LL_Debug);       \
+		con->disconnect_from_host();        \
+		return GRDevice::AuthResult::Error; \
+	}
 #define dict_get(_t, _v, _n, _c, _e, _r) \
 	_t _v;                               \
 	if (dict.has(_n))                    \
@@ -929,25 +948,25 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream>
 	if (_c) {                            \
 		ppeer->put_var((int)_r);         \
 		_log(_e, LogLevel::LL_Debug);    \
+		con->disconnect_from_host();     \
 		return _r;                       \
 	}
-#define wait_packet(_n)                                           \
-	uint32_t time = OS::get_singleton()->get_ticks_msec();        \
-	while (ppeer->get_available_packet_count() == 0) {            \
-		if (OS::get_singleton()->get_ticks_msec() - time > 150) { \
-			_log("Timeout: " + str(_n), LogLevel::LL_Debug);      \
-			goto timeout;                                         \
-		}                                                         \
-		OS::get_singleton()->delay_usec(1_ms);                    \
-	}
-#define packet_error_check(_t)              \
-	if (err) {                              \
-		_log(_t, LogLevel::LL_Debug);       \
-		return GRDevice::AuthResult::Error; \
+#define wait_packet(_n)                                                                                   \
+	time = OS::get_singleton()->get_ticks_msec();                                                         \
+	while (ppeer->get_available_packet_count() == 0) {                                                    \
+		if (OS::get_singleton()->get_ticks_msec() - time > 150) {                                         \
+			_log("Connection timeout. Refusing " + address + ". Waited: " + str(_n), LogLevel::LL_Debug); \
+			goto timeout;                                                                                 \
+		}                                                                                                 \
+		if (!con->is_connected_to_host()) {                                                               \
+			return GRDevice::AuthResult::Error;                                                           \
+		}                                                                                                 \
+		OS::get_singleton()->delay_usec(1_ms);                                                            \
 	}
 
 	Ref<StreamPeerTCP> con = ppeer->get_stream_peer();
 	String address = CON_ADDRESS(con);
+	uint32_t time = 0;
 
 	Error err = OK;
 	Variant res;
@@ -995,16 +1014,19 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream>
 
 	error_dict:
 		_log("Got invalid authorization data from client. " + address);
+		err = ppeer->put_var((int)GRDevice::AuthResult::Error);
+		packet_error_check("Can't send error code to client " + address + ". Code: " + str(err));
+		con->disconnect_from_host();
 		return GRDevice::AuthResult::Error;
 
 	} else {
 		// PUT refuse connection
-		Error err = con->put_data((uint8_t *)GRDevice::AuthResult::RefuseConnection, 1);
+		Error err = ppeer->put_var((int)GRDevice::AuthResult::RefuseConnection);
+		con->disconnect_from_host();
 		return GRDevice::AuthResult::RefuseConnection;
 	}
 timeout:
 	con->disconnect_from_host();
-	_log("Connection timeout. Refusing " + address);
 	return GRDevice::AuthResult::Timeout;
 
 #undef dict_get

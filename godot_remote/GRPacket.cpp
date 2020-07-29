@@ -39,6 +39,8 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 			CREATE(GRPacketMouseModeSync);
 		case PacketType::CustomInputScene:
 			CREATE(GRPacketCustomInputScene);
+		case PacketType::ClientRotation:
+			CREATE(GRPacketClientRotation);
 
 			// Requests
 		case PacketType::Ping:
@@ -320,4 +322,27 @@ int GRPacketCustomInputScene::get_compression_type() {
 
 void GRPacketCustomInputScene::set_compression_type(int val) {
 	compression_type = val;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// CLIENT DEVICE ROTATION
+
+Ref<StreamPeerBuffer> GRPacketClientRotation::_get_data() {
+	auto buf = GRPacket::_get_data();
+	buf->put_8(vertical);
+	return buf;
+}
+
+bool GRPacketClientRotation::_create(Ref<StreamPeerBuffer> buf) {
+	GRPacket::_create(buf);
+	vertical = buf->get_8();
+	return true;
+}
+
+bool GRPacketClientRotation::is_vertical() {
+	return vertical;
+}
+
+void GRPacketClientRotation::set_vertical(bool val) {
+	vertical = val;
 }

@@ -203,7 +203,15 @@ class GRInputCollector : public Node {
 	GDCLASS(GRInputCollector, Node);
 	friend GRClient;
 
-	_THREAD_SAFE_CLASS_
+	_THREAD_SAFE_CLASS_;
+
+public:
+	enum class ScreenOrientation {
+		NONE = 0,
+		VERTICAL = 1,
+		HORIZONTAL = 2,
+	};
+
 private:
 	GRClient *dev = nullptr;
 	GRInputCollector **this_in_client = nullptr; //somebody help
@@ -215,6 +223,7 @@ private:
 	bool capture_pointer_only_when_hover_control = true;
 	bool dont_capture_pointer = false;
 	bool capture_input = true;
+	ScreenOrientation is_vertical = ScreenOrientation::NONE;
 	Rect2 stream_rect;
 	PoolVector3Array sensors;
 
@@ -222,6 +231,7 @@ private:
 	Dictionary screen_touches;
 
 protected:
+	void _client_connected();
 	void _collect_input(Ref<InputEvent> ie);
 	void _update_stream_rect();
 	void _release_pointers();
