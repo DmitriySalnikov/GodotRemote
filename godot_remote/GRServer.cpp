@@ -230,14 +230,16 @@ void GRServer::_internal_call_only_deffered_start() {
 		server_thread_listen->close_thread();
 		server_thread_listen.unref();
 	}
-	server_thread_listen.instance();
-	server_thread_listen->dev = this;
-	server_thread_listen->thread_ref = Thread::create(&_thread_listen, server_thread_listen.ptr());
 
 	if (!resize_viewport) {
 		resize_viewport = memnew(GRSViewport);
 		add_child(resize_viewport);
 	}
+
+	server_thread_listen.instance();
+	server_thread_listen->dev = this;
+	server_thread_listen->thread_ref = Thread::create(&_thread_listen, server_thread_listen.ptr());
+
 	set_status(WorkingStatus::Working);
 	call_deferred("_load_settings");
 
@@ -612,11 +614,6 @@ void GRServer::_thread_connection(void *p_userdata) {
 	bool ping_sended = false;
 	bool time_synced = false;
 
-	if (dev->resize_viewport && !dev->resize_viewport->is_queued_for_deletion()) {
-		dev->resize_viewport->set_process(true);
-		dev->resize_viewport->force_get_image();
-	}
-
 	TimeCountInit();
 	while (!thread_info->break_connection && connection.is_valid() &&
 			!connection->is_queued_for_deletion() && connection->is_connected_to_host()) {
@@ -630,6 +627,11 @@ void GRServer::_thread_connection(void *p_userdata) {
 		if (dev->resize_viewport && !dev->resize_viewport->is_queued_for_deletion()) {
 			if (dev->resize_viewport->get_skip_frames())
 				fps = fps / dev->resize_viewport->get_skip_frames();
+
+			if (!dev->resize_viewport->is_processing()) {
+				dev->resize_viewport->set_process(true);
+				dev->resize_viewport->force_get_image();
+			}
 		}
 
 		uint64_t send_data_time_us = (1000000 / fps);
