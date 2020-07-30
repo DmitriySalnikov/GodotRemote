@@ -15,8 +15,8 @@
 #define TimeCountInit() int simple_time_counter = OS::get_singleton()->get_ticks_usec()
 #define TimeCountReset() simple_time_counter = OS::get_singleton()->get_ticks_usec()
 // Shows delta between this and previous counter. Need to call TimeCountInit before
-#define TimeCount(str)                                                                                                                                               \
-	GRUtils::_log(str + String(": ") + String::num((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0, 3) + " ms", GRUtils::LogLevel::LL_Debug); \
+#define TimeCount(str)                                                                                                                                      \
+	GRUtils::_log(str + String(": ") + String::num((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0, 3) + " ms", LogLevel::LL_Debug); \
 	simple_time_counter = OS::get_singleton()->get_ticks_usec()
 
 // Bind constant with custom name
@@ -61,7 +61,6 @@
 // Get Project Setting and set it to variable
 #define GET_PS_SET(variable_to_store, setting_name) \
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
-namespace GRUtils {
 
 enum LogLevel {
 	LL_Debug = 0,
@@ -71,11 +70,6 @@ enum LogLevel {
 	LL_None,
 };
 
-enum class AuthErrorCode {
-	OK = 0,
-	VersionMismatch = 1,
-};
-
 enum Subsampling {
 	SUBSAMPLING_Y_ONLY = 0,
 	SUBSAMPLING_H1V1 = 1,
@@ -83,12 +77,21 @@ enum Subsampling {
 	SUBSAMPLING_H2V2 = 3
 };
 
-enum class ImageCompressionType {
+enum ImageCompressionType {
 	Uncompressed = 0,
 	JPG = 1,
 	PNG = 2,
 };
 
+enum TypesOfServerSettings {
+	USE_INTERNAL_SERVER_SETTINGS = 0,
+	VIDEO_STREAM_ENABLED = 1,
+	COMPRESSION_TYPE = 2,
+	JPG_QUALITY = 3,
+	SKIP_FRAMES = 4,
+	RENDER_SCALE = 5,
+};
+namespace GRUtils {
 // DEFINES
 
 extern int current_loglevel;
@@ -114,35 +117,6 @@ extern String str(const Variant &val);
 extern String str_arr(const Array arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ");
 extern String str_arr(const Dictionary arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ");
 extern String str_arr(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64, String separator = ", ");
-
-extern PoolByteArray var2bytes(const Variant &data, bool full_objects = false);
-
-extern PoolByteArray int162bytes(const int16_t &data);
-extern PoolByteArray int322bytes(const int32_t &data);
-extern PoolByteArray int642bytes(const int64_t &data);
-extern PoolByteArray uint162bytes(const uint16_t &data);
-extern PoolByteArray uint322bytes(const uint32_t &data);
-extern PoolByteArray uint642bytes(const uint64_t &data);
-extern PoolByteArray float2bytes(const float &data);
-extern PoolByteArray double2bytes(const double &data);
-
-extern int16_t bytes2int16(const PoolByteArray &data, int idx = 0);
-extern int32_t bytes2int32(const PoolByteArray &data, int idx = 0);
-extern int64_t bytes2int64(const PoolByteArray &data, int idx = 0);
-extern uint16_t bytes2uint16(const PoolByteArray &data, int idx = 0);
-extern uint32_t bytes2uint32(const PoolByteArray &data, int idx = 0);
-extern uint64_t bytes2uint64(const PoolByteArray &data, int idx);
-extern float bytes2float(const PoolByteArray &data, int idx = 0);
-extern double bytes2double(const PoolByteArray &data, int idx = 0);
-
-extern int16_t bytes2int16(const uint8_t *data);
-extern int32_t bytes2int32(const uint8_t *data);
-extern int64_t bytes2int64(const uint8_t *data);
-extern uint16_t bytes2uint16(const uint8_t *data);
-extern uint32_t bytes2uint32(const uint8_t *data);
-extern uint64_t bytes2uint64(const uint8_t *data);
-extern float bytes2float(const uint8_t *data);
-extern double bytes2double(const uint8_t *data);
 
 extern bool validate_packet(const uint8_t *data);
 extern bool validate_version(const PoolByteArray &data);
@@ -214,30 +188,11 @@ static String str_arr(Vector<T> arr, const bool force_full = false, const int ma
 	return res + " ]";
 };
 
-template <class T = Variant>
-static T bytes2var(const PoolByteArray &data, bool allow_objects = false) {
-	Variant ret;
-	PoolByteArray::Read r = data.read();
-	Error err = decode_variant(ret, r.ptr(), data.size(), NULL, allow_objects);
-	if (err)
-		return Variant();
-	return ret;
-}
-
-template <class T = Variant>
-static T bytes2var(const uint8_t *data, int size, bool allow_objects = false) {
-	Variant ret;
-	Error err = decode_variant(ret, data, size, NULL, allow_objects);
-	if (err)
-		return Variant();
-	return ret;
-}
-
 static PoolByteArray get_packet_header() {
 	return internal_PACKET_HEADER;
 }
 
-static PoolByteArray get_version() {
+static PoolByteArray get_gr_version() {
 	return internal_VERSION;
 }
 
@@ -247,7 +202,8 @@ static void set_log_level(LogLevel lvl) {
 
 }; // namespace GRUtils
 
-VARIANT_ENUM_CAST(GRUtils::Subsampling)
-VARIANT_ENUM_CAST(GRUtils::LogLevel)
-VARIANT_ENUM_CAST(GRUtils::ImageCompressionType)
+VARIANT_ENUM_CAST(Subsampling)
+VARIANT_ENUM_CAST(LogLevel)
+VARIANT_ENUM_CAST(ImageCompressionType)
+VARIANT_ENUM_CAST(TypesOfServerSettings)
 #endif // !GRUTILS_H

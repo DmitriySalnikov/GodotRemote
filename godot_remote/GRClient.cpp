@@ -6,7 +6,6 @@
 #include "GRNotifications.h"
 #include "GRPacket.h"
 #include "GRResources.h"
-#include "GodotRemote.h"
 #include "core/input_map.h"
 #include "core/io/file_access_pack.h"
 #include "core/io/ip.h"
@@ -39,12 +38,12 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_texture", "texture"), &GRClient::set_custom_no_signal_texture);
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_vertical_texture", "texture"), &GRClient::set_custom_no_signal_vertical_texture);
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_material", "material"), &GRClient::set_custom_no_signal_material);
-	ClassDB::bind_method(D_METHOD("set_address", "ip", "port", "ipv4"), &GRClient::set_address, DEFVAL(true));
-	ClassDB::bind_method(D_METHOD("set_ip", "ip", "ipv4"), &GRClient::set_ip, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("set_address_port", "ip", "port"), &GRClient::set_address_port, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("set_address", "ip"), &GRClient::set_address, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("set_server_setting", "setting", "value"), &GRClient::set_server_setting);
 	ClassDB::bind_method(D_METHOD("disable_overriding_server_settings"), &GRClient::disable_overriding_server_settings);
 
-	ClassDB::bind_method(D_METHOD("get_ip"), &GRClient::get_ip);
+	ClassDB::bind_method(D_METHOD("get_address"), &GRClient::get_address);
 	ClassDB::bind_method(D_METHOD("is_stream_active"), &GRClient::is_stream_active);
 	ClassDB::bind_method(D_METHOD("is_connected_to_host"), &GRClient::is_connected_to_host);
 
@@ -157,11 +156,11 @@ GRClient::~GRClient() {
 
 void GRClient::_internal_call_only_deffered_start() {
 	switch ((WorkingStatus)get_status()) {
-		case GRDevice::WorkingStatus::Working:
+		case WorkingStatus::Working:
 			ERR_FAIL_MSG("Can't start already working GodotRemote Client");
-		case GRDevice::WorkingStatus::Starting:
+		case WorkingStatus::Starting:
 			ERR_FAIL_MSG("Can't start already starting GodotRemote Client");
-		case GRDevice::WorkingStatus::Stopping:
+		case WorkingStatus::Stopping:
 			ERR_FAIL_MSG("Can't start stopping GodotRemote Client");
 	}
 
@@ -183,11 +182,11 @@ void GRClient::_internal_call_only_deffered_start() {
 
 void GRClient::_internal_call_only_deffered_stop() {
 	switch ((WorkingStatus)get_status()) {
-		case GRDevice::WorkingStatus::Stopped:
+		case WorkingStatus::Stopped:
 			ERR_FAIL_MSG("Can't stop already stopped GodotRemote Client");
-		case GRDevice::WorkingStatus::Stopping:
+		case WorkingStatus::Stopping:
 			ERR_FAIL_MSG("Can't stop already stopping GodotRemote Client");
-		case GRDevice::WorkingStatus::Starting:
+		case WorkingStatus::Starting:
 			ERR_FAIL_MSG("Can't stop starting GodotRemote Client");
 	}
 
@@ -310,11 +309,11 @@ void GRClient::set_capture_input(bool value) {
 		input_collector->set_capture_input(value);
 }
 
-void GRClient::set_connection_type(int type) {
-	con_type = (ConnectionType)type;
+void GRClient::set_connection_type(ConnectionType type) {
+	con_type = type;
 }
 
-int GRClient::get_connection_type() {
+ConnectionType GRClient::get_connection_type() {
 	return con_type;
 }
 
@@ -327,12 +326,12 @@ int GRClient::get_target_send_fps() {
 	return send_data_fps;
 }
 
-void GRClient::set_stretch_mode(int stretch) {
-	stretch_mode = (StretchMode)stretch;
+void GRClient::set_stretch_mode(StretchMode stretch) {
+	stretch_mode = stretch;
 	call_deferred("_update_stream_texture_state", signal_connection_state);
 }
 
-int GRClient::get_stretch_mode() {
+StretchMode GRClient::get_stretch_mode() {
 	return stretch_mode;
 }
 
@@ -342,6 +341,10 @@ void GRClient::set_texture_filtering(bool is_filtering) {
 
 bool GRClient::get_texture_filtering() {
 	return is_filtering_enabled;
+}
+
+StreamState GRClient::get_stream_state() {
+	return signal_connection_state;
 }
 
 void GRClient::send_packet(Ref<GRPacket> packet) {
@@ -356,15 +359,15 @@ bool GRClient::is_stream_active() {
 	return signal_connection_state;
 }
 
-String GRClient::get_ip() {
+String GRClient::get_address() {
 	return (String)server_address;
 }
 
-bool GRClient::set_ip(String ip, bool ipv4) {
-	return set_address(ip, port, ipv4);
+bool GRClient::set_address(String ip) {
+	return set_address_port(ip, port);
 }
 
-bool GRClient::set_address(String ip, uint16_t _port, bool ipv4) {
+bool GRClient::set_address_port(String ip, uint16_t _port) {
 	bool all_ok = false;
 
 	IP_Address adr;
@@ -377,7 +380,7 @@ bool GRClient::set_address(String ip, uint16_t _port, bool ipv4) {
 			all_ok = true;
 		} else {
 			_log("Address is invalid: " + ip, LogLevel::LL_Error);
-			GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + ip, NotificationIcon::Error);
+			GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + ip, NotificationIcon::_Error);
 		}
 	} else {
 		adr = IP::get_singleton()->resolve_hostname(adr);
@@ -389,7 +392,7 @@ bool GRClient::set_address(String ip, uint16_t _port, bool ipv4) {
 			all_ok = true;
 		} else {
 			_log("Can't resolve address for " + ip, LogLevel::LL_Error);
-			GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + ip, NotificationIcon::Error);
+			GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + ip, NotificationIcon::_Error);
 		}
 	}
 
@@ -541,7 +544,7 @@ void GRClient::_update_stream_texture_state(StreamState is_has_signal) {
 
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		switch (is_has_signal) {
-			case GRClient::STREAM_NO_SIGNAL: {
+			case StreamState::STREAM_NO_SIGNAL: {
 				tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
 
 				if (custom_no_signal_texture.is_valid() || custom_no_signal_vertical_texture.is_valid()) {
@@ -564,12 +567,12 @@ void GRClient::_update_stream_texture_state(StreamState is_has_signal) {
 #endif
 				break;
 			}
-			case GRClient::STREAM_ACTIVE: {
+			case StreamState::STREAM_ACTIVE: {
 				tex_shows_stream->set_stretch_mode(stretch_mode == StretchMode::STRETCH_KEEP_ASPECT ? TextureRect::STRETCH_KEEP_ASPECT_CENTERED : TextureRect::STRETCH_SCALE);
 				tex_shows_stream->set_material(nullptr);
 				break;
 			}
-			case GRClient::STREAM_NO_IMAGE:
+			case StreamState::STREAM_NO_IMAGE:
 				tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_SCALE);
 				tex_shows_stream->set_material(nullptr);
 				tex_shows_stream->set_texture(nullptr);
@@ -592,7 +595,7 @@ void GRClient::_reset_counters() {
 	sync_time_server = 0;
 }
 
-void GRClient::set_server_setting(int param, Variant value) {
+void GRClient::set_server_setting(TypesOfServerSettings param, Variant value) {
 	send_queue_mutex->lock();
 	Ref<GRPacketServerSettings> packet = _find_queued_packet_by_type<Ref<GRPacketServerSettings> >();
 
@@ -606,7 +609,7 @@ void GRClient::set_server_setting(int param, Variant value) {
 }
 
 void GRClient::disable_overriding_server_settings() {
-	set_server_setting((int)GodotRemote::TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS, true);
+	set_server_setting(TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS, true);
 }
 
 //////////////////////////////////////////////
@@ -644,7 +647,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 				} else {
 					_log("Address is invalid: " + dev->server_address, LogLevel::LL_Error);
 					if (prev_auth_error != GRDevice::AuthResult::Error)
-						GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + dev->server_address, NotificationIcon::Error);
+						GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + dev->server_address, NotificationIcon::_Error);
 					prev_auth_error = GRDevice::AuthResult::Error;
 				}
 			} else {
@@ -654,7 +657,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 				} else {
 					_log("Can't resolve address for " + dev->server_address, LogLevel::LL_Error);
 					if (prev_auth_error != GRDevice::AuthResult::Error)
-						GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + dev->server_address, NotificationIcon::Error);
+						GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + dev->server_address, NotificationIcon::_Error);
 					prev_auth_error = GRDevice::AuthResult::Error;
 				}
 			}
@@ -736,33 +739,33 @@ void GRClient::_thread_connection(void *p_userdata) {
 			}
 			case GRDevice::AuthResult::Error:
 				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Can't connect to " + address, NotificationIcon::Error);
+					GRNotifications::add_notification(con_error_title, "Can't connect to " + address, NotificationIcon::_Error);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::Timeout:
 				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Timeout\n" + address, NotificationIcon::Error);
+					GRNotifications::add_notification(con_error_title, "Timeout\n" + address, NotificationIcon::_Error);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::RefuseConnection:
 				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Connection refused\n" + address, NotificationIcon::Error);
+					GRNotifications::add_notification(con_error_title, "Connection refused\n" + address, NotificationIcon::_Error);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::VersionMismatch:
-				GRNotifications::add_notification(con_error_title, "Version mismatch\n" + address, NotificationIcon::Error);
+				GRNotifications::add_notification(con_error_title, "Version mismatch\n" + address, NotificationIcon::_Error);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::IncorrectPassword:
-				GRNotifications::add_notification(con_error_title, "Incorrect password\n" + address, NotificationIcon::Error);
+				GRNotifications::add_notification(con_error_title, "Incorrect password\n" + address, NotificationIcon::_Error);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::PasswordRequired:
-				GRNotifications::add_notification(con_error_title, "Required password but it's not implemented.... " + address, NotificationIcon::Error);
+				GRNotifications::add_notification(con_error_title, "Required password but it's not implemented.... " + address, NotificationIcon::_Error);
 				break;
 			default:
 				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Unknown error code: " + str((int)res) + "\n" + address, NotificationIcon::Error);
+					GRNotifications::add_notification(con_error_title, "Unknown error code: " + str((int)res) + "\n" + address, NotificationIcon::_Error);
 				_log("Unknown error code: " + str((int)res) + ". Disconnecting. " + address);
 				break;
 		}
@@ -892,7 +895,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after sending!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after sending data!", NotificationIcon::Error);
+			GRNotifications::add_notification("Error", "Lost connection after sending data!", NotificationIcon::_Error);
 			continue;
 		}
 
@@ -1050,7 +1053,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after receiving!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after receiving data!", NotificationIcon::Error);
+			GRNotifications::add_notification("Error", "Lost connection after receiving data!", NotificationIcon::_Error);
 			continue;
 		}
 
@@ -1095,7 +1098,7 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 			if (img->empty()) { // is NOT OK
 				err = Error::FAILED;
 				_log("Incorrect uncompressed image data.", LogLevel::LL_Error);
-				GRNotifications::add_notification("Stream Error", "Incorrect uncompressed image data.", NotificationIcon::Error);
+				GRNotifications::add_notification("Stream Error", "Incorrect uncompressed image data.", NotificationIcon::_Error);
 			}
 			break;
 		}
@@ -1103,15 +1106,15 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 			err = img->load_jpg_from_buffer(ips->tex_data);
 			if (err || img->empty()) { // is NOT OK
 				_log("Can't decode JPG image.", LogLevel::LL_Error);
-				GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str(err), NotificationIcon::Error);
+				GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str(err), NotificationIcon::_Error);
 			}
 			break;
 		}
-		case GRUtils::ImageCompressionType::PNG: {
+		case ImageCompressionType::PNG: {
 			err = img->load_png_from_buffer(ips->tex_data);
 			if (err || img->empty()) { // is NOT OK
 				_log("Can't decode PNG image.", LogLevel::LL_Error);
-				GRNotifications::add_notification("Stream Error", "Can't decode PNG image. Code: " + str(err), NotificationIcon::Error);
+				GRNotifications::add_notification("Stream Error", "Can't decode PNG image. Code: " + str(err), NotificationIcon::_Error);
 			}
 			break;
 		}
@@ -1170,7 +1173,7 @@ GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<PacketPeerStre
 	if ((int)ret == (int)GRDevice::AuthResult::TryToConnect) {
 		Dictionary data;
 		data["id"] = dev->device_id;
-		data["version"] = get_version();
+		data["version"] = get_gr_version();
 		data["password"] = dev->password;
 
 		// PUT auth data
@@ -1216,12 +1219,12 @@ timeout:
 //////////////////////////////////////////////
 
 void GRInputCollector::_update_stream_rect() {
-	if (!dev || dev->get_status() != (int)GRDevice::WorkingStatus::Working)
+	if (!dev || dev->get_status() != WorkingStatus::Working)
 		return;
 
 	if (texture_rect && !texture_rect->is_queued_for_deletion()) {
 		switch (dev->get_stretch_mode()) {
-			case GRClient::StretchMode::STRETCH_KEEP_ASPECT: {
+			case StretchMode::STRETCH_KEEP_ASPECT: {
 				Ref<Texture> tex = texture_rect->get_texture();
 				if (tex.is_null())
 					goto fill;
@@ -1243,7 +1246,7 @@ void GRInputCollector::_update_stream_rect() {
 				}
 				break;
 			}
-			case GRClient::StretchMode::STRETCH_FILL:
+			case StretchMode::STRETCH_FILL:
 			default:
 			fill:
 				stream_rect = Rect2(texture_rect->get_global_position(), texture_rect->get_size());
@@ -1273,6 +1276,7 @@ void GRInputCollector::_release_pointers() {
 				Ref<InputEventMouseButton> iemb(memnew(InputEventMouseButton));
 				iemb->set_button_index(buttons[i]);
 				iemb->set_pressed(false);
+				buttons[i] = false;
 				_collect_input(iemb);
 			}
 		}
@@ -1285,6 +1289,7 @@ void GRInputCollector::_release_pointers() {
 				Ref<InputEventScreenTouch> iest(memnew(InputEventScreenTouch));
 				iest->set_index(touches[i]);
 				iest->set_pressed(false);
+				touches[i] = false;
 				_collect_input(iest);
 			}
 		}
@@ -1308,7 +1313,7 @@ void GRInputCollector::_bind_methods() {
 
 void GRInputCollector::_input(Ref<InputEvent> ie) {
 	if (!parent || (capture_only_when_control_in_focus && !parent->has_focus()) ||
-			(dev && dev->get_status() != (int)GRDevice::WorkingStatus::Working) ||
+			(dev && dev->get_status() != WorkingStatus::Working) ||
 			!dev->is_stream_active() || !is_inside_tree()) {
 		return;
 	}
@@ -1331,16 +1336,18 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		Ref<InputEventMouseButton> iemb = ie;
 		if (iemb.is_valid()) {
 			int idx = iemb->get_button_index();
-			mouse_buttons[idx] = iemb->is_pressed();
 
 			if ((!stream_rect.has_point(iemb->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer) {
 				if (idx == BUTTON_WHEEL_UP || idx == BUTTON_WHEEL_DOWN ||
 						idx == BUTTON_WHEEL_LEFT || idx == BUTTON_WHEEL_RIGHT) {
 					return;
 				} else {
-					return;
+					if (iemb->is_pressed() || !((bool)mouse_buttons[idx]))
+						return;
 				}
 			}
+
+			mouse_buttons[idx] = iemb->is_pressed();
 			goto end;
 		}
 	}
@@ -1358,10 +1365,12 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		Ref<InputEventScreenTouch> iest = ie;
 		if (iest.is_valid()) {
 			int idx = iest->get_index();
-			screen_touches[idx] = iest->is_pressed();
 			if ((!stream_rect.has_point(iest->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer) {
-				return;
+				if (iest->is_pressed() || !((bool)screen_touches[idx]))
+					return;
 			}
+
+			screen_touches[idx] = iest->is_pressed();
 			goto end;
 		}
 	}
@@ -1419,7 +1428,7 @@ void GRInputCollector::_notification(int p_notification) {
 			_THREAD_SAFE_UNLOCK_;
 
 			Vector2 size = OS::get_singleton()->get_window_size();
-			ScreenOrientation tmp_vert = size.x > size.y ? ScreenOrientation::HORIZONTAL : ScreenOrientation::VERTICAL;
+			ScreenOrientation tmp_vert = size.x < size.y ? ScreenOrientation::VERTICAL : ScreenOrientation::HORIZONTAL;
 			if (tmp_vert != is_vertical) {
 				is_vertical = tmp_vert;
 				Ref<GRPacketClientRotation> pack(memnew(GRPacketClientRotation));
@@ -1515,7 +1524,7 @@ GRInputCollector::~GRInputCollector() {
 void GRTextureRect::_tex_size_changed() {
 	if (dev) {
 		Vector2 v = get_size();
-		bool is_vertical = (v.x / v.y) < 1.f;
+		bool is_vertical = v.x < v.y;
 		if (is_vertical != dev->no_signal_is_vertical) {
 			dev->no_signal_is_vertical = is_vertical;
 			dev->_update_stream_texture_state(dev->signal_connection_state); // update texture

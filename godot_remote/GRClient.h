@@ -9,28 +9,28 @@
 #include "scene/gui/texture_rect.h"
 #include "scene/main/node.h"
 
+enum ConnectionType {
+	CONNECTION_WiFi = 0,
+	CONNECTION_ADB = 1,
+};
+
+enum StretchMode {
+	STRETCH_KEEP_ASPECT = 0,
+	STRETCH_FILL = 1,
+};
+
+enum StreamState {
+	STREAM_NO_SIGNAL = 0,
+	STREAM_ACTIVE = 1,
+	STREAM_NO_IMAGE = 2,
+};
+
 class GRClient : public GRDevice {
 	GDCLASS(GRClient, GRDevice);
 
 	friend class GRTextureRect;
 
 public:
-	enum ConnectionType {
-		CONNECTION_WiFi = 0,
-		CONNECTION_ADB = 1,
-	};
-
-	enum StretchMode {
-		STRETCH_KEEP_ASPECT = 0,
-		STRETCH_FILL = 1,
-	};
-
-	enum StreamState {
-		STREAM_NO_SIGNAL = 0,
-		STREAM_ACTIVE = 1,
-		STREAM_NO_IMAGE = 2,
-	};
-
 private:
 	class ImgProcessingStorage {
 	public:
@@ -38,7 +38,7 @@ private:
 		PoolByteArray tex_data;
 		uint64_t framerate = 0;
 		int format = 0;
-		GRUtils::ImageCompressionType compression_type = GRUtils::ImageCompressionType::Uncompressed;
+		ImageCompressionType compression_type = ImageCompressionType::Uncompressed;
 		Size2 size;
 		bool *_is_processing_img = nullptr;
 
@@ -171,12 +171,12 @@ public:
 	void set_capture_pointer(bool value);
 	bool is_capture_input();
 	void set_capture_input(bool value);
-	void set_connection_type(int type);
-	int get_connection_type();
+	void set_connection_type(ConnectionType type);
+	ConnectionType get_connection_type();
 	void set_target_send_fps(int fps);
 	int get_target_send_fps();
-	void set_stretch_mode(int stretch);
-	int get_stretch_mode();
+	void set_stretch_mode(StretchMode stretch);
+	StretchMode get_stretch_mode();
 	void set_texture_filtering(bool is_filtering);
 	bool get_texture_filtering();
 	void set_password(String _pass);
@@ -184,15 +184,16 @@ public:
 	void set_device_id(String _id);
 	String get_device_id();
 
+	StreamState get_stream_state();
 	void send_packet(Ref<GRPacket> packet);
 	bool is_stream_active();
 	bool is_connected_to_host();
-	String get_ip();
-	bool set_ip(String ip, bool ipv4 = true);
-	bool set_address(String ip, uint16_t _port, bool ipv4 = true);
+	String get_address();
+	bool set_address(String ip);
+	bool set_address_port(String ip, uint16_t _port);
 	void set_input_buffer(int mb);
 
-	void set_server_setting(int param, Variant value);
+	void set_server_setting(TypesOfServerSettings param, Variant value);
 	void disable_overriding_server_settings();
 
 	GRClient();
@@ -277,6 +278,6 @@ public:
 
 #endif // !NO_GODOTREMOTE_CLIENT
 
-VARIANT_ENUM_CAST(GRClient::ConnectionType)
-VARIANT_ENUM_CAST(GRClient::StretchMode)
-VARIANT_ENUM_CAST(GRClient::StreamState)
+VARIANT_ENUM_CAST(ConnectionType)
+VARIANT_ENUM_CAST(StretchMode)
+VARIANT_ENUM_CAST(StreamState)

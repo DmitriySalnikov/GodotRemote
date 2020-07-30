@@ -21,7 +21,7 @@ void GRDevice::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_status"), &GRDevice::get_status);
 
 	ADD_SIGNAL(MethodInfo("status_changed", PropertyInfo(Variant::INT, "status")));
-
+	
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "port"), "set_port", "get_port");
 
 	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Starting, "STATUS_STARTING");
@@ -70,7 +70,7 @@ void GRDevice::_update_avg_fps(uint64_t frametime) {
 
 void GRDevice::set_status(WorkingStatus status) {
 	working_status = status;
-	emit_signal("status_changed", (int)working_status);
+	emit_signal("status_changed", working_status);
 }
 
 float GRDevice::get_avg_ping() {
@@ -109,8 +109,8 @@ void GRDevice::_internal_call_only_deffered_restart() {
 	}
 }
 
-int GRDevice::get_status() {
-	return (int)working_status;
+WorkingStatus GRDevice::get_status() {
+	return working_status;
 }
 
 GRDevice::GRDevice() {

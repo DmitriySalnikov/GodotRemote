@@ -80,7 +80,7 @@ private:
 	bool auto_adjust_scale = false;
 
 	bool custom_input_pck_compressed = true;
-	int custom_input_pck_compression_type = 0;
+	int custom_input_pck_compression_type = 0; /* Compression::Mode */
 	const String custom_input_scene_regex_resource_finder_pattern = "\\\"(res://.*?)\\\"";
 	Ref<class RegEx> custom_input_scene_regex_resource_finder;
 
@@ -122,8 +122,8 @@ public:
 	// VIEWPORT
 	bool set_video_stream_enabled(bool val);
 	bool is_video_stream_enabled();
-	bool set_compression_type(int _type);
-	int get_compression_type();
+	bool set_compression_type(ImageCompressionType _type);
+	ImageCompressionType get_compression_type();
 	bool set_jpg_quality(int _quality);
 	int get_jpg_quality();
 	bool set_skip_frames(int fps);
@@ -152,7 +152,7 @@ public:
 
 	public:
 		PoolByteArray ret_data;
-		GRUtils::ImageCompressionType compression_type = GRUtils::ImageCompressionType::Uncompressed;
+		ImageCompressionType compression_type = ImageCompressionType::Uncompressed;
 		int width, height, format;
 		int bytes_in_color, jpg_quality;
 		bool is_empty = false;
@@ -179,7 +179,7 @@ protected:
 	float auto_scale = 0.5f;
 	int jpg_quality = 80;
 	int skip_frames = 0;
-	GRUtils::ImageCompressionType compression_type = GRUtils::ImageCompressionType::Uncompressed;
+	ImageCompressionType compression_type = ImageCompressionType::Uncompressed;
 
 	uint16_t frames_from_prev_image = 0;
 	bool is_empty_image_sended = false;
@@ -197,8 +197,8 @@ public:
 	bool is_video_stream_enabled();
 	void set_rendering_scale(float val);
 	float get_rendering_scale();
-	void set_compression_type(int val);
-	int get_compression_type();
+	void set_compression_type(ImageCompressionType val);
+	ImageCompressionType get_compression_type();
 	void set_jpg_quality(int _quality);
 	int get_jpg_quality();
 	void set_skip_frames(int skip);

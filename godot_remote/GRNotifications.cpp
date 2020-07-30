@@ -41,19 +41,19 @@ GRNotificationPanel *GRNotifications::_get_notification(String title) {
 	return nullptr;
 }
 
-void GRNotifications::_set_notifications_position(int positon) {
+void GRNotifications::_set_notifications_position(NotificationsPosition positon) {
 	NotificationsPosition pos = (NotificationsPosition)positon;
 	if (notif_list_node) {
 		switch (pos) {
-			case GRNotifications::NotificationsPosition::TL:
-			case GRNotifications::NotificationsPosition::TC:
-			case GRNotifications::NotificationsPosition::TR:
+			case NotificationsPosition::TL:
+			case NotificationsPosition::TC:
+			case NotificationsPosition::TR:
 				notif_list_node->set_v_grow_direction(Control::GROW_DIRECTION_END);
 				notif_list_node->set_alignment(BoxContainer::ALIGN_BEGIN);
 				break;
-			case GRNotifications::NotificationsPosition::BL:
-			case GRNotifications::NotificationsPosition::BC:
-			case GRNotifications::NotificationsPosition::BR:
+			case NotificationsPosition::BL:
+			case NotificationsPosition::BC:
+			case NotificationsPosition::BR:
 				notif_list_node->set_v_grow_direction(Control::GROW_DIRECTION_BEGIN);
 				notif_list_node->set_alignment(BoxContainer::ALIGN_END);
 				break;
@@ -64,7 +64,7 @@ void GRNotifications::_set_notifications_position(int positon) {
 	notifications_position = pos;
 }
 
-void GRNotifications::_add_notification_or_append_string(String title, String text, int icon, bool new_string, float duration_multiplier) {
+void GRNotifications::_add_notification_or_append_string(String title, String text, NotificationIcon icon, bool new_string, float duration_multiplier) {
 	auto *np = _get_notification(title);
 	if (np) {
 		np->update_text(np->get_text() + (new_string ? "\n" + text : text));
@@ -73,7 +73,7 @@ void GRNotifications::_add_notification_or_append_string(String title, String te
 	}
 }
 
-void GRNotifications::_add_notification_or_update_line(String title, String id, String text, int icon, float duration_multiplier) {
+void GRNotifications::_add_notification_or_update_line(String title, String id, String text, NotificationIcon icon, float duration_multiplier) {
 	auto *np = cast_to<GRNotificationPanelUpdatable>(_get_notification(title));
 	if (np) {
 		_log("Updating existing updatable notification with Title: \"" + title + "\" ID: \"" + id + "\" Text:\"" + text + "\"", LogLevel::LL_Debug);
@@ -160,14 +160,14 @@ Array GRNotifications::get_notifications_with_title(String title) {
 	return arr;
 }
 
-int GRNotifications::get_notifications_position() {
+NotificationsPosition GRNotifications::get_notifications_position() {
 	if (singleton) {
-		return (int)singleton->notifications_position;
+		return singleton->notifications_position;
 	}
-	return 0;
+	return NotificationsPosition::TC;
 }
 
-void GRNotifications::set_notifications_position(int positon) {
+void GRNotifications::set_notifications_position(NotificationsPosition positon) {
 	if (singleton) {
 		singleton->call_deferred("_set_notifications_position", positon);
 	}
@@ -215,34 +215,22 @@ void GRNotifications::set_notifications_style(Ref<GRNotificationStyle> _style) {
 	}
 }
 
-void GRNotifications::add_notification_or_append_string(String title, String text, int icon, bool new_string, float duration_multiplier) {
+void GRNotifications::add_notification_or_append_string(String title, String text, NotificationIcon icon, bool new_string, float duration_multiplier) {
 	if (singleton) {
 		singleton->call_deferred("_add_notification_or_append_string", title, text, icon, new_string, duration_multiplier);
 	}
 }
 
-void GRNotifications::add_notification_or_append_string(String title, String text, NotificationIcon icon, bool new_string, float duration_multiplier) {
-	add_notification_or_append_string(title, text, (int)icon, new_string, duration_multiplier);
-}
-
-void GRNotifications::add_notification_or_update_line(String title, String id, String text, int icon, float duration_multiplier) {
+void GRNotifications::add_notification_or_update_line(String title, String id, String text, NotificationIcon icon, float duration_multiplier) {
 	if (singleton) {
 		singleton->call_deferred("_add_notification_or_update_line", title, id, text, icon, duration_multiplier);
 	}
 }
 
-void GRNotifications::add_notification_or_update_line(String title, String id, String text, NotificationIcon icon, float duration_multiplier) {
-	add_notification_or_update_line(title, id, text, (int)icon, duration_multiplier);
-}
-
-void GRNotifications::add_notification(String title, String text, int icon, bool update_existing, float duration_multiplier) {
+void GRNotifications::add_notification(String title, String text, NotificationIcon icon, bool update_existing, float duration_multiplier) {
 	if (singleton) {
 		singleton->call_deferred("_add_notification", title, text, icon, update_existing, duration_multiplier);
 	}
-}
-
-void GRNotifications::add_notification(String title, String text, NotificationIcon icon, bool update_existing, float duration_multiplier) {
-	add_notification(title, text, (int)icon, update_existing, duration_multiplier);
 }
 
 void GRNotifications::remove_notification(String title, bool all_entries) {
@@ -263,7 +251,7 @@ void GRNotifications::clear_notifications() {
 	}
 }
 
-void GRNotifications::_add_notification(String title, String text, int icon, bool update_existing, float duration_multiplier) {
+void GRNotifications::_add_notification(String title, String text, NotificationIcon icon, bool update_existing, float duration_multiplier) {
 	if (!notifications_enabled)
 		return;
 
@@ -364,7 +352,7 @@ GRNotifications::GRNotifications() {
 	notif_list_node->set_h_grow_direction(Control::GROW_DIRECTION_BOTH);
 	notif_list_node->set_mouse_filter(Control::MouseFilter::MOUSE_FILTER_IGNORE);
 
-	set_notifications_position((int)notifications_position);
+	set_notifications_position(notifications_position);
 }
 
 GRNotifications::~GRNotifications() {
@@ -424,7 +412,7 @@ void GRNotificationPanel::_update_style() {
 	close_node->set_text(s->get_close_button_icon().is_null() ? "[x]" : "");
 	close_node->set_icon(s->get_close_button_icon());
 
-	icon_tex_node->set_texture(s->get_notification_icon((int)notification_icon));
+	icon_tex_node->set_texture(s->get_notification_icon(notification_icon));
 	icon_tex_node->set_visible(icon_tex_node->get_texture().is_valid());
 }
 
@@ -463,13 +451,13 @@ Ref<GRNotificationStyle> GRNotificationPanel::generate_default_style() {
 	res_style->set_close_button_theme(close_btn_theme);
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
-#define SetIcon(_i) res_style->set_notification_icon((int)_i, _default_textures[(int)_i])
+#define SetIcon(_i) res_style->set_notification_icon(_i, _default_textures[(int)_i])
 
 	if (_default_textures.empty() || _default_close_texture.is_null())
 		_load_default_textures();
 
 	res_style->set_close_button_icon(_default_close_texture);
-	SetIcon(NotificationIcon::Error);
+	SetIcon(NotificationIcon::_Error);
 	SetIcon(NotificationIcon::Warning);
 	SetIcon(NotificationIcon::Success);
 	SetIcon(NotificationIcon::Fail);
@@ -497,7 +485,7 @@ void GRNotificationPanel::_load_default_textures() {
 	Ref<Image> img;
 	Ref<ImageTexture> tex;
 
-	LoadTex(NotificationIcon::Error, GRResources::Bin_ErrorIconPNG);
+	LoadTex(NotificationIcon::_Error, GRResources::Bin_ErrorIconPNG);
 	LoadTex(NotificationIcon::Warning, GRResources::Bin_WarningIconPNG);
 	LoadTex(NotificationIcon::Success, GRResources::Bin_ConnectedIconPNG);
 	LoadTex(NotificationIcon::Fail, GRResources::Bin_DisconnectedIconPNG);
@@ -532,18 +520,18 @@ void GRNotificationPanel::clear_styles() {
 	_default_textures.clear();
 }
 
-void GRNotificationPanel::set_notification_position(GRNotifications::NotificationsPosition position) {
+void GRNotificationPanel::set_notification_position(NotificationsPosition position) {
 	switch (position) {
-		case GRNotifications::NotificationsPosition::TL:
-		case GRNotifications::NotificationsPosition::BL:
+		case NotificationsPosition::TL:
+		case NotificationsPosition::BL:
 			set_h_size_flags(0);
 			break;
-		case GRNotifications::NotificationsPosition::TR:
-		case GRNotifications::NotificationsPosition::BR:
+		case NotificationsPosition::TR:
+		case NotificationsPosition::BR:
 			set_h_size_flags(SIZE_SHRINK_END);
 			break;
-		case GRNotifications::NotificationsPosition::TC:
-		case GRNotifications::NotificationsPosition::BC:
+		case NotificationsPosition::TC:
+		case NotificationsPosition::BC:
 			set_h_size_flags(SIZE_SHRINK_CENTER);
 			break;
 	}
@@ -562,7 +550,7 @@ void GRNotificationPanel::set_data(GRNotifications *_owner, String title, String
 	tween_node->start();
 
 	if (owner) {
-		set_notification_position((GRNotifications::NotificationsPosition)owner->get_notifications_position());
+		set_notification_position((NotificationsPosition)owner->get_notifications_position());
 	}
 }
 
@@ -689,7 +677,7 @@ void GRNotificationPanelUpdatable::set_updatable_line(GRNotifications *_owner, S
 		tween_node->start();
 
 		if (owner) {
-			set_notification_position((GRNotifications::NotificationsPosition)owner->get_notifications_position());
+			set_notification_position((NotificationsPosition)owner->get_notifications_position());
 		}
 	}
 }
@@ -790,13 +778,13 @@ Ref<Font> GRNotificationStyle::get_text_font() {
 	return text_font;
 }
 
-void GRNotificationStyle::set_notification_icon(int notification_icon, Ref<Texture> icon_texture) {
+void GRNotificationStyle::set_notification_icon(NotificationIcon notification_icon, Ref<Texture> icon_texture) {
 	ERR_FAIL_INDEX(notification_icon, (int)NotificationIcon::MAX);
 	ERR_FAIL_COND(icon_texture.is_null());
 	icons[notification_icon] = icon_texture;
 }
 
-Ref<Texture> GRNotificationStyle::get_notification_icon(int notification_icon) {
+Ref<Texture> GRNotificationStyle::get_notification_icon(NotificationIcon notification_icon) {
 	if (icons.has(notification_icon)) {
 		return icons[notification_icon];
 	}

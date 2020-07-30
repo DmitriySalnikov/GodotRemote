@@ -9,14 +9,25 @@
 class GRNotificationPanel;
 class GRNotificationStyle;
 
-enum class NotificationIcon {
+enum NotificationIcon {
 	None,
-	Error,
+	_Error,
 	Warning,
 	Success,
 	Fail,
 
 	MAX,
+};
+
+enum NotificationsPosition {
+	//TL, TC, TR,
+	//BL, BC, BR,
+	TL = 0,
+	TC = 1,
+	TR = 2,
+	BL = 3,
+	BC = 4,
+	BR = 5,
 };
 
 class GRNotifications : public CanvasLayer {
@@ -25,17 +36,6 @@ class GRNotifications : public CanvasLayer {
 	friend class GRNotificationPanel;
 
 public:
-	enum class NotificationsPosition {
-		//TL, TC, TR,
-		//BL, BC, BR,
-		TL = 0,
-		TC = 1,
-		TR = 2,
-		BL = 3,
-		BC = 4,
-		BR = 5,
-	};
-
 private:
 	static GRNotifications *singleton;
 
@@ -54,10 +54,10 @@ private:
 
 	void _set_all_notifications_positions(NotificationsPosition pos);
 
-	void _set_notifications_position(int positon);
-	void _add_notification_or_append_string(String title, String text, int icon, bool new_string, float duration_multiplier);
-	void _add_notification_or_update_line(String title, String id, String text, int icon, float duration_multiplier);
-	void _add_notification(String title, String text, int icon, bool update_existing, float duration_multiplier);
+	void _set_notifications_position(NotificationsPosition positon);
+	void _add_notification_or_append_string(String title, String text, NotificationIcon icon, bool new_string, float duration_multiplier);
+	void _add_notification_or_update_line(String title, String id, String text, NotificationIcon icon, float duration_multiplier);
+	void _add_notification(String title, String text, NotificationIcon icon, bool update_existing, float duration_multiplier);
 	void _remove_notification(String title, bool all_entries);
 	void _remove_exact_notification(Node *_notif);
 	void _clear_notifications();
@@ -76,8 +76,8 @@ public:
 	static Array get_all_notifications();
 	static Array get_notifications_with_title(String title);
 
-	static int get_notifications_position();
-	static void set_notifications_position(int positon);
+	static NotificationsPosition get_notifications_position();
+	static void set_notifications_position(NotificationsPosition positon);
 	static bool get_notifications_enabled();
 	static void set_notifications_enabled(bool _enabled);
 	static float get_notifications_duration();
@@ -85,15 +85,12 @@ public:
 	static Ref<class GRNotificationStyle> get_notifications_style();
 	static void set_notifications_style(Ref<class GRNotificationStyle> _style);
 
-	static void add_notification_or_append_string(String title, String text, int icon, bool new_string = true, float duration_multiplier = 1.f);
 	// append text to existing notification or add new notification
 	static void add_notification_or_append_string(String title, String text, NotificationIcon icon = NotificationIcon::None, bool new_string = true, float duration_multiplier = 1.f);
 
-	static void add_notification_or_update_line(String title, String id, String text, int icon, float duration_multiplier = 1.f);
 	// update text in existing notification or add new notification
 	static void add_notification_or_update_line(String title, String id, String text, NotificationIcon icon = NotificationIcon::None, float duration_multiplier = 1.f);
 
-	static void add_notification(String title, String text, int icon, bool update_existing = true, float duration_multiplier = 1.f);
 	static void add_notification(String title, String text, NotificationIcon icon = NotificationIcon::None, bool update_existing = true, float duration_multiplier = 1.f);
 	static void remove_notification(String title, bool all_entries = true);
 	static void remove_notification_exact(Node *_notif);
@@ -146,7 +143,7 @@ protected:
 public:
 	static void clear_styles();
 
-	void set_notification_position(GRNotifications::NotificationsPosition position);
+	void set_notification_position(NotificationsPosition position);
 	virtual void set_data(GRNotifications *_owner, String title, String text, NotificationIcon icon, float duration_multiplier = 1.f, Ref<GRNotificationStyle> _style = Ref<GRNotificationStyle>());
 	String get_title();
 	String get_text();
@@ -207,9 +204,9 @@ public:
 	void set_text_font(Ref<Font> font);
 	Ref<Font> get_text_font();
 
-	void set_notification_icon(int notification_icon, Ref<Texture> icon_texture);
-	Ref<Texture> get_notification_icon(int notification_icon);
+	void set_notification_icon(NotificationIcon notification_icon, Ref<Texture> icon_texture);
+	Ref<Texture> get_notification_icon(NotificationIcon notification_icon);
 };
 
-VARIANT_ENUM_CAST(GRNotifications::NotificationsPosition)
+VARIANT_ENUM_CAST(NotificationsPosition)
 VARIANT_ENUM_CAST(NotificationIcon)

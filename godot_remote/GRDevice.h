@@ -5,17 +5,17 @@
 #include "GRUtils.h"
 #include "scene/main/node.h"
 
+enum WorkingStatus {
+	Stopped,
+	Working,
+	Stopping,
+	Starting,
+};
+
 class GRDevice : public Node {
 	GDCLASS(GRDevice, Node);
 
 public:
-	enum class WorkingStatus {
-		Stopped,
-		Working,
-		Stopping,
-		Starting,
-	};
-
 	enum class AuthResult {
 		OK = 0,
 		Error = 1,
@@ -59,10 +59,10 @@ public:
 	void restart();
 	void _internal_call_only_deffered_restart();
 
-	virtual int get_status();
+	virtual WorkingStatus get_status();
 
 	GRDevice();
 	~GRDevice();
 };
 
-VARIANT_ENUM_CAST(GRDevice::WorkingStatus)
+VARIANT_ENUM_CAST(WorkingStatus)

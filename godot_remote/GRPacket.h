@@ -70,7 +70,7 @@ class GRPacketImageData : public GRPacket {
 	GDCLASS(GRPacketImageData, GRPacket);
 	friend GRPacket;
 
-	GRUtils::ImageCompressionType compression = GRUtils::ImageCompressionType::Uncompressed;
+	ImageCompressionType compression = ImageCompressionType::Uncompressed;
 	Size2 size;
 	int format = 0;
 	PoolByteArray img_data;

@@ -97,7 +97,7 @@ bool GRServer::is_video_stream_enabled() {
 	return false;
 }
 
-bool GRServer::set_compression_type(int _type) {
+bool GRServer::set_compression_type(ImageCompressionType _type) {
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion() &&
 			resize_viewport->get_compression_type() != _type) {
 		resize_viewport->set_compression_type(_type);
@@ -106,10 +106,10 @@ bool GRServer::set_compression_type(int _type) {
 	return false;
 }
 
-int GRServer::get_compression_type() {
+ImageCompressionType GRServer::get_compression_type() {
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion())
 		return resize_viewport->get_compression_type();
-	return 0;
+	return ImageCompressionType::Uncompressed;
 }
 
 bool GRServer::set_render_scale(float _scale) {
@@ -215,11 +215,11 @@ GRServer::~GRServer() {
 
 void GRServer::_internal_call_only_deffered_start() {
 	switch ((WorkingStatus)get_status()) {
-		case GRDevice::WorkingStatus::Working:
+		case WorkingStatus::Working:
 			ERR_FAIL_MSG("Can't start already working GodotRemote Server");
-		case GRDevice::WorkingStatus::Starting:
+		case WorkingStatus::Starting:
 			ERR_FAIL_MSG("Can't start already starting GodotRemote Server");
-		case GRDevice::WorkingStatus::Stopping:
+		case WorkingStatus::Stopping:
 			ERR_FAIL_MSG("Can't start stopping GodotRemote Server");
 	}
 
@@ -246,11 +246,11 @@ void GRServer::_internal_call_only_deffered_start() {
 
 void GRServer::_internal_call_only_deffered_stop() {
 	switch ((WorkingStatus)get_status()) {
-		case GRDevice::WorkingStatus::Stopped:
+		case WorkingStatus::Stopped:
 			ERR_FAIL_MSG("Can't stop already stopped GodotRemote Server");
-		case GRDevice::WorkingStatus::Stopping:
+		case WorkingStatus::Stopping:
 			ERR_FAIL_MSG("Can't stop already stopping GodotRemote Server");
-		case GRDevice::WorkingStatus::Starting:
+		case WorkingStatus::Starting:
 			ERR_FAIL_MSG("Can't stop starting GodotRemote Server");
 	}
 
@@ -334,7 +334,7 @@ void GRServer::_load_settings() {
 	password = GET_PS(GodotRemote::ps_server_password_name);
 	set_custom_input_scene(GET_PS(GodotRemote::ps_server_custom_input_scene_name));
 	set_custom_input_scene_compressed(GET_PS(GodotRemote::ps_server_custom_input_scene_compressed_name));
-	set_custom_input_scene_compression_type(GET_PS(GodotRemote::ps_server_custom_input_scene_compression_type_name));
+	set_custom_input_scene_compression_type((int)GET_PS(GodotRemote::ps_server_custom_input_scene_compression_type_name));
 
 	// can be updated by client
 	auto_adjust_scale = GET_PS(GodotRemote::ps_server_auto_adjust_scale_name); // TODO move to viewport
@@ -342,7 +342,7 @@ void GRServer::_load_settings() {
 	GRNotifications::add_notification_or_update_line(title, "auto_scale", "Auto adjust scale: " + str(auto_adjust_scale)); // TODO not completed
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
 		set_video_stream_enabled((bool)GET_PS(GodotRemote::ps_server_stream_enabled_name));
-		set_compression_type((int)GET_PS(GodotRemote::ps_server_compression_type_name));
+		set_compression_type((ImageCompressionType)(int)GET_PS(GodotRemote::ps_server_compression_type_name));
 		set_jpg_quality(GET_PS(GodotRemote::ps_server_jpg_quality_name));
 		set_render_scale(GET_PS(GodotRemote::ps_server_scale_of_sending_stream_name));
 		set_skip_frames(GET_PS(GodotRemote::ps_server_stream_skip_frames_name));
@@ -354,7 +354,7 @@ void GRServer::_load_settings() {
 		GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(get_render_scale()));
 	} else {
 		_log("Resize viewport not found!", LogLevel::LL_Error);
-		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", NotificationIcon::Error);
+		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", NotificationIcon::_Error);
 	}
 
 	// notification
@@ -365,11 +365,17 @@ void GRServer::_load_settings() {
 }
 
 void GRServer::_update_settings_from_client(const Dictionary settings) {
-#define SET_BODY(_func, _id, _text, _type)                                                       \
-	if (_func(value)) {                                                                          \
-		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type)value)); \
-		using_client_settings = true;                                                            \
-		using_client_settings_recently_updated = true;                                           \
+#define SET_BODY(_func, _id, _text, _type)                                                        \
+	if (_func(value)) {                                                                           \
+		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value))); \
+		using_client_settings = true;                                                             \
+		using_client_settings_recently_updated = true;                                            \
+	}
+#define SET_BODY_CONVERT(_func, _conv, _id, _text, _type)                                         \
+	if (_func(_conv(value))) {                                                                    \
+		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value))); \
+		using_client_settings = true;                                                             \
+		using_client_settings_recently_updated = true;                                            \
 	}
 
 	Array keys = settings.keys();
@@ -382,7 +388,7 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 
 	if (!resize_viewport || resize_viewport->is_queued_for_deletion()) {
 		_log("Resize viewport not found!", LogLevel::LL_Error);
-		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", NotificationIcon::Error);
+		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", NotificationIcon::_Error);
 	}
 
 	for (int i = 0; i < settings.size(); i++) {
@@ -391,32 +397,32 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 		_log("Trying to set server setting from client with key: " + str((int)key) + " and value: " + str(value), LogLevel::LL_Debug);
 
 		if (key.get_type() == Variant::INT) {
-			GodotRemote::TypesOfServerSettings k = (GodotRemote::TypesOfServerSettings)(int)key;
+			TypesOfServerSettings k = (TypesOfServerSettings)(int)key;
 			switch (k) {
-				case GodotRemote::TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS:
+				case TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS:
 					if ((bool)value) {
 						call_deferred("_load_settings");
 						return;
 					}
 					break;
-				case GodotRemote::TypesOfServerSettings::VIDEO_STREAM_ENABLED: {
-					SET_BODY(set_video_stream_enabled, "stream", "Stream enabled: ", bool);
+				case TypesOfServerSettings::VIDEO_STREAM_ENABLED: {
+					SET_BODY(set_video_stream_enabled, "stream", "Stream enabled: ", (bool));
 					break;
 				}
-				case GodotRemote::TypesOfServerSettings::COMPRESSION_TYPE: {
-					SET_BODY(set_compression_type, "compression", "Compression type: ", int);
+				case TypesOfServerSettings::COMPRESSION_TYPE: {
+					SET_BODY_CONVERT(set_compression_type, (ImageCompressionType)(int), "compression", "Compression type: ", (int));
 					break;
 				}
-				case GodotRemote::TypesOfServerSettings::JPG_QUALITY: {
-					SET_BODY(set_jpg_quality, "quality", "JPG Quality: ", int);
+				case TypesOfServerSettings::JPG_QUALITY: {
+					SET_BODY(set_jpg_quality, "quality", "JPG Quality: ", (int));
 					break;
 				}
-				case GodotRemote::TypesOfServerSettings::SKIP_FRAMES: {
-					SET_BODY(set_skip_frames, "skip", "Skip Frames: ", int);
+				case TypesOfServerSettings::SKIP_FRAMES: {
+					SET_BODY(set_skip_frames, "skip", "Skip Frames: ", (int));
 					break;
 				}
-				case GodotRemote::TypesOfServerSettings::RENDER_SCALE: {
-					SET_BODY(set_render_scale, "scale", "Scale of stream: ", float);
+				case TypesOfServerSettings::RENDER_SCALE: {
+					SET_BODY(set_render_scale, "scale", "Scale of stream: ", (float));
 					break;
 				}
 				default:
@@ -458,35 +464,35 @@ void GRServer::_thread_listen(void *p_userdata) {
 						String txt = "Socket listening unavailable";
 						_log(txt, LogLevel::LL_Error);
 						if (!listening_error_notification_shown)
-							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::Error, true, 1.25f);
+							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::_Error, true, 1.25f);
 						break;
 					}
 					case ERR_ALREADY_IN_USE: {
 						String txt = "Socket already in use";
 						_log(txt, LogLevel::LL_Error);
 						if (!listening_error_notification_shown)
-							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::Error, true, 1.25f);
+							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::_Error, true, 1.25f);
 						break;
 					}
 					case ERR_INVALID_PARAMETER: {
 						String txt = "Invalid listening address";
 						_log(txt, LogLevel::LL_Error);
 						if (!listening_error_notification_shown)
-							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::Error, true, 1.25f);
+							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::_Error, true, 1.25f);
 						break;
 					}
 					case ERR_CANT_CREATE: {
 						String txt = "Can't bind listener";
 						_log(txt, LogLevel::LL_Error);
 						if (!listening_error_notification_shown)
-							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::Error, true, 1.25f);
+							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::_Error, true, 1.25f);
 						break;
 					}
 					case FAILED: {
 						String txt = "Failed to start listening";
 						_log(txt, LogLevel::LL_Error);
 						if (!listening_error_notification_shown)
-							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::Error, true, 1.25f);
+							GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::_Error, true, 1.25f);
 						break;
 					}
 				}
@@ -696,11 +702,11 @@ void GRServer::_thread_connection(void *p_userdata) {
 				nothing_happens = false;
 
 				Ref<GRPacketServerSettings> pack(memnew(GRPacketServerSettings));
-				pack->add_setting((int)GodotRemote::TypesOfServerSettings::VIDEO_STREAM_ENABLED, dev->is_video_stream_enabled());
-				pack->add_setting((int)GodotRemote::TypesOfServerSettings::COMPRESSION_TYPE, dev->get_compression_type());
-				pack->add_setting((int)GodotRemote::TypesOfServerSettings::JPG_QUALITY, dev->get_jpg_quality());
-				pack->add_setting((int)GodotRemote::TypesOfServerSettings::RENDER_SCALE, dev->get_render_scale());
-				pack->add_setting((int)GodotRemote::TypesOfServerSettings::SKIP_FRAMES, dev->get_skip_frames());
+				pack->add_setting((int)TypesOfServerSettings::VIDEO_STREAM_ENABLED, dev->is_video_stream_enabled());
+				pack->add_setting((int)TypesOfServerSettings::COMPRESSION_TYPE, dev->get_compression_type());
+				pack->add_setting((int)TypesOfServerSettings::JPG_QUALITY, dev->get_jpg_quality());
+				pack->add_setting((int)TypesOfServerSettings::RENDER_SCALE, dev->get_render_scale());
+				pack->add_setting((int)TypesOfServerSettings::SKIP_FRAMES, dev->get_skip_frames());
 
 				err = ppeer->put_var(pack->get_data());
 				if (err) {
@@ -767,7 +773,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after sending!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after sending data!", NotificationIcon::Error);
+			GRNotifications::add_notification("Error", "Lost connection after sending data!", NotificationIcon::_Error);
 			continue;
 		}
 
@@ -901,7 +907,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after receiving!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after receiving data!", NotificationIcon::Error);
+			GRNotifications::add_notification("Error", "Lost connection after receiving data!", NotificationIcon::_Error);
 			continue;
 		}
 
@@ -1180,7 +1186,7 @@ void GRSViewport::_processing_thread(void *p_user) {
 
 		if (ips->format != Image::FORMAT_RGB8) {
 			_log("Can't convert stream image to RGB8.", LogLevel::LL_Error);
-			GRNotifications::add_notification("Stream Error", "Can't convert stream image to RGB8.", NotificationIcon::Error);
+			GRNotifications::add_notification("Stream Error", "Can't convert stream image to RGB8.", NotificationIcon::_Error);
 			goto end;
 		}
 
@@ -1192,27 +1198,27 @@ void GRSViewport::_processing_thread(void *p_user) {
 		goto end;
 
 	switch (ips->compression_type) {
-		case GRUtils::ImageCompressionType::Uncompressed: {
+		case ImageCompressionType::Uncompressed: {
 			ips->ret_data = img->get_data();
 			TimeCount("Image Uncompressed");
 			break;
 		}
-		case GRUtils::ImageCompressionType::JPG: {
+		case ImageCompressionType::JPG: {
 			if (!img->empty()) {
-				Error err = compress_jpg(ips->ret_data, img->get_data(), ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRUtils::SUBSAMPLING_H2V2);
+				Error err = compress_jpg(ips->ret_data, img->get_data(), ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, Subsampling::SUBSAMPLING_H2V2);
 				if (err) {
 					_log("Can't compress stream image JPG. Code: " + str(err), LogLevel::LL_Error);
-					GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str(err), NotificationIcon::Error);
+					GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str(err), NotificationIcon::_Error);
 				}
 			}
 			TimeCount("Image JPG");
 			break;
 		}
-		case GRUtils::ImageCompressionType::PNG: {
+		case ImageCompressionType::PNG: {
 			ips->ret_data = img->save_png_to_buffer();
 			if (ips->ret_data.empty()) {
 				_log("Can't compress stream image to PNG.", LogLevel::LL_Error);
-				GRNotifications::add_notification("Stream Error", "Can't compress stream image to PNG.", NotificationIcon::Error);
+				GRNotifications::add_notification("Stream Error", "Can't compress stream image to PNG.", NotificationIcon::_Error);
 			}
 			TimeCount("Image PNG");
 			break;
@@ -1371,12 +1377,12 @@ float GRSViewport::get_rendering_scale() {
 	return rendering_scale;
 }
 
-void GRSViewport::set_compression_type(int val) {
-	compression_type = (GRUtils::ImageCompressionType)val;
+void GRSViewport::set_compression_type(ImageCompressionType val) {
+	compression_type = val;
 }
 
-int GRSViewport::get_compression_type() {
-	return (int)compression_type;
+ImageCompressionType GRSViewport::get_compression_type() {
+	return compression_type;
 }
 
 void GRSViewport::set_jpg_quality(int _quality) {

@@ -1,9 +1,13 @@
 /* GodotRemote.h */
 #pragma once
 
+#include "GRNotifications.h"
+#include "GRUtils.h"
 #include "core/image.h"
 #include "core/pool_vector.h"
 #include "core/reference.h"
+
+using namespace GRUtils;
 
 class GodotRemote : public Reference {
 	GDCLASS(GodotRemote, Reference);
@@ -16,15 +20,6 @@ public:
 		DEVICE_Auto = 0,
 		DEVICE_Development = 1,
 		DEVICE_Standalone = 2,
-	};
-
-	enum class TypesOfServerSettings {
-		USE_INTERNAL_SERVER_SETTINGS = 0,
-		VIDEO_STREAM_ENABLED = 1,
-		COMPRESSION_TYPE = 2,
-		JPG_QUALITY = 3,
-		SKIP_FRAMES = 4,
-		RENDER_SCALE = 5,
 	};
 
 	static String ps_general_autoload_name;
@@ -82,7 +77,7 @@ public:
 	void set_notifications_layer(int layer) const;
 	int get_notifications_layer() const;
 
-	void set_notifications_position(int positon) const;
+	void set_notifications_position(NotificationsPosition positon) const;
 	int get_notifications_position() const;
 
 	void set_notifications_enabled(bool _enabled) const;
@@ -94,16 +89,16 @@ public:
 	void set_notifications_style(Ref<class GRNotificationStyle> _style) const;
 	Ref<class GRNotificationStyle> get_notifications_style() const;
 
-	void add_notification_or_append_string(String title, String text, bool new_string = true);
-	void add_notification_or_update_line(String title, String id, String text, int icon, float duration_multiplier = 1.f) const;
-	void add_notification(String title, String text, int icon, bool update_existing = true, float duration_multiplier = 1.f) const;
+	void add_notification_or_append_string(String title, String text, NotificationIcon icon, bool new_string = true);
+	void add_notification_or_update_line(String title, String id, String text, NotificationIcon icon, float duration_multiplier = 1.f) const;
+	void add_notification(String title, String text, NotificationIcon icon, bool update_existing = true, float duration_multiplier = 1.f) const;
 	void remove_notification(String title, bool all_entries = true) const;
 	void remove_notification_exact(Node *_notif) const;
 	void clear_notifications() const;
 	// GRNotifications end
 
 	// GRUtils functions binds for GDScript
-	void set_log_level(int lvl) const;
+	void set_log_level(LogLevel lvl) const;
 	void set_gravity(const Vector3 &p_gravity) const;
 	void set_accelerometer(const Vector3 &p_accel) const;
 	void set_magnetometer(const Vector3 &p_magnetometer) const;
@@ -111,6 +106,7 @@ public:
 	// GRUtils end
 
 	class GRDevice *get_device() const;
+	class String get_version() const;
 
 	// must be call_deffered
 	void create_and_start_device(DeviceType type = DeviceType::DEVICE_Auto);
@@ -124,4 +120,3 @@ public:
 };
 
 VARIANT_ENUM_CAST(GodotRemote::DeviceType)
-VARIANT_ENUM_CAST(GodotRemote::TypesOfServerSettings)
