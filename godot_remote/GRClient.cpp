@@ -29,6 +29,8 @@ using namespace GRUtils;
 void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_update_texture_from_iamge", "image"), &GRClient::_update_texture_from_iamge);
 	ClassDB::bind_method(D_METHOD("_update_stream_texture_state", "state"), &GRClient::_update_stream_texture_state);
+	ClassDB::bind_method(D_METHOD("_viewport_size_changed"), &GRClient::_viewport_size_changed);
+	ClassDB::bind_method(D_METHOD("_viewport_orientation_changed", "orientation"), &GRClient::_viewport_orientation_changed);
 	ClassDB::bind_method(D_METHOD("_load_custom_input_scene", "_data"), &GRClient::_load_custom_input_scene);
 	ClassDB::bind_method(D_METHOD("_remove_custom_input_scene"), &GRClient::_remove_custom_input_scene);
 
@@ -63,6 +65,9 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_texture_filtering", "is_filtered"), &GRClient::set_texture_filtering);
 	ClassDB::bind_method(D_METHOD("set_password", "password"), &GRClient::set_password);
 	ClassDB::bind_method(D_METHOD("set_device_id", "id"), &GRClient::set_device_id);
+	ClassDB::bind_method(D_METHOD("set_viewport_orientation_syncing", "is_syncing"), &GRClient::set_viewport_orientation_syncing);
+	ClassDB::bind_method(D_METHOD("set_viewport_aspect_syncing", "is_syncing"), &GRClient::set_viewport_aspect_syncing);
+	ClassDB::bind_method(D_METHOD("set_server_settings_syncing", "is_syncing"), &GRClient::set_server_settings_syncing);
 
 	ClassDB::bind_method(D_METHOD("is_capture_on_focus"), &GRClient::is_capture_on_focus);
 	ClassDB::bind_method(D_METHOD("is_capture_when_hover"), &GRClient::is_capture_when_hover);
@@ -74,6 +79,9 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_texture_filtering"), &GRClient::get_texture_filtering);
 	ClassDB::bind_method(D_METHOD("get_password"), &GRClient::get_password);
 	ClassDB::bind_method(D_METHOD("get_device_id"), &GRClient::get_device_id);
+	ClassDB::bind_method(D_METHOD("is_viewport_orientation_syncing"), &GRClient::is_viewport_orientation_syncing);
+	ClassDB::bind_method(D_METHOD("is_viewport_aspect_syncing"), &GRClient::is_viewport_aspect_syncing);
+	ClassDB::bind_method(D_METHOD("is_server_settings_syncing"), &GRClient::is_server_settings_syncing);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
@@ -85,6 +93,9 @@ void GRClient::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "texture_filtering"), "set_texture_filtering", "get_texture_filtering");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "device_id"), "set_device_id", "get_device_id");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_orientation_syncing"), "set_viewport_orientation_syncing", "is_viewport_orientation_syncing");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_aspect_syncing"), "set_viewport_aspect_syncing", "is_viewport_aspect_syncing");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "server_settings_syncing"), "set_server_settings_syncing", "is_server_settings_syncing");
 
 	BIND_ENUM_CONSTANT(CONNECTION_ADB);
 	BIND_ENUM_CONSTANT(CONNECTION_WiFi);
@@ -220,11 +231,18 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 		input_collector->queue_delete();
 		input_collector = nullptr;
 	}
+	if (control_to_show_in && !control_to_show_in->is_queued_for_deletion() &&
+			control_to_show_in->is_connected("size_changed", this, "_viewport_size_changed")) {
+		control_to_show_in->disconnect("size_changed", this, "_viewport_size_changed");
+	}
+
 	_remove_custom_input_scene();
 
 	control_to_show_in = ctrl;
 
 	if (control_to_show_in && !control_to_show_in->is_queued_for_deletion()) {
+		control_to_show_in->connect("resized", this, "_viewport_size_changed");
+
 		tex_shows_stream = memnew(GRTextureRect);
 		input_collector = memnew(GRInputCollector);
 
@@ -244,6 +262,7 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 		input_collector->set_tex_rect(tex_shows_stream);
 		input_collector->dev = this;
 		input_collector->this_in_client = &input_collector;
+		input_collector->connect("_orientation_changed", this, "_viewport_orientation_changed");
 
 		signal_connection_state = StreamState::STREAM_ACTIVE; // force execute update function
 		call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
@@ -405,6 +424,38 @@ void GRClient::set_input_buffer(int mb) {
 	restart();
 }
 
+void GRClient::set_viewport_orientation_syncing(bool is_syncing) {
+	_viewport_orientation_syncing = is_syncing;
+	if (is_syncing) {
+		if (input_collector && !input_collector->is_queued_for_deletion()) {
+			input_collector->_client_connected(); // force update screen orientation
+		}
+	}
+}
+
+bool GRClient::is_viewport_orientation_syncing() {
+	return _viewport_orientation_syncing;
+}
+
+void GRClient::set_viewport_aspect_syncing(bool is_syncing) {
+	_viewport_aspect_syncing = is_syncing;
+	if (is_syncing) {
+		call_deferred("_viewport_size_changed"); // force update screen aspect
+	}
+}
+
+bool GRClient::is_viewport_aspect_syncing() {
+	return _viewport_aspect_syncing;
+}
+
+void GRClient::set_server_settings_syncing(bool is_syncing) {
+	_server_settings_syncing = is_syncing;
+}
+
+bool GRClient::is_server_settings_syncing() {
+	return _server_settings_syncing;
+}
+
 void GRClient::set_password(String _pass) {
 	password = _pass;
 }
@@ -516,6 +567,43 @@ void GRClient::_remove_custom_input_scene() {
 	}
 }
 
+void GRClient::_viewport_size_changed() {
+	if (!control_to_show_in || control_to_show_in->is_queued_for_deletion() ||
+			!_viewport_aspect_syncing) {
+		return;
+	}
+
+	send_queue_mutex->lock();
+	Ref<GRPacketClientStreamAspect> packet = _find_queued_packet_by_type<Ref<GRPacketClientStreamAspect> >();
+
+	if (packet.is_null()) {
+		packet.instance();
+		send_packet(packet);
+	}
+
+	Vector2 size = control_to_show_in->get_size();
+	packet->set_aspect(size.x / size.y);
+	send_queue_mutex->unlock();
+}
+
+void GRClient::_viewport_orientation_changed(bool orientation) {
+	if (!input_collector || input_collector->is_queued_for_deletion() ||
+			!_viewport_orientation_syncing) {
+		return;
+	}
+
+	send_queue_mutex->lock();
+	Ref<GRPacketClientStreamOrientation> packet = _find_queued_packet_by_type<Ref<GRPacketClientStreamOrientation> >();
+
+	if (packet.is_null()) {
+		packet.instance();
+		send_packet(packet);
+	}
+
+	packet->set_vertical(orientation);
+	send_queue_mutex->unlock();
+}
+
 void GRClient::_update_texture_from_iamge(Ref<Image> img) {
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		if (img.is_valid()) {
@@ -601,10 +689,10 @@ void GRClient::set_server_setting(TypesOfServerSettings param, Variant value) {
 
 	if (packet.is_null()) {
 		packet.instance();
+		send_packet(packet);
 	}
 
 	packet->add_setting(param, value);
-	send_packet(packet);
 	send_queue_mutex->unlock();
 }
 
@@ -720,11 +808,12 @@ void GRClient::_thread_connection(void *p_userdata) {
 				con_thread->ppeer = ppeer;
 
 				if (dev->input_collector && !dev->input_collector->is_queued_for_deletion()) {
-					dev->input_collector->_client_connected();
+					dev->input_collector->_client_connected(); // force update screen orientation
 				}
 
 				dev->is_connection_working = true;
 				dev->call_deferred("emit_signal", "connection_state_changed", true);
+				dev->call_deferred("emit_signal", "_viewport_size_changed"); // force update screen aspect
 				GRNotifications::add_notification("Connected", "Connected to " + address, NotificationIcon::Success);
 
 				_connection_loop(con_thread);
@@ -999,6 +1088,10 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 					break;
 				}
 				case PacketType::ServerSettings: {
+					if (!dev->_server_settings_syncing) {
+						continue;
+					}
+
 					Ref<GRPacketServerSettings> data = pack;
 					if (data.is_null()) {
 						_log("GRPacketServerSettings is null", LogLevel::LL_Error);
@@ -1262,9 +1355,9 @@ void GRInputCollector::_update_stream_rect() {
 void GRInputCollector::_collect_input(Ref<InputEvent> ie) {
 	Ref<GRInputDataEvent> data = GRInputDataEvent::parse_event(ie, stream_rect);
 	if (data.is_valid()) {
-		_THREAD_SAFE_LOCK_
+		_THREAD_SAFE_LOCK_;
 		collected_input_data.push_back(data);
-		_THREAD_SAFE_UNLOCK_
+		_THREAD_SAFE_UNLOCK_;
 	}
 }
 
@@ -1309,6 +1402,8 @@ void GRInputCollector::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_pointer"), "set_capture_pointer", "is_capture_pointer");
+
+	ADD_SIGNAL(MethodInfo("_orientation_changed", PropertyInfo(Variant::BOOL, "orientation")));
 }
 
 void GRInputCollector::_input(Ref<InputEvent> ie) {
@@ -1431,9 +1526,7 @@ void GRInputCollector::_notification(int p_notification) {
 			ScreenOrientation tmp_vert = size.x < size.y ? ScreenOrientation::VERTICAL : ScreenOrientation::HORIZONTAL;
 			if (tmp_vert != is_vertical) {
 				is_vertical = tmp_vert;
-				Ref<GRPacketClientRotation> pack(memnew(GRPacketClientRotation));
-				pack->set_vertical(is_vertical == ScreenOrientation::VERTICAL);
-				dev->send_packet(pack);
+				emit_signal("_orientation_changed", is_vertical == ScreenOrientation::VERTICAL);
 			}
 
 			break;

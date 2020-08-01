@@ -97,6 +97,9 @@ private:
 
 	String password;
 	bool is_filtering_enabled = true;
+	bool _viewport_orientation_syncing = true;
+	bool _viewport_aspect_syncing = true;
+	bool _server_settings_syncing = false;
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
 	Mutex *send_queue_mutex = nullptr;
@@ -139,6 +142,8 @@ private:
 
 	void _load_custom_input_scene(Ref<class GRPacketCustomInputScene> _data);
 	void _remove_custom_input_scene();
+	void _viewport_size_changed();
+	void _viewport_orientation_changed(bool orientation);
 
 	void _update_texture_from_iamge(Ref<Image> img);
 	void _update_stream_texture_state(StreamState _stream_state);
@@ -179,6 +184,12 @@ public:
 	StretchMode get_stretch_mode();
 	void set_texture_filtering(bool is_filtering);
 	bool get_texture_filtering();
+	void set_viewport_orientation_syncing(bool is_syncing);
+	bool is_viewport_orientation_syncing();
+	void set_viewport_aspect_syncing(bool is_syncing);
+	bool is_viewport_aspect_syncing();
+	void set_server_settings_syncing(bool is_syncing);
+	bool is_server_settings_syncing();
 	void set_password(String _pass);
 	String get_password();
 	void set_device_id(String _id);

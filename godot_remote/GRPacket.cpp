@@ -39,8 +39,10 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 			CREATE(GRPacketMouseModeSync);
 		case PacketType::CustomInputScene:
 			CREATE(GRPacketCustomInputScene);
-		case PacketType::ClientRotation:
-			CREATE(GRPacketClientRotation);
+		case PacketType::ClientStreamOrientation:
+			CREATE(GRPacketClientStreamOrientation);
+		case PacketType::ClientStreamAspect:
+			CREATE(GRPacketClientStreamAspect);
 
 			// Requests
 		case PacketType::Ping:
@@ -327,22 +329,45 @@ void GRPacketCustomInputScene::set_compression_type(int val) {
 //////////////////////////////////////////////////////////////////////////
 // CLIENT DEVICE ROTATION
 
-Ref<StreamPeerBuffer> GRPacketClientRotation::_get_data() {
+Ref<StreamPeerBuffer> GRPacketClientStreamOrientation::_get_data() {
 	auto buf = GRPacket::_get_data();
 	buf->put_8(vertical);
 	return buf;
 }
 
-bool GRPacketClientRotation::_create(Ref<StreamPeerBuffer> buf) {
+bool GRPacketClientStreamOrientation::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
 	vertical = buf->get_8();
 	return true;
 }
 
-bool GRPacketClientRotation::is_vertical() {
+bool GRPacketClientStreamOrientation::is_vertical() {
 	return vertical;
 }
 
-void GRPacketClientRotation::set_vertical(bool val) {
+void GRPacketClientStreamOrientation::set_vertical(bool val) {
 	vertical = val;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// CLIENT SCREEN ASCPECT
+
+Ref<StreamPeerBuffer> GRPacketClientStreamAspect::_get_data() {
+	auto buf = GRPacket::_get_data();
+	buf->put_float(stream_aspect);
+	return buf;
+}
+
+bool GRPacketClientStreamAspect::_create(Ref<StreamPeerBuffer> buf) {
+	GRPacket::_create(buf);
+	stream_aspect = buf->get_float();
+	return true;
+}
+
+float GRPacketClientStreamAspect::get_aspect() {
+	return stream_aspect;
+}
+
+void GRPacketClientStreamAspect::set_aspect(float val) {
+	stream_aspect = val;
 }
