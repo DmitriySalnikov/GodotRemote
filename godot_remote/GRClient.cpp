@@ -232,8 +232,8 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 		input_collector = nullptr;
 	}
 	if (control_to_show_in && !control_to_show_in->is_queued_for_deletion() &&
-			control_to_show_in->is_connected("size_changed", this, "_viewport_size_changed")) {
-		control_to_show_in->disconnect("size_changed", this, "_viewport_size_changed");
+			control_to_show_in->is_connected("resized", this, "_viewport_size_changed")) {
+		control_to_show_in->disconnect("resized", this, "_viewport_size_changed");
 	}
 
 	_remove_custom_input_scene();
@@ -548,6 +548,7 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 
 void GRClient::_remove_custom_input_scene() {
 	if (custom_input_scene && !custom_input_scene->is_queued_for_deletion()) {
+
 		custom_input_scene->queue_delete();
 		custom_input_scene = nullptr;
 
@@ -557,7 +558,10 @@ void GRClient::_remove_custom_input_scene() {
 			_log("Can't open folder: " + custom_input_scene_tmp_pck_file.get_base_dir(), LogLevel::LL_Error);
 		} else {
 			if (dir && dir->file_exists(custom_input_scene_tmp_pck_file)) {
-				dir->remove(custom_input_scene_tmp_pck_file);
+				err = dir->remove(custom_input_scene_tmp_pck_file);
+				if (err) {
+					_log("Can't delete file: " + custom_input_scene_tmp_pck_file + ". Code: " + str(err), LogLevel::LL_Error);
+				}
 			}
 		}
 

@@ -76,7 +76,7 @@ private:
 
 	String password;
 	String custom_input_scene;
-	bool custom_input_scene_was_updated = true;
+	bool custom_input_scene_was_updated = false;
 	bool auto_adjust_scale = false;
 
 	bool custom_input_pck_compressed = true;

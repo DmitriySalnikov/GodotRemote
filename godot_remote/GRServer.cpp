@@ -58,6 +58,9 @@ void GRServer::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene_compressed"), "set_custom_input_scene_compressed", "is_custom_input_scene_compressed");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene_compression_type"), "set_custom_input_scene_compression_type", "get_custom_input_scene_compression_type");
 
+	ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
+	ADD_SIGNAL(MethodInfo("client_disconnected", PropertyInfo(Variant::STRING, "device_id")));
+
 	ADD_SIGNAL(MethodInfo("client_orientation_changed", PropertyInfo(Variant::BOOL, "is_vertical")));
 	ADD_SIGNAL(MethodInfo("client_screen_aspect_changed", PropertyInfo(Variant::REAL, "stream_aspect")));
 }
@@ -170,7 +173,7 @@ String GRServer::get_password() {
 void GRServer::set_custom_input_scene(String _scn) {
 	if (custom_input_scene != _scn) {
 		custom_input_scene = _scn;
-		custom_input_scene_was_updated = false;
+		force_update_custom_input_scene();
 	}
 }
 
@@ -333,11 +336,18 @@ void GRServer::_load_settings() {
 
 	const String title = "Server settings updated";
 	GRNotifications::add_notification_or_update_line(title, "title", "Loaded default server settings");
+
 	// only updated by server itself
 	password = GET_PS(GodotRemote::ps_server_password_name);
 	set_custom_input_scene(GET_PS(GodotRemote::ps_server_custom_input_scene_name));
 	set_custom_input_scene_compressed(GET_PS(GodotRemote::ps_server_custom_input_scene_compressed_name));
 	set_custom_input_scene_compression_type((int)GET_PS(GodotRemote::ps_server_custom_input_scene_compression_type_name));
+
+	GRNotifications::add_notification_or_update_line(title, "cis", "Custom input scene: " + str(get_custom_input_scene()));
+	if (!get_custom_input_scene().empty()) {
+		GRNotifications::add_notification_or_update_line(title, "cisc", "Scene compressed: " + str(is_custom_input_scene_compressed()));
+		GRNotifications::add_notification_or_update_line(title, "cisct", "Scene compression type: " + str(get_custom_input_scene_compression_type()));
+	}
 
 	// can be updated by client
 	auto_adjust_scale = GET_PS(GodotRemote::ps_server_auto_adjust_scale_name); // TODO move to viewport
@@ -548,12 +558,13 @@ void GRServer::_thread_listen(void *p_userdata) {
 						connection_thread_info->dev = dev;
 						connection_thread_info->ppeer = ppeer;
 
-						dev->custom_input_scene_was_updated = dev->custom_input_scene.empty(); // because client dont have that scene by default
+						dev->custom_input_scene_was_updated = false;
 						dev->client_connected++;
 
 						connection_thread_info->thread_ref = Thread::create(&_thread_connection, connection_thread_info.ptr());
-						_log("New connection from " + address);
-
+						_log("New connection from " + address, LogLevel::LL_Normal);
+						
+						dev->call_deferred("emit_signal", "client_connected", dev_id);
 						GRNotifications::add_notification("Connected", "Client connected: " + address + "\nDevice ID: " + connection_thread_info->device_id, NotificationIcon::Success);
 						break;
 
@@ -755,6 +766,8 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 		// CUSTOM INPUT SCENE
 		if (!dev->custom_input_scene_was_updated) {
+			dev->custom_input_scene_was_updated = true;
+
 			Ref<GRPacketCustomInputScene> pack;
 			if (!dev->custom_input_scene.empty()) {
 				pack = dev->_create_custom_input_pack(dev->custom_input_scene, dev->custom_input_pck_compressed, dev->custom_input_pck_compression_type);
@@ -769,8 +782,6 @@ void GRServer::_thread_connection(void *p_userdata) {
 				goto end_send;
 			}
 			TimeCount("Custom input");
-
-			dev->custom_input_scene_was_updated = true;
 		}
 	end_send:
 
@@ -943,8 +954,10 @@ void GRServer::_thread_connection(void *p_userdata) {
 	}
 	thread_info->ppeer.unref();
 	thread_info->break_connection = true;
-	dev->call_deferred("_load_settings");
 	dev->client_connected--;
+
+	dev->call_deferred("_load_settings");
+	dev->call_deferred("emit_signal", "client_disconnected", thread_info->device_id);
 
 	thread_info->finished = true;
 }
