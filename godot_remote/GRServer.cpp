@@ -1157,7 +1157,10 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, Vector<Strin
 
 		for (int i = 0; i < res.size(); i++) {
 			Ref<RegExMatch> rem = res[i];
-			_scan_resource_for_dependencies_recursive(rem->get_string(1), _arr);
+			String path = rem->get_string(1);
+			path = path.trim_suffix("\\"); // Needed for avoiding escape symbols in build-in scripts
+
+			_scan_resource_for_dependencies_recursive(path, _arr);
 		}
 	}
 }

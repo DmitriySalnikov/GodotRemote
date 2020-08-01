@@ -1500,21 +1500,21 @@ Ref<GRPacketInputData> GRInputCollector::get_collected_input_data() {
 }
 
 GRInputCollector::GRInputCollector() {
-	_THREAD_SAFE_LOCK_
+	_THREAD_SAFE_LOCK_;
 	parent = nullptr;
 	set_process(true);
 	set_process_input(true);
 	sensors.resize(4);
-	_THREAD_SAFE_UNLOCK_
+	_THREAD_SAFE_UNLOCK_;
 }
 
 GRInputCollector::~GRInputCollector() {
-	_THREAD_SAFE_LOCK_
+	_THREAD_SAFE_LOCK_;
 	sensors.resize(0);
 	collected_input_data.resize(0);
 	if (this_in_client)
 		*this_in_client = nullptr;
-	_THREAD_SAFE_UNLOCK_
+	_THREAD_SAFE_UNLOCK_;
 }
 
 //////////////////////////////////////////////
