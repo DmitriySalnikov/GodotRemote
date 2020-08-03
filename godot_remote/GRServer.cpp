@@ -54,7 +54,7 @@ void GRServer::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "jpg_quality"), "set_jpg_quality", "get_jpg_quality");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "render_scale"), "set_render_scale", "get_render_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene"), "set_custom_input_scene", "get_custom_input_scene");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "custom_input_scene"), "set_custom_input_scene", "get_custom_input_scene");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene_compressed"), "set_custom_input_scene_compressed", "is_custom_input_scene_compressed");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene_compression_type"), "set_custom_input_scene_compression_type", "get_custom_input_scene_compression_type");
 
