@@ -24,13 +24,12 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_load_settings"), &GRServer::_load_settings);
 	ClassDB::bind_method(D_METHOD("_remove_resize_viewport", "vp"), &GRServer::_remove_resize_viewport);
 
-	ClassDB::bind_method(D_METHOD("get_settings_node"), &GRServer::get_settings_node);
 	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRServer::get_gr_viewport);
 	ClassDB::bind_method(D_METHOD("force_update_custom_input_scene"), &GRServer::force_update_custom_input_scene);
 
 	ClassDB::bind_method(D_METHOD("set_video_stream_enabled"), &GRServer::set_video_stream_enabled);
 	ClassDB::bind_method(D_METHOD("set_skip_frames"), &GRServer::set_skip_frames);
-	ClassDB::bind_method(D_METHOD("set_auto_adjust_scale"), &GRServer::set_auto_adjust_scale);
+	//ClassDB::bind_method(D_METHOD("set_auto_adjust_scale"), &GRServer::set_auto_adjust_scale);
 	ClassDB::bind_method(D_METHOD("set_jpg_quality"), &GRServer::set_jpg_quality);
 	ClassDB::bind_method(D_METHOD("set_render_scale"), &GRServer::set_render_scale);
 	ClassDB::bind_method(D_METHOD("set_password", "password"), &GRServer::set_password);
@@ -40,7 +39,7 @@ void GRServer::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("is_video_stream_enabled"), &GRServer::is_video_stream_enabled);
 	ClassDB::bind_method(D_METHOD("get_skip_frames"), &GRServer::get_skip_frames);
-	ClassDB::bind_method(D_METHOD("get_auto_adjust_scale"), &GRServer::get_auto_adjust_scale);
+	//ClassDB::bind_method(D_METHOD("is_auto_adjust_scale"), &GRServer::is_auto_adjust_scale);
 	ClassDB::bind_method(D_METHOD("get_jpg_quality"), &GRServer::get_jpg_quality);
 	ClassDB::bind_method(D_METHOD("get_render_scale"), &GRServer::get_render_scale);
 	ClassDB::bind_method(D_METHOD("get_password"), &GRServer::get_password);
@@ -50,7 +49,7 @@ void GRServer::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "video_stream_enabled"), "set_video_stream_enabled", "is_video_stream_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "skip_frames"), "set_skip_frames", "get_skip_frames");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "get_auto_adjust_scale");
+	//ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "is_auto_adjust_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "jpg_quality"), "set_jpg_quality", "get_jpg_quality");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "render_scale"), "set_render_scale", "get_render_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
@@ -61,8 +60,8 @@ void GRServer::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
 	ADD_SIGNAL(MethodInfo("client_disconnected", PropertyInfo(Variant::STRING, "device_id")));
 
-	ADD_SIGNAL(MethodInfo("client_orientation_changed", PropertyInfo(Variant::BOOL, "is_vertical")));
-	ADD_SIGNAL(MethodInfo("client_screen_aspect_changed", PropertyInfo(Variant::REAL, "stream_aspect")));
+	ADD_SIGNAL(MethodInfo("client_viewport_orientation_changed", PropertyInfo(Variant::BOOL, "is_vertical")));
+	ADD_SIGNAL(MethodInfo("client_viewport_aspect_changed", PropertyInfo(Variant::REAL, "stream_aspect")));
 }
 
 void GRServer::_notification(int p_notification) {
@@ -82,7 +81,7 @@ void GRServer::set_auto_adjust_scale(bool _val) {
 	auto_adjust_scale = _val;
 }
 
-int GRServer::get_auto_adjust_scale() {
+bool GRServer::is_auto_adjust_scale() {
 	return auto_adjust_scale;
 }
 
@@ -287,10 +286,6 @@ void GRServer::_remove_resize_viewport(Node *node) {
 
 GRSViewport *GRServer::get_gr_viewport() {
 	return resize_viewport;
-}
-
-Node *GRServer::get_settings_node() {
-	return settings_menu_node;
 }
 
 void GRServer::force_update_custom_input_scene() {
@@ -892,7 +887,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 						_log("Incorrect GRPacketClientStreamOrientation", LogLevel::LL_Error);
 						break;
 					}
-					dev->call_deferred("emit_signal", "client_orientation_changed", data->is_vertical());
+					dev->call_deferred("emit_signal", "client_viewport_orientation_changed", data->is_vertical());
 					break;
 				}
 				case PacketType::ClientStreamAspect: {
@@ -901,7 +896,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 						_log("Incorrect GRPacketClientStreamAspect", LogLevel::LL_Error);
 						break;
 					}
-					dev->call_deferred("emit_signal", "client_screen_aspect_changed", data->get_aspect());
+					dev->call_deferred("emit_signal", "client_viewport_aspect_changed", data->get_aspect());
 					break;
 				}
 				case PacketType::Ping: {

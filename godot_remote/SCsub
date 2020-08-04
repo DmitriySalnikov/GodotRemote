@@ -10,7 +10,9 @@ if ARGUMENTS.get('godot_remote_disable_server', 'no') == 'yes':
 if ARGUMENTS.get('godot_remote_disable_client', 'no') == 'yes':
     module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_CLIENT'])
 
-if env['platform'] == 'x11':
+if env['platform'] == 'windows':
+    module_env.add_source_files(env.modules_sources, '*.cpp')
+else:
     module_env.Append(CXXFLAGS=['-std=c++11']) # Flags for C++ code only
     module_env.Append(CCFLAGS=['-O2']) # Flags for C and C++ code
     
@@ -27,5 +29,3 @@ if env['platform'] == 'x11':
         env.Append(LIBPATH=['#bin'])
     else:
         module_env.add_source_files(env.modules_sources, '*.cpp')
-else:
-    module_env.add_source_files(env.modules_sources, '*.cpp')

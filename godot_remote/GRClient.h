@@ -234,7 +234,7 @@ private:
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
 	bool dont_capture_pointer = false;
-	bool capture_input = true;
+
 	ScreenOrientation is_vertical = ScreenOrientation::NONE;
 	Rect2 stream_rect;
 	PoolVector3Array sensors;

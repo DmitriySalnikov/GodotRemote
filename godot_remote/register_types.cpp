@@ -36,10 +36,6 @@ void register_godot_remote_types() {
 	ClassDB::register_class<GRTextureRect>();
 
 	ClassDB::register_virtual_class<GRPacket>();
-	ClassDB::register_class<GRPacketSyncTime>();
-	ClassDB::register_class<GRPacketImageData>();
-	ClassDB::register_class<GRPacketInputData>();
-	ClassDB::register_class<GRPacketServerSettings>();
 }
 
 void unregister_godot_remote_types() {

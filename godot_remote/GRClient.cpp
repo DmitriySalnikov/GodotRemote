@@ -40,8 +40,8 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_texture", "texture"), &GRClient::set_custom_no_signal_texture);
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_vertical_texture", "texture"), &GRClient::set_custom_no_signal_vertical_texture);
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_material", "material"), &GRClient::set_custom_no_signal_material);
-	ClassDB::bind_method(D_METHOD("set_address_port", "ip", "port"), &GRClient::set_address_port, DEFVAL(true));
-	ClassDB::bind_method(D_METHOD("set_address", "ip"), &GRClient::set_address, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("set_address_port", "ip", "port"), &GRClient::set_address_port);
+	ClassDB::bind_method(D_METHOD("set_address", "ip"), &GRClient::set_address);
 	ClassDB::bind_method(D_METHOD("set_server_setting", "setting", "value"), &GRClient::set_server_setting);
 	ClassDB::bind_method(D_METHOD("disable_overriding_server_settings"), &GRClient::disable_overriding_server_settings);
 

@@ -64,7 +64,6 @@ private:
 		}
 	};
 
-	Node *settings_menu_node = nullptr;
 	Mutex *connection_mutex = nullptr;
 	Ref<ListenerThreadParams> server_thread_listen;
 	Ref<TCP_Server> tcp_server;
@@ -109,7 +108,7 @@ protected:
 
 public:
 	void set_auto_adjust_scale(bool _val);
-	int get_auto_adjust_scale();
+	bool is_auto_adjust_scale();
 	void set_password(String _pass);
 	String get_password();
 	void set_custom_input_scene(String _scn);
@@ -133,7 +132,6 @@ public:
 	// NOT VIEWPORT
 
 	GRSViewport *get_gr_viewport();
-	class Node *get_settings_node();
 	void force_update_custom_input_scene();
 
 	GRServer();
