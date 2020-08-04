@@ -30,6 +30,13 @@ class GRClient : public GRDevice {
 
 	friend class GRTextureRect;
 
+		enum class ScreenOrientation {
+		NONE = 0,
+		VERTICAL = 1,
+		HORIZONTAL = 2,
+	};
+
+
 public:
 private:
 	class ImgProcessingStorage {
@@ -91,6 +98,7 @@ private:
 	class GRTextureRect *tex_shows_stream = nullptr;
 	class GRInputCollector *input_collector = nullptr;
 	Ref<ConnectionThreadParams> thread_connection;
+	ScreenOrientation is_vertical = ScreenOrientation::NONE;
 
 	String device_id = "UNKNOWN";
 	String server_address = String("127.0.0.1");
@@ -140,10 +148,10 @@ private:
 		return T();
 	}
 
+	void _force_update_stream_viewport_signals();
 	void _load_custom_input_scene(Ref<class GRPacketCustomInputScene> _data);
 	void _remove_custom_input_scene();
 	void _viewport_size_changed();
-	void _viewport_orientation_changed(bool orientation);
 
 	void _update_texture_from_iamge(Ref<Image> img);
 	void _update_stream_texture_state(StreamState _stream_state);
@@ -217,13 +225,6 @@ class GRInputCollector : public Node {
 
 	_THREAD_SAFE_CLASS_;
 
-public:
-	enum class ScreenOrientation {
-		NONE = 0,
-		VERTICAL = 1,
-		HORIZONTAL = 2,
-	};
-
 private:
 	GRClient *dev = nullptr;
 	GRInputCollector **this_in_client = nullptr; //somebody help
@@ -235,7 +236,6 @@ private:
 	bool capture_pointer_only_when_hover_control = true;
 	bool dont_capture_pointer = false;
 
-	ScreenOrientation is_vertical = ScreenOrientation::NONE;
 	Rect2 stream_rect;
 	PoolVector3Array sensors;
 
@@ -243,7 +243,6 @@ private:
 	Dictionary screen_touches;
 
 protected:
-	void _client_connected();
 	void _collect_input(Ref<InputEvent> ie);
 	void _update_stream_rect();
 	void _release_pointers();

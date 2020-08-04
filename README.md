@@ -45,6 +45,12 @@ To open settings menu you need to touch the screen with 5 fingers at once.
 Then you'll see this:
 ![Settings](Images/Screenshots/mobile_settings.png)
 
+### Custom client
+
+If you don't want to use my client app or can't use it, you can check the [example project](example_client) and build your own client.
+
+Or you can donate me some money with request to buy iPhone :-)
+
 ## API Reference
 
 Methods will be declared follows this template:
