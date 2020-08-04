@@ -2,14 +2,6 @@
 
 This is cross platform native module for [Godot Engine](https://github.com/godotengine/godot) v3 for control apps and games over WiFi or ADB.
 
-## Download
-
-Currently this is a module and it's need to be compiled as part of engine but mobile app can be found here:
-
-[Google Play](https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote)
-
-[GitHub Releases](https://github.com/DmitriySalnikov/GodotRemote/releases)
-
 ## Donations
 
 [Paypal](https://paypal.me/dmitriysalnikov)
@@ -38,7 +30,15 @@ Example:
 scons p=windows tools=yes godot_remote_no_default_resources=no godot_remote_disable_client=no
 ```
 
-## Configure mobile app
+## Download Mobile App
+
+Currently this is a module and it's need to be compiled as part of engine but precompiled example of mobile client app based on this module can be found here:
+
+[Google Play](https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote)
+
+[GitHub Releases](https://github.com/DmitriySalnikov/GodotRemote/releases)
+
+### Configure app
 
 To open settings menu you need to touch the screen with 5 fingers at once.
 
@@ -83,25 +83,25 @@ notifications_style
 # Notifications
 
 # Adds or fully update existing notification
-# @title: Notification tile
+# @title: Notification title
 # @text: Text of notification
-# @notification_icon: Notfication icon from NotificationIcon enum
+# @notification_icon: Notification icon from enum NotificationIcon
 # @update_existing: Updates existing notification
 # @duration_multiplier: Multiply base notifications duration
 void add_notification(title: String, text: String, notification_icon: NotificationIcon = 0, update_existing: bool = true, duration_multiplier: float = 1.0)
 
 # Adds new notification or append text to existing notification
-# @title: Notification tile
+# @title: Notification title
 # @text: Text of notification
-# @icon: Notfication icon from NotificationIcon enum
+# @icon: Notification icon from enum NotificationIcon
 # @add_to_new_line: Adds text to new line or adds to current line
 void add_notification_or_append_string(title: String, text: String, icon: NotificationIcon, add_to_new_line: bool = true)
 
 # Adds notification or update one line of notification text
-# @title: Notification tile
+# @title: Notification title
 # @id: Line ID
 # @text: Text of notification
-# @icon: Notfication icon from NotificationIcon enum
+# @icon: Notification icon from enum NotificationIcon
 # @duration_multiplier: Multiply base notifications duration
 void add_notification_or_update_line(title: String, id: String, text: String, icon: NotificationIcon, duration_multiplier: float = 1.0)
 
@@ -124,7 +124,7 @@ Array get_notifications_with_title(title: String)
 
 # Remove notifications with specified title
 # @title: Notifications title
-# @is_all_entries: Delete all notifications with @title on true
+# @is_all_entries: Delete all notifications with @title if true
 void remove_notification(title: String, is_all_entries: bool = true)
 
 # Remove exact notification by reference
@@ -156,17 +156,17 @@ GRDevice get_device()
 
 # Utility functions
 
-# Not exposed in Input class functions to set accelerometer, gravity, gyroscope and magnetometr
+# Not exposed to GDScript fuctions from Input class 
 void set_accelerometer(value: Vector3)
 void set_gravity(value: Vector3)
 void set_gyroscope(value: Vector3)
 void set_magnetometer(value: Vector3)
 
-# Set Godot Remote log level
+# Set GodotRemote log level
 # @level: Level of logging
 void set_log_level(level: LogLevel)
 
-# Get Godot Remote module version
+# Get GodotRemote module version
 # @return module version in format "MAJOR.MINOR.BUILD"
 String get_version()
 
@@ -249,20 +249,12 @@ text_font
 
 # --- Methods
 
-# Adds or fully update existing notification
-# @title: Notification tile
-# @text: Text of notification
-# @notification_icon: Notfication icon from NotificationIcon enum
-# @update_existing: Updates existing notification
-# @duration_multiplier: Multiply base notifications duration
-void add_notification(title: String, text: String, notification_icon: NotificationIcon = 0, update_existing: bool = true, duration_multiplier: float = 1.0)
-
 # Get notification icon from this style
 # @notification_icon: Notfication icon id
 # @return icon texture of null
 Texture get_notification_icon(notification_icon: NotificationIcon)
 
-# Get notification icon in this style
+# Set notification icon in this style
 # @notification_icon: Notfication icon id
 # @icon_texture: Icon texture
 void set_notification_icon(notification_icon: NotificationIcon, icon_texture: Texture)
@@ -377,55 +369,55 @@ client_viewport_aspect_changed(stream_aspect: float)
 ```python
 # --- Properties
 
-# Connection port
+# Capture input only when containing control has focus
 # type bool, default false
 capture_on_focus
 
-# Connection port
+# Capture input only when stream image hovered
 # type bool, default true
 capture_when_hover
 
-# Connection port
+# Capture mouse pointer and touch events
 # type bool, default true
 capture_pointer
 
-# Connection port
+# Capture input
 # type bool, default true
 capture_input
 
-# Connection port
+# Type of connection
 # type ConnectionType, default CONNECTION_WiFi
 connection_type
 
-# Connection port
+# Frequency of sending data to the server
 # type int, default 60
 target_send_fps
 
-# Connection port
+# Stretch mode of stream image
 # type StretchMode, default STRETCH_KEEP_ASPECT
 stretch_mode
 
-# Connection port
+# Use texture filtering of stream image
 # type bool, default true
 texture_filtering
 
-# Connection port
+# Password
 # type String, default ""
 password
 
-# Connection port
+# ID of device
 # type String, default 6 random digits and characters
 device_id
 
-# Connection port
+# Sync viewport orientation with server
 # type bool, default true
 viewport_orientation_syncing
 
-# Connection port
+# Sync viewport aspect with server
 # type bool, default true
 viewport_aspect_syncing
 
-# Connection port
+# Receive updated server settings
 # type bool, default false
 server_settings_syncing
 
@@ -446,7 +438,7 @@ bool is_connected_to_host()
 # @return true if stream active
 bool is_stream_active()
 
-# Send packet. GRPackets not exposed to GDScript
+# Send packet. GRPackets not exposed to GDScript at this moment
 # @packet: Packet to send
 void send_packet(packet: GRPacket)
 
