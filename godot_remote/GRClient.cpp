@@ -115,6 +115,7 @@ void GRClient::_notification(int p_notification) {
 			is_deleting = true;
 			if (get_status() == (int)WorkingStatus::Working) {
 				_internal_call_only_deffered_stop();
+				set_control_to_show_in(nullptr);
 			}
 			break;
 		}
@@ -155,8 +156,6 @@ GRClient::~GRClient() {
 	}
 	memdelete(send_queue_mutex);
 	memdelete(connection_mutex);
-
-	set_control_to_show_in(nullptr);
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 	no_signal_mat.unref();
