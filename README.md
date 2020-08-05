@@ -1,6 +1,8 @@
-# GodotRemote
+# Godot Remote
 
 This is cross platform native module for [Godot Engine](https://github.com/godotengine/godot) v3 for control apps and games over WiFi or ADB.
+
+If you are developing on a non-touch device, this module is the best way to quickly test touch input or mobile sensors data.
 
 ## Donations
 
@@ -11,6 +13,7 @@ This is cross platform native module for [Godot Engine](https://github.com/godot
 ## Compiling the Module
 
 To compile module you need:
+
 1. [configure environment](https://docs.godotengine.org/en/latest/development/compiling/index.html) to build editor for your platform;
 2. copy ```godot_remote``` folder to the ```modules/``` directory or make [symlink](https://en.wikipedia.org/wiki/Symbolic_link);
 3. compile editor with instructions from documentation above (example ```scons -p=windows tools=yes```);
@@ -20,13 +23,15 @@ If everything compiles successfully, you'll find the new category in project set
 
 ![Settings](Images/Screenshots/settings.png)
 
-Also module has additional compile parameters
+Also module has additional compilation parameters
+
 1. ```godot_remote_no_default_resources``` (yes/no) default no - compile with or without default resources
 2. ```godot_remote_disable_server``` (yes/no) default no - do not include server code
 3. ```godot_remote_disable_client``` (yes/no) default no - do not include client code
 
 Example:
-```
+
+```bash
 scons p=windows tools=yes godot_remote_no_default_resources=no godot_remote_disable_client=no
 ```
 
@@ -47,7 +52,7 @@ Then you'll see this:
 
 ### Custom client
 
-If you don't want to use my client app or can't use it, you can check the [example project](example_client) and build your own client.
+If you don't want to use my client app or can't use it, you can check the [example client project](examples/simple_client) and build your own client.
 
 Or you can donate me some money with request to buy iPhone :-)
 
@@ -55,12 +60,14 @@ Or you can donate me some money with request to buy iPhone :-)
 
 Methods will be declared follows this template:
 
-```python 
+```python
 return_type function_name([arg_name1 : type [= defalut value]][, arg_name2 : type [= defalut value]])
 ```
 
 ### GodotRemote
+
 Main class of module.
+
 ```python
 # --- Properties
 
@@ -162,7 +169,7 @@ GRDevice get_device()
 
 # Utility functions
 
-# Not exposed to GDScript fuctions from Input class 
+# Not exposed to GDScript fuctions from Input class
 void set_accelerometer(value: Vector3)
 void set_gravity(value: Vector3)
 void set_gyroscope(value: Vector3)
@@ -227,9 +234,10 @@ TypesOfServerSettings:
     SERVER_PARAM_RENDER_SCALE = 5
 ```
 
-
 ### GRNotificationStyle
+
 Helper class to store parameters of notifications style
+
 ```python
 # --- Properties
 
@@ -268,7 +276,9 @@ void set_notification_icon(notification_icon: NotificationIcon, icon_texture: Te
 ```
 
 ### GRDevice
+
 Base class for client and server
+
 ```python
 # --- Properties
 
@@ -310,6 +320,7 @@ WorkingStatus:
 ```
 
 ### GRServer
+
 ```python
 # --- Properties
 
@@ -326,7 +337,7 @@ skip_frames
 jpg_quality
 
 # Scale of sending image
-# type float, default 0.3
+# type float, default 0.25
 render_scale
 
 # Server password
@@ -366,12 +377,13 @@ client_disconnected(device_id: String)
 # On orientation of client's screen or viewport changed
 client_viewport_orientation_changed(is_vertical: bool)
 
-# On client's screen or viewport aspect changed
-client_viewport_aspect_changed(stream_aspect: float)
+# On client's screen or viewport aspect ratio changed
+client_viewport_aspect_ratio_changed(stream_aspect: float)
 
 ```
 
 ### GRClient
+
 ```python
 # --- Properties
 
@@ -419,9 +431,9 @@ device_id
 # type bool, default true
 viewport_orientation_syncing
 
-# Sync viewport aspect with server
+# Sync viewport aspect ratio with server
 # type bool, default true
-viewport_aspect_syncing
+viewport_aspect_ratio_syncing
 
 # Receive updated server settings
 # type bool, default false
@@ -512,6 +524,27 @@ StretchMode:
 ```
 
 There is no need to describe other classes here
+
+## Custom Input Scenes
+
+In custom input scenes you can use everything you want but to send InputEvent's from client to server you must emulate input.
+
+Example:
+
+```python
+func _on_pressed():
+    # Create event for pressed state
+    var iea_p = InputEventAction.new()
+    iea_p.pressed = true
+    iea_p.action = "jump"
+    # Create event for released state
+    var iea_r = InputEventAction.new()
+    iea_r.pressed = false
+    iea_p.action = "jump"
+    # Parse event to send it to the server
+    Input.parse_input_event(iea_p)
+    Input.parse_input_event(iea_r)
+```
 
 ## License
 

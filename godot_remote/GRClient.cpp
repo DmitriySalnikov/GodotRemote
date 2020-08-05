@@ -29,6 +29,7 @@ using namespace GRUtils;
 void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_update_texture_from_iamge", "image"), &GRClient::_update_texture_from_iamge);
 	ClassDB::bind_method(D_METHOD("_update_stream_texture_state", "state"), &GRClient::_update_stream_texture_state);
+	ClassDB::bind_method(D_METHOD("_force_update_stream_viewport_signals"), &GRClient::_force_update_stream_viewport_signals);
 	ClassDB::bind_method(D_METHOD("_viewport_size_changed"), &GRClient::_viewport_size_changed);
 	ClassDB::bind_method(D_METHOD("_load_custom_input_scene", "_data"), &GRClient::_load_custom_input_scene);
 	ClassDB::bind_method(D_METHOD("_remove_custom_input_scene"), &GRClient::_remove_custom_input_scene);
@@ -65,7 +66,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_password", "password"), &GRClient::set_password);
 	ClassDB::bind_method(D_METHOD("set_device_id", "id"), &GRClient::set_device_id);
 	ClassDB::bind_method(D_METHOD("set_viewport_orientation_syncing", "is_syncing"), &GRClient::set_viewport_orientation_syncing);
-	ClassDB::bind_method(D_METHOD("set_viewport_aspect_syncing", "is_syncing"), &GRClient::set_viewport_aspect_syncing);
+	ClassDB::bind_method(D_METHOD("set_viewport_aspect_ratio_syncing", "is_syncing"), &GRClient::set_viewport_aspect_ratio_syncing);
 	ClassDB::bind_method(D_METHOD("set_server_settings_syncing", "is_syncing"), &GRClient::set_server_settings_syncing);
 
 	ClassDB::bind_method(D_METHOD("is_capture_on_focus"), &GRClient::is_capture_on_focus);
@@ -79,7 +80,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_password"), &GRClient::get_password);
 	ClassDB::bind_method(D_METHOD("get_device_id"), &GRClient::get_device_id);
 	ClassDB::bind_method(D_METHOD("is_viewport_orientation_syncing"), &GRClient::is_viewport_orientation_syncing);
-	ClassDB::bind_method(D_METHOD("is_viewport_aspect_syncing"), &GRClient::is_viewport_aspect_syncing);
+	ClassDB::bind_method(D_METHOD("is_viewport_aspect_ratio_syncing"), &GRClient::is_viewport_aspect_ratio_syncing);
 	ClassDB::bind_method(D_METHOD("is_server_settings_syncing"), &GRClient::is_server_settings_syncing);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
@@ -93,7 +94,7 @@ void GRClient::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "device_id"), "set_device_id", "get_device_id");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_orientation_syncing"), "set_viewport_orientation_syncing", "is_viewport_orientation_syncing");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_aspect_syncing"), "set_viewport_aspect_syncing", "is_viewport_aspect_syncing");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_aspect_ratio_syncing"), "set_viewport_aspect_ratio_syncing", "is_viewport_aspect_ratio_syncing");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "server_settings_syncing"), "set_server_settings_syncing", "is_server_settings_syncing");
 
 	BIND_ENUM_CONSTANT(CONNECTION_ADB);
@@ -263,6 +264,7 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 
 		signal_connection_state = StreamState::STREAM_ACTIVE; // force execute update function
 		call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
+		call_deferred("_force_update_stream_viewport_signals"); // force update if client connected faster than scene loads
 	}
 }
 
@@ -434,15 +436,15 @@ bool GRClient::is_viewport_orientation_syncing() {
 	return _viewport_orientation_syncing;
 }
 
-void GRClient::set_viewport_aspect_syncing(bool is_syncing) {
-	_viewport_aspect_syncing = is_syncing;
+void GRClient::set_viewport_aspect_ratio_syncing(bool is_syncing) {
+	_viewport_aspect_ratio_syncing = is_syncing;
 	if (is_syncing) {
 		call_deferred("_viewport_size_changed"); // force update screen aspect
 	}
 }
 
-bool GRClient::is_viewport_aspect_syncing() {
-	return _viewport_aspect_syncing;
+bool GRClient::is_viewport_aspect_ratio_syncing() {
+	return _viewport_aspect_ratio_syncing;
 }
 
 void GRClient::set_server_settings_syncing(bool is_syncing) {
@@ -483,7 +485,7 @@ void GRClient::_force_update_stream_viewport_signals() {
 		return;
 	}
 
-	control_to_show_in->call_deferred("_size_changed"); // call internal function to emit size_changed signal
+	call_deferred("_viewport_size_changed"); // force update screen aspect ratio
 }
 
 void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
@@ -600,7 +602,7 @@ void GRClient::_viewport_size_changed() {
 		}
 	}
 
-	if (_viewport_aspect_syncing) {
+	if (_viewport_aspect_ratio_syncing) {
 		Ref<GRPacketClientStreamAspect> packet = _find_queued_packet_by_type<Ref<GRPacketClientStreamAspect> >();
 
 		if (packet.is_null()) {
@@ -611,6 +613,7 @@ void GRClient::_viewport_size_changed() {
 		Vector2 size = control_to_show_in->get_size();
 		packet->set_aspect(size.x / size.y);
 	}
+
 	send_queue_mutex->unlock();
 }
 
@@ -817,15 +820,11 @@ void GRClient::_thread_connection(void *p_userdata) {
 				con_thread->peer = con;
 				con_thread->ppeer = ppeer;
 
-				if (dev->input_collector && !dev->input_collector->is_queued_for_deletion()) {
-					dev->_force_update_stream_viewport_signals();
-				}
-
 				dev->is_connection_working = true;
 				dev->call_deferred("emit_signal", "connection_state_changed", true);
-				dev->call_deferred("emit_signal", "_viewport_size_changed"); // force update screen aspect
+				dev->call_deferred("_force_update_stream_viewport_signals"); // force update screen aspect ratio and orientation
 				GRNotifications::add_notification("Connected", "Connected to " + address, NotificationIcon::Success);
-
+				
 				_connection_loop(con_thread);
 
 				con_thread->peer.unref();
@@ -1165,6 +1164,11 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 		prev_cycle_time = os->get_ticks_usec() - cycle_start_time;
 	}
+
+	dev->send_queue_mutex->lock();
+	dev->send_queue.clear();
+	dev->send_queue_mutex->unlock();
+
 	dev->connection_mutex->unlock();
 
 	if (connection->is_connected_to_host()) {

@@ -2,6 +2,7 @@ extends Control
 
 
 # firstly you need to disable autostart GodotRemote in Project Settings/Debug/Godot Remote/General
+# and change the Network/Limits/Connect Timeout Seconds to 1 otherwise app will be closing very long time
 func _ready():
 	# create client
 	GodotRemote.create_remote_device(GodotRemote.DEVICE_Standalone)

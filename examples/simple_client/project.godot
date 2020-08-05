@@ -16,12 +16,16 @@ _global_script_class_icons={
 [application]
 
 config/name="Example Client"
-run/main_scene="res://UniqueL0ngNameThatINeverOverrideFromServer/ControlToShowStreamIn.tscn"
+run/main_scene="res://UniqueL0ngNameThatINeverOverrideFromServer/ControlToShowStream.tscn"
 config/icon="res://UniqueL0ngNameThatINeverOverrideFromServer/icon.png"
 
 [debug]
 
 godot_remote/general/autostart=false
+
+[network]
+
+limits/tcp/connect_timeout_seconds=1
 
 [rendering]
 

@@ -1,0 +1,40 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://CustomInput.gd" type="Script" id=1]
+[ext_resource path="res://icon.png" type="Texture" id=2]
+
+[node name="CustomInput" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Control" type="Control" parent="."]
+anchor_top = 0.5
+anchor_bottom = 0.5
+margin_top = -20.0
+margin_right = 40.0
+margin_bottom = 20.0
+
+[node name="TouchScreenButton" type="TouchScreenButton" parent="Control"]
+position = Vector2( 33, -180 )
+scale = Vector2( 5.45313, 6.5 )
+normal = ExtResource( 2 )
+action = "ui_left"
+
+[node name="Control2" type="Control" parent="."]
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+margin_left = -40.0
+margin_top = -20.0
+margin_bottom = 20.0
+
+[node name="TouchScreenButton2" type="TouchScreenButton" parent="Control2"]
+position = Vector2( -342.74, -180 )
+scale = Vector2( 5.45313, 6.5 )
+normal = ExtResource( 2 )
+action = "ui_right"

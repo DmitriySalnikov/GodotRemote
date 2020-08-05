@@ -106,7 +106,7 @@ private:
 	String password;
 	bool is_filtering_enabled = true;
 	bool _viewport_orientation_syncing = true;
-	bool _viewport_aspect_syncing = true;
+	bool _viewport_aspect_ratio_syncing = true;
 	bool _server_settings_syncing = false;
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
@@ -194,8 +194,8 @@ public:
 	bool get_texture_filtering();
 	void set_viewport_orientation_syncing(bool is_syncing);
 	bool is_viewport_orientation_syncing();
-	void set_viewport_aspect_syncing(bool is_syncing);
-	bool is_viewport_aspect_syncing();
+	void set_viewport_aspect_ratio_syncing(bool is_syncing);
+	bool is_viewport_aspect_ratio_syncing();
 	void set_server_settings_syncing(bool is_syncing);
 	bool is_server_settings_syncing();
 	void set_password(String _pass);

@@ -23,3 +23,5 @@ __pycache__
 
 # exist only for testing
 test.gd
+
+godot_remote_client/AssetsInSuperSecureAndUn1queF0lder/Textures/SVG/*.png

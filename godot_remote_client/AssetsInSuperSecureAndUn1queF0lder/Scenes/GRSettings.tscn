@@ -1,0 +1,751 @@
+[gd_scene load_steps=11 format=2]
+
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/MainTheme.tres" type="Theme" id=1]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalSettings.tres" type="DynamicFont" id=2]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/GRSettings.gd" type="Script" id=3]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/EmptySep.tres" type="StyleBox" id=4]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/VersionFont.tres" type="DynamicFont" id=5]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Textures/ADB_icon.png" type="Texture" id=6]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Textures/WiFi_icon.png" type="Texture" id=7]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Textures/Close_cross_icon_48px.png" type="Texture" id=8]
+
+[sub_resource type="StyleBoxFlat" id=1]
+bg_color = Color( 0.054902, 0.0588235, 0.0627451, 0.243137 )
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0.0862745, 0.0941176, 0.101961, 1 )
+
+[sub_resource type="StyleBoxFlat" id=2]
+bg_color = Color( 0.219608, 0.247059, 0.266667, 1 )
+draw_center = false
+border_width_top = 2
+border_width_bottom = 2
+border_color = Color( 0.219608, 0.247059, 0.266667, 1 )
+shadow_color = Color( 0, 0, 0, 0.572549 )
+shadow_size = 2
+
+[node name="GRSettings" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_bottom = 1494.0
+grow_horizontal = 0
+grow_vertical = 0
+focus_mode = 2
+theme = ExtResource( 1 )
+script = ExtResource( 3 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Timer" type="Timer" parent="."]
+wait_time = 0.25
+one_shot = true
+
+[node name="Background" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color( 0, 0, 0, 0.698039 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="H" type="HBoxContainer" parent="."]
+anchor_right = 1.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = -8.0
+margin_bottom = 67.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="StartStop" type="Button" parent="H" groups=[
+"buttons_to_disable",
+]]
+margin_right = 150.0
+margin_bottom = 59.0
+text = "StartStop"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="VSeparator" type="VSeparator" parent="H"]
+margin_left = 154.0
+margin_right = 166.0
+margin_bottom = 59.0
+rect_min_size = Vector2( 12, 0 )
+custom_styles/separator = ExtResource( 4 )
+
+[node name="Donations" type="ToolButton" parent="H"]
+margin_left = 170.0
+margin_right = 301.0
+margin_bottom = 59.0
+mouse_filter = 1
+size_flags_horizontal = 3
+size_flags_vertical = 5
+custom_fonts/font = ExtResource( 5 )
+custom_colors/font_color = Color( 0.384314, 0.407843, 0.423529, 1 )
+text = "Points: 100"
+
+[node name="empty" type="Control" parent="H"]
+margin_left = 305.0
+margin_right = 436.0
+margin_bottom = 59.0
+mouse_filter = 1
+size_flags_horizontal = 3
+size_flags_vertical = 5
+
+[node name="Version" type="ToolButton" parent="H"]
+margin_left = 440.0
+margin_right = 633.0
+margin_bottom = 59.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_fonts/font = ExtResource( 5 )
+custom_colors/font_color = Color( 0.384314, 0.407843, 0.423529, 1 )
+text = "GR version: 1.0.14"
+align = 2
+
+[node name="VSeparator2" type="VSeparator" parent="H"]
+margin_left = 637.0
+margin_right = 719.0
+margin_bottom = 59.0
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.63
+custom_styles/separator = ExtResource( 4 )
+
+[node name="Close" type="Button" parent="H"]
+margin_left = 723.0
+margin_right = 782.0
+margin_bottom = 59.0
+grow_horizontal = 0
+grow_vertical = 0
+rect_min_size = Vector2( 59, 59 )
+size_flags_horizontal = 8
+icon = ExtResource( 8 )
+expand_icon = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 20.0
+margin_top = 76.0
+margin_right = -20.0
+margin_bottom = -20.0
+custom_styles/bg = SubResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="H" type="HBoxContainer" parent="Scroll"]
+margin_left = 2.0
+margin_top = 2.0
+margin_right = 758.0
+margin_bottom = 2078.0
+grow_horizontal = 0
+grow_vertical = 0
+size_flags_horizontal = 3
+
+[node name="Grid" type="GridContainer" parent="Scroll/H"]
+margin_right = 744.0
+margin_bottom = 2076.0
+size_flags_horizontal = 3
+custom_constants/vseparation = 24
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="DeviceID" type="VBoxContainer" parent="Scroll/H/Grid"]
+margin_right = 744.0
+margin_bottom = 96.0
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/DeviceID"]
+margin_right = 744.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "Device ID"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ID" type="LineEdit" parent="Scroll/H/Grid/DeviceID" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 50.0
+margin_right = 744.0
+margin_bottom = 96.0
+size_flags_horizontal = 3
+text = "ABRACADABRA"
+max_length = 128
+
+[node name="ConnectionType" type="VBoxContainer" parent="Scroll/H/Grid"]
+margin_top = 120.0
+margin_right = 744.0
+margin_bottom = 216.0
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/ConnectionType"]
+margin_right = 744.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "Connection Type"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Type" type="OptionButton" parent="Scroll/H/Grid/ConnectionType" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 50.0
+margin_right = 744.0
+margin_bottom = 96.0
+size_flags_horizontal = 3
+text = "WiFi"
+icon = ExtResource( 7 )
+align = 1
+items = [ "WiFi", ExtResource( 7 ), false, 1, null, "ADB", ExtResource( 6 ), false, 1, null ]
+selected = 0
+
+[node name="WiFi" type="VBoxContainer" parent="Scroll/H/Grid"]
+margin_top = 240.0
+margin_right = 744.0
+margin_bottom = 336.0
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/WiFi"]
+margin_right = 744.0
+margin_bottom = 46.0
+text = "Server Address"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Address" type="HBoxContainer" parent="Scroll/H/Grid/WiFi"]
+margin_top = 50.0
+margin_right = 744.0
+margin_bottom = 96.0
+
+[node name="IP" type="LineEdit" parent="Scroll/H/Grid/WiFi/Address" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_right = 578.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+custom_fonts/font = ExtResource( 2 )
+text = "255.255.255.255"
+align = 1
+max_length = 128
+placeholder_text = "e.g. 192.168.1.1"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Port" type="SpinBox" parent="Scroll/H/Grid/WiFi/Address" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_left = 582.0
+margin_right = 744.0
+margin_bottom = 46.0
+rect_min_size = Vector2( 162, 0 )
+max_value = 65535.0
+value = 65535.0
+align = 1
+
+[node name="SetWiFiAddress" type="Button" parent="Scroll/H/Grid" groups=[
+"buttons_to_disable",
+"nodes_that_should_be_higher",
+]]
+margin_top = 360.0
+margin_right = 744.0
+margin_bottom = 406.0
+focus_mode = 1
+mouse_filter = 1
+size_flags_horizontal = 3
+size_flags_vertical = 8
+enabled_focus_mode = 1
+text = "   Set Type and Address   "
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ADB" type="VBoxContainer" parent="Scroll/H/Grid"]
+margin_top = 430.0
+margin_right = 744.0
+margin_bottom = 526.0
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/ADB"]
+margin_right = 744.0
+margin_bottom = 46.0
+text = "Server Port"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Port" type="SpinBox" parent="Scroll/H/Grid/ADB" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 50.0
+margin_right = 744.0
+margin_bottom = 96.0
+rect_min_size = Vector2( 128, 0 )
+size_flags_horizontal = 3
+max_value = 65535.0
+value = 65535.0
+align = 1
+
+[node name="SetADBPort" type="Button" parent="Scroll/H/Grid" groups=[
+"buttons_to_disable",
+"nodes_that_should_be_higher",
+]]
+margin_top = 550.0
+margin_right = 744.0
+margin_bottom = 596.0
+focus_mode = 1
+mouse_filter = 1
+size_flags_horizontal = 3
+size_flags_vertical = 8
+enabled_focus_mode = 1
+text = "   Set Type and Port   "
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Empty6" type="HSeparator" parent="Scroll/H/Grid"]
+margin_top = 620.0
+margin_right = 744.0
+margin_bottom = 624.0
+mouse_filter = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+custom_styles/separator = SubResource( 2 )
+
+[node name="Empty9" type="Control" parent="Scroll/H/Grid"]
+margin_top = 648.0
+margin_right = 744.0
+margin_bottom = 660.0
+rect_min_size = Vector2( 0, 12 )
+mouse_filter = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+
+[node name="OutFps" type="HBoxContainer" parent="Scroll/H/Grid"]
+margin_top = 684.0
+margin_right = 744.0
+margin_bottom = 730.0
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/OutFps" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_right = 370.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "Output FPS"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="FPS" type="SpinBox" parent="Scroll/H/Grid/OutFps" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_left = 374.0
+margin_right = 744.0
+margin_bottom = 46.0
+rect_min_size = Vector2( 128, 0 )
+size_flags_horizontal = 3
+size_flags_vertical = 5
+min_value = 1.0
+max_value = 1000.0
+value = 60.0
+align = 1
+
+[node name="PassRow" type="HBoxContainer" parent="Scroll/H/Grid"]
+margin_top = 754.0
+margin_right = 744.0
+margin_bottom = 800.0
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/PassRow" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_right = 370.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "Password"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Pass" type="LineEdit" parent="Scroll/H/Grid/PassRow" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_left = 374.0
+margin_right = 744.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "asdadfhsd"
+max_length = 128
+secret = true
+placeholder_text = "Password"
+
+[node name="Filtering" type="CheckButton" parent="Scroll/H/Grid" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 824.0
+margin_right = 744.0
+margin_bottom = 872.0
+rect_min_size = Vector2( 128, 0 )
+focus_mode = 1
+mouse_filter = 1
+pressed = true
+enabled_focus_mode = 1
+text = "Texture Filtering"
+
+[node name="StretchMode" type="HBoxContainer" parent="Scroll/H/Grid"]
+margin_top = 896.0
+margin_right = 744.0
+margin_bottom = 942.0
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/StretchMode" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_right = 370.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "Stretch Mode"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Type" type="OptionButton" parent="Scroll/H/Grid/StretchMode" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_left = 374.0
+margin_right = 744.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+size_flags_vertical = 5
+text = "Keep Aspect"
+align = 1
+items = [ "Keep Aspect", null, false, 0, null, "Fill", null, false, 1, null ]
+selected = 0
+
+[node name="ShowStats" type="CheckButton" parent="Scroll/H/Grid" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 966.0
+margin_right = 744.0
+margin_bottom = 1014.0
+focus_mode = 1
+mouse_filter = 1
+size_flags_vertical = 4
+size_flags_stretch_ratio = 0.65
+pressed = true
+enabled_focus_mode = 1
+text = "Show Stats"
+
+[node name="KeepScreen" type="CheckButton" parent="Scroll/H/Grid" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 1038.0
+margin_right = 744.0
+margin_bottom = 1086.0
+focus_mode = 1
+mouse_filter = 1
+size_flags_vertical = 4
+pressed = true
+enabled_focus_mode = 1
+text = "Keep Screen On"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="SyncOrientation" type="CheckButton" parent="Scroll/H/Grid" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 1110.0
+margin_right = 744.0
+margin_bottom = 1158.0
+focus_mode = 1
+mouse_filter = 1
+size_flags_vertical = 4
+pressed = true
+enabled_focus_mode = 1
+text = "Sync Viewport Orientation"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="SyncAspect" type="CheckButton" parent="Scroll/H/Grid" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 1182.0
+margin_right = 744.0
+margin_bottom = 1230.0
+focus_mode = 1
+mouse_filter = 1
+size_flags_vertical = 4
+pressed = true
+enabled_focus_mode = 1
+text = "Sync Viewport Aspect"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Empty7" type="HSeparator" parent="Scroll/H/Grid"]
+margin_top = 1254.0
+margin_right = 744.0
+margin_bottom = 1258.0
+mouse_filter = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+custom_styles/separator = SubResource( 2 )
+
+[node name="Empty10" type="Control" parent="Scroll/H/Grid"]
+margin_top = 1282.0
+margin_right = 744.0
+margin_bottom = 1282.0
+mouse_filter = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+
+[node name="OverrideServerSetting" type="CheckButton" parent="Scroll/H/Grid" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 1306.0
+margin_right = 744.0
+margin_bottom = 1354.0
+focus_mode = 1
+mouse_filter = 1
+pressed = true
+enabled_focus_mode = 1
+text = "Override Server Settings"
+
+[node name="SyncServerSettings" type="CheckButton" parent="Scroll/H/Grid" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 1378.0
+margin_right = 744.0
+margin_bottom = 1426.0
+focus_mode = 1
+mouse_filter = 1
+enabled_focus_mode = 1
+text = "Sync Server Settings"
+
+[node name="Empty5" type="HSeparator" parent="Scroll/H/Grid"]
+margin_top = 1450.0
+margin_right = 744.0
+margin_bottom = 1454.0
+mouse_filter = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+custom_styles/separator = SubResource( 2 )
+
+[node name="Empty8" type="Control" parent="Scroll/H/Grid"]
+margin_top = 1478.0
+margin_right = 744.0
+margin_bottom = 1478.0
+mouse_filter = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+
+[node name="ServerSettings" type="Label" parent="Scroll/H/Grid"]
+margin_top = 1502.0
+margin_right = 744.0
+margin_bottom = 1548.0
+size_flags_horizontal = 3
+text = "Server Settings:"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Empty2" type="Control" parent="Scroll/H/Grid"]
+margin_top = 1572.0
+margin_right = 744.0
+margin_bottom = 1572.0
+mouse_filter = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+
+[node name="VideoStream" type="CheckButton" parent="Scroll/H/Grid" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 1596.0
+margin_right = 744.0
+margin_bottom = 1644.0
+focus_mode = 1
+mouse_filter = 1
+pressed = true
+enabled_focus_mode = 1
+text = "Video Stream"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Empty4" type="Control" parent="Scroll/H/Grid"]
+margin_top = 1668.0
+margin_right = 744.0
+margin_bottom = 1668.0
+mouse_filter = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+
+[node name="JPG_Quality" type="VBoxContainer" parent="Scroll/H/Grid"]
+margin_top = 1692.0
+margin_right = 744.0
+margin_bottom = 1790.0
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/JPG_Quality"]
+margin_right = 744.0
+margin_bottom = 46.0
+text = "JPG Quality"
+valign = 1
+
+[node name="Quality" type="HSlider" parent="Scroll/H/Grid/JPG_Quality" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 50.0
+margin_right = 744.0
+margin_bottom = 98.0
+rect_min_size = Vector2( 0, 32 )
+size_flags_horizontal = 3
+min_value = 1.0
+value = 50.0
+tick_count = 5
+
+[node name="RenderScale" type="VBoxContainer" parent="Scroll/H/Grid"]
+margin_top = 1814.0
+margin_right = 744.0
+margin_bottom = 1912.0
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/RenderScale"]
+margin_right = 744.0
+margin_bottom = 46.0
+text = "Render Scale"
+valign = 1
+
+[node name="Scale" type="HSlider" parent="Scroll/H/Grid/RenderScale" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 50.0
+margin_right = 744.0
+margin_bottom = 98.0
+rect_min_size = Vector2( 0, 32 )
+size_flags_horizontal = 3
+min_value = 0.05
+max_value = 1.0
+step = 0.01
+value = 0.53
+tick_count = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Scroll/H/Grid"]
+margin_top = 1936.0
+margin_right = 744.0
+margin_bottom = 1982.0
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/HBoxContainer" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_right = 370.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "Skip Frames"
+valign = 1
+
+[node name="SKIP" type="SpinBox" parent="Scroll/H/Grid/HBoxContainer" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_left = 374.0
+margin_right = 744.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+size_flags_vertical = 5
+max_value = 1000.0
+align = 1
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="Scroll/H/Grid"]
+margin_top = 2006.0
+margin_right = 744.0
+margin_bottom = 2052.0
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/HBoxContainer2" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_right = 370.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "Compression"
+
+[node name="State2" type="OptionButton" parent="Scroll/H/Grid/HBoxContainer2" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_left = 374.0
+margin_right = 744.0
+margin_bottom = 46.0
+rect_min_size = Vector2( 0, 32 )
+size_flags_horizontal = 3
+text = "JPG"
+align = 1
+items = [ "Uncompressed", null, false, 0, null, "JPG", null, false, 1, null, "PNG", null, false, 2, null ]
+selected = 1
+
+[node name="Empty3" type="Control" parent="Scroll/H/Grid"]
+margin_top = 2076.0
+margin_right = 744.0
+margin_bottom = 2076.0
+mouse_filter = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+
+[node name="VSeparator" type="VSeparator" parent="Scroll/H"]
+margin_left = 748.0
+margin_right = 756.0
+margin_bottom = 2076.0
+rect_min_size = Vector2( 8, 0 )
+custom_styles/separator = ExtResource( 4 )
+[connection signal="resized" from="." to="." method="_on_GRSettings_resized"]
+[connection signal="visibility_changed" from="." to="." method="_on_GRSettings_visibility_changed"]
+[connection signal="timeout" from="Timer" to="." method="_on_button_disable_Timer_timeout"]
+[connection signal="pressed" from="H/StartStop" to="." method="_on_StartStop_pressed"]
+[connection signal="pressed" from="H/Donations" to="." method="_on_Donations_pressed"]
+[connection signal="pressed" from="H/Version" to="." method="_on_Version_pressed"]
+[connection signal="pressed" from="H/Close" to="." method="_on_Close_pressed"]
+[connection signal="text_changed" from="Scroll/H/Grid/DeviceID/ID" to="." method="_on_Device_ID_text_changed"]
+[connection signal="item_selected" from="Scroll/H/Grid/ConnectionType/Type" to="." method="_on_con_Type_item_selected"]
+[connection signal="text_entered" from="Scroll/H/Grid/WiFi/Address/IP" to="." method="_on_wifi_IP_text_entered"]
+[connection signal="pressed" from="Scroll/H/Grid/SetWiFiAddress" to="." method="_on_wifi_SetAddress_pressed"]
+[connection signal="pressed" from="Scroll/H/Grid/SetADBPort" to="." method="_on_adb_SetAddress_pressed"]
+[connection signal="value_changed" from="Scroll/H/Grid/OutFps/FPS" to="." method="_on_FPS_value_changed"]
+[connection signal="text_changed" from="Scroll/H/Grid/PassRow/Pass" to="." method="_on_Password_text_changed"]
+[connection signal="toggled" from="Scroll/H/Grid/Filtering" to="." method="_on_texture_Filtering_toggled"]
+[connection signal="item_selected" from="Scroll/H/Grid/StretchMode/Type" to="." method="_on_stretch_Type_item_selected"]
+[connection signal="toggled" from="Scroll/H/Grid/ShowStats" to="." method="_on_stats_State_toggled"]
+[connection signal="toggled" from="Scroll/H/Grid/KeepScreen" to="." method="_on_keep_screen_CheckButton_toggled"]
+[connection signal="toggled" from="Scroll/H/Grid/SyncOrientation" to="." method="_on_SyncOrientation_toggled"]
+[connection signal="toggled" from="Scroll/H/Grid/SyncAspect" to="." method="_on_SyncAspect_toggled"]
+[connection signal="toggled" from="Scroll/H/Grid/OverrideServerSetting" to="." method="_on_override_settings_State_toggled"]
+[connection signal="toggled" from="Scroll/H/Grid/SyncServerSettings" to="." method="_on_SyncServerSettings_toggled"]
+[connection signal="toggled" from="Scroll/H/Grid/VideoStream" to="." method="_on_video_stream_Enabled_toggled"]
+[connection signal="value_changed" from="Scroll/H/Grid/JPG_Quality/Quality" to="." method="_on_server_Quality_value_changed"]
+[connection signal="value_changed" from="Scroll/H/Grid/RenderScale/Scale" to="." method="_on_server_render_Scale_value_changed"]
+[connection signal="value_changed" from="Scroll/H/Grid/HBoxContainer/SKIP" to="." method="_on_server_send_FPS_value_changed"]
+[connection signal="item_selected" from="Scroll/H/Grid/HBoxContainer2/State2" to="." method="_on_compression_type_item_selected"]

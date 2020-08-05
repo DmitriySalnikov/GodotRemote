@@ -61,7 +61,7 @@ void GRServer::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("client_disconnected", PropertyInfo(Variant::STRING, "device_id")));
 
 	ADD_SIGNAL(MethodInfo("client_viewport_orientation_changed", PropertyInfo(Variant::BOOL, "is_vertical")));
-	ADD_SIGNAL(MethodInfo("client_viewport_aspect_changed", PropertyInfo(Variant::REAL, "stream_aspect")));
+	ADD_SIGNAL(MethodInfo("client_viewport_aspect_ratio_changed", PropertyInfo(Variant::REAL, "stream_aspect_ratio")));
 }
 
 void GRServer::_notification(int p_notification) {
@@ -896,7 +896,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 						_log("Incorrect GRPacketClientStreamAspect", LogLevel::LL_Error);
 						break;
 					}
-					dev->call_deferred("emit_signal", "client_viewport_aspect_changed", data->get_aspect());
+					dev->call_deferred("emit_signal", "client_viewport_aspect_ratio_changed", data->get_aspect());
 					break;
 				}
 				case PacketType::Ping: {
