@@ -791,7 +791,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 		if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
 			_log("Connection timed out with " + address, LogLevel::LL_Debug);
 			if (prev_auth_error != GRDevice::AuthResult::Timeout) {
-				GRNotifications::add_notification(con_error_title, "Connection timed out: " + dev->server_address, NotificationIcon::Warning);
+				GRNotifications::add_notification(con_error_title, "Connection timed out: " + address, NotificationIcon::Warning);
 				prev_auth_error = GRDevice::AuthResult::Timeout;
 			}
 			os->delay_usec(200_ms);
