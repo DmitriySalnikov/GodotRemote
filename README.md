@@ -2,7 +2,9 @@
 
 This is cross platform native module for [Godot Engine](https://github.com/godotengine/godot) v3 for control apps and games over WiFi or ADB.
 
-If you are developing on a non-touch device, this module is the best way to quickly test touch input or mobile sensors data.
+If you are developing on a non-touch device, this module is the best way to quickly test touch input or test mobile sensors data.
+
+[Video Demonstration](https://youtu.be/LbFcQnS3z3E)
 
 ## Donations
 
@@ -37,7 +39,7 @@ scons p=windows tools=yes godot_remote_no_default_resources=no godot_remote_disa
 
 ## Download Mobile App
 
-Currently this is a module and it's need to be compiled as part of engine but precompiled example of mobile client app based on this module can be found here:
+Currently this is a module and it's need to be compiled as part of engine but precompiled mobile client app based on this module can be found here:
 
 [Google Play](https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote)
 
@@ -48,13 +50,16 @@ Currently this is a module and it's need to be compiled as part of engine but pr
 To open settings menu you need to touch the screen with 5 fingers at once.
 
 Then you'll see this:
+
 ![Settings](Images/Screenshots/mobile_settings.png)
 
 ### Custom client
 
-If you don't want to use my client app or can't use it, you can check the [example client project](examples/simple_client) and build your own client.
+If need to support other platforms or you need a specific version of module integrated to the client app, you can build client from source code placed [here](godot_remote_client).
 
-Or you can donate me some money with request to buy iPhone :-)
+If you don't want to use my client app you can check the [example client project](examples/simple_client) and build your own client.
+
+Or you can donate me some money with request to buy iPhone and adapt a client for it 🙂
 
 ## API Reference
 
