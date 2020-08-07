@@ -286,8 +286,8 @@ public:
 	~GRTextureRect();
 };
 
-#endif // !NO_GODOTREMOTE_CLIENT
-
 VARIANT_ENUM_CAST(ConnectionType)
 VARIANT_ENUM_CAST(StretchMode)
 VARIANT_ENUM_CAST(StreamState)
+
+#endif // !NO_GODOTREMOTE_CLIENT

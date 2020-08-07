@@ -27,13 +27,19 @@ void register_godot_remote_types() {
 	ClassDB::register_class<GRNotificationStyle>();
 
 	ClassDB::register_virtual_class<GRDevice>();
-	ClassDB::register_class<GRServer>();
-	ClassDB::register_class<GRClient>();
 
+#ifndef NO_GODOTREMOTE_SERVER
+	ClassDB::register_class<GRServer>();
 	ClassDB::register_class<GRSViewport>();
 	ClassDB::register_class<GRSViewportRenderer>();
+#endif
+
+#ifndef NO_GODOTREMOTE_CLIENT
+	ClassDB::register_class<GRClient>();
 	ClassDB::register_class<GRInputCollector>();
 	ClassDB::register_class<GRTextureRect>();
+#endif
+
 
 	ClassDB::register_virtual_class<GRPacket>();
 }

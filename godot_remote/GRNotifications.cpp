@@ -16,8 +16,10 @@ using namespace GRUtils;
 GRNotifications *GRNotifications::singleton = nullptr;
 
 Ref<GRNotificationStyle> GRNotificationPanel::_default_style;
+#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 Dictionary GRNotificationPanel::_default_textures;
 Ref<ImageTexture> GRNotificationPanel::_default_close_texture;
+#endif
 
 List<GRNotificationPanel *> GRNotifications::_get_notifications_with_title(String title) {
 	List<GRNotificationPanel *> res;
@@ -516,8 +518,10 @@ void GRNotificationPanel::_bind_methods() {
 
 void GRNotificationPanel::clear_styles() {
 	_default_style.unref();
+#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 	_default_close_texture.unref();
 	_default_textures.clear();
+#endif
 }
 
 void GRNotificationPanel::set_notification_position(NotificationsPosition position) {
