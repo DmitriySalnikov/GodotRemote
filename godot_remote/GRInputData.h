@@ -6,28 +6,28 @@
 #include "core/os/input_event.h"
 #include "core/reference.h"
 
-enum class InputType {
-	None = 0,
+enum InputType {
+	_NoneIT = 0,
 	// Custom Input Data
-	InputDeviceSensors = 1,
+	_InputDeviceSensors = 1,
 
 	// Input Events
-	InputEvent = 64,
-	InputEventAction = 65,
-	InputEventGesture = 66,
-	InputEventJoypadButton = 67,
-	InputEventJoypadMotion = 68,
-	InputEventKey = 69,
-	InputEventMagnifyGesture = 70,
-	InputEventMIDI = 71,
-	InputEventMouse = 72,
-	InputEventMouseButton = 73,
-	InputEventMouseMotion = 74,
-	InputEventPanGesture = 75,
-	InputEventScreenDrag = 76,
-	InputEventScreenTouch = 77,
-	InputEventWithModifiers = 78,
-	InputEventMAX,
+	_InputEvent = 64,
+	_InputEventAction = 65,
+	_InputEventGesture = 66,
+	_InputEventJoypadButton = 67,
+	_InputEventJoypadMotion = 68,
+	_InputEventKey = 69,
+	_InputEventMagnifyGesture = 70,
+	_InputEventMIDI = 71,
+	_InputEventMouse = 72,
+	_InputEventMouseButton = 73,
+	_InputEventMouseMotion = 74,
+	_InputEventPanGesture = 75,
+	_InputEventScreenDrag = 76,
+	_InputEventScreenTouch = 77,
+	_InputEventWithModifiers = 78,
+	_InputEventMAX,
 };
 
 VARIANT_ENUM_CAST(InputType)
@@ -41,7 +41,7 @@ class GRInputData : public Reference {
 
 protected:
 	Ref<StreamPeerBuffer> data;
-	virtual InputType _get_type() { return InputType::None; };
+	virtual InputType _get_type() { return InputType::_NoneIT; };
 
 public:
 	GRInputData() {
@@ -77,7 +77,7 @@ class GRInputDeviceSensorsData : public GRInputData {
 	GDCLASS(GRInputDeviceSensorsData, GRInputData);
 
 protected:
-	virtual InputType _get_type() override { return InputType::InputDeviceSensors; };
+	virtual InputType _get_type() override { return InputType::_InputDeviceSensors; };
 
 public:
 	virtual void set_sensors(PoolVector3Array _sensors);
@@ -103,7 +103,7 @@ protected:
 		data->put_8((uint8_t)get_type());
 		data->put_32(ev->get_device());
 	};
-	virtual InputType _get_type() override { return InputType::None; };
+	virtual InputType _get_type() override { return InputType::_NoneIT; };
 
 public:
 	Ref<InputEvent> construct_event(const Rect2 &rect = Rect2());
@@ -124,20 +124,20 @@ public:
 	public:                                                                                       \
 	}
 
-INPUT_EVENT_DATA(GRIEDataWithModifiers, GRInputDataEvent, InputType::InputEventWithModifiers);
-INPUT_EVENT_DATA(GRIEDataMouse, GRIEDataWithModifiers, InputType::InputEventMouse);
-INPUT_EVENT_DATA(GRIEDataGesture, GRIEDataWithModifiers, InputType::InputEventGesture);
+INPUT_EVENT_DATA(GRIEDataWithModifiers, GRInputDataEvent, InputType::_InputEventWithModifiers);
+INPUT_EVENT_DATA(GRIEDataMouse, GRIEDataWithModifiers, InputType::_InputEventMouse);
+INPUT_EVENT_DATA(GRIEDataGesture, GRIEDataWithModifiers, InputType::_InputEventGesture);
 
-INPUT_EVENT_DATA(GRIEDataKey, GRIEDataWithModifiers, InputType::InputEventKey);
-INPUT_EVENT_DATA(GRIEDataMouseButton, GRIEDataMouse, InputType::InputEventMouseButton);
-INPUT_EVENT_DATA(GRIEDataMouseMotion, GRIEDataMouse, InputType::InputEventMouseMotion);
-INPUT_EVENT_DATA(GRIEDataScreenTouch, GRInputDataEvent, InputType::InputEventScreenTouch);
-INPUT_EVENT_DATA(GRIEDataScreenDrag, GRInputDataEvent, InputType::InputEventScreenDrag);
-INPUT_EVENT_DATA(GRIEDataMagnifyGesture, GRIEDataGesture, InputType::InputEventMagnifyGesture);
-INPUT_EVENT_DATA(GRIEDataPanGesture, GRIEDataGesture, InputType::InputEventPanGesture);
-INPUT_EVENT_DATA(GRIEDataJoypadButton, GRInputDataEvent, InputType::InputEventJoypadButton);
-INPUT_EVENT_DATA(GRIEDataJoypadMotion, GRInputDataEvent, InputType::InputEventJoypadMotion);
-INPUT_EVENT_DATA(GRIEDataAction, GRInputDataEvent, InputType::InputEventAction);
-INPUT_EVENT_DATA(GRIEDataMIDI, GRInputDataEvent, InputType::InputEventMIDI);
+INPUT_EVENT_DATA(GRIEDataKey, GRIEDataWithModifiers, InputType::_InputEventKey);
+INPUT_EVENT_DATA(GRIEDataMouseButton, GRIEDataMouse, InputType::_InputEventMouseButton);
+INPUT_EVENT_DATA(GRIEDataMouseMotion, GRIEDataMouse, InputType::_InputEventMouseMotion);
+INPUT_EVENT_DATA(GRIEDataScreenTouch, GRInputDataEvent, InputType::_InputEventScreenTouch);
+INPUT_EVENT_DATA(GRIEDataScreenDrag, GRInputDataEvent, InputType::_InputEventScreenDrag);
+INPUT_EVENT_DATA(GRIEDataMagnifyGesture, GRIEDataGesture, InputType::_InputEventMagnifyGesture);
+INPUT_EVENT_DATA(GRIEDataPanGesture, GRIEDataGesture, InputType::_InputEventPanGesture);
+INPUT_EVENT_DATA(GRIEDataJoypadButton, GRInputDataEvent, InputType::_InputEventJoypadButton);
+INPUT_EVENT_DATA(GRIEDataJoypadMotion, GRInputDataEvent, InputType::_InputEventJoypadMotion);
+INPUT_EVENT_DATA(GRIEDataAction, GRInputDataEvent, InputType::_InputEventAction);
+INPUT_EVENT_DATA(GRIEDataMIDI, GRInputDataEvent, InputType::_InputEventMIDI);
 
 #undef INPUT_EVENT_DATA

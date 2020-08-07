@@ -101,6 +101,7 @@ margin_bottom = 0.0
 visible = false
 
 [node name="PlsSupportPopup" type="WindowDialog" parent="."]
+visible = true
 margin_left = -840.0
 margin_top = 260.0
 margin_right = -140.0
@@ -158,13 +159,13 @@ size_flags_horizontal = 3
 text = "No, thanks"
 
 [node name="FirstLaunchHint" type="WindowDialog" parent="."]
+visible = true
 margin_left = -846.0
 margin_top = 487.0
 margin_right = -246.0
 margin_bottom = 758.0
 rect_min_size = Vector2( 500, 135 )
 window_title = "Hint"
-script = ExtResource( 9 )
 __meta__ = {
 "_edit_lock_": true,
 "_edit_use_anchors_": false

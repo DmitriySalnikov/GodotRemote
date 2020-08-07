@@ -18,7 +18,7 @@ To compile module you need:
 
 1. [configure environment](https://docs.godotengine.org/en/latest/development/compiling/index.html) to build editor for your platform;
 2. copy ```godot_remote``` folder to the ```modules/``` directory or make [symlink](https://en.wikipedia.org/wiki/Symbolic_link);
-3. compile editor with instructions from documentation above (example ```scons -p=windows tools=yes```);
+3. compile editor with instructions from documentation above (example ```scons p=windows tools=yes```);
 4. run ```bin/godot[based on config]```.
 
 If everything compiles successfully, you'll find the new category in project settings ```Debug/Godot Remote``` where you can configure server.

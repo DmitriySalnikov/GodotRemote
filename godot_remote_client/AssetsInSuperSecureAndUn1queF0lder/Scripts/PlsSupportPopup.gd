@@ -1,6 +1,7 @@
 extends WindowDialog
 
 var has_billings = false
+var shown = false
 
 func _enter_tree():
 	if G.Billings:
@@ -8,12 +9,14 @@ func _enter_tree():
 		G.Billings.connect("billings_ready", self, "_billings_ready")
 
 func _ready():
-	if not has_billings:
+	if not has_billings and not shown:
+		shown = true
 		if G.AppRuns == 4:
 			popup_centered()
 
 func _billings_ready():
-	if G.Billings.get_purchased_points() == 0:
+	if G.Billings.get_purchased_points() == 0 and not shown:
+		shown = true
 		if G.AppRuns != 0 && G.AppRuns % 4 == 0:
 			popup_centered()
 

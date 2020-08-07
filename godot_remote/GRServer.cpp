@@ -830,7 +830,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 						Ref<GRInputData> id = data->get_input_data(i);
 						InputType ev_type = id->get_type();
 
-						if (ev_type >= InputType::InputEvent) {
+						if (ev_type >= InputType::_InputEvent) {
 							Ref<GRInputDataEvent> ied = id;
 							if (ied.is_null()) {
 								_log("GRInputDataEvent is null", LogLevel::LL_Error);
@@ -843,11 +843,11 @@ void GRServer::_thread_connection(void *p_userdata) {
 							}
 						} else {
 							switch (ev_type) {
-								case InputType::None: {
+								case InputType::_NoneIT: {
 									_log("Not valid input type! 0");
 									break;
 								}
-								case InputType::InputDeviceSensors: {
+								case InputType::_InputDeviceSensors: {
 									Ref<GRInputDeviceSensorsData> sd = id;
 									if (sd.is_null()) {
 										_log("GRInputDeviceSensorsData is null", LogLevel::LL_Error);

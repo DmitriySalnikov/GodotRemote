@@ -5,8 +5,8 @@
 #include "core/io/stream_peer.h"
 #include "core/reference.h"
 
-enum class PacketType {
-	None = 0,
+enum PacketType {
+	NonePacket = 0,
 	SyncTime = 1,
 	ImageData = 2,
 	InputData = 3,
@@ -40,7 +40,7 @@ protected:
 	};
 
 public:
-	virtual PacketType get_type() { return PacketType::None; };
+	virtual PacketType get_type() { return PacketType::NonePacket; };
 	static Ref<GRPacket> create(const PoolByteArray &bytes);
 	PoolByteArray get_data() {
 		return _get_data()->get_data_array();

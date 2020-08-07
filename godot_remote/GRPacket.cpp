@@ -25,7 +25,7 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 	}
 
 	switch (type) {
-		case PacketType::None:
+		case PacketType::NonePacket:
 			ERR_FAIL_V_MSG(Ref<GRPacket>(), "Can't create abstract GRPacket!");
 		case PacketType::SyncTime:
 			CREATE(GRPacketSyncTime);

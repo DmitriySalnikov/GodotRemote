@@ -29,41 +29,41 @@ Ref<GRInputData> GRInputData::create(const PoolByteArray &buf) {
 
 	InputType type = (InputType)buf[0];
 	switch (type) {
-		case InputType::None:
+		case InputType::_NoneIT:
 			ERR_PRINT("Can't create GRInputData with type 'None'!");
 			break;
 			// ADDITIONAL CLASSES
-		case InputType::InputDeviceSensors:
+		case InputType::_InputDeviceSensors:
 			CREATE(GRInputDeviceSensorsData);
 
 			// INPUT EVENTS
-		case InputType::InputEvent:
-		case InputType::InputEventWithModifiers:
-		case InputType::InputEventMouse:
-		case InputType::InputEventGesture:
+		case InputType::_InputEvent:
+		case InputType::_InputEventWithModifiers:
+		case InputType::_InputEventMouse:
+		case InputType::_InputEventGesture:
 			ERR_PRINT("Can't create GRInputData for abstract InputEvent! Type index: " + str((int)type));
 			break;
-		case InputType::InputEventAction:
+		case InputType::_InputEventAction:
 			CREATE(GRIEDataAction);
-		case InputType::InputEventJoypadButton:
+		case InputType::_InputEventJoypadButton:
 			CREATE(GRIEDataJoypadButton);
-		case InputType::InputEventJoypadMotion:
+		case InputType::_InputEventJoypadMotion:
 			CREATE(GRIEDataJoypadMotion);
-		case InputType::InputEventKey:
+		case InputType::_InputEventKey:
 			CREATE(GRIEDataKey);
-		case InputType::InputEventMagnifyGesture:
+		case InputType::_InputEventMagnifyGesture:
 			CREATE(GRIEDataMagnifyGesture);
-		case InputType::InputEventMIDI:
+		case InputType::_InputEventMIDI:
 			CREATE(GRIEDataMIDI);
-		case InputType::InputEventMouseButton:
+		case InputType::_InputEventMouseButton:
 			CREATE(GRIEDataMouseButton);
-		case InputType::InputEventMouseMotion:
+		case InputType::_InputEventMouseMotion:
 			CREATE(GRIEDataMouseMotion);
-		case InputType::InputEventPanGesture:
+		case InputType::_InputEventPanGesture:
 			CREATE(GRIEDataPanGesture);
-		case InputType::InputEventScreenDrag:
+		case InputType::_InputEventScreenDrag:
 			CREATE(GRIEDataScreenDrag);
-		case InputType::InputEventScreenTouch:
+		case InputType::_InputEventScreenTouch:
 			CREATE(GRIEDataScreenTouch);
 	}
 #undef CREATE
@@ -114,7 +114,7 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 	}
 
 	InputType type = _get_type();
-	ERR_FAIL_COND_V_MSG(type < InputType::InputEvent || type >= InputType::InputEventMAX, Ref<GRInputDataEvent>(), "Not InputEvent");
+	ERR_FAIL_COND_V_MSG(type < InputType::_InputEvent || type >= InputType::_InputEventMAX, Ref<GRInputDataEvent>(), "Not InputEvent");
 
 	Rect2 vp_size = rect;
 	if (vp_size.size.x == 0 && vp_size.size.y == 0 &&
@@ -126,36 +126,36 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 	}
 
 	switch (type) {
-		case InputType::None:
+		case InputType::_NoneIT:
 			ERR_PRINT("Can't create GRInputDataEvent with type 'None'!");
 			break;
-		case InputType::InputEvent:
-		case InputType::InputEventWithModifiers:
-		case InputType::InputEventMouse:
-		case InputType::InputEventGesture:
+		case InputType::_InputEvent:
+		case InputType::_InputEventWithModifiers:
+		case InputType::_InputEventMouse:
+		case InputType::_InputEventGesture:
 			ERR_PRINT("Can't create GRInputDataEvent for abstract InputEvent! Type index: " + str((int)type));
 			break;
-		case InputType::InputEventAction:
+		case InputType::_InputEventAction:
 			CONSTRUCT(InputEventAction);
-		case InputType::InputEventJoypadButton:
+		case InputType::_InputEventJoypadButton:
 			CONSTRUCT(InputEventJoypadButton);
-		case InputType::InputEventJoypadMotion:
+		case InputType::_InputEventJoypadMotion:
 			CONSTRUCT(InputEventJoypadMotion);
-		case InputType::InputEventKey:
+		case InputType::_InputEventKey:
 			CONSTRUCT(InputEventKey);
-		case InputType::InputEventMagnifyGesture:
+		case InputType::_InputEventMagnifyGesture:
 			CONSTRUCT(InputEventMagnifyGesture);
-		case InputType::InputEventMIDI:
+		case InputType::_InputEventMIDI:
 			CONSTRUCT(InputEventMIDI);
-		case InputType::InputEventMouseButton:
+		case InputType::_InputEventMouseButton:
 			CONSTRUCT(InputEventMouseButton);
-		case InputType::InputEventMouseMotion:
+		case InputType::_InputEventMouseMotion:
 			CONSTRUCT(InputEventMouseMotion);
-		case InputType::InputEventPanGesture:
+		case InputType::_InputEventPanGesture:
 			CONSTRUCT(InputEventPanGesture);
-		case InputType::InputEventScreenDrag:
+		case InputType::_InputEventScreenDrag:
 			CONSTRUCT(InputEventScreenDrag);
-		case InputType::InputEventScreenTouch:
+		case InputType::_InputEventScreenTouch:
 			CONSTRUCT(InputEventScreenTouch);
 	}
 
