@@ -37,23 +37,25 @@ Example:
 scons p=windows tools=yes godot_remote_no_default_resources=no godot_remote_disable_client=no
 ```
 
-## Download Mobile App
+## Download
 
-Currently this is a module and it's need to be compiled as part of engine but precompiled mobile client app based on this module can be found here:
+Currently this is a module and it's need to be compiled as part of the engine but precompiled binaries can be found on [GitHub Releases](https://github.com/DmitriySalnikov/GodotRemote/releases) page
 
-[Google Play](https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote)
+### Mobile app
 
-[GitHub Releases](https://github.com/DmitriySalnikov/GodotRemote/releases)
+On releases page you can found precompiled mobile app but also it can be downloaded from [Google Play](https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote)
 
-### Configure app
+## Configure Mobile App
 
 To open settings menu you need to touch the screen with 5 fingers at once.
 
-Then you'll see this:
+Then you'll see this settings menu:
 
 ![Settings](Images/Screenshots/mobile_settings.png)
 
-### Custom client
+**Important:** after entering server address you should apply it by pressing `Set Type and Address` or `Set Type and Port`
+
+## Custom client
 
 If need to support other platforms or you need a specific version of module integrated to the client app, you can build client from source code placed [here](godot_remote_client).
 
