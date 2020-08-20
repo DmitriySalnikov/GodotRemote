@@ -392,7 +392,7 @@ int GodotRemote::get_notifications_layer() const {
 void GodotRemote::set_notifications_position(NotificationsPosition positon) const {
 	GRNotifications::set_notifications_position(positon);
 }
-int GodotRemote::get_notifications_position() const {
+NotificationsPosition GodotRemote::get_notifications_position() const {
 	return GRNotifications::get_notifications_position();
 }
 void GodotRemote::set_notifications_enabled(bool _enabled) const {

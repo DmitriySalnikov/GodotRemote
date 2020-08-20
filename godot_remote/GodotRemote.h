@@ -78,7 +78,7 @@ public:
 	int get_notifications_layer() const;
 
 	void set_notifications_position(NotificationsPosition positon) const;
-	int get_notifications_position() const;
+	NotificationsPosition get_notifications_position() const;
 
 	void set_notifications_enabled(bool _enabled) const;
 	bool get_notifications_enabled() const;
