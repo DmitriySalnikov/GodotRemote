@@ -67,6 +67,9 @@ void GRNotifications::_set_notifications_position(NotificationsPosition positon)
 }
 
 void GRNotifications::_add_notification_or_append_string(String title, String text, NotificationIcon icon, bool new_string, float duration_multiplier) {
+	if (!notifications_enabled)
+		return;
+
 	auto *np = _get_notification(title);
 	if (np) {
 		np->update_text(np->get_text() + (new_string ? "\n" + text : text));
@@ -76,6 +79,9 @@ void GRNotifications::_add_notification_or_append_string(String title, String te
 }
 
 void GRNotifications::_add_notification_or_update_line(String title, String id, String text, NotificationIcon icon, float duration_multiplier) {
+	if (!notifications_enabled)
+		return;
+
 	auto *np = cast_to<GRNotificationPanelUpdatable>(_get_notification(title));
 	if (np) {
 		_log("Updating existing updatable notification with Title: \"" + title + "\" ID: \"" + id + "\" Text:\"" + text + "\"", LogLevel::LL_Debug);
