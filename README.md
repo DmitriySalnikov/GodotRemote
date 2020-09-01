@@ -16,7 +16,7 @@ If you are developing on a non-touch device, this module is the best way to quic
 
 To compile module you need:
 
-1. [configure environment](https://docs.godotengine.org/en/latest/development/compiling/index.html) to build editor for your platform;
+1. [configure environment](https://docs.godotengine.org/en/3.2/development/compiling/index.html) to build editor for your platform (you need to clone [3.2 branch](https://github.com/godotengine/godot/tree/3.2) not master);
 2. copy ```godot_remote``` folder to the ```modules/``` directory or make [symlink](https://en.wikipedia.org/wiki/Symbolic_link);
 3. compile editor with instructions from documentation above (example ```scons p=windows tools=yes```);
 4. run ```bin/godot[based on config]```.
