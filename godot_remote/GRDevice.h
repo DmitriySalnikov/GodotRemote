@@ -3,7 +3,19 @@
 
 #include "GRInputData.h"
 #include "GRUtils.h"
+
+#ifndef GDNATIVE_LIBRARY
 #include "scene/main/node.h"
+#else
+#include <Node.hpp>
+#include <Godot.hpp>
+#include <Array.hpp>
+#include <PoolArrays.hpp>
+#include <Reference.hpp>
+#include <Ref.hpp>
+#include <String.hpp>
+using namespace godot;
+#endif
 
 enum WorkingStatus {
 	Stopped,
@@ -13,7 +25,7 @@ enum WorkingStatus {
 };
 
 class GRDevice : public Node {
-	GDCLASS(GRDevice, Node);
+	GD_CLASS(GRDevice, Node);
 
 public:
 	enum class AuthResult {
@@ -44,7 +56,13 @@ protected:
 	virtual void _internal_call_only_deffered_start() = 0;
 	virtual void _internal_call_only_deffered_stop() = 0;
 
+#ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+protected:
+#endif
 
 public:
 	uint16_t port = 52341;
@@ -65,4 +83,6 @@ public:
 	~GRDevice();
 };
 
+#ifndef GDNATIVE_LIBRARY
 VARIANT_ENUM_CAST(WorkingStatus)
+#endif

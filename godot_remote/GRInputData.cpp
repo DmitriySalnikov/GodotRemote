@@ -1,9 +1,18 @@
 /* GRInputData.cpp */
 #include "GRInputData.h"
 #include "GRPacket.h"
+
+#ifndef GDNATIVE_LIBRARY
 #include "core/os/os.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/viewport.h"
+#else
+
+#include <OS.hpp>
+#include <SceneTree.hpp>
+#include <Viewport.hpp>
+using namespace godot;
+#endif
 
 using namespace GRUtils;
 
@@ -26,8 +35,8 @@ Ref<GRInputData> GRInputData::create(const PoolByteArray &buf) {
 		id->data->set_data_array(buf); \
 		return id;                     \
 	}
-
-	InputType type = (InputType)buf[0];
+	
+	InputType type = (InputType)((PoolByteArray)buf)[0];
 	switch (type) {
 		case InputType::_NoneIT:
 			ERR_PRINT("Can't create GRInputData with type 'None'!");
@@ -119,9 +128,9 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 	Rect2 vp_size = rect;
 	if (vp_size.size.x == 0 && vp_size.size.y == 0 &&
 			vp_size.position.x == 0 && vp_size.position.y == 0) {
-		if (SceneTree::get_singleton() && SceneTree::get_singleton()->get_root()) {
+		if (ST() && ST()->get_root()) {
 			//vp_size = SceneTree::get_singleton()->get_root()->get_visible_rect();
-			vp_size = Rect2(OS::get_singleton()->get_window_size(), SceneTree::get_singleton()->get_root()->get_size());
+			vp_size = Rect2(OS::get_singleton()->get_window_size(), ST()->get_root()->get_size());
 		}
 	}
 

@@ -3,6 +3,12 @@
 #include "GRResources.h"
 #include "GRUtils.h"
 #include "GodotRemote.h"
+
+#ifndef GDNATIVE_LIBRARY
+
+#define add_s_override add_style_override
+#define set_b_icon set_icon
+
 #include "core/engine.h"
 #include "core/os/input_event.h"
 #include "scene/animation/tween.h"
@@ -10,6 +16,30 @@
 #include "scene/gui/button.h"
 #include "scene/gui/label.h"
 #include "scene/gui/texture_rect.h"
+#else
+
+#define add_s_override add_stylebox_override
+#define set_b_icon set_button_icon
+
+#include <Engine.hpp>
+#include <InputEvent.hpp>
+#include <InputEventAction.hpp>
+#include <InputEventGesture.hpp>
+#include <InputEventJoypadButton.hpp>
+#include <InputEventJoypadMotion.hpp>
+#include <InputEventKey.hpp>
+#include <InputEventMagnifyGesture.hpp>
+#include <InputEventMIDI.hpp>
+#include <InputEventMouse.hpp>
+#include <InputEventMouseButton.hpp>
+#include <InputEventMouseMotion.hpp>
+#include <InputEventPanGesture.hpp>
+#include <InputEventScreenDrag.hpp>
+#include <InputEventScreenTouch.hpp>
+#include <InputEventWithModifiers.hpp>
+#include <BoxContainer.hpp>
+using namespace godot;
+#endif
 
 using namespace GRUtils;
 
@@ -21,12 +51,12 @@ Dictionary GRNotificationPanel::_default_textures;
 Ref<ImageTexture> GRNotificationPanel::_default_close_texture;
 #endif
 
-List<GRNotificationPanel *> GRNotifications::_get_notifications_with_title(String title) {
-	List<GRNotificationPanel *> res;
+Array GRNotifications::_get_notifications_with_title(String title) { // GRNotificationPanel *
+	Array res; // GRNotificationPanel *
 
 	if (singleton) {
 		for (int i = singleton->notifications.size() - 1; i >= 0; i--) {
-			if (notifications[i]->get_title() == title) {
+			if (((GRNotificationPanel*)notifications[i])->get_title() == title) {
 				res.push_back(notifications[i]);
 			}
 		}
@@ -36,7 +66,7 @@ List<GRNotificationPanel *> GRNotifications::_get_notifications_with_title(Strin
 
 GRNotificationPanel *GRNotifications::_get_notification(String title) {
 	for (int i = singleton->notifications.size() - 1; i >= 0; i--) {
-		if (notifications[i]->get_title() == title) {
+		if (((GRNotificationPanel*)notifications[i])->get_title() == title) {
 			return notifications[i];
 		}
 	}
@@ -106,7 +136,7 @@ void GRNotifications::_add_notification_or_update_line(String title, String id, 
 
 void GRNotifications::_set_all_notifications_positions(NotificationsPosition pos) {
 	for (int i = singleton->notifications.size() - 1; i >= 0; i--) {
-		auto *np = notifications[i];
+		GRNotificationPanel* np = notifications[i];
 		if (np && !np->is_queued_for_deletion())
 			np->set_notification_position((NotificationsPosition)pos);
 	}
@@ -121,13 +151,15 @@ void GRNotifications::_notification(int p_what) {
 	}
 }
 
+#ifndef GDNATIVE_LIBRARY
+
 void GRNotifications::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_set_notifications_position", "pos"), &GRNotifications::_set_notifications_position);
 	ClassDB::bind_method(D_METHOD("_add_notification_or_append_string", "title", "text", "icon", "new_string", "duration_multiplier"), &GRNotifications::_add_notification_or_append_string);
 	ClassDB::bind_method(D_METHOD("_add_notification_or_update_line", "title", "id", "text", "icon", "duration_multiplier"), &GRNotifications::_add_notification_or_update_line);
 	ClassDB::bind_method(D_METHOD("_add_notification", "title", "text", "icon", "update_existing", "duration_multiplier"), &GRNotifications::_add_notification);
 	ClassDB::bind_method(D_METHOD("_remove_notification", "title", "is_all_entries"), &GRNotifications::_remove_notification);
-	ClassDB::bind_method(D_METHOD("_remove_exact_notification", "notif"), &GRNotifications::_remove_exact_notification);
+	ClassDB::bind_method(D_METHOD("_remove_exact_notification", "notification"), &GRNotifications::_remove_exact_notification);
 	ClassDB::bind_method(D_METHOD("_clear_notifications"), &GRNotifications::_clear_notifications);
 
 	ClassDB::bind_method(D_METHOD("_remove_list"), &GRNotifications::_remove_list);
@@ -139,6 +171,13 @@ void GRNotifications::_bind_methods() {
 	//ADD_PROPERTY(PropertyInfo(Variant::REAL, "port"), "set_port", "get_port");
 	//BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Starting, "STATUS_STARTING");
 }
+
+#else
+
+void GRNotifications::_register_methods() {
+}
+
+#endif
 
 GRNotificationPanel *GRNotifications::get_notification(String title) {
 	if (singleton) {
@@ -324,9 +363,10 @@ void GRNotifications::_remove_exact_notification(Node *_notif) {
 void GRNotifications::_clear_notifications() {
 	clearing_notifications = true;
 	for (int i = 0; i < notifications.size(); i++) {
-		notif_list_node->remove_child(notifications[i]);
-		notifications.erase(notifications[i]);
-		memdelete(notifications[i]);
+		GRNotificationPanel* tmp = notifications[i];
+		notif_list_node->remove_child(tmp);
+		notifications.erase(tmp);
+		memdelete(tmp);
 	}
 	emit_signal("notifications_cleared");
 	clearing_notifications = false;
@@ -410,7 +450,7 @@ void GRNotificationPanel::_update_style() {
 	if (style.is_valid())
 		s = style;
 
-	add_style_override("panel", s->get_panel_style());
+	add_s_override("panel", s->get_panel_style());
 
 	title_node->add_font_override("font", s->get_title_font());
 	text_node->add_font_override("font", s->get_text_font());
@@ -418,7 +458,7 @@ void GRNotificationPanel::_update_style() {
 	close_node->set_theme(s->get_close_button_theme());
 	close_node->add_font_override("font", s->get_title_font());
 	close_node->set_text(s->get_close_button_icon().is_null() ? "[x]" : "");
-	close_node->set_icon(s->get_close_button_icon());
+	close_node->set_b_icon(s->get_close_button_icon());
 
 	icon_tex_node->set_texture(s->get_notification_icon(notification_icon));
 	icon_tex_node->set_visible(icon_tex_node->get_texture().is_valid());
@@ -512,6 +552,8 @@ void GRNotificationPanel::_load_default_textures() {
 }
 #endif
 
+#ifndef GDNATIVE_LIBRARY
+
 void GRNotificationPanel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_remove_this_notification"), &GRNotificationPanel::_remove_this_notification);
 	ClassDB::bind_method(D_METHOD("_panel_hovered"), &GRNotificationPanel::_panel_hovered);
@@ -521,6 +563,13 @@ void GRNotificationPanel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_text"), &GRNotificationPanel::get_text);
 	ClassDB::bind_method(D_METHOD("update_text", "text"), &GRNotificationPanel::update_text);
 }
+
+#else
+
+void GRNotificationPanel::_register_methods() {
+}
+
+#endif
 
 void GRNotificationPanel::clear_styles() {
 	_default_style.unref();
@@ -659,10 +708,19 @@ String GRNotificationPanelUpdatable::_get_text_from_lines() {
 	return res;
 }
 
+#ifndef GDNATIVE_LIBRARY
 void GRNotificationPanelUpdatable::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("clear_lines"), &GRNotificationPanelUpdatable::clear_lines);
 	ClassDB::bind_method(D_METHOD("remove_updatable_line", "id"), &GRNotificationPanelUpdatable::remove_updatable_line);
 }
+
+#else
+
+
+void GRNotificationPanelUpdatable::_register_methods() {
+}
+
+#endif
 
 void GRNotificationPanelUpdatable::set_updatable_line(GRNotifications *_owner, String title, String id, String text, NotificationIcon icon, float duration_multiplier, Ref<GRNotificationStyle> _style) {
 	if (configured) {
@@ -716,6 +774,7 @@ void GRNotificationPanelUpdatable::clear_lines() {
 
 // STYLE REF
 
+#ifndef GDNATIVE_LIBRARY
 void GRNotificationStyle::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_notification_icon", "notification_icon", "icon_texture"), &GRNotificationStyle::set_notification_icon);
 	ClassDB::bind_method(D_METHOD("get_notification_icon", "notification_icon"), &GRNotificationStyle::get_notification_icon);
@@ -738,6 +797,14 @@ void GRNotificationStyle::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "title_font"), "set_title_font", "get_title_font");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "text_font"), "set_text_font", "get_text_font");
 }
+
+#else
+
+
+void GRNotificationStyle::_register_methods() {
+}
+
+#endif
 
 GRNotificationStyle::~GRNotificationStyle() {
 	panel_style.unref();

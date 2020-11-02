@@ -4,17 +4,35 @@
 #ifndef NO_GODOTREMOTE_SERVER
 
 #include "GRDevice.h"
+#include "GRPacket.h"
+#include <vector>
+
+#ifndef GDNATIVE_LIBRARY
+
 #include "core/io/stream_peer_tcp.h"
 #include "core/io/tcp_server.h"
 #include "scene/gui/control.h"
 #include "scene/main/viewport.h"
+#else
+
+#include <StreamPeerTCP.hpp>
+#include <TCP_Server.hpp>
+#include <Control.hpp>
+#include <Viewport.hpp>
+#include <Thread.hpp>
+#include <PacketPeerStream.hpp>
+#include <RegEx.hpp>
+#include <RegExMatch.hpp>
+#include <ViewportTexture.hpp>
+using namespace godot;
+#endif
 
 class GRServer : public GRDevice {
-	GDCLASS(GRServer, GRDevice);
+	GD_S_CLASS(GRServer, GRDevice);
 
 private:
 	class ListenerThreadParams : public Reference {
-		GDCLASS(ListenerThreadParams, Reference);
+		GD_CLASS(ListenerThreadParams, Reference);
 
 	public:
 		GRServer *dev = nullptr;
@@ -25,7 +43,7 @@ private:
 		void close_thread() {
 			stop_thread = true;
 			if (thread_ref) {
-				Thread::wait_to_finish(thread_ref);
+				t_wait_to_finish(thread_ref);
 				memdelete(thread_ref);
 				thread_ref = nullptr;
 			}
@@ -37,7 +55,7 @@ private:
 	};
 
 	class ConnectionThreadParams : public Reference {
-		GDCLASS(ConnectionThreadParams, Reference);
+		GD_CLASS(ConnectionThreadParams, Reference);
 
 	public:
 		String device_id = "";
@@ -50,7 +68,7 @@ private:
 		void close_thread() {
 			break_connection = true;
 			if (thread_ref) {
-				Thread::wait_to_finish(thread_ref);
+				t_wait_to_finish(thread_ref);
 				memdelete(thread_ref);
 				thread_ref = nullptr;
 			}
@@ -92,18 +110,25 @@ private:
 
 	virtual void _reset_counters() override;
 
-	static void _thread_listen(void *p_userdata);
-	static void _thread_connection(void *p_userdata);
+	THREAD_FUNC void _thread_listen(void *p_userdata);
+	THREAD_FUNC void _thread_connection(void *p_userdata);
 
 	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection = false);
-	Ref<class GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress = true, int compression_type = 0);
-	void _scan_resource_for_dependencies_recursive(String _dir, Vector<String> &_arr);
+	Ref<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress = true, int compression_type = 0);
+	void _scan_resource_for_dependencies_recursive(String _dir, std::vector<String> &_arr);
 
 protected:
 	virtual void _internal_call_only_deffered_start() override;
 	virtual void _internal_call_only_deffered_stop() override;
 
+#ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+protected:
+#endif
+
 	void _notification(int p_notification);
 
 public:
@@ -139,14 +164,14 @@ public:
 };
 
 class GRSViewport : public Viewport {
-	GDCLASS(GRSViewport, Viewport);
+	GD_CLASS(GRSViewport, Viewport);
 	friend GRServer;
 	friend class ImgProcessingStorage;
-	_THREAD_SAFE_CLASS_;
+	_TS_CLASS_;
 
 public:
 	class ImgProcessingStorage : public Reference {
-		GDCLASS(ImgProcessingStorage, Reference);
+		GD_CLASS(ImgProcessingStorage, Reference);
 
 	public:
 		PoolByteArray ret_data;
@@ -167,7 +192,7 @@ private:
 
 	void _close_thread();
 	void _set_img_data(Ref<ImgProcessingStorage> _data);
-	static void _processing_thread(void *p_user);
+	THREAD_FUNC void _processing_thread(void *p_user);
 
 protected:
 	Viewport *main_vp = nullptr;
@@ -182,7 +207,14 @@ protected:
 	uint16_t frames_from_prev_image = 0;
 	bool is_empty_image_sended = false;
 
+#ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+protected:
+#endif
+
 	void _notification(int p_notification);
 	void _update_size();
 
@@ -207,12 +239,19 @@ public:
 };
 
 class GRSViewportRenderer : public Control {
-	GDCLASS(GRSViewportRenderer, Control);
+	GD_CLASS(GRSViewportRenderer, Control);
 
 protected:
 	Viewport *vp = nullptr;
 
+#ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+protected:
+#endif
+
 	void _notification(int p_notification);
 
 public:

@@ -4,6 +4,8 @@
 
 using namespace GRUtils;
 
+#ifndef GDNATIVE_LIBRARY
+
 void GRDevice::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_start"), &GRDevice::_internal_call_only_deffered_start);
 	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_stop"), &GRDevice::_internal_call_only_deffered_stop);
@@ -48,6 +50,14 @@ void GRDevice::_bind_methods() {
 	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventWithModifiers, "InputEventWithModifiers")
 	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMAX, "InputEventMAX")
 }
+
+#else
+
+
+void GRDevice::_register_methods() {
+}
+
+#endif
 
 void GRDevice::_reset_counters() {
 	avg_fps = 0;
@@ -94,6 +104,7 @@ void GRDevice::set_port(uint16_t _port) {
 
 void GRDevice::start() {
 	call_deferred("_internal_call_only_deffered_start");
+	
 }
 
 void GRDevice::stop() {

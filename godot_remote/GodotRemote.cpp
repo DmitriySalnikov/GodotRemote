@@ -3,12 +3,22 @@
 #include "GRClient.h"
 #include "GRDevice.h"
 #include "GRServer.h"
+
+#ifndef GDNATIVE_LIBRARY
 #include "core/os/os.h"
 #include "core/project_settings.h"
 #include "editor/editor_node.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/timer.h"
 #include "scene/main/viewport.h"
+#else
+#include <OS.hpp>
+#include <ProjectSettings.hpp>
+#include <SceneTree.hpp>
+#include <Timer.hpp>
+#include <Viewport.hpp>
+using namespace godot;
+#endif
 
 GodotRemote *GodotRemote::singleton = nullptr;
 
@@ -44,12 +54,14 @@ GodotRemote::GodotRemote() {
 	if (!singleton)
 		singleton = this;
 
+#ifndef GDNATIVE_LIBRARY
 	register_and_load_settings();
 	if (!Engine::get_singleton()->is_editor_hint()) {
 		call_deferred("_create_notification_manager");
 		if (is_autostart)
 			call_deferred("create_and_start_device");
 	}
+#endif
 
 #ifdef TOOLS_ENABLED
 	call_deferred("_prepare_editor");
@@ -64,6 +76,8 @@ GodotRemote::~GodotRemote() {
 	call_deferred("_adb_start_timer_timeout");
 #endif
 }
+
+#ifndef GDNATIVE_LIBRARY
 
 void GodotRemote::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_create_notification_manager"), &GodotRemote::_create_notification_manager);
@@ -163,6 +177,14 @@ void GodotRemote::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_gyroscope", "value"), &GodotRemote::set_gyroscope);
 }
 
+#else
+
+
+void GodotRemote::_register_methods() {
+}
+
+#endif
+
 void GodotRemote::_notification(int p_notification) {
 	switch (p_notification) {
 		case NOTIFICATION_PREDELETE:
@@ -217,8 +239,8 @@ bool GodotRemote::create_remote_device(DeviceType type) {
 	if (d) {
 		device = d;
 		call_deferred("emit_signal", "device_added");
-		SceneTree::get_singleton()->get_root()->call_deferred("add_child", device);
-		SceneTree::get_singleton()->get_root()->call_deferred("move_child", device, 0);
+		ST()->get_root()->call_deferred("add_child", device);
+		ST()->get_root()->call_deferred("move_child", device, 0);
 		return true;
 	}
 
@@ -236,7 +258,7 @@ bool GodotRemote::start_remote_device() {
 bool GodotRemote::remove_remote_device() {
 	if (device && !device->is_queued_for_deletion()) {
 		device->stop();
-		device->queue_delete();
+		device->queue_del();
 		device = nullptr;
 		call_deferred("emit_signal", "device_removed");
 		return true;
@@ -244,6 +266,7 @@ bool GodotRemote::remove_remote_device() {
 	return false;
 }
 
+#ifndef GDNATIVE_LIBRARY
 void GodotRemote::register_and_load_settings() {
 #define DEF_SET(var, name, def_val, info) \
 	var = GLOBAL_DEF(name, def_val);      \
@@ -285,17 +308,18 @@ void GodotRemote::register_and_load_settings() {
 #undef DEF_SET_ENUM
 #undef DEF_
 }
+#endif
 
 void GodotRemote::_create_notification_manager() {
 	GRNotifications *notif = memnew(GRNotifications);
-	SceneTree::get_singleton()->get_root()->call_deferred("add_child", notif);
-	SceneTree::get_singleton()->get_root()->call_deferred("move_child", notif, 0);
+	ST()->get_root()->call_deferred("add_child", notif);
+	ST()->get_root()->call_deferred("move_child", notif, 0);
 }
 
 void GodotRemote::_remove_notifications_manager() {
 	GRNotificationPanel::clear_styles();
 	if (GRNotifications::get_singleton() && !GRNotifications::get_singleton()->is_queued_for_deletion()) {
-		SceneTree::get_singleton()->get_root()->remove_child(GRNotifications::get_singleton());
+		ST()->get_root()->remove_child(GRNotifications::get_singleton());
 		memdelete(GRNotifications::get_singleton());
 	}
 }
@@ -305,6 +329,7 @@ void GodotRemote::create_and_start_device(DeviceType type) {
 	start_remote_device();
 }
 
+#ifndef GDNATIVE_LIBRARY
 #ifdef TOOLS_ENABLED
 // TODO need to try get every device IDs and setup forwarding for each
 #include "editor/editor_export.h"
@@ -364,6 +389,7 @@ void GodotRemote::_adb_start_timer_timeout() {
 	}
 }
 
+#endif
 #endif
 
 //////////////////////////////////////////////////////////////////////////

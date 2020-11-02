@@ -2,9 +2,34 @@
 #pragma once
 
 #include "GRUtils.h"
+
+#ifndef GDNATIVE_LIBRARY
 #include "core/reference.h"
 #include "scene/gui/panel_container.h"
 #include "scene/main/canvas_layer.h"
+#else
+
+#include <Godot.hpp>
+#include <Array.hpp>
+#include <PoolArrays.hpp>
+#include <Reference.hpp>
+#include <Ref.hpp>
+#include <String.hpp>
+#include <PanelContainer.hpp>
+#include <VBoxContainer.hpp>
+#include <HBoxContainer.hpp>
+#include <CanvasLayer.hpp>
+#include <ImageTexture.hpp>
+#include <Tween.hpp>
+#include <Button.hpp>
+#include <Label.hpp>
+#include <TextureRect.hpp>
+#include <Font.hpp>
+#include <Theme.hpp>
+#include <StyleBoxEmpty.hpp>
+#include <StyleBoxFlat.hpp>
+using namespace godot;
+#endif
 
 class GRNotificationPanel;
 class GRNotificationStyle;
@@ -31,7 +56,7 @@ enum NotificationsPosition {
 };
 
 class GRNotifications : public CanvasLayer {
-	GDCLASS(GRNotifications, CanvasLayer);
+	GD_CLASS(GRNotifications, CanvasLayer);
 
 	friend class GRNotificationPanel;
 
@@ -46,10 +71,10 @@ private:
 	NotificationsPosition notifications_position = NotificationsPosition::TL;
 
 	class VBoxContainer *notif_list_node = nullptr;
-	List<GRNotificationPanel *> notifications;
+	Array notifications; // GRNotificationPanel *
 	Ref<GRNotificationStyle> style;
 
-	List<GRNotificationPanel *> _get_notifications_with_title(String title);
+	Array _get_notifications_with_title(String title); // GRNotificationPanel *
 	GRNotificationPanel *_get_notification(String title);
 
 	void _set_all_notifications_positions(NotificationsPosition pos);
@@ -65,8 +90,15 @@ private:
 	void _remove_list();
 
 protected:
-	void _notification(int p_what);
+#ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+protected:
+#endif
+
+	void _notification(int p_what);
 
 public:
 	/// All functions below need to be called after init notification manager
@@ -101,7 +133,7 @@ public:
 };
 
 class GRNotificationPanel : public PanelContainer {
-	GDCLASS(GRNotificationPanel, PanelContainer);
+	GD_CLASS(GRNotificationPanel, PanelContainer);
 
 	friend GRNotifications;
 
@@ -138,7 +170,13 @@ protected:
 #endif
 
 protected:
+#ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+protected:
+#endif
 
 public:
 	static void clear_styles();
@@ -154,7 +192,7 @@ public:
 };
 
 class GRNotificationPanelUpdatable : public GRNotificationPanel {
-	GDCLASS(GRNotificationPanelUpdatable, GRNotificationPanel);
+	GD_S_CLASS(GRNotificationPanelUpdatable, GRNotificationPanel);
 
 	friend GRNotifications;
 
@@ -162,7 +200,14 @@ protected:
 	Dictionary lines;
 	String _get_text_from_lines();
 	bool configured = false;
+
+#ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+protected:
+#endif
 
 public:
 	void set_updatable_line(GRNotifications *_owner, String title, String id, String text, NotificationIcon icon, float duration_multiplier = 1.f, Ref<GRNotificationStyle> _style = Ref<GRNotificationStyle>());
@@ -173,7 +218,7 @@ public:
 // STYLE REF
 
 class GRNotificationStyle : public Reference {
-	GDCLASS(GRNotificationStyle, Reference);
+	GD_CLASS(GRNotificationStyle, Reference);
 
 private:
 	Ref<StyleBox> panel_style;
@@ -184,7 +229,13 @@ private:
 	Dictionary icons;
 
 protected:
+#ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+protected:
+#endif
 
 public:
 	~GRNotificationStyle();
@@ -208,5 +259,7 @@ public:
 	Ref<Texture> get_notification_icon(NotificationIcon notification_icon);
 };
 
+#ifndef GDNATIVE_LIBRARY
 VARIANT_ENUM_CAST(NotificationsPosition)
 VARIANT_ENUM_CAST(NotificationIcon)
+#endif

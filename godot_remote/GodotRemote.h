@@ -3,14 +3,26 @@
 
 #include "GRNotifications.h"
 #include "GRUtils.h"
+
+#ifndef GDNATIVE_LIBRARY
 #include "core/image.h"
 #include "core/pool_vector.h"
 #include "core/reference.h"
+#else
+#include <Godot.hpp>
+#include <Array.hpp>
+#include <PoolArrays.hpp>
+#include <Reference.hpp>
+#include <Ref.hpp>
+#include <String.hpp>
+#include <Image.hpp>
+using namespace godot;
+#endif
 
 using namespace GRUtils;
 
 class GodotRemote : public Reference {
-	GDCLASS(GodotRemote, Reference);
+	GD_CLASS(GodotRemote, Reference);
 
 	friend class GRDevice;
 	static GodotRemote *singleton;
@@ -49,11 +61,14 @@ private:
 
 	class GRDevice *device = nullptr;
 
+#ifndef GDNATIVE_LIBRARY
 	void register_and_load_settings();
+#endif
 
 	void _create_notification_manager();
 	void _remove_notifications_manager();
 
+#ifndef GDNATIVE_LIBRARY
 #ifdef TOOLS_ENABLED
 	int64_t adb_pid = 0;
 	class Timer *adb_start_timer = nullptr;
@@ -63,9 +78,18 @@ private:
 	void _adb_port_forwarding();
 	void _adb_start_timer_timeout();
 #endif
+#endif
 
 protected:
+
+#ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+protected:
+#endif
+
 	void _notification(int p_notification);
 
 public:
@@ -119,4 +143,6 @@ public:
 	~GodotRemote();
 };
 
+#ifndef GDNATIVE_LIBRARY
 VARIANT_ENUM_CAST(GodotRemote::DeviceType)
+#endif

@@ -4,10 +4,26 @@
 #ifndef NO_GODOTREMOTE_CLIENT
 
 #include "GRDevice.h"
+#include <vector>
+
+#ifndef GDNATIVE_LIBRARY
+
 #include "core/io/ip_address.h"
 #include "core/io/stream_peer_tcp.h"
 #include "scene/gui/texture_rect.h"
 #include "scene/main/node.h"
+
+#else
+
+#include <TextureRect.hpp>
+#include <Node.hpp>
+#include <Thread.hpp>
+#include <PacketPeerStream.hpp>
+#include <StreamPeerTCP.hpp>
+#include <Shader.hpp>
+#include <ShaderMaterial.hpp>
+using namespace godot;
+#endif
 
 enum ConnectionType {
 	CONNECTION_WiFi = 0,
@@ -26,7 +42,7 @@ enum StreamState {
 };
 
 class GRClient : public GRDevice {
-	GDCLASS(GRClient, GRDevice);
+	GD_CLASS(GRClient, GRDevice);
 
 	friend class GRTextureRect;
 
@@ -59,7 +75,7 @@ private:
 	};
 
 	class ConnectionThreadParams : public Reference {
-		GDCLASS(ConnectionThreadParams, Reference);
+		GD_CLASS(ConnectionThreadParams, Reference);
 
 	public:
 		GRClient *dev = nullptr;
@@ -74,7 +90,7 @@ private:
 			break_connection = true;
 			stop_thread = true;
 			if (thread_ref) {
-				Thread::wait_to_finish(thread_ref);
+				t_wait_to_finish(thread_ref);
 				memdelete(thread_ref);
 				thread_ref = nullptr;
 			}
@@ -112,7 +128,7 @@ private:
 
 	Mutex *send_queue_mutex = nullptr;
 	Mutex *connection_mutex = nullptr;
-	List<Ref<class GRPacket> > send_queue;
+	std::vector<Ref<class GRPacket> > send_queue;
 	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
@@ -139,8 +155,9 @@ private:
 
 	template <class T>
 	T _find_queued_packet_by_type() {
-		for (auto e = send_queue.front(); e; e = e->next()) {
-			T o = e->get();
+		for (auto e : send_queue)
+		{
+			T o = e;
 			if (o.is_valid()) {
 				return o;
 			}
@@ -157,8 +174,8 @@ private:
 	void _update_stream_texture_state(StreamState _stream_state);
 	virtual void _reset_counters() override;
 
-	static void _thread_connection(void *p_userdata);
-	static void _thread_image_decoder(void *p_userdata);
+	THREAD_FUNC void _thread_connection(void *p_userdata);
+	THREAD_FUNC void _thread_image_decoder(void *p_userdata);
 
 	static void _connection_loop(Ref<ConnectionThreadParams> con_thread);
 	static GRDevice::AuthResult _auth_on_server(GRClient *dev, Ref<PacketPeerStream> &con);
@@ -167,7 +184,13 @@ protected:
 	virtual void _internal_call_only_deffered_start() override;
 	virtual void _internal_call_only_deffered_stop() override;
 
+#ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+protected:
+#endif
 	void _notification(int p_notification);
 
 public:
@@ -220,17 +243,17 @@ public:
 };
 
 class GRInputCollector : public Node {
-	GDCLASS(GRInputCollector, Node);
+	GD_CLASS(GRInputCollector, Node);
 	friend GRClient;
 
-	_THREAD_SAFE_CLASS_;
+	_TS_CLASS_;
 
 private:
 	GRClient *dev = nullptr;
 	GRInputCollector **this_in_client = nullptr; //somebody help
 
 	class TextureRect *texture_rect = nullptr;
-	Vector<Ref<GRInputData> > collected_input_data;
+	std::vector<Ref<GRInputData> > collected_input_data;
 	class Control *parent;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
@@ -247,7 +270,13 @@ protected:
 	void _update_stream_rect();
 	void _release_pointers();
 
+#ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+protected:
+#endif
 
 	void _input(Ref<InputEvent> ie);
 	void _notification(int p_notification);
@@ -271,7 +300,7 @@ public:
 };
 
 class GRTextureRect : public TextureRect {
-	GDCLASS(GRTextureRect, TextureRect);
+	GD_CLASS(GRTextureRect, TextureRect);
 	friend GRClient;
 
 	GRClient *dev = nullptr;
@@ -279,15 +308,23 @@ class GRTextureRect : public TextureRect {
 	void _tex_size_changed();
 
 protected:
+#ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+protected:
+#endif
 
 public:
 	GRTextureRect();
 	~GRTextureRect();
 };
 
+#ifndef GDNATIVE_LIBRARY
 VARIANT_ENUM_CAST(ConnectionType)
 VARIANT_ENUM_CAST(StretchMode)
 VARIANT_ENUM_CAST(StreamState)
+#endif
 
 #endif // !NO_GODOTREMOTE_CLIENT

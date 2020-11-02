@@ -2,9 +2,37 @@
 #pragma once
 
 #include "GRUtils.h"
+#ifndef GDNATIVE_LIBRARY
 #include "core/io/stream_peer.h"
 #include "core/os/input_event.h"
 #include "core/reference.h"
+#else
+#include <Godot.hpp>
+#include <Array.hpp>
+#include <PoolArrays.hpp>
+#include <Reference.hpp>
+#include <Ref.hpp>
+#include <String.hpp>
+#include <StreamPeer.hpp>
+#include <StreamPeerBuffer.hpp>
+#include <InputEvent.hpp>
+#include <InputEventAction.hpp>
+#include <InputEventGesture.hpp>
+#include <InputEventJoypadButton.hpp>
+#include <InputEventJoypadMotion.hpp>
+#include <InputEventKey.hpp>
+#include <InputEventMagnifyGesture.hpp>
+#include <InputEventMIDI.hpp>
+#include <InputEventMouse.hpp>
+#include <InputEventMouseButton.hpp>
+#include <InputEventMouseMotion.hpp>
+#include <InputEventPanGesture.hpp>
+#include <InputEventScreenDrag.hpp>
+#include <InputEventScreenTouch.hpp>
+#include <InputEventWithModifiers.hpp>
+using namespace godot;
+#endif
+
 
 enum InputType {
 	_NoneIT = 0,
@@ -30,13 +58,15 @@ enum InputType {
 	_InputEventMAX,
 };
 
+#ifndef GDNATIVE_LIBRARY
 VARIANT_ENUM_CAST(InputType)
+#endif
 //////////////////////////////////////////////////////////////////////////
 // BASE CLASS
 
 // GodotRemoteInputData
 class GRInputData : public Reference {
-	GDCLASS(GRInputData, Reference);
+	GD_CLASS(GRInputData, Reference);
 	friend class GRInputDeviceSensorsData;
 
 protected:
@@ -74,7 +104,7 @@ public:
 
 // Device Sensors
 class GRInputDeviceSensorsData : public GRInputData {
-	GDCLASS(GRInputDeviceSensorsData, GRInputData);
+	GD_S_CLASS(GRInputDeviceSensorsData, GRInputData);
 
 protected:
 	virtual InputType _get_type() override { return InputType::_InputDeviceSensors; };
@@ -89,7 +119,7 @@ public:
 
 // GodotRemoteInputEventData
 class GRInputDataEvent : public GRInputData {
-	GDCLASS(GRInputDataEvent, GRInputData);
+	GD_S_CLASS(GRInputDataEvent, GRInputData);
 
 protected:
 	virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2 &rect) {
@@ -112,7 +142,7 @@ public:
 
 #define INPUT_EVENT_DATA(__class, _parent, _type)                                                 \
 	class __class : public _parent {                                                              \
-		GDCLASS(__class, _parent);                                                                \
+		GD_S_CLASS(__class, _parent);                                                                \
 		friend GRInputDataEvent;                                                                  \
 		friend GRInputData;                                                                       \
                                                                                                   \

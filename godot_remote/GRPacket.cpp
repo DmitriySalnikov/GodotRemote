@@ -1,16 +1,22 @@
 /* GRPacket.cpp */
 #include "GRPacket.h"
 #include "GRInputData.h"
+#ifndef GDNATIVE_LIBRARY
+
 #include "core/os/os.h"
+#else
+
+using namespace godot;
+#endif
 
 using namespace GRUtils;
 
-Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
-	if (bytes.empty()) {
+Ref<GRPacket> GRPacket::create(const PoolByteArray& bytes) {
+	if (bytes.size() == 0) {
 		ERR_FAIL_V_MSG(Ref<GRPacket>(), "Can't create GRPacket from empty data!");
 	}
 
-	PacketType type = (PacketType)bytes[0];
+	PacketType type = (PacketType)((PoolByteArray)bytes)[0];
 	Ref<StreamPeerBuffer> buf(memnew(StreamPeerBuffer));
 	buf->set_data_array(bytes);
 
@@ -25,34 +31,34 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 	}
 
 	switch (type) {
-		case PacketType::NonePacket:
-			ERR_FAIL_V_MSG(Ref<GRPacket>(), "Can't create abstract GRPacket!");
-		case PacketType::SyncTime:
-			CREATE(GRPacketSyncTime);
-		case PacketType::ImageData:
-			CREATE(GRPacketImageData);
-		case PacketType::InputData:
-			CREATE(GRPacketInputData);
-		case PacketType::ServerSettings:
-			CREATE(GRPacketServerSettings);
-		case PacketType::MouseModeSync:
-			CREATE(GRPacketMouseModeSync);
-		case PacketType::CustomInputScene:
-			CREATE(GRPacketCustomInputScene);
-		case PacketType::ClientStreamOrientation:
-			CREATE(GRPacketClientStreamOrientation);
-		case PacketType::ClientStreamAspect:
-			CREATE(GRPacketClientStreamAspect);
+	case PacketType::NonePacket:
+		ERR_FAIL_V_MSG(Ref<GRPacket>(), "Can't create abstract GRPacket!");
+	case PacketType::SyncTime:
+		CREATE(GRPacketSyncTime);
+	case PacketType::ImageData:
+		CREATE(GRPacketImageData);
+	case PacketType::InputData:
+		CREATE(GRPacketInputData);
+	case PacketType::ServerSettings:
+		CREATE(GRPacketServerSettings);
+	case PacketType::MouseModeSync:
+		CREATE(GRPacketMouseModeSync);
+	case PacketType::CustomInputScene:
+		CREATE(GRPacketCustomInputScene);
+	case PacketType::ClientStreamOrientation:
+		CREATE(GRPacketClientStreamOrientation);
+	case PacketType::ClientStreamAspect:
+		CREATE(GRPacketClientStreamAspect);
 
-			// Requests
-		case PacketType::Ping:
-			CREATE(GRPacketPing);
+		// Requests
+	case PacketType::Ping:
+		CREATE(GRPacketPing);
 
-			// Responses
-		case PacketType::Pong:
-			CREATE(GRPacketPong);
-		default:
-			ERR_FAIL_V_MSG(Ref<GRPacket>(), "Can't create unknown GRPacket! Type: " + str((int)type));
+		// Responses
+	case PacketType::Pong:
+		CREATE(GRPacketPong);
+	default:
+		ERR_FAIL_V_MSG(Ref<GRPacket>(), "Can't create unknown GRPacket! Type: " + str((int)type));
 	}
 #undef CREATE
 	return Ref<GRPacket>();
@@ -139,7 +145,7 @@ void GRPacketImageData::set_start_time(uint64_t time) {
 	start_time = time;
 }
 
-void GRPacketImageData::set_image_data(PoolByteArray &buf) {
+void GRPacketImageData::set_image_data(PoolByteArray& buf) {
 	img_data = buf;
 }
 
@@ -168,8 +174,9 @@ Ref<StreamPeerBuffer> GRPacketInputData::_get_data() {
 	for (int i = 0; i < inputs.size(); i++) {
 		if (inputs[i].is_valid()) {
 			count++;
-		} else {
-			inputs.remove(i);
+		}
+		else {
+			vec_remove(inputs, i);
 			i--;
 		}
 	}
@@ -204,14 +211,15 @@ Ref<GRInputData> GRPacketInputData::get_input_data(int idx) {
 
 void GRPacketInputData::remove_input_data(int idx) {
 	ERR_FAIL_INDEX(idx, inputs.size());
-	inputs.remove(idx);
+
+	vec_remove(inputs, idx);
 }
 
-void GRPacketInputData::add_input_data(Ref<class GRInputData> &input) {
+void GRPacketInputData::add_input_data(Ref<class GRInputData>& input) {
 	inputs.push_back(input);
 }
 
-void GRPacketInputData::set_input_data(Vector<Ref<class GRInputData> > &_inputs) {
+void GRPacketInputData::set_input_data(std::vector<Ref<class GRInputData> >& _inputs) {
 	inputs = _inputs;
 }
 
@@ -233,7 +241,7 @@ Dictionary GRPacketServerSettings::get_settings() {
 	return settings;
 }
 
-void GRPacketServerSettings::set_settings(Dictionary &_settings) {
+void GRPacketServerSettings::set_settings(Dictionary& _settings) {
 	settings = _settings;
 }
 

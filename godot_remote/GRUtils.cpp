@@ -2,12 +2,38 @@
 
 #include "GRUtils.h"
 #include "GodotRemote.h"
+
+#ifndef GDNATIVE_LIBRARY
 #include "core/io/compression.h"
+
+#else
+
+using namespace godot;
+#endif
 
 #ifndef NO_GODOTREMOTE_SERVER
 // richgel999/jpeg-compressor: https://github.com/richgel999/jpeg-compressor
 #include "jpge.h"
 #endif
+
+#ifndef GDNATIVE_LIBRARY
+#else
+ThreadSafe::ThreadSafe() {
+
+	mutex = Mutex::_new();
+	if (!mutex) {
+
+		WARN_PRINT("THREAD_SAFE defined, but no default mutex type");
+	}
+}
+
+ThreadSafe::~ThreadSafe() {
+
+	if (mutex)
+		mutex->free();
+}
+#endif // !GDNATIVE_LIBRARY
+
 
 namespace GRUtils {
 int current_loglevel = LogLevel::LL_Normal;
@@ -90,7 +116,7 @@ String str_arr(const Dictionary arr, const bool force_full, const int max_shown_
 	}
 
 	for (int i = 0; i < s; i++) {
-		res += str(arr.get_key_at_index(i)) + " : " + str(arr.get_value_at_index(i));
+		res += str(dict_get_key_at_index(arr, i)) + " : " + str(dict_get_value_at_index(arr, i));
 		if (i != s - 1 || is_long) {
 			res += separator;
 		}
@@ -113,7 +139,7 @@ String str_arr(const uint8_t *data, const int size, const bool force_full, const
 	}
 
 	for (int i = 0; i < s; i++) {
-		res += String::num_uint64(data[i]);
+		res += str(data[i]);
 		if (i != s - 1 || is_long) {
 			res += separator;
 		}
@@ -129,7 +155,7 @@ String str_arr(const uint8_t *data, const int size, const bool force_full, const
 #ifndef NO_GODOTREMOTE_SERVER
 Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width, int height, int bytes_for_color, int quality, int subsampling) {
 	PoolByteArray res;
-	ERR_FAIL_COND_V(img_data.empty(), Error::ERR_INVALID_PARAMETER);
+	ERR_FAIL_COND_V(img_data.size() == 0, Error::ERR_INVALID_PARAMETER);
 	ERR_FAIL_COND_V(quality < 1 || quality > 100, Error::ERR_INVALID_PARAMETER);
 
 	jpge::params params;
@@ -155,8 +181,6 @@ Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width,
 
 	TimeCount("Compress img");
 
-	ri.release();
-
 	res.resize(size);
 	auto wr = res.write();
 	memcpy(wr.ptr(), rb.ptr(), size);
@@ -165,22 +189,20 @@ Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width,
 
 	_log("JPG size: " + str(res.size()), LogLevel::LL_Debug);
 
-	rb.release();
 	ret = res;
 	return Error::OK;
 }
 #endif
 
 Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type) {
-	Error err = res.resize(bytes.size());
+#ifndef GDNATIVE_LIBRARY
+	Error err =	res.resize(bytes.size());
+
 	ERR_FAIL_COND_V_MSG(err, err, "Can't resize output array");
 
 	auto r = bytes.read();
 	auto w = res.write();
 	int size = Compression::compress(w.ptr(), r.ptr(), bytes.size(), (Compression::Mode)type);
-
-	r.release();
-	w.release();
 
 	if (size) {
 		res.resize(size);
@@ -191,18 +213,21 @@ Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type) {
 	}
 
 	return err;
+#else
+	// TODO I don't found any ways to implement compression in GDNative
+	res = bytes;
+	return Error::OK;
+#endif
 }
 
 Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolByteArray &res, int type) {
+#ifndef GDNATIVE_LIBRARY
 	Error err = res.resize(output_size);
 	ERR_FAIL_COND_V_MSG(err, err, "Can't resize output array");
 
 	auto r = bytes.read();
 	auto w = res.write();
 	int size = Compression::decompress(w.ptr(), output_size, r.ptr(), bytes.size(), (Compression::Mode)type);
-
-	r.release();
-	w.release();
 
 	if (output_size == -1) {
 		ERR_PRINT("Can't decompress bytes");
@@ -213,8 +238,12 @@ Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolByteArra
 		err = Error::FAILED;
 		res = PoolByteArray();
 	}
-
 	return err;
+#else
+// TODO I don't found any ways to implement compression in GDNative
+	res = bytes;
+	return Error::OK;
+#endif
 }
 
 String str(const Variant &val) {
@@ -263,7 +292,7 @@ String str(const Variant &val) {
 			Quat q = val;
 			return String("Q(") + q + ")";
 		}
-		case Variant::AABB: {
+		case Variant::RECT3: {
 			AABB ab = val;
 			return String("AABB(") + ab + ")";
 		}
@@ -319,7 +348,11 @@ String str(const Variant &val) {
 			return str_arr((PoolColorArray)val);
 		}
 	}
+#ifndef GDNATIVE_LIBRARY
 	return String("|? ") + Variant::get_type_name(type) + " ?|";
+#else
+	return String("|? ") + type + " ?|";
+#endif
 }
 
 bool validate_packet(const uint8_t *data) {
@@ -331,7 +364,7 @@ bool validate_packet(const uint8_t *data) {
 bool validate_version(const PoolByteArray &data) {
 	if (data.size() < 2)
 		return false;
-	if (data[0] == internal_VERSION[0] && data[1] == internal_VERSION[1])
+	if (((PoolByteArray)data)[0] == internal_VERSION[0] && ((PoolByteArray)data)[1] == internal_VERSION[1])
 		return true;
 	return false;
 }
@@ -356,25 +389,41 @@ bool compare_pool_byte_arrays(const PoolByteArray &a, const PoolByteArray &b) {
 }
 
 void set_gravity(const Vector3 &p_gravity) {
+#ifndef GDNATIVE_LIBRARY
 	auto *id = (InputDefault *)Input::get_singleton();
+#else
+	auto* id = Input::get_singleton();
+#endif
 	if (id)
 		id->set_gravity(p_gravity);
 }
 
 void set_accelerometer(const Vector3 &p_accel) {
-	auto *id = (InputDefault *)Input::get_singleton();
+#ifndef GDNATIVE_LIBRARY
+	auto* id = (InputDefault*)Input::get_singleton();
+#else
+	auto* id = Input::get_singleton();
+#endif
 	if (id)
 		id->set_accelerometer(p_accel);
 }
 
 void set_magnetometer(const Vector3 &p_magnetometer) {
-	auto *id = (InputDefault *)Input::get_singleton();
+#ifndef GDNATIVE_LIBRARY
+	auto* id = (InputDefault*)Input::get_singleton();
+#else
+	auto* id = Input::get_singleton();
+#endif
 	if (id)
 		id->set_magnetometer(p_magnetometer);
 }
 
 void set_gyroscope(const Vector3 &p_gyroscope) {
-	auto *id = (InputDefault *)Input::get_singleton();
+#ifndef GDNATIVE_LIBRARY
+	auto* id = (InputDefault*)Input::get_singleton();
+#else
+	auto* id = Input::get_singleton();
+#endif
 	if (id)
 		id->set_gyroscope(p_gyroscope);
 }
