@@ -392,6 +392,12 @@ elif env["android_arch"] == "x86_64":
 else:
     print("WARN: Architecture not suitable for embedding into APK; keeping .so at \\bin")
 
+if env['target'] == 'debug':
+    env.Append(CPPDEFINES=['DEBUG_ENABLED'])
+elif env['target'] == 'release':
+    pass
+    #env.Append(CPPDEFINES=[''])
+
 env.Append(CPPDEFINES=['GDNATIVE_LIBRARY'])
 
 if env['godot_remote_no_default_resources'] == True:

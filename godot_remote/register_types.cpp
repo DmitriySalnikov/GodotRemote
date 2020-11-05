@@ -84,12 +84,14 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void* handle) {
 
 #ifndef NO_GODOTREMOTE_SERVER
 	register_class<GRServer>();
+	register_class<GRServer::ListenerThreadParams>();
 	register_class<GRSViewport>();
 	register_class<GRSViewportRenderer>();
 #endif
 
 #ifndef NO_GODOTREMOTE_CLIENT
 	register_class<GRClient>();
+	register_class<GRClient::ConnectionThreadParams>();
 	register_class<GRInputCollector>();
 	register_class<GRTextureRect>();
 #endif

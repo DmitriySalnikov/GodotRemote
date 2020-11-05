@@ -10,8 +10,6 @@ If you are developing on a non-touch device, this module is the best way to quic
 
 [Paypal](https://paypal.me/dmitriysalnikov)
 
-[Яндекс.Деньги](https://money.yandex.ru/to/41001992889428)
-
 ## Compiling the Module
 
 To compile module you need:
@@ -115,7 +113,7 @@ void add_notification(title: String, text: String, notification_icon: Notificati
 # @text: Text of notification
 # @icon: Notification icon from enum NotificationIcon
 # @add_to_new_line: Adds text to new line or adds to current line
-void add_notification_or_append_string(title: String, text: String, icon: NotificationIcon, add_to_new_line: bool = true)
+void add_notification_or_append_string(title: String, text: String, icon: NotificationIcon, add_to_new_line: bool = true, duration_multiplier: float = 1.0)
 
 # Adds notification or update one line of notification text
 # @title: Notification title
@@ -344,7 +342,7 @@ skip_frames
 jpg_quality
 
 # Scale of sending image
-# type float, default 0.25
+# type float, default 0.3
 render_scale
 
 # Server password

@@ -73,7 +73,11 @@ private:
 		}
 	};
 
-	class ConnectionThreadParams : public Reference {
+#ifndef GDNATIVE_LIBRARY
+#else
+public:
+#endif
+	class ConnectionThreadParams : public Reference{
 		GD_CLASS(ConnectionThreadParams, Reference);
 
 	public:
@@ -95,6 +99,8 @@ private:
 			}
 		}
 
+		static void _register_methods() {};
+		void _init() {};
 		~ConnectionThreadParams() {
 			close_thread();
 			if (peer.is_valid()) {
@@ -105,6 +111,7 @@ private:
 			}
 		};
 	};
+private:
 
 	bool is_deleting = false;
 	bool is_connection_working = false;
@@ -170,7 +177,7 @@ private:
 	void _viewport_size_changed();
 
 	void _update_texture_from_iamge(Ref<Image> img);
-	void _update_stream_texture_state(StreamState _stream_state);
+	void _update_stream_texture_state(ENUM_ARG(StreamState) _stream_state);
 	virtual void _reset_counters() override;
 
 	THREAD_FUNC void _thread_connection(void *p_userdata);
@@ -188,13 +195,14 @@ protected:
 #else
 public:
 	static void _register_methods();
+	void _bind_constants();
 protected:
 #endif
 
 	void _notification(int p_notification);
 
 public:
-	void set_control_to_show_in(class Control *ctrl, int position_in_node = 0);
+	void set_control_to_show_in(class Control *ctrl, int position_in_node DEF_ARG(= 0));
 	void set_custom_no_signal_texture(Ref<Texture> custom_tex);
 	void set_custom_no_signal_vertical_texture(Ref<Texture> custom_tex);
 	void set_custom_no_signal_material(Ref<Material> custom_mat);
@@ -207,12 +215,12 @@ public:
 	void set_capture_pointer(bool value);
 	bool is_capture_input();
 	void set_capture_input(bool value);
-	void set_connection_type(ConnectionType type);
-	ConnectionType get_connection_type();
+	void set_connection_type(ENUM_ARG(ConnectionType) type);
+	ENUM_ARG(ConnectionType) get_connection_type();
 	void set_target_send_fps(int fps);
 	int get_target_send_fps();
-	void set_stretch_mode(StretchMode stretch);
-	StretchMode get_stretch_mode();
+	void set_stretch_mode(ENUM_ARG(StretchMode) stretch);
+	ENUM_ARG(StretchMode) get_stretch_mode();
 	void set_texture_filtering(bool is_filtering);
 	bool get_texture_filtering();
 	void set_viewport_orientation_syncing(bool is_syncing);
@@ -226,7 +234,7 @@ public:
 	void set_device_id(String _id);
 	String get_device_id();
 
-	StreamState get_stream_state();
+	ENUM_ARG(StreamState) get_stream_state();
 	void send_packet(Ref<GRPacket> packet);
 	bool is_stream_active();
 	bool is_connected_to_host();
@@ -235,7 +243,7 @@ public:
 	bool set_address_port(String ip, uint16_t _port);
 	void set_input_buffer(int mb);
 
-	void set_server_setting(TypesOfServerSettings param, Variant value);
+	void set_server_setting(ENUM_ARG(TypesOfServerSettings) param, Variant value);
 	void disable_overriding_server_settings();
 
 	void _init();

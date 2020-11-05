@@ -62,6 +62,7 @@ protected:
 #else
 public:
 	static void _register_methods();
+	static void _bind_constants(GRDevice* dev);
 protected:
 #endif
 

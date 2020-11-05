@@ -29,6 +29,10 @@ class GRServer : public GRDevice {
 	GD_S_CLASS(GRServer, GRDevice);
 
 private:
+#ifndef GDNATIVE_LIBRARY
+#else
+public:
+#endif
 	class ListenerThreadParams : public Reference {
 		GD_CLASS(ListenerThreadParams, Reference);
 
@@ -47,6 +51,8 @@ private:
 			}
 		}
 
+		static void _register_methods() {};
+		void _init() {};
 		~ListenerThreadParams() {
 			close_thread();
 		}
@@ -80,6 +86,8 @@ private:
 		}
 	};
 
+private:
+
 	Mutex *connection_mutex = nullptr;
 	Ref<ListenerThreadParams> server_thread_listen;
 	Ref<TCP_Server> tcp_server;
@@ -111,9 +119,9 @@ private:
 	THREAD_FUNC void _thread_listen(void *p_userdata);
 	THREAD_FUNC void _thread_connection(void *p_userdata);
 
-	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection = false);
+	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection DEF_ARG(= false));
 
-	Ref<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress = true, int compression_type = 0);
+	Ref<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress DEF_ARG(= true), int compression_type DEF_ARG(= 0));
 	void _scan_resource_for_dependencies_recursive(String _dir, Array &_arr);
 
 protected:
@@ -125,6 +133,7 @@ protected:
 #else
 public:
 	static void _register_methods();
+	void _bind_constants();
 protected:
 #endif
 

@@ -30,6 +30,12 @@ using namespace godot;
 #endif
 
 #ifndef GDNATIVE_LIBRARY
+#define ENUM_ARG(en) en 
+#define ENUM_CONV(en) (en)
+
+#define DEF_ARG(a) a
+#define DEF_ARGS(a) 
+
 #define ST() SceneTree::get_singleton()
 #define GD_CLASS(c, p) GDCLASS(c, p)
 #define GD_S_CLASS(c, p) GDCLASS(c, p)
@@ -122,6 +128,12 @@ public:
 
 // THREAD SAFE END
 
+#define ENUM_ARG(en) int 
+#define ENUM_CONV(en) (en)
+
+#define DEF_ARG(a) 
+//#define DEF_ARGS(...) ,__VA_ARGS__ 
+
 #define ST() ((SceneTree*)Engine::get_singleton()->get_main_loop())
 #define GD_CLASS(c, p) GODOT_CLASS(c, p)
 #define GD_S_CLASS(c, p) GODOT_SUBCLASS(c, p)
@@ -141,8 +153,8 @@ public:
 
 #define file_get_as_string(path, err) _gdn_get_file_as_string(path, err)
 
-#define memnew(obj) new obj
-#define memdelete(obj) delete obj
+#define memnew(obj) obj::_new()
+#define memdelete(obj) obj->free()
 
 /*
 template <class T>
@@ -210,11 +222,6 @@ struct VariantCaster<const T&> {
 #define TimeCount(str)                                                                                                                                      \
 	GRUtils::_log(str + String(": ") + String::num((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0, 3) + " ms", LogLevel::LL_Debug); \
 	simple_time_counter = OS::get_singleton()->get_ticks_usec()
-
-// Bind constant with custom name
-#define BIND_ENUM_CONSTANT_CUSTOM(m_constant, m_name) \
-	ClassDB::bind_integer_constant(get_class_static(), __constant_get_enum_name(m_constant, m_name), m_name, ((int)(m_constant)));
-
 #else
 
 #define TimeCountInit()
@@ -223,6 +230,7 @@ struct VariantCaster<const T&> {
 
 #endif // DEBUG_ENABLED
 
+#define newref(_class) Ref<_class>(memnew(_class))
 #define max(x, y) (x > y ? x : y)
 #define min(x, y) (x < y ? x : y)
 
@@ -363,7 +371,7 @@ namespace GRUtils {
 #else
 
 #define POOLARRAYS_STR_ARR(TYPE)                                                                                              \
-	static String str_arr(TYPE arr, const bool force_full, const int max_shown_items, String separator) {                            \
+	static String str_arr(TYPE arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ") { \
 		String res = "[ ";                                                                                                    \
 		int s = arr.size();                                                                                                   \
 		bool is_long = false;                                                                                                 \
@@ -415,21 +423,23 @@ namespace GRUtils {
 
 #else
 	static String _gdn_get_file_as_string(String path, Error *ret_err) {
-		auto f = File::_new();
+		auto f = memnew(File);
 		Error r = f->open(path, File::ModeFlags::READ);
 		*ret_err = r;
 		if (r == Error::OK) {
 			String txt = f->get_as_text();
 			f->close();
-			f->free();
+			memdelete(f);
 			return txt;
 		}
-		f->free();
+		else {
+			memdelete(f);
+		}
 		return "";
 	}
 
 	static Thread* _gdn_thread_create(Object* instance, String func_name, Variant user_data) {
-		Thread* t = Thread::_new();
+		Thread* t = memnew(Thread);
 		t->start(instance, "", user_data);
 		return t;
 	}

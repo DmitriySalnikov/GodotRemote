@@ -80,10 +80,10 @@ private:
 
 	void _set_all_notifications_positions(NotificationsPosition pos);
 
-	void _set_notifications_position(NotificationsPosition positon);
-	void _add_notification_or_append_string(String title, String text, NotificationIcon icon, bool new_string, float duration_multiplier);
-	void _add_notification_or_update_line(String title, String id, String text, NotificationIcon icon, float duration_multiplier);
-	void _add_notification(String title, String text, NotificationIcon icon, bool update_existing, float duration_multiplier);
+	void _set_notifications_position(ENUM_ARG(NotificationsPosition) positon);
+	void _add_notification_or_append_string(String title, String text, ENUM_ARG(NotificationIcon) icon, bool new_string, float duration_multiplier);
+	void _add_notification_or_update_line(String title, String id, String text, ENUM_ARG(NotificationIcon) icon, float duration_multiplier);
+	void _add_notification(String title, String text, ENUM_ARG(NotificationIcon) icon, bool update_existing, float duration_multiplier);
 	void _remove_notification(String title, bool all_entries);
 	void _remove_exact_notification(Node *_notif);
 	void _clear_notifications();
@@ -122,9 +122,9 @@ public:
 	static void add_notification_or_append_string(String title, String text, NotificationIcon icon = NotificationIcon::None, bool new_string = true, float duration_multiplier = 1.f);
 
 	// update text in existing notification or add new notification
-	static void add_notification_or_update_line(String title, String id, String text, NotificationIcon icon = NotificationIcon::None, float duration_multiplier = 1.f);
+	static void add_notification_or_update_line(String title, String id, String text, NotificationIcon icon = NotificationIcon::None, float duration_multiplier = 1.);
 
-	static void add_notification(String title, String text, NotificationIcon icon = NotificationIcon::None, bool update_existing = true, float duration_multiplier = 1.f);
+	static void add_notification(String title, String text, NotificationIcon icon DEF_ARG(= NotificationIcon::None), bool update_existing = true, float duration_multiplier = 1.f);
 	static void remove_notification(String title, bool all_entries = true);
 	static void remove_notification_exact(Node *_notif);
 	static void clear_notifications();
@@ -194,7 +194,7 @@ public:
 	static void clear_styles();
 
 	void set_notification_position(NotificationsPosition position);
-	virtual void set_data(GRNotifications *_owner, String title, String text, NotificationIcon icon, float duration_multiplier = 1.f, Ref<GRNotificationStyle> _style = Ref<GRNotificationStyle>());
+	virtual void set_data(GRNotifications *_owner, String title, String text, NotificationIcon icon, float duration_multiplier DEF_ARG(= 1.f), Ref<GRNotificationStyle> _style DEF_ARG(= Ref<GRNotificationStyle>()));
 	String get_title();
 	String get_text();
 	void update_text(String text);
@@ -224,9 +224,12 @@ protected:
 	void _notification(int p_notification);
 
 public:
-	void set_updatable_line(GRNotifications *_owner, String title, String id, String text, NotificationIcon icon, float duration_multiplier = 1.f, Ref<GRNotificationStyle> _style = Ref<GRNotificationStyle>());
+	void set_updatable_line(GRNotifications *_owner, String title, String id, String text, NotificationIcon icon, float duration_multiplier DEF_ARG(= 1.f), Ref<GRNotificationStyle> _style DEF_ARG(= Ref<GRNotificationStyle>()));
 	void remove_updatable_line(String id);
 	void clear_lines();
+
+	void _init();
+	void _deinit();
 };
 
 // STYLE REF
@@ -270,9 +273,10 @@ public:
 	void set_text_font(Ref<Font> font);
 	Ref<Font> get_text_font();
 
-	void set_notification_icon(NotificationIcon notification_icon, Ref<Texture> icon_texture);
-	Ref<Texture> get_notification_icon(NotificationIcon notification_icon);
+	void set_notification_icon(ENUM_ARG(NotificationIcon) notification_icon, Ref<Texture> icon_texture);
+	Ref<Texture> get_notification_icon(ENUM_ARG(NotificationIcon) notification_icon);
 	
+	void _init();
 	void _deinit();
 };
 

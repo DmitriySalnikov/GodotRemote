@@ -139,7 +139,7 @@ public:
 
 #define INPUT_EVENT_DATA(__class, _parent, _type)                                                 \
 	class __class : public _parent {                                                              \
-		GD_S_CLASS(__class, _parent);                                                                \
+		GD_S_CLASS(__class, _parent);                                                             \
 		friend GRInputDataEvent;                                                                  \
 		friend GRInputData;                                                                       \
                                                                                                   \

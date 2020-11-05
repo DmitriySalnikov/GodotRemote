@@ -56,12 +56,13 @@ void GodotRemote::_init() {
 	if (!singleton)
 		singleton = this;
 	GRUtils::init();
+	_bind_constants();
 
 	register_and_load_settings();
 	if (!Engine::get_singleton()->is_editor_hint()) {
 		call_deferred("_create_notification_manager");
 		if (is_autostart)
-			call_deferred("create_and_start_device");
+			call_deferred("create_and_start_device", DeviceType::DEVICE_Auto);
 	}
 
 #ifndef GDNATIVE_LIBRARY
@@ -201,17 +202,6 @@ void GodotRemote::_register_methods() {
 
 	register_method("get_device", &GodotRemote::get_device);
 	register_method("get_version", &GodotRemote::get_version);
-
-	BIND_ENUM_CONSTANT(singleton, DeviceType::DEVICE_Auto, "Auto");
-	BIND_ENUM_CONSTANT(singleton, DeviceType::DEVICE_Development, "Development");
-	BIND_ENUM_CONSTANT(singleton, DeviceType::DEVICE_Standalone, "Standalone");
-
-	BIND_ENUM_CONSTANT(singleton, TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS, "USE_INTERNAL_SERVER_SETTINGS");
-	BIND_ENUM_CONSTANT(singleton, TypesOfServerSettings::VIDEO_STREAM_ENABLED, "SERVER_PARAM_VIDEO_STREAM_ENABLED");
-	BIND_ENUM_CONSTANT(singleton, TypesOfServerSettings::COMPRESSION_TYPE, "SERVER_PARAM_COMPRESSION_TYPE");
-	BIND_ENUM_CONSTANT(singleton, TypesOfServerSettings::JPG_QUALITY, "SERVER_PARAM_JPG_QUALITY");
-	BIND_ENUM_CONSTANT(singleton, TypesOfServerSettings::SKIP_FRAMES, "SERVER_PARAM_SKIP_FRAMES");
-	BIND_ENUM_CONSTANT(singleton, TypesOfServerSettings::RENDER_SCALE, "SERVER_PARAM_RENDER_SCALE");
 	
 	// GRNotifications
 	register_method("get_notification", &GodotRemote::get_notification);
@@ -247,41 +237,54 @@ void GodotRemote::_register_methods() {
 	register_signal<GodotRemote>("device_added", Dictionary::make());
 	register_signal<GodotRemote>("device_removed", Dictionary::make());
 
-	BIND_ENUM_CONSTANT(singleton, NotificationIcon::None, "NOTIFICATION_ICON_NONE");
-	BIND_ENUM_CONSTANT(singleton, NotificationIcon::_Error, "NOTIFICATION_ICON_ERROR");
-	BIND_ENUM_CONSTANT(singleton, NotificationIcon::Warning, "NOTIFICATION_ICON_WARNING");
-	BIND_ENUM_CONSTANT(singleton, NotificationIcon::Success, "NOTIFICATION_ICON_SUCCESS");
-	BIND_ENUM_CONSTANT(singleton, NotificationIcon::Fail, "NOTIFICATION_ICON_FAIL");
-
-	BIND_ENUM_CONSTANT(singleton, NotificationsPosition::TL, "NOTIFICATIONS_POSITION_TL");
-	BIND_ENUM_CONSTANT(singleton, NotificationsPosition::TC, "NOTIFICATIONS_POSITION_TC");
-	BIND_ENUM_CONSTANT(singleton, NotificationsPosition::TR, "NOTIFICATIONS_POSITION_TR");
-	BIND_ENUM_CONSTANT(singleton, NotificationsPosition::BL, "NOTIFICATIONS_POSITION_BL");
-	BIND_ENUM_CONSTANT(singleton, NotificationsPosition::BC, "NOTIFICATIONS_POSITION_BC");
-	BIND_ENUM_CONSTANT(singleton, NotificationsPosition::BR, "NOTIFICATIONS_POSITION_BR");
-
-	// GRUtils
-	BIND_ENUM_CONSTANT(singleton, Subsampling::SUBSAMPLING_Y_ONLY, "Y_ONLY");
-	BIND_ENUM_CONSTANT(singleton, Subsampling::SUBSAMPLING_H1V1, "H1V1");
-	BIND_ENUM_CONSTANT(singleton, Subsampling::SUBSAMPLING_H2V1, "H2V1");
-	BIND_ENUM_CONSTANT(singleton, Subsampling::SUBSAMPLING_H2V2, "H2V2");
-
-	BIND_ENUM_CONSTANT(singleton, LogLevel::LL_None, "NONE");
-	BIND_ENUM_CONSTANT(singleton, LogLevel::LL_Debug, "DEBUG");
-	BIND_ENUM_CONSTANT(singleton, LogLevel::LL_Normal, "NORMAL");
-	BIND_ENUM_CONSTANT(singleton, LogLevel::LL_Warning, "WARNING");
-	BIND_ENUM_CONSTANT(singleton, LogLevel::LL_Error, "ERROR");
-
-	BIND_ENUM_CONSTANT(singleton, ImageCompressionType::Uncompressed, "IMAGE_COMPRESSION_UNCOMPRESSED");
-	BIND_ENUM_CONSTANT(singleton, ImageCompressionType::JPG, "IMAGE_COMPRESSION_JPG");
-	BIND_ENUM_CONSTANT(singleton, ImageCompressionType::PNG, "IMAGE_COMPRESSION_PNG");
-
 	register_method("set_log_level", &GodotRemote::set_log_level);
 
 	register_method("set_gravity", &GodotRemote::set_gravity);
 	register_method("set_accelerometer", &GodotRemote::set_accelerometer);
 	register_method("set_magnetometer", &GodotRemote::set_magnetometer);
 	register_method("set_gyroscope", &GodotRemote::set_gyroscope);
+}
+
+void GodotRemote::_bind_constants() {
+	BIND_ENUM_CONSTANT(this, DeviceType::DEVICE_Auto, "Auto");
+	BIND_ENUM_CONSTANT(this, DeviceType::DEVICE_Development, "Development");
+	BIND_ENUM_CONSTANT(this, DeviceType::DEVICE_Standalone, "Standalone");
+
+	BIND_ENUM_CONSTANT(this, TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS, "USE_INTERNAL_SERVER_SETTINGS");
+	BIND_ENUM_CONSTANT(this, TypesOfServerSettings::VIDEO_STREAM_ENABLED, "SERVER_PARAM_VIDEO_STREAM_ENABLED");
+	BIND_ENUM_CONSTANT(this, TypesOfServerSettings::COMPRESSION_TYPE, "SERVER_PARAM_COMPRESSION_TYPE");
+	BIND_ENUM_CONSTANT(this, TypesOfServerSettings::JPG_QUALITY, "SERVER_PARAM_JPG_QUALITY");
+	BIND_ENUM_CONSTANT(this, TypesOfServerSettings::SKIP_FRAMES, "SERVER_PARAM_SKIP_FRAMES");
+	BIND_ENUM_CONSTANT(this, TypesOfServerSettings::RENDER_SCALE, "SERVER_PARAM_RENDER_SCALE");
+
+	BIND_ENUM_CONSTANT(this, NotificationIcon::None, "NOTIFICATION_ICON_NONE");
+	BIND_ENUM_CONSTANT(this, NotificationIcon::_Error, "NOTIFICATION_ICON_ERROR");
+	BIND_ENUM_CONSTANT(this, NotificationIcon::Warning, "NOTIFICATION_ICON_WARNING");
+	BIND_ENUM_CONSTANT(this, NotificationIcon::Success, "NOTIFICATION_ICON_SUCCESS");
+	BIND_ENUM_CONSTANT(this, NotificationIcon::Fail, "NOTIFICATION_ICON_FAIL");
+
+	BIND_ENUM_CONSTANT(this, NotificationsPosition::TL, "NOTIFICATIONS_POSITION_TL");
+	BIND_ENUM_CONSTANT(this, NotificationsPosition::TC, "NOTIFICATIONS_POSITION_TC");
+	BIND_ENUM_CONSTANT(this, NotificationsPosition::TR, "NOTIFICATIONS_POSITION_TR");
+	BIND_ENUM_CONSTANT(this, NotificationsPosition::BL, "NOTIFICATIONS_POSITION_BL");
+	BIND_ENUM_CONSTANT(this, NotificationsPosition::BC, "NOTIFICATIONS_POSITION_BC");
+	BIND_ENUM_CONSTANT(this, NotificationsPosition::BR, "NOTIFICATIONS_POSITION_BR");
+
+	// GRUtils
+	BIND_ENUM_CONSTANT(this, Subsampling::SUBSAMPLING_Y_ONLY, "Y_ONLY");
+	BIND_ENUM_CONSTANT(this, Subsampling::SUBSAMPLING_H1V1, "H1V1");
+	BIND_ENUM_CONSTANT(this, Subsampling::SUBSAMPLING_H2V1, "H2V1");
+	BIND_ENUM_CONSTANT(this, Subsampling::SUBSAMPLING_H2V2, "H2V2");
+
+	BIND_ENUM_CONSTANT(this, LogLevel::LL_None, "NONE");
+	BIND_ENUM_CONSTANT(this, LogLevel::LL_Debug, "DEBUG");
+	BIND_ENUM_CONSTANT(this, LogLevel::LL_Normal, "NORMAL");
+	BIND_ENUM_CONSTANT(this, LogLevel::LL_Warning, "WARNING");
+	BIND_ENUM_CONSTANT(this, LogLevel::LL_Error, "ERROR");
+
+	BIND_ENUM_CONSTANT(this, ImageCompressionType::Uncompressed, "IMAGE_COMPRESSION_UNCOMPRESSED");
+	BIND_ENUM_CONSTANT(this, ImageCompressionType::JPG, "IMAGE_COMPRESSION_JPG");
+	BIND_ENUM_CONSTANT(this, ImageCompressionType::PNG, "IMAGE_COMPRESSION_PNG");
 }
 
 #endif
@@ -308,7 +311,7 @@ String GodotRemote::get_version() const {
 	return str(ver[0]) + "." + str(ver[1]) + "." + str(ver[2]);
 }
 
-bool GodotRemote::create_remote_device(DeviceType type) {
+bool GodotRemote::create_remote_device(ENUM_ARG(DeviceType) type) {
 	remove_remote_device();
 
 	GRDevice *d = nullptr;
@@ -444,7 +447,7 @@ void GodotRemote::register_and_load_settings() {
 	DEF_(ps_server_stream_enabled_name, true, Variant::BOOL, PROPERTY_HINT_NONE, "");
 	DEF_(ps_server_compression_type_name, ImageCompressionType::JPG, Variant::INT, PROPERTY_HINT_ENUM, "Uncompressed,JPG,PNG");
 	DEF_(ps_server_stream_skip_frames_name, 0, Variant::INT, PROPERTY_HINT_RANGE, "0,1000");
-	DEF_(ps_server_scale_of_sending_stream_name, 0.25f, Variant::REAL, PROPERTY_HINT_RANGE, "0,1,0.01");
+	DEF_(ps_server_scale_of_sending_stream_name, 0.3f, Variant::REAL, PROPERTY_HINT_RANGE, "0,1,0.01");
 	DEF_(ps_server_jpg_quality_name, 80, Variant::INT, PROPERTY_HINT_RANGE, "0,100");
 	DEF_(ps_server_auto_adjust_scale_name, false, Variant::BOOL, PROPERTY_HINT_NONE, "");
 
@@ -467,7 +470,7 @@ void GodotRemote::_remove_notifications_manager() {
 	}
 }
 
-void GodotRemote::create_and_start_device(DeviceType type) {
+void GodotRemote::create_and_start_device(ENUM_ARG(DeviceType) type) {
 	create_remote_device(type);
 	start_remote_device();
 }
@@ -558,8 +561,8 @@ int GodotRemote::get_notifications_layer() const {
 		return GRNotifications::get_singleton()->get_layer();
 	return 0;
 }
-void GodotRemote::set_notifications_position(NotificationsPosition positon) const {
-	GRNotifications::set_notifications_position(positon);
+void GodotRemote::set_notifications_position(ENUM_ARG(NotificationsPosition) positon) const {
+	GRNotifications::set_notifications_position(ENUM_CONV(NotificationsPosition)positon);
 }
 NotificationsPosition GodotRemote::get_notifications_position() const {
 	return GRNotifications::get_notifications_position();
@@ -582,14 +585,14 @@ void GodotRemote::set_notifications_style(Ref<GRNotificationStyle> _style) const
 Ref<GRNotificationStyle> GodotRemote::get_notifications_style() const {
 	return GRNotifications::get_notifications_style();
 }
-void GodotRemote::add_notification_or_append_string(String title, String text, NotificationIcon icon, bool new_string) {
-	GRNotifications::add_notification_or_append_string(title, text, icon, new_string);
+void GodotRemote::add_notification_or_append_string(String title, String text, ENUM_ARG(NotificationIcon)icon, bool new_string, float duration_multiplier) {
+	GRNotifications::add_notification_or_append_string(title, text, ENUM_CONV(NotificationIcon)icon, new_string, duration_multiplier);
 }
-void GodotRemote::add_notification_or_update_line(String title, String id, String text, NotificationIcon icon, float duration_multiplier) const {
-	GRNotifications::add_notification_or_update_line(title, id, text, icon, duration_multiplier);
+void GodotRemote::add_notification_or_update_line(String title, String id, String text, ENUM_ARG(NotificationIcon)icon, float duration_multiplier) const {
+	GRNotifications::add_notification_or_update_line(title, id, text, ENUM_CONV(NotificationIcon)icon, duration_multiplier);
 }
-void GodotRemote::add_notification(String title, String text, NotificationIcon icon, bool update_existing, float duration_multiplier) const {
-	GRNotifications::add_notification(title, text, icon, update_existing, duration_multiplier);
+void GodotRemote::add_notification(String title, String text, ENUM_ARG(NotificationIcon)icon, bool update_existing, float duration_multiplier) const {
+	GRNotifications::add_notification(title, text, ENUM_CONV(NotificationIcon)icon, update_existing, duration_multiplier);
 }
 void GodotRemote::remove_notification(String title, bool all_entries) const {
 	GRNotifications::remove_notification(title, all_entries);
@@ -603,7 +606,7 @@ void GodotRemote::clear_notifications() const {
 // GRNotifications end
 
 // GRUtils functions binds for GDScript
-void GodotRemote::set_log_level(LogLevel lvl) const {
+void GodotRemote::set_log_level(ENUM_ARG(LogLevel) lvl) const {
 	GRUtils::set_log_level((LogLevel)lvl);
 }
 void GodotRemote::set_gravity(const Vector3 &p_gravity) const {

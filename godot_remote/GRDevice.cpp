@@ -2,6 +2,12 @@
 #include "GRDevice.h"
 #include "GodotRemote.h"
 
+#ifndef GDNATIVE_LIBRARY
+#else
+#include <ClassDB.hpp>
+using namespace godot;
+#endif
+
 using namespace GRUtils;
 
 #ifndef GDNATIVE_LIBRARY
@@ -24,53 +30,80 @@ void GRDevice::_bind_methods() {
 
 	ADD_SIGNAL(MethodInfo("status_changed", PropertyInfo(Variant::INT, "status")));
 	
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "port"), "set_port", "get_port");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "port"), "set_port", "get_port");
 
 	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Starting, "STATUS_STARTING");
 	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Stopping, "STATUS_STOPPING");
 	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Working, "STATUS_WORKING");
 	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Stopped, "STATUS_STOPPED");
 
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_NoneIT, "InputTypeNone")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputDeviceSensors, "InputDeviceSensors")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEvent, "InputEvent")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventAction, "InputEventAction")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventGesture, "InputEventGesture")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventJoypadButton, "InputEventJoypadButton")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventJoypadMotion, "InputEventJoypadMotion")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventKey, "InputEventKey")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMagnifyGesture, "InputEventMagnifyGesture")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMIDI, "InputEventMIDI")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMouse, "InputEventMouse")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMouseButton, "InputEventMouseButton")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMouseMotion, "InputEventMouseMotion")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventPanGesture, "InputEventPanGesture")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventScreenDrag, "InputEventScreenDrag")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventScreenTouch, "InputEventScreenTouch")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventWithModifiers, "InputEventWithModifiers")
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMAX, "InputEventMAX")
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_NoneIT, "InputTypeNone");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputDeviceSensors, "InputDeviceSensors");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEvent, "InputEvent");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventAction, "InputEventAction");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventGesture, "InputEventGesture");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventJoypadButton, "InputEventJoypadButton");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventJoypadMotion, "InputEventJoypadMotion");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventKey, "InputEventKey");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMagnifyGesture, "InputEventMagnifyGesture");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMIDI, "InputEventMIDI");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMouse, "InputEventMouse");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMouseButton, "InputEventMouseButton");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMouseMotion, "InputEventMouseMotion");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventPanGesture, "InputEventPanGesture");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventScreenDrag, "InputEventScreenDrag");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventScreenTouch, "InputEventScreenTouch");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventWithModifiers, "InputEventWithModifiers");
+	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMAX, "InputEventMAX");
 }
 
 #else
 
 void GRDevice::_register_methods() {
 	register_method("_notification", &GRDevice::_notification);
+
 }
+
+void GRDevice::_bind_constants(GRDevice* dev) {
+	BIND_ENUM_CONSTANT(dev, WorkingStatus::Starting, "STATUS_STARTING");
+	BIND_ENUM_CONSTANT(dev, WorkingStatus::Stopping, "STATUS_STOPPING");
+	BIND_ENUM_CONSTANT(dev, WorkingStatus::Working, "STATUS_WORKING");
+	BIND_ENUM_CONSTANT(dev, WorkingStatus::Stopped, "STATUS_STOPPED");
+
+	BIND_ENUM_CONSTANT(dev, InputType::_NoneIT, "InputTypeNone");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputDeviceSensors, "InputDeviceSensors");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEvent, "InputEvent");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventAction, "InputEventAction");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventGesture, "InputEventGesture");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventJoypadButton, "InputEventJoypadButton");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventJoypadMotion, "InputEventJoypadMotion");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventKey, "InputEventKey");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventMagnifyGesture, "InputEventMagnifyGesture");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventMIDI, "InputEventMIDI");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventMouse, "InputEventMouse");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventMouseButton, "InputEventMouseButton");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventMouseMotion, "InputEventMouseMotion");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventPanGesture, "InputEventPanGesture");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventScreenDrag, "InputEventScreenDrag");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventScreenTouch, "InputEventScreenTouch");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventWithModifiers, "InputEventWithModifiers");
+	BIND_ENUM_CONSTANT(dev, InputType::_InputEventMAX, "InputEventMAX");
+}
+
+#endif
 
 void GRDevice::_notification(int p_notification) {
 	switch (p_notification) {
-		case NOTIFICATION_POSTINITIALIZE:
+	case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-			_init();
+		_init();
 #endif
-			break;
-		case NOTIFICATION_PREDELETE:
-			_deinit();
-			break;
-	}
+		break;
+	case NOTIFICATION_PREDELETE:
+		_deinit();
+		break;
 }
-
-#endif
+}
 
 void GRDevice::_reset_counters() {
 	avg_fps = 0;
@@ -140,6 +173,7 @@ WorkingStatus GRDevice::get_status() {
 }
 
 void GRDevice::_init() {
+	_bind_constants(this);
 	port = GET_PS(GodotRemote::ps_general_port_name);
 }
 

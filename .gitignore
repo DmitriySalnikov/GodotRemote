@@ -18,13 +18,14 @@ __pycache__
 *.pdb
 *.ilk
 *.exe
+*.exp
+*.lib
+*.filters
 *.os
 *.out
 .import/
 obj/
 libs/
-x64/
-x32/
 
 # exist only for testing
 test.gd

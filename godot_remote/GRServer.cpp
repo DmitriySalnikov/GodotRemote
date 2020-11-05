@@ -74,7 +74,7 @@ void GRServer::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "render_scale"), "set_render_scale", "get_render_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "custom_input_scene"), "set_custom_input_scene", "get_custom_input_scene");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene_compressed"), "set_custom_input_scene_compressed", "is_custom_input_scene_compressed");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "custom_input_scene_compressed"), "set_custom_input_scene_compressed", "is_custom_input_scene_compressed");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene_compression_type"), "set_custom_input_scene_compression_type", "get_custom_input_scene_compression_type");
 
 	ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
@@ -87,7 +87,76 @@ void GRServer::_bind_methods() {
 #else
 
 void GRServer::_register_methods() {
+	///////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////
+
+	register_method("_internal_call_only_deffered_start", &GRServer::_internal_call_only_deffered_start);
+	register_method("_internal_call_only_deffered_stop", &GRServer::_internal_call_only_deffered_stop);
+
+	register_method("_internal_call_only_deffered_restart", &GRServer::_internal_call_only_deffered_restart);
+
+	register_method("get_avg_ping", &GRServer::get_avg_ping);
+	register_method("get_avg_fps", &GRServer::get_avg_fps);
+
+	register_method("get_port", &GRServer::get_port);
+	register_method("set_port", &GRServer::set_port);
+
+	register_method("start", &GRServer::start);
+	register_method("stop", &GRServer::stop);
+	register_method("get_status", &GRServer::get_status);
+
+	register_signal<GRServer>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
+
+	///////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////
+
 	register_method("_notification", &GRServer::_notification);
+
+	register_method("_load_settings", &GRServer::_load_settings);
+	register_method("_remove_resize_viewport", &GRServer::_remove_resize_viewport);
+
+	register_method("get_gr_viewport", &GRServer::get_gr_viewport);
+	register_method("force_update_custom_input_scene", &GRServer::force_update_custom_input_scene);
+
+	register_method("set_video_stream_enabled", &GRServer::set_video_stream_enabled);
+	register_method("set_skip_frames", &GRServer::set_skip_frames);
+	//register_method("set_auto_adjust_scale", &GRServer::set_auto_adjust_scale);
+	register_method("set_jpg_quality", &GRServer::set_jpg_quality);
+	register_method("set_render_scale", &GRServer::set_render_scale);
+	register_method("set_password", &GRServer::set_password);
+	register_method("set_custom_input_scene", &GRServer::set_custom_input_scene);
+	register_method("set_custom_input_scene_compressed", &GRServer::set_custom_input_scene_compressed);
+	register_method("set_custom_input_scene_compression_type", &GRServer::set_custom_input_scene_compression_type);
+
+	register_method("is_video_stream_enabled", &GRServer::is_video_stream_enabled);
+	register_method("get_skip_frames", &GRServer::get_skip_frames);
+	//register_method("is_auto_adjust_scale", &GRServer::is_auto_adjust_scale);
+	register_method("get_jpg_quality", &GRServer::get_jpg_quality);
+	register_method("get_render_scale", &GRServer::get_render_scale);
+	register_method("get_password", &GRServer::get_password);
+	register_method("get_custom_input_scene", &GRServer::get_custom_input_scene);
+	register_method("is_custom_input_scene_compressed", &GRServer::is_custom_input_scene_compressed);
+	register_method("get_custom_input_scene_compression_type", &GRServer::get_custom_input_scene_compression_type);
+
+	//register_property<GRServer, bool>("video_stream_enabled", &GRServer::set_video_stream_enabled, &GRServer::is_video_stream_enabled, true);
+	//register_property<GRServer, int>("skip_frames", &GRServer::set_skip_frames, &GRServer::get_skip_frames, 0);
+	////register_property<GRServer, bool>("auto_adjust_scale", &GRServer::set_auto_adjust_scale, &GRServer::is_auto_adjust_scale, true);
+	//register_property<GRServer, int>("jpg_quality", &GRServer::set_jpg_quality, &GRServer::get_jpg_quality, 80);
+	//register_property<GRServer, int>("render_scale", &GRServer::set_render_scale, &GRServer::get_render_scale, 0.3f);
+	//register_property<GRServer, int>("password", &GRServer::set_password, &GRServer::get_password, "");
+	//register_property<GRServer, String>("custom_input_scene", &GRServer::set_custom_input_scene, &GRServer::get_custom_input_scene, "");
+	//register_property<GRServer, int>("custom_input_scene_compressed", &GRServer::set_custom_input_scene_compressed, &GRServer::is_custom_input_scene_compressed, true);
+	//register_property<GRServer, int>("custom_input_scene_compression_type", &GRServer::set_custom_input_scene_compression_type, &GRServer::get_custom_input_scene_compression_type, 0);
+
+	register_signal<GRServer>("client_connected", "device_id", GODOT_VARIANT_TYPE_STRING);
+	register_signal<GRServer>("client_disconnected", "device_id", GODOT_VARIANT_TYPE_STRING);
+
+	register_signal<GRServer>("client_viewport_orientation_changed", "is_vertical", GODOT_VARIANT_TYPE_BOOL);
+	register_signal<GRServer>("client_viewport_aspect_ratio_changed", "stream_aspect_ratio", GODOT_VARIANT_TYPE_REAL);
+}
+
+void GRServer::_bind_constants() {
+
 }
 
 #endif
@@ -106,6 +175,7 @@ void GRServer::_notification(int p_notification) {
 				_internal_call_only_deffered_stop();
 			}
 			_deinit();
+			GRDevice::_deinit();
 			break;
 		}
 	}
@@ -231,10 +301,10 @@ int GRServer::get_custom_input_scene_compression_type() {
 }
 
 void GRServer::_init(){
-	GRDevice::_init();
-
 	set_name("GodotRemoteServer");
+	_bind_constants();
 	tcp_server.instance();
+	GRDevice::_init();
 
 	connection_mutex = Mutex_create();
 	custom_input_scene_regex_resource_finder.instance();
@@ -282,7 +352,7 @@ void GRServer::_internal_call_only_deffered_start() {
 	set_status(WorkingStatus::Working);
 	call_deferred("_load_settings");
 
-	GRNotifications::add_notification("Godot Remote Server Status", "Server started", NotificationIcon::Success);
+	GRNotifications::add_notification("Godot Remote Server Status", "Server started", NotificationIcon::Success, true, 1.f);
 }
 
 void GRServer::_internal_call_only_deffered_stop() {
@@ -309,7 +379,7 @@ void GRServer::_internal_call_only_deffered_stop() {
 	resize_viewport = nullptr;
 	set_status(WorkingStatus::Stopped);
 
-	GRNotifications::add_notification("Godot Remote Server Status", "Server stopped", NotificationIcon::Fail);
+	GRNotifications::add_notification("Godot Remote Server Status", "Server stopped", NotificationIcon::Fail, true, 1.f);
 }
 
 void GRServer::_remove_resize_viewport(Node *node) {
@@ -366,7 +436,7 @@ void GRServer::_load_settings() {
 	using_client_settings = false;
 
 	const String title = "Server settings updated";
-	GRNotifications::add_notification_or_update_line(title, "title", "Loaded default server settings");
+	GRNotifications::add_notification_or_update_line(title, "title", "Loaded default server settings", NotificationIcon::None, 1.f);
 
 	// only updated by server itself
 	password = GET_PS(GodotRemote::ps_server_password_name);
@@ -374,16 +444,16 @@ void GRServer::_load_settings() {
 	set_custom_input_scene_compressed(GET_PS(GodotRemote::ps_server_custom_input_scene_compressed_name));
 	set_custom_input_scene_compression_type((int)GET_PS(GodotRemote::ps_server_custom_input_scene_compression_type_name));
 
-	GRNotifications::add_notification_or_update_line(title, "cis", "Custom input scene: " + str(get_custom_input_scene()));
+	GRNotifications::add_notification_or_update_line(title, "cis", "Custom input scene: " + str(get_custom_input_scene()), NotificationIcon::None, 1.f);
 	if (!get_custom_input_scene().empty()) {
-		GRNotifications::add_notification_or_update_line(title, "cisc", "Scene compressed: " + str(is_custom_input_scene_compressed()));
-		GRNotifications::add_notification_or_update_line(title, "cisct", "Scene compression type: " + str(get_custom_input_scene_compression_type()));
+		GRNotifications::add_notification_or_update_line(title, "cisc", "Scene compressed: " + str(is_custom_input_scene_compressed()), NotificationIcon::None, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "cisct", "Scene compression type: " + str(get_custom_input_scene_compression_type()), NotificationIcon::None, 1.f);
 	}
 
 	// can be updated by client
 	auto_adjust_scale = GET_PS(GodotRemote::ps_server_auto_adjust_scale_name); // TODO move to viewport
 
-	GRNotifications::add_notification_or_update_line(title, "auto_scale", "Auto adjust scale: " + str(auto_adjust_scale)); // TODO not completed
+	GRNotifications::add_notification_or_update_line(title, "auto_scale", "Auto adjust scale: " + str(auto_adjust_scale), NotificationIcon::None, 1.f); // TODO not completed
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
 		set_video_stream_enabled((bool)GET_PS(GodotRemote::ps_server_stream_enabled_name));
 		set_compression_type((ImageCompressionType)(int)GET_PS(GodotRemote::ps_server_compression_type_name));
@@ -391,14 +461,14 @@ void GRServer::_load_settings() {
 		set_render_scale(GET_PS(GodotRemote::ps_server_scale_of_sending_stream_name));
 		set_skip_frames(GET_PS(GodotRemote::ps_server_stream_skip_frames_name));
 
-		GRNotifications::add_notification_or_update_line(title, "stream", "Stream enabled: " + str(is_video_stream_enabled()));
-		GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str(get_render_scale()));
-		GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(get_jpg_quality()));
-		GRNotifications::add_notification_or_update_line(title, "skip", "Skip Frames: " + str(get_skip_frames()));
-		GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(get_render_scale()));
+		GRNotifications::add_notification_or_update_line(title, "stream", "Stream enabled: " + str(is_video_stream_enabled()), NotificationIcon::None, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str(get_render_scale()), NotificationIcon::None, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(get_jpg_quality()), NotificationIcon::None, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "skip", "Skip Frames: " + str(get_skip_frames()), NotificationIcon::None, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(get_render_scale()), NotificationIcon::None, 1.f);
 	} else {
 		_log("Resize viewport not found!", LogLevel::LL_Error);
-		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", NotificationIcon::_Error);
+		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", NotificationIcon::_Error, true, 1.f);
 	}
 
 	// notification
@@ -409,17 +479,17 @@ void GRServer::_load_settings() {
 }
 
 void GRServer::_update_settings_from_client(const Dictionary settings) {
-#define SET_BODY(_func, _id, _text, _type)                                                        \
-	if (_func(value)) {                                                                           \
-		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value))); \
-		using_client_settings = true;                                                             \
-		using_client_settings_recently_updated = true;                                            \
+#define SET_BODY(_func, _id, _text, _type)                                                                                     \
+	if (_func(value)) {                                                                                                        \
+		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value)), NotificationIcon::None, 1.f); \
+		using_client_settings = true;                                                                                          \
+		using_client_settings_recently_updated = true;                                                                         \
 	}
-#define SET_BODY_CONVERT(_func, _conv, _id, _text, _type)                                         \
-	if (_func(_conv(value))) {                                                                    \
-		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value))); \
-		using_client_settings = true;                                                             \
-		using_client_settings_recently_updated = true;                                            \
+#define SET_BODY_CONVERT(_func, _conv, _id, _text, _type)                                                                      \
+	if (_func(_conv(value))) {                                                                                                 \
+		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value)), NotificationIcon::None, 1.f); \
+		using_client_settings = true;                                                                                          \
+		using_client_settings_recently_updated = true;                                                                         \
 	}
 
 	Array keys = settings.keys();
@@ -432,7 +502,7 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 
 	if (!resize_viewport || resize_viewport->is_queued_for_deletion()) {
 		_log("Resize viewport not found!", LogLevel::LL_Error);
-		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", NotificationIcon::_Error);
+		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", NotificationIcon::_Error, true, 1.f);
 	}
 
 	for (int i = 0; i < settings.size(); i++) {
@@ -546,7 +616,7 @@ void GRServer::_thread_listen(void *p_userdata) {
 				continue;
 			} else {
 				_log("Start listening port " + str(dev->port), LogLevel::LL_Normal);
-				GRNotifications::add_notification("Start listening", "Start listening on port: " + str(dev->port), NotificationIcon::Success, true);
+				GRNotifications::add_notification("Start listening", "Start listening on port: " + str(dev->port), NotificationIcon::Success, true, 1.f);
 			}
 		}
 		listening_error_notification_shown = false;
@@ -574,7 +644,7 @@ void GRServer::_thread_listen(void *p_userdata) {
 
 			if (connection_thread_info.is_null()) {
 				Dictionary ret_data;
-				GRDevice::AuthResult res = _auth_client(dev, ppeer, ret_data);
+				GRDevice::AuthResult res = _auth_client(dev, ppeer, ret_data, false);
 				String dev_id = "";
 
 				if (ret_data.has("id")) {
@@ -596,7 +666,7 @@ void GRServer::_thread_listen(void *p_userdata) {
 						_log("New connection from " + address, LogLevel::LL_Normal);
 						
 						dev->call_deferred("emit_signal", "client_connected", dev_id);
-						GRNotifications::add_notification("Connected", "Client connected: " + address + "\nDevice ID: " + connection_thread_info->device_id, NotificationIcon::Success);
+						GRNotifications::add_notification("Connected", "Client connected: " + address + "\nDevice ID: " + connection_thread_info->device_id, NotificationIcon::Success, true, 1.f);
 						break;
 
 					case GRDevice::AuthResult::VersionMismatch:
@@ -818,7 +888,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after sending!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after sending data!", NotificationIcon::_Error);
+			GRNotifications::add_notification("Error", "Lost connection after sending data!", NotificationIcon::_Error, true, 1.f);
 			continue;
 		}
 
@@ -961,7 +1031,7 @@ void GRServer::_thread_connection(void *p_userdata) {
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after receiving!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after receiving data!", NotificationIcon::_Error);
+			GRNotifications::add_notification("Error", "Lost connection after receiving data!", NotificationIcon::_Error, true, 1.f);
 			continue;
 		}
 
@@ -975,9 +1045,9 @@ void GRServer::_thread_connection(void *p_userdata) {
 		dev->resize_viewport->set_process(false);
 
 	if (connection->is_connected_to_host()) {
-		GRNotifications::add_notification("Disconnected", "Closing connection with " + address, NotificationIcon::Fail, false);
+		GRNotifications::add_notification("Disconnected", "Closing connection with " + address, NotificationIcon::Fail, false, 1.f);
 	} else {
-		GRNotifications::add_notification("Disconnected", "Client disconnected: " + address, NotificationIcon::Fail, false);
+		GRNotifications::add_notification("Disconnected", "Client disconnected: " + address, NotificationIcon::Fail, false , 1.f);
 	}
 
 	if (ppeer.is_valid()) {
@@ -1132,7 +1202,7 @@ Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_
 #ifndef GDNATIVE_LIBRARY
 					FileAccess* file = FileAccess::open(pck_file, FileAccess::ModeFlags::READ, &err);
 #else
-					File* file = File::_new();
+					File* file = memnew(File);
 					err = file->open(pck_file, File::ModeFlags::READ);
 #endif
 
@@ -1190,21 +1260,17 @@ Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_
 									memdelete(dir);
 								}
 #else
-								Directory* dir = Directory::_new();
+								Directory* dir = memnew(Directory);
 								if (dir) {
 									dir->open(_scene_path.get_base_dir());
 									dir->remove(pck_file);
-									dir->free();
+									memdelete(dir);
 								}
 #endif
 							}
 						}
 					}
-#ifndef GDNATIVE_LIBRARY
 					memdelete(file);
-#else
-					file->free();
-#endif
 				}
 			}
 		}
@@ -1280,7 +1346,7 @@ void GRSViewport::_processing_thread(void *p_user) {
 
 		if (ips->format != Image::FORMAT_RGB8) {
 			_log("Can't convert stream image to RGB8.", LogLevel::LL_Error);
-			GRNotifications::add_notification("Stream Error", "Can't convert stream image to RGB8.", NotificationIcon::_Error);
+			GRNotifications::add_notification("Stream Error", "Can't convert stream image to RGB8.", NotificationIcon::_Error, true, 1.f);
 			goto end;
 		}
 
@@ -1302,7 +1368,7 @@ void GRSViewport::_processing_thread(void *p_user) {
 				Error err = compress_jpg(ips->ret_data, img->get_data(), ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, Subsampling::SUBSAMPLING_H2V2);
 				if ((int)err) {
 					_log("Can't compress stream image JPG. Code: " + str((int)err), LogLevel::LL_Error);
-					GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str((int)err), NotificationIcon::_Error);
+					GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str((int)err), NotificationIcon::_Error, true, 1.f);
 				}
 			}
 			TimeCount("Image JPG");
@@ -1312,7 +1378,7 @@ void GRSViewport::_processing_thread(void *p_user) {
 			ips->ret_data = img->save_png_to_buffer();
 			if (ips->ret_data.size() == 0) {
 				_log("Can't compress stream image to PNG.", LogLevel::LL_Error);
-				GRNotifications::add_notification("Stream Error", "Can't compress stream image to PNG.", NotificationIcon::_Error);
+				GRNotifications::add_notification("Stream Error", "Can't compress stream image to PNG.", NotificationIcon::_Error, true, 1.f);
 			}
 			TimeCount("Image PNG");
 			break;
@@ -1339,6 +1405,12 @@ void GRSViewport::_bind_methods() {
 
 void GRSViewport::_register_methods() {
 	register_method("_notification", &GRSViewport::_notification);
+
+	register_method("_update_size", &GRSViewport::_update_size);
+	register_method("set_rendering_scale", &GRSViewport::set_rendering_scale);
+	register_method("get_rendering_scale", &GRSViewport::get_rendering_scale);
+
+	register_property<GRSViewport, float>("rendering_scale", &GRSViewport::set_rendering_scale, &GRSViewport::get_rendering_scale, 0.3f, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_RANGE, "0,1,0.001");
 }
 
 #endif

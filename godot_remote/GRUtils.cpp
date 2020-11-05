@@ -22,7 +22,7 @@ namespace GRUtils {
 int current_loglevel = LogLevel::LL_Normal;
 
 void init() {
-	_grutils_data = memnew(GRUtilsData);
+	_grutils_data = new GRUtilsData();
 
 	GR_PACKET_HEADER('G', 'R', 'H', 'D');
 	GR_VERSION(1, 0, 0);
@@ -34,7 +34,7 @@ void deinit() {
 	if (_grutils_data) {
 		_grutils_data->internal_PACKET_HEADER.resize(0);
 		_grutils_data->internal_VERSION.resize(0);
-		memdelete(_grutils_data);
+		delete _grutils_data;
 	}
 }
 
@@ -51,6 +51,7 @@ void deinit_server_utils() {
 
 void _log(const Variant &val, LogLevel lvl) {
 #ifdef DEBUG_ENABLED
+#ifndef GDNATIVE_LIBRARY
 	if (lvl >= current_loglevel && lvl < LogLevel::LL_None) {
 		if (lvl == LogLevel::LL_Error) {
 			print_error("[GodotRemote Error] " + str(val));
@@ -60,6 +61,24 @@ void _log(const Variant &val, LogLevel lvl) {
 			print_line("[GodotRemote] " + str(val));
 		}
 	}
+
+#else
+
+#define print_error_ext(msg) Godot::print_error("[GodotRemote Error] " + str(val), __FUNCTION__, __FILE__, __LINE__ )
+
+	if (lvl >= current_loglevel && lvl < LogLevel::LL_None) {
+		if (lvl == LogLevel::LL_Error) {
+			print_error_ext("[GodotRemote Error] " + str(val));
+		}
+		else if (lvl == LogLevel::LL_Warning) {
+			print_error_ext("[GodotRemote Warning] " + str(val));
+		}
+		else {
+			Godot::print("[GodotRemote] " + str(val));
+		}
+	}
+#undef print_error_ext
+#endif
 #endif
 }
 

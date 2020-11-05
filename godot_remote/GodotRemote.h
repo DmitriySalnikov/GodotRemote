@@ -94,6 +94,7 @@ protected:
 #else
 public:
 	static void _register_methods();
+	void _bind_constants();
 protected:
 #endif
 
@@ -108,7 +109,7 @@ public:
 	void set_notifications_layer(int layer) const;
 	int get_notifications_layer() const;
 
-	void set_notifications_position(NotificationsPosition positon) const;
+	void set_notifications_position(ENUM_ARG(NotificationsPosition) positon) const;
 	NotificationsPosition get_notifications_position() const;
 
 	void set_notifications_enabled(bool _enabled) const;
@@ -120,16 +121,16 @@ public:
 	void set_notifications_style(Ref<class GRNotificationStyle> _style) const;
 	Ref<class GRNotificationStyle> get_notifications_style() const;
 
-	void add_notification_or_append_string(String title, String text, NotificationIcon icon, bool new_string = true);
-	void add_notification_or_update_line(String title, String id, String text, NotificationIcon icon, float duration_multiplier = 1.f) const;
-	void add_notification(String title, String text, NotificationIcon icon, bool update_existing = true, float duration_multiplier = 1.f) const;
+	void add_notification_or_append_string(String title, String text, ENUM_ARG(NotificationIcon) icon, bool new_string DEF_ARG(= true), float duration_multiplier DEF_ARG(= 1.f));
+	void add_notification_or_update_line(String title, String id, String text, ENUM_ARG(NotificationIcon) icon, float duration_multiplier DEF_ARG(= 1.f)) const;
+	void add_notification(String title, String text, ENUM_ARG(NotificationIcon) icon, bool update_existing DEF_ARG(= true), float duration_multiplier DEF_ARG(= 1.f)) const;
 	void remove_notification(String title, bool all_entries = true) const;
 	void remove_notification_exact(Node *_notif) const;
 	void clear_notifications() const;
 	// GRNotifications end
 
 	// GRUtils functions binds for GDScript
-	void set_log_level(LogLevel lvl) const;
+	void set_log_level(ENUM_ARG(LogLevel) lvl) const;
 	void set_gravity(const Vector3 &p_gravity) const;
 	void set_accelerometer(const Vector3 &p_accel) const;
 	void set_magnetometer(const Vector3 &p_magnetometer) const;
@@ -140,8 +141,8 @@ public:
 	class String get_version() const;
 
 	// must be call_deffered
-	void create_and_start_device(DeviceType type = DeviceType::DEVICE_Auto);
-	bool create_remote_device(DeviceType type = DeviceType::DEVICE_Auto);
+	void create_and_start_device(ENUM_ARG(DeviceType) type DEF_ARG(= DeviceType::DEVICE_Auto));
+	bool create_remote_device(ENUM_ARG(DeviceType) type DEF_ARG(= DeviceType::DEVICE_Auto));
 	bool start_remote_device();
 	bool remove_remote_device();
 

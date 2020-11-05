@@ -42,6 +42,7 @@
 #include <SceneTree.hpp>
 #include <Viewport.hpp>
 #include <Material.hpp>
+#include <ClassDB.hpp>
 #include <PackedScene.hpp>
 #include <Texture.hpp>
 #include <RandomNumberGenerator.hpp>
@@ -125,8 +126,8 @@ void GRClient::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), "set_target_send_fps", "get_target_send_fps");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Fill,Keep Aspect"), "set_stretch_mode", "get_stretch_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "texture_filtering"), "set_texture_filtering", "get_texture_filtering");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "device_id"), "set_device_id", "get_device_id");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "password"), "set_password", "get_password");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "device_id"), "set_device_id", "get_device_id");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_orientation_syncing"), "set_viewport_orientation_syncing", "is_viewport_orientation_syncing");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_aspect_ratio_syncing"), "set_viewport_aspect_ratio_syncing", "is_viewport_aspect_ratio_syncing");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "server_settings_syncing"), "set_server_settings_syncing", "is_server_settings_syncing");
@@ -146,7 +147,112 @@ void GRClient::_bind_methods() {
 
 
 void GRClient::_register_methods() {
+	///////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////
+
+	register_method("_internal_call_only_deffered_start", &GRClient::_internal_call_only_deffered_start);
+	register_method("_internal_call_only_deffered_stop", &GRClient::_internal_call_only_deffered_stop);
+
+	register_method("_internal_call_only_deffered_restart", &GRClient::_internal_call_only_deffered_restart);
+
+	register_method("get_avg_ping", &GRClient::get_avg_ping);
+	register_method("get_avg_fps", &GRClient::get_avg_fps);
+
+	register_method("get_port", &GRClient::get_port);
+	register_method("set_port", &GRClient::set_port);
+
+	register_method("start", &GRClient::start);
+	register_method("stop", &GRClient::stop);
+	register_method("get_status", &GRClient::get_status);
+
+	register_signal<GRClient>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
+
+	///////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////
+
 	register_method("_notification", &GRClient::_notification);
+
+	register_method("_update_texture_from_iamge", &GRClient::_update_texture_from_iamge);
+	register_method("_update_stream_texture_state", &GRClient::_update_stream_texture_state);
+	register_method("_force_update_stream_viewport_signals", &GRClient::_force_update_stream_viewport_signals);
+	register_method("_viewport_size_changed", &GRClient::_viewport_size_changed);
+	register_method("_load_custom_input_scene", &GRClient::_load_custom_input_scene);
+	register_method("_remove_custom_input_scene", &GRClient::_remove_custom_input_scene);
+
+	register_method("send_packet", &GRClient::send_packet);
+
+	register_method("set_control_to_show_in", &GRClient::set_control_to_show_in);
+	register_method("set_custom_no_signal_texture", &GRClient::set_custom_no_signal_texture);
+	register_method("set_custom_no_signal_vertical_texture", &GRClient::set_custom_no_signal_vertical_texture);
+	register_method("set_custom_no_signal_material", &GRClient::set_custom_no_signal_material);
+	register_method("set_address_port", &GRClient::set_address_port);
+	register_method("set_address", &GRClient::set_address);
+	register_method("set_server_setting", &GRClient::set_server_setting);
+	register_method("disable_overriding_server_settings", &GRClient::disable_overriding_server_settings);
+
+	register_method("get_address", &GRClient::get_address);
+	register_method("is_stream_active", &GRClient::is_stream_active);
+	register_method("is_connected_to_host", &GRClient::is_connected_to_host);
+
+	register_signal<GRClient>("stream_state_changed", "state", GODOT_VARIANT_TYPE_INT);
+	register_signal<GRClient>("connection_state_changed", "is_connected", GODOT_VARIANT_TYPE_BOOL);
+	register_signal<GRClient>("mouse_mode_changed", "mouse_mode", GODOT_VARIANT_TYPE_INT);
+	register_signal<GRClient>("server_settings_received", "settings", GODOT_VARIANT_TYPE_DICTIONARY);
+
+	// SETGET
+	register_method("set_capture_on_focus", &GRClient::set_capture_on_focus);
+	register_method("set_capture_when_hover", &GRClient::set_capture_when_hover);
+	register_method("set_capture_pointer", &GRClient::set_capture_pointer);
+	register_method("set_capture_input", &GRClient::set_capture_input);
+	register_method("set_connection_type", &GRClient::set_connection_type);
+	register_method("set_target_send_fps", &GRClient::set_target_send_fps);
+	register_method("set_stretch_mode", &GRClient::set_stretch_mode);
+	register_method("set_texture_filtering", &GRClient::set_texture_filtering);
+	register_method("set_password", &GRClient::set_password);
+	register_method("set_device_id", &GRClient::set_device_id);
+	register_method("set_viewport_orientation_syncing", &GRClient::set_viewport_orientation_syncing);
+	register_method("set_viewport_aspect_ratio_syncing", &GRClient::set_viewport_aspect_ratio_syncing);
+	register_method("set_server_settings_syncing", &GRClient::set_server_settings_syncing);
+
+	register_method("is_capture_on_focus", &GRClient::is_capture_on_focus);
+	register_method("is_capture_when_hover", &GRClient::is_capture_when_hover);
+	register_method("is_capture_pointer", &GRClient::is_capture_pointer);
+	register_method("is_capture_input", &GRClient::is_capture_input);
+	register_method("get_connection_type", &GRClient::get_connection_type);
+	register_method("get_target_send_fps", &GRClient::get_target_send_fps);
+	register_method("get_stretch_mode", &GRClient::get_stretch_mode);
+	register_method("get_texture_filtering", &GRClient::get_texture_filtering);
+	register_method("get_password", &GRClient::get_password);
+	register_method("get_device_id", &GRClient::get_device_id);
+	register_method("is_viewport_orientation_syncing", &GRClient::is_viewport_orientation_syncing);
+	register_method("is_viewport_aspect_ratio_syncing", &GRClient::is_viewport_aspect_ratio_syncing);
+	register_method("is_server_settings_syncing", &GRClient::is_server_settings_syncing);
+
+	//register_property<GRClient, bool>("capture_on_focus", &GRClient::set_capture_on_focus, &GRClient::is_capture_on_focus, false);
+	//register_property<GRClient, bool>("capture_when_hover", &GRClient::set_capture_when_hover, &GRClient::is_capture_when_hover, false);
+	//register_property<GRClient, bool>("capture_pointer", &GRClient::set_capture_pointer, &GRClient::is_capture_pointer, true);
+	//register_property<GRClient, bool>("capture_input", &GRClient::set_capture_input, &GRClient::is_capture_input, true);
+	//register_property<GRClient, int>("connection_type", &GRClient::set_connection_type, &GRClient::get_connection_type, CONNECTION_WiFi, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_ENUM, "WiFi,ADB");
+	//register_property<GRClient, int>("target_send_fps", &GRClient::set_target_send_fps, &GRClient::get_target_send_fps, 60, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_RANGE, "1,1000");
+	//register_property<GRClient, int>("stretch_mode", &GRClient::set_stretch_mode, &GRClient::get_stretch_mode, STRETCH_KEEP_ASPECT, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_ENUM, "Fill,Keep Aspect");
+	//register_property<GRClient, bool>("texture_filtering", &GRClient::set_texture_filtering, &GRClient::get_texture_filtering, true);
+	//register_property<GRClient, String>("password", &GRClient::set_password, & GRClient::get_password, "");
+	//register_property<GRClient, String>("device_id", &GRClient::set_device_id, & GRClient::get_device_id, "");
+	//register_property<GRClient, bool>("viewport_orientation_syncing", &GRClient::set_viewport_orientation_syncing, &GRClient::is_viewport_orientation_syncing, true);
+	//register_property<GRClient, bool>("viewport_aspect_ratio_syncing", &GRClient::set_viewport_aspect_ratio_syncing, &GRClient::is_viewport_aspect_ratio_syncing, true);
+	//register_property<GRClient, bool>("server_settings_syncing", &GRClient::set_server_settings_syncing, &GRClient::is_server_settings_syncing, true);
+}
+
+void GRClient::_bind_constants() {
+	BIND_ENUM_CONSTANT(this, ConnectionType::CONNECTION_ADB, "CONNECTION_ADB");
+	BIND_ENUM_CONSTANT(this, ConnectionType::CONNECTION_WiFi, "CONNECTION_WiFi");
+
+	BIND_ENUM_CONSTANT(this, StretchMode::STRETCH_KEEP_ASPECT, "STRETCH_KEEP_ASPECT");
+	BIND_ENUM_CONSTANT(this, StretchMode::STRETCH_FILL, "STRETCH_FILL");
+
+	BIND_ENUM_CONSTANT(this, StreamState::STREAM_NO_SIGNAL, "STREAM_NO_SIGNAL");
+	BIND_ENUM_CONSTANT(this, StreamState::STREAM_ACTIVE, "STREAM_ACTIVE");
+	BIND_ENUM_CONSTANT(this, StreamState::STREAM_NO_IMAGE, "STREAM_NO_IMAGE");
 }
 
 #endif
@@ -163,26 +269,28 @@ void GRClient::_notification(int p_notification) {
 			is_deleting = true;
 			if (get_status() == (int)WorkingStatus::Working) {
 				_internal_call_only_deffered_stop();
-				set_control_to_show_in(nullptr);
+				set_control_to_show_in(nullptr, 0);
 			}
 			_deinit();
+			GRDevice::_deinit();
 			break;
 		}
 	}
 }
 
 void GRClient::_init(){
-	GRDevice::_init();
 	set_name("GodotRemoteClient");
+	_bind_constants();
+	GRDevice::_init();
 
 #ifndef GDNATIVE_LIBRARY
 	Math::randomize();
 	device_id = str(Math::randd() * Math::rand()).md5_text().substr(0, 6);
 #else
-	RandomNumberGenerator* rng = RandomNumberGenerator::_new();
+	RandomNumberGenerator* rng = memnew(RandomNumberGenerator);
 	rng->randomize();
 	device_id = str(rng->randf() * rng->randf()).md5_text().substr(0, 6);
-	rng->free();
+	memdelete(rng);
 #endif
 
 
@@ -198,8 +306,7 @@ void GRClient::_init(){
 	GetPoolVectorFromBin(tmp_no_signal_vert, GRResources::Bin_NoSignalVerticalPNG);
 	no_signal_vertical_image->load_png_from_buffer(tmp_no_signal_vert);
 
-	Ref<Shader> shader;
-	shader.instance();
+	Ref<Shader> shader = newref(Shader);
 	shader->set_code(GRResources::Txt_CRT_Shader);
 	no_signal_mat.instance();
 	no_signal_mat->set_shader(shader);
@@ -384,11 +491,11 @@ void GRClient::set_capture_input(bool value) {
 		input_collector->set_capture_input(value);
 }
 
-void GRClient::set_connection_type(ConnectionType type) {
-	con_type = type;
+void GRClient::set_connection_type(ENUM_ARG(ConnectionType) type) {
+	con_type = (ConnectionType)type;
 }
 
-ConnectionType GRClient::get_connection_type() {
+ENUM_ARG(ConnectionType) GRClient::get_connection_type() {
 	return con_type;
 }
 
@@ -401,12 +508,12 @@ int GRClient::get_target_send_fps() {
 	return send_data_fps;
 }
 
-void GRClient::set_stretch_mode(StretchMode stretch) {
-	stretch_mode = stretch;
+void GRClient::set_stretch_mode(ENUM_ARG(StretchMode) stretch) {
+	stretch_mode = (StretchMode)stretch;
 	call_deferred("_update_stream_texture_state", signal_connection_state);
 }
 
-StretchMode GRClient::get_stretch_mode() {
+ENUM_ARG(StretchMode) GRClient::get_stretch_mode() {
 	return stretch_mode;
 }
 
@@ -418,7 +525,7 @@ bool GRClient::get_texture_filtering() {
 	return is_filtering_enabled;
 }
 
-StreamState GRClient::get_stream_state() {
+ENUM_ARG(StreamState) GRClient::get_stream_state() {
 	return signal_connection_state;
 }
 
@@ -461,7 +568,7 @@ bool GRClient::set_address_port(String ip, uint16_t _port) {
 		}
 		else {
 			_log("Address is invalid: " + ip, LogLevel::LL_Error);
-			GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + ip, NotificationIcon::_Error);
+			GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + ip, NotificationIcon::_Error, true, 1.f);
 		}
 	}
 	else {
@@ -475,7 +582,7 @@ bool GRClient::set_address_port(String ip, uint16_t _port) {
 		}
 		else {
 			_log("Can't resolve address for " + ip, LogLevel::LL_Error);
-			GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + ip, NotificationIcon::_Error);
+			GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + ip, NotificationIcon::_Error, true, 1.f);
 		}
 	}
 
@@ -570,7 +677,7 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 #ifndef GDNATIVE_LIBRARY
 	FileAccess* file = FileAccess::open(custom_input_scene_tmp_pck_file, FileAccess::ModeFlags::WRITE, &err);
 #else
-	File* file = File::_new();
+	File* file = memnew(File);
 	err = file->open(custom_input_scene_tmp_pck_file, File::ModeFlags::WRITE);
 #endif
 	if ((int)err) {
@@ -632,15 +739,9 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 		}
 	}
 
-#ifndef GDNATIVE_LIBRARY
 	if (file) {
 		memdelete(file);
 	}
-#else
-	if (file) {
-		file->free();
-	}
-#endif
 }
 
 void GRClient::_remove_custom_input_scene() {
@@ -653,7 +754,7 @@ void GRClient::_remove_custom_input_scene() {
 #ifndef GDNATIVE_LIBRARY
 		DirAccess *dir = DirAccess::open(custom_input_scene_tmp_pck_file.get_base_dir(), &err);
 #else
-		Directory* dir = Directory::_new();
+		Directory* dir = memnew(Directory);
 		dir->open(custom_input_scene_tmp_pck_file.get_base_dir());
 #endif
 		if ((int)err) {
@@ -667,13 +768,9 @@ void GRClient::_remove_custom_input_scene() {
 			}
 		}
 
-#ifndef GDNATIVE_LIBRARY
 		if (dir) {
 			memdelete(dir);
 		}
-#else
-		dir->free();
-#endif
 	}
 }
 
@@ -737,7 +834,7 @@ void GRClient::_update_texture_from_iamge(Ref<Image> img) {
 	}
 }
 
-void GRClient::_update_stream_texture_state(StreamState is_has_signal) {
+void GRClient::_update_stream_texture_state(ENUM_ARG(StreamState) is_has_signal) {
 	if (is_deleting)
 		return;
 
@@ -783,7 +880,7 @@ void GRClient::_update_stream_texture_state(StreamState is_has_signal) {
 
 		if (signal_connection_state != is_has_signal) {
 			call_deferred("emit_signal", "stream_state_changed", is_has_signal);
-			signal_connection_state = is_has_signal;
+			signal_connection_state = (StreamState)is_has_signal;
 		}
 	}
 }
@@ -794,7 +891,7 @@ void GRClient::_reset_counters() {
 	sync_time_server = 0;
 }
 
-void GRClient::set_server_setting(TypesOfServerSettings param, Variant value) {
+void GRClient::set_server_setting(ENUM_ARG(TypesOfServerSettings) param, Variant value) {
 	send_queue_mutex->lock();
 	Ref<GRPacketServerSettings> packet = _find_queued_packet_by_type<Ref<GRPacketServerSettings> >();
 
@@ -856,7 +953,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 				} else {
 					_log("Address is invalid: " + dev->server_address, LogLevel::LL_Error);
 					if (prev_auth_error != GRDevice::AuthResult::Error)
-						GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + dev->server_address, NotificationIcon::_Error);
+						GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + dev->server_address, NotificationIcon::_Error, true, 1.f);
 					prev_auth_error = GRDevice::AuthResult::Error;
 				}
 			} else {
@@ -866,7 +963,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 				} else {
 					_log("Can't resolve address for " + dev->server_address, LogLevel::LL_Error);
 					if (prev_auth_error != GRDevice::AuthResult::Error)
-						GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + dev->server_address, NotificationIcon::_Error);
+						GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + dev->server_address, NotificationIcon::_Error, true, 1.f);
 					prev_auth_error = GRDevice::AuthResult::Error;
 				}
 			}
@@ -902,7 +999,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 		if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
 			_log("Connection timed out with " + address, LogLevel::LL_Debug);
 			if (prev_auth_error != GRDevice::AuthResult::Timeout) {
-				GRNotifications::add_notification(con_error_title, "Connection timed out: " + address, NotificationIcon::Warning);
+				GRNotifications::add_notification(con_error_title, "Connection timed out: " + address, NotificationIcon::Warning, true, 1.f);
 				prev_auth_error = GRDevice::AuthResult::Timeout;
 			}
 			os->delay_usec(200_ms);
@@ -931,7 +1028,7 @@ void GRClient::_thread_connection(void *p_userdata) {
 				dev->is_connection_working = true;
 				dev->call_deferred("emit_signal", "connection_state_changed", true);
 				dev->call_deferred("_force_update_stream_viewport_signals"); // force update screen aspect ratio and orientation
-				GRNotifications::add_notification("Connected", "Connected to " + address, NotificationIcon::Success);
+				GRNotifications::add_notification("Connected", "Connected to " + address, NotificationIcon::Success, true, 1.f);
 				
 				_connection_loop(con_thread);
 
@@ -945,33 +1042,33 @@ void GRClient::_thread_connection(void *p_userdata) {
 			}
 			case GRDevice::AuthResult::Error:
 				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Can't connect to " + address, NotificationIcon::_Error);
+					GRNotifications::add_notification(con_error_title, "Can't connect to " + address, NotificationIcon::_Error, true, 1.f);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::Timeout:
 				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Timeout\n" + address, NotificationIcon::_Error);
+					GRNotifications::add_notification(con_error_title, "Timeout\n" + address, NotificationIcon::_Error, true, 1.f);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::RefuseConnection:
 				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Connection refused\n" + address, NotificationIcon::_Error);
+					GRNotifications::add_notification(con_error_title, "Connection refused\n" + address, NotificationIcon::_Error, true, 1.f);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::VersionMismatch:
-				GRNotifications::add_notification(con_error_title, "Version mismatch\n" + address, NotificationIcon::_Error);
+				GRNotifications::add_notification(con_error_title, "Version mismatch\n" + address, NotificationIcon::_Error, true, 1.f);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::IncorrectPassword:
-				GRNotifications::add_notification(con_error_title, "Incorrect password\n" + address, NotificationIcon::_Error);
+				GRNotifications::add_notification(con_error_title, "Incorrect password\n" + address, NotificationIcon::_Error, true, 1.f);
 				long_wait = true;
 				break;
 			case GRDevice::AuthResult::PasswordRequired:
-				GRNotifications::add_notification(con_error_title, "Required password but it's not implemented.... " + address, NotificationIcon::_Error);
+				GRNotifications::add_notification(con_error_title, "Required password but it's not implemented.... " + address, NotificationIcon::_Error, true, 1.f);
 				break;
 			default:
 				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Unknown error code: " + str((int)res) + "\n" + address, NotificationIcon::_Error);
+					GRNotifications::add_notification(con_error_title, "Unknown error code: " + str((int)res) + "\n" + address, NotificationIcon::_Error, true, 1.f);
 				_log("Unknown error code: " + str((int)res) + ". Disconnecting. " + address);
 				break;
 		}
@@ -1106,7 +1203,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after sending!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after sending data!", NotificationIcon::_Error);
+			GRNotifications::add_notification("Error", "Lost connection after sending data!", NotificationIcon::_Error, true, 1.f);
 			continue;
 		}
 
@@ -1270,7 +1367,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after receiving!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after receiving data!", NotificationIcon::_Error);
+			GRNotifications::add_notification("Error", "Lost connection after receiving data!", NotificationIcon::_Error, true, 1.f);
 			continue;
 		}
 
@@ -1288,10 +1385,10 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 	if (connection->is_connected_to_host()) {
 		_log("Lost connection to " + address, LogLevel::LL_Error);
-		GRNotifications::add_notification("Disconnected", "Closing connection to " + address, NotificationIcon::Fail);
+		GRNotifications::add_notification("Disconnected", "Closing connection to " + address, NotificationIcon::Fail, true, 1.f);
 	} else {
 		_log("Closing connection to " + address, LogLevel::LL_Error);
-		GRNotifications::add_notification("Disconnected", "Lost connection to " + address, NotificationIcon::Fail);
+		GRNotifications::add_notification("Disconnected", "Lost connection to " + address, NotificationIcon::Fail, true, 1.f);
 	}
 
 	if (_img_thread) {
@@ -1324,7 +1421,7 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 			if (img_is_empty(img)) { // is NOT OK
 				err = Error::FAILED;
 				_log("Incorrect uncompressed image data.", LogLevel::LL_Error);
-				GRNotifications::add_notification("Stream Error", "Incorrect uncompressed image data.", NotificationIcon::_Error);
+				GRNotifications::add_notification("Stream Error", "Incorrect uncompressed image data.", NotificationIcon::_Error, true, 1.f);
 			}
 			break;
 		}
@@ -1332,7 +1429,7 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 			err = img->load_jpg_from_buffer(ips->tex_data);
 			if ((int)err || img_is_empty(img)) { // is NOT OK
 				_log("Can't decode JPG image.", LogLevel::LL_Error);
-				GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str((int)err), NotificationIcon::_Error);
+				GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str((int)err), NotificationIcon::_Error, true, 1.f);
 			}
 			break;
 		}
@@ -1340,7 +1437,7 @@ void GRClient::_thread_image_decoder(void *p_userdata) {
 			err = img->load_png_from_buffer(ips->tex_data);
 			if ((int)err || img_is_empty(img)) { // is NOT OK
 				_log("Can't decode PNG image.", LogLevel::LL_Error);
-				GRNotifications::add_notification("Stream Error", "Can't decode PNG image. Code: " + str((int)err), NotificationIcon::_Error);
+				GRNotifications::add_notification("Stream Error", "Can't decode PNG image. Code: " + str((int)err), NotificationIcon::_Error, true, 1.f);
 			}
 			break;
 		}
@@ -1551,6 +1648,19 @@ void GRInputCollector::_bind_methods() {
 
 void GRInputCollector::_register_methods() {
 	register_method("_notification", &GRInputCollector::_notification);
+
+	register_method("_input", &GRInputCollector::_input);
+
+	register_method("is_capture_on_focus", &GRInputCollector::is_capture_on_focus);
+	register_method("set_capture_on_focus", &GRInputCollector::set_capture_on_focus);
+	register_method("is_capture_when_hover", &GRInputCollector::is_capture_when_hover);
+	register_method("set_capture_when_hover", &GRInputCollector::set_capture_when_hover);
+	register_method("is_capture_pointer", &GRInputCollector::is_capture_pointer);
+	register_method("set_capture_pointer", &GRInputCollector::set_capture_pointer);
+
+	//register_property<GRInputCollector, bool>("capture_on_focus", &GRInputCollector::set_capture_on_focus, &GRInputCollector::is_capture_on_focus);
+	//register_property<GRInputCollector, bool>("capture_when_hover", &GRInputCollector::set_capture_when_hover, &GRInputCollector::is_capture_when_hover);
+	//register_property<GRInputCollector, bool>("capture_pointer", &GRInputCollector::set_capture_pointer, &GRInputCollector::is_capture_pointer);
 }
 
 #endif
@@ -1780,6 +1890,8 @@ void GRTextureRect::_bind_methods() {
 
 void GRTextureRect::_register_methods() {
 	register_method("_notification", &GRTextureRect::_notification);
+
+	register_method("_tex_size_changed", &GRTextureRect::_tex_size_changed);
 }
 
 #endif
