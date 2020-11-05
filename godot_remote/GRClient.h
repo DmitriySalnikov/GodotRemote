@@ -4,7 +4,6 @@
 #ifndef NO_GODOTREMOTE_CLIENT
 
 #include "GRDevice.h"
-#include <vector>
 
 #ifndef GDNATIVE_LIBRARY
 
@@ -25,17 +24,17 @@
 using namespace godot;
 #endif
 
-enum ConnectionType {
+enum ConnectionType : int {
 	CONNECTION_WiFi = 0,
 	CONNECTION_ADB = 1,
 };
 
-enum StretchMode {
+enum StretchMode : int {
 	STRETCH_KEEP_ASPECT = 0,
 	STRETCH_FILL = 1,
 };
 
-enum StreamState {
+enum StreamState : int {
 	STREAM_NO_SIGNAL = 0,
 	STREAM_ACTIVE = 1,
 	STREAM_NO_IMAGE = 2,
@@ -46,7 +45,7 @@ class GRClient : public GRDevice {
 
 	friend class GRTextureRect;
 
-		enum class ScreenOrientation {
+	enum class ScreenOrientation : int {
 		NONE = 0,
 		VERTICAL = 1,
 		HORIZONTAL = 2,
@@ -128,7 +127,7 @@ private:
 
 	Mutex *send_queue_mutex = nullptr;
 	Mutex *connection_mutex = nullptr;
-	std::vector<Ref<class GRPacket> > send_queue;
+	Array send_queue; // Ref<GRPacket>
 	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
@@ -155,9 +154,9 @@ private:
 
 	template <class T>
 	T _find_queued_packet_by_type() {
-		for (auto e : send_queue)
+		for (int i = 0; i< send_queue.size(); i++)
 		{
-			T o = e;
+			T o = send_queue[i];
 			if (o.is_valid()) {
 				return o;
 			}
@@ -191,6 +190,7 @@ public:
 	static void _register_methods();
 protected:
 #endif
+
 	void _notification(int p_notification);
 
 public:
@@ -238,8 +238,8 @@ public:
 	void set_server_setting(TypesOfServerSettings param, Variant value);
 	void disable_overriding_server_settings();
 
-	GRClient();
-	~GRClient();
+	void _init();
+	void _deinit();
 };
 
 class GRInputCollector : public Node {
@@ -253,7 +253,7 @@ private:
 	GRInputCollector **this_in_client = nullptr; //somebody help
 
 	class TextureRect *texture_rect = nullptr;
-	std::vector<Ref<GRInputData> > collected_input_data;
+	Array collected_input_data; // Ref<GRInputData>
 	class Control *parent;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
@@ -295,8 +295,8 @@ public:
 
 	Ref<class GRPacketInputData> get_collected_input_data();
 
-	GRInputCollector();
-	~GRInputCollector();
+	void _init();
+	void _deinit();
 };
 
 class GRTextureRect : public TextureRect {
@@ -316,9 +316,11 @@ public:
 protected:
 #endif
 
+	void _notification(int p_notification);
+
 public:
-	GRTextureRect();
-	~GRTextureRect();
+	void _init();
+	void _deinit();
 };
 
 #ifndef GDNATIVE_LIBRARY

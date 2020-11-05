@@ -43,13 +43,8 @@ using namespace godot;
 
 using namespace GRUtils;
 
-GRNotifications *GRNotifications::singleton = nullptr;
-
-Ref<GRNotificationStyle> GRNotificationPanel::_default_style;
-#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
-Dictionary GRNotificationPanel::_default_textures;
-Ref<ImageTexture> GRNotificationPanel::_default_close_texture;
-#endif
+GRNotifications* GRNotifications::singleton = nullptr;
+GRNotificationPanelSTATIC_DATA* GRNotificationPanel::_default_data = nullptr;
 
 Array GRNotifications::_get_notifications_with_title(String title) { // GRNotificationPanel *
 	Array res; // GRNotificationPanel *
@@ -144,6 +139,14 @@ void GRNotifications::_set_all_notifications_positions(NotificationsPosition pos
 
 void GRNotifications::_notification(int p_what) {
 	switch (p_what) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifndef GDNATIVE_LIBRARY
+			_init();
+#endif
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
 		case NOTIFICATION_EXIT_TREE: {
 			GRNotificationPanel::clear_styles();
 			break;
@@ -175,6 +178,7 @@ void GRNotifications::_bind_methods() {
 #else
 
 void GRNotifications::_register_methods() {
+	register_method("_notification", &GRNotifications::_notification);
 }
 
 #endif
@@ -376,7 +380,7 @@ GRNotifications *GRNotifications::get_singleton() {
 	return singleton;
 }
 
-GRNotifications::GRNotifications() {
+void GRNotifications::_init() {
 	if (!singleton)
 		singleton = this;
 
@@ -403,7 +407,7 @@ GRNotifications::GRNotifications() {
 	set_notifications_position(notifications_position);
 }
 
-GRNotifications::~GRNotifications() {
+void GRNotifications::_deinit() {
 	if (this == singleton)
 		singleton = nullptr;
 	call_deferred("_remove_list");
@@ -446,7 +450,7 @@ void GRNotificationPanel::_setup_tween(Tween *_tween) {
 }
 
 void GRNotificationPanel::_update_style() {
-	Ref<GRNotificationStyle> s = _default_style;
+	Ref<GRNotificationStyle> s = _default_data->_default_style;
 	if (style.is_valid())
 		s = style;
 
@@ -499,12 +503,12 @@ Ref<GRNotificationStyle> GRNotificationPanel::generate_default_style() {
 	res_style->set_close_button_theme(close_btn_theme);
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
-#define SetIcon(_i) res_style->set_notification_icon(_i, _default_textures[(int)_i])
+#define SetIcon(_i) res_style->set_notification_icon(_i, _default_data->_default_textures[(int)_i])
 
-	if (_default_textures.empty() || _default_close_texture.is_null())
+	if (_default_data->_default_textures.empty() || _default_data->_default_close_texture.is_null())
 		_load_default_textures();
 
-	res_style->set_close_button_icon(_default_close_texture);
+	res_style->set_close_button_icon(_default_data->_default_close_texture);
 	SetIcon(NotificationIcon::_Error);
 	SetIcon(NotificationIcon::Warning);
 	SetIcon(NotificationIcon::Success);
@@ -519,15 +523,15 @@ Ref<GRNotificationStyle> GRNotificationPanel::generate_default_style() {
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 void GRNotificationPanel::_load_default_textures() {
 
-#define LoadTex(_i, _n)                     \
-	{                                       \
-		img.instance();                     \
-		GetPoolVectorFromBin(tmp_arr, _n);  \
-		img->load_png_from_buffer(tmp_arr); \
-                                            \
-		tex.instance();                     \
-		tex->create_from_image(img);        \
-		_default_textures[(int)_i] = tex;   \
+#define LoadTex(_i, _n)                                    \
+	{                                                      \
+		img.instance();                                    \
+		GetPoolVectorFromBin(tmp_arr, _n);                 \
+		img->load_png_from_buffer(tmp_arr);                \
+                                                           \
+		tex.instance();                                    \
+		tex->create_from_image(img);                       \
+		_default_data->_default_textures[(int)_i] = tex;   \
 	}
 
 	Ref<Image> img;
@@ -545,7 +549,7 @@ void GRNotificationPanel::_load_default_textures() {
 
 		tex.instance();
 		tex->create_from_image(img);
-		_default_close_texture = tex;
+		_default_data->_default_close_texture = tex;
 	}
 
 #undef LoadTex
@@ -567,16 +571,32 @@ void GRNotificationPanel::_bind_methods() {
 #else
 
 void GRNotificationPanel::_register_methods() {
+	register_method("_notification", &GRNotificationPanel::_notification);
 }
 
 #endif
 
-void GRNotificationPanel::clear_styles() {
-	_default_style.unref();
-#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
-	_default_close_texture.unref();
-	_default_textures.clear();
+void GRNotificationPanel::_notification(int p_notification) {
+	switch (p_notification) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifndef GDNATIVE_LIBRARY
+			_init();
 #endif
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
+	}
+}
+
+void GRNotificationPanel::clear_styles() {
+	if (_default_data) {
+		_default_data->_default_style.unref();
+	#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
+		_default_data->_default_close_texture.unref();
+		_default_data->_default_textures.clear();
+	#endif
+	}
 }
 
 void GRNotificationPanel::set_notification_position(NotificationsPosition position) {
@@ -629,11 +649,13 @@ void GRNotificationPanel::update_text(String text) {
 		tween_node->start();
 }
 
-GRNotificationPanel::GRNotificationPanel() {
+void GRNotificationPanel::_init() {
 	set_name("NotificationPanel");
 
-	if (_default_style.is_null())
-		_default_style = generate_default_style();
+	_default_data = memnew(GRNotificationPanelSTATIC_DATA);
+
+	if (_default_data->_default_style.is_null())
+		_default_data->_default_style = generate_default_style();
 
 	set_mouse_filter(Control::MouseFilter::MOUSE_FILTER_PASS);
 	connect("mouse_entered", this, "_panel_hovered");
@@ -687,9 +709,10 @@ GRNotificationPanel::GRNotificationPanel() {
 	//_update_style();
 }
 
-GRNotificationPanel::~GRNotificationPanel() {
+void GRNotificationPanel::_deinit() {
 	if (style.is_valid())
 		style.unref();
+	memdelete(_default_data);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -700,7 +723,7 @@ String GRNotificationPanelUpdatable::_get_text_from_lines() {
 	Array lv = lines.values();
 	String res = "";
 	for (int i = 0; i < lv.size(); i++) {
-		res += (String)lv[i];
+		res += V_CAST(lv[i], String);
 		if (i < lv.size() - 1) {
 			res += "\n";
 		}
@@ -716,11 +739,24 @@ void GRNotificationPanelUpdatable::_bind_methods() {
 
 #else
 
-
 void GRNotificationPanelUpdatable::_register_methods() {
+	register_method("_notification", &GRNotificationPanelUpdatable::_notification);
 }
 
 #endif
+
+void GRNotificationPanelUpdatable::_notification(int p_notification) {
+	switch (p_notification) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifndef GDNATIVE_LIBRARY
+			_init();
+#endif
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
+	}
+}
 
 void GRNotificationPanelUpdatable::set_updatable_line(GRNotifications *_owner, String title, String id, String text, NotificationIcon icon, float duration_multiplier, Ref<GRNotificationStyle> _style) {
 	if (configured) {
@@ -800,13 +836,26 @@ void GRNotificationStyle::_bind_methods() {
 
 #else
 
-
 void GRNotificationStyle::_register_methods() {
+	register_method("_notification", &GRNotificationStyle::_notification);
 }
 
 #endif
 
-GRNotificationStyle::~GRNotificationStyle() {
+void GRNotificationStyle::_notification(int p_notification) {
+	switch (p_notification) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifndef GDNATIVE_LIBRARY
+			//_init();
+#endif
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
+	}
+}
+
+void GRNotificationStyle::_deinit() {
 	panel_style.unref();
 	close_button_theme.unref();
 	close_button_icon.unref();

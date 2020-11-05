@@ -53,8 +53,21 @@ void GRDevice::_bind_methods() {
 
 #else
 
-
 void GRDevice::_register_methods() {
+	register_method("_notification", &GRDevice::_notification);
+}
+
+void GRDevice::_notification(int p_notification) {
+	switch (p_notification) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifndef GDNATIVE_LIBRARY
+			_init();
+#endif
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
+	}
 }
 
 #endif
@@ -126,11 +139,11 @@ WorkingStatus GRDevice::get_status() {
 	return working_status;
 }
 
-GRDevice::GRDevice() {
+void GRDevice::_init() {
 	port = GET_PS(GodotRemote::ps_general_port_name);
 }
 
-GRDevice::~GRDevice() {
+void GRDevice::_deinit() {
 	if (GodotRemote::get_singleton()) {
 		GodotRemote::get_singleton()->device = nullptr;
 	}

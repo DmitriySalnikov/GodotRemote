@@ -34,7 +34,7 @@ using namespace godot;
 #endif
 
 
-enum InputType {
+enum InputType : int {
 	_NoneIT = 0,
 	// Custom Input Data
 	_InputDeviceSensors = 1,
@@ -58,9 +58,6 @@ enum InputType {
 	_InputEventMAX,
 };
 
-#ifndef GDNATIVE_LIBRARY
-VARIANT_ENUM_CAST(InputType)
-#endif
 //////////////////////////////////////////////////////////////////////////
 // BASE CLASS
 
@@ -171,3 +168,7 @@ INPUT_EVENT_DATA(GRIEDataAction, GRInputDataEvent, InputType::_InputEventAction)
 INPUT_EVENT_DATA(GRIEDataMIDI, GRInputDataEvent, InputType::_InputEventMIDI);
 
 #undef INPUT_EVENT_DATA
+
+#ifndef GDNATIVE_LIBRARY
+VARIANT_ENUM_CAST(InputType)
+#endif

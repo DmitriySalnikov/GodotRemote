@@ -3,6 +3,7 @@
 
 #include "GRInputData.h"
 #include "GRUtils.h"
+#include "GRPacket.h"
 
 #ifndef GDNATIVE_LIBRARY
 #include "scene/main/node.h"
@@ -17,7 +18,7 @@
 using namespace godot;
 #endif
 
-enum WorkingStatus {
+enum WorkingStatus : int {
 	Stopped,
 	Working,
 	Stopping,
@@ -28,7 +29,7 @@ class GRDevice : public Node {
 	GD_CLASS(GRDevice, Node);
 
 public:
-	enum class AuthResult {
+	enum class AuthResult : int {
 		OK = 0,
 		Error = 1,
 		Timeout = 2,
@@ -64,6 +65,8 @@ public:
 protected:
 #endif
 
+	void _notification(int p_notification);
+
 public:
 	uint16_t port = 52341;
 
@@ -79,8 +82,8 @@ public:
 
 	virtual WorkingStatus get_status();
 
-	GRDevice();
-	~GRDevice();
+	void _init();
+	void _deinit();
 };
 
 #ifndef GDNATIVE_LIBRARY

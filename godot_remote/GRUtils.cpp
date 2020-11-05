@@ -16,37 +16,14 @@ using namespace godot;
 #include "jpge.h"
 #endif
 
-#ifndef GDNATIVE_LIBRARY
-#else
-ThreadSafe::ThreadSafe() {
-
-	mutex = Mutex::_new();
-	if (!mutex) {
-
-		WARN_PRINT("THREAD_SAFE defined, but no default mutex type");
-	}
-}
-
-ThreadSafe::~ThreadSafe() {
-
-	if (mutex)
-		mutex->free();
-}
-#endif // !GDNATIVE_LIBRARY
-
+GRUtilsData* GRUtils::_grutils_data = nullptr;
 
 namespace GRUtils {
 int current_loglevel = LogLevel::LL_Normal;
 
-PoolByteArray internal_PACKET_HEADER = PoolByteArray();
-PoolByteArray internal_VERSION = PoolByteArray();
-
-#ifndef NO_GODOTREMOTE_SERVER
-int compress_buffer_size_mb = 4;
-PoolByteArray compress_buffer = PoolByteArray();
-#endif
-
 void init() {
+	_grutils_data = memnew(GRUtilsData);
+
 	GR_PACKET_HEADER('G', 'R', 'H', 'D');
 	GR_VERSION(1, 0, 0);
 
@@ -54,18 +31,21 @@ void init() {
 }
 
 void deinit() {
-	internal_PACKET_HEADER.resize(0);
-	internal_VERSION.resize(0);
+	if (_grutils_data) {
+		_grutils_data->internal_PACKET_HEADER.resize(0);
+		_grutils_data->internal_VERSION.resize(0);
+		memdelete(_grutils_data);
+	}
 }
 
 #ifndef NO_GODOTREMOTE_SERVER
 void init_server_utils() {
-	GET_PS_SET(compress_buffer_size_mb, GodotRemote::ps_server_jpg_buffer_mb_size_name);
-	compress_buffer.resize((1024 * 1024) * compress_buffer_size_mb);
+	GET_PS_SET(_grutils_data->compress_buffer_size_mb, GodotRemote::ps_server_jpg_buffer_mb_size_name);
+	_grutils_data->compress_buffer.resize((1024 * 1024) * _grutils_data->compress_buffer_size_mb);
 }
 
 void deinit_server_utils() {
-	compress_buffer.resize(0);
+	_grutils_data->compress_buffer.resize(0);
 }
 #endif
 
@@ -163,9 +143,9 @@ Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width,
 	params.m_subsampling = (jpge::subsampling_t)subsampling;
 
 	ERR_FAIL_COND_V(!params.check(), Error::ERR_INVALID_PARAMETER);
-	auto rb = compress_buffer.read();
+	auto rb = _grutils_data->compress_buffer.read();
 	auto ri = img_data.read();
-	int size = compress_buffer.size();
+	int size = _grutils_data->compress_buffer.size();
 
 	TimeCountInit();
 
@@ -310,7 +290,11 @@ String str(const Variant &val) {
 		}
 		case Variant::_RID: {
 			RID rid = val;
+#ifndef GDNATIVE_LIBRARY
 			return String("RID:") + String::num_int64(rid.get_id());
+#else
+			return String("RID:") + String::num_int64(rid.get_id());
+#endif
 		}
 		case Variant::OBJECT: {
 			Object *obj = val;
@@ -321,31 +305,31 @@ String str(const Variant &val) {
 			}
 		}
 		case Variant::DICTIONARY: {
-			return str_arr((Dictionary)val);
+			return str_arr(V_CAST(val, Dictionary));
 		}
 		case Variant::ARRAY: {
-			return str_arr((Array)val);
+			return str_arr(V_CAST(val, Array));
 		}
 		case Variant::POOL_BYTE_ARRAY: {
-			return str_arr((PoolByteArray)val);
+			return str_arr(V_CAST(val, PoolByteArray));
 		}
 		case Variant::POOL_INT_ARRAY: {
-			return str_arr((PoolIntArray)val);
+			return str_arr(V_CAST(val, PoolIntArray));
 		}
 		case Variant::POOL_REAL_ARRAY: {
-			return str_arr((PoolRealArray)val);
+			return str_arr(V_CAST(val, PoolRealArray));
 		}
 		case Variant::POOL_STRING_ARRAY: {
-			return str_arr((PoolStringArray)val);
+			return str_arr(V_CAST(val, PoolStringArray));
 		}
 		case Variant::POOL_VECTOR2_ARRAY: {
-			return str_arr((PoolVector2Array)val);
+			return str_arr(V_CAST(val, PoolVector2Array));
 		}
 		case Variant::POOL_VECTOR3_ARRAY: {
-			return str_arr((PoolVector3Array)val);
+			return str_arr(V_CAST(val, PoolVector3Array));
 		}
 		case Variant::POOL_COLOR_ARRAY: {
-			return str_arr((PoolColorArray)val);
+			return str_arr(V_CAST(val, PoolColorArray));
 		}
 	}
 #ifndef GDNATIVE_LIBRARY
@@ -356,7 +340,7 @@ String str(const Variant &val) {
 }
 
 bool validate_packet(const uint8_t *data) {
-	if (data[0] == internal_PACKET_HEADER[0] && data[1] == internal_PACKET_HEADER[1] && data[2] == internal_PACKET_HEADER[2] && data[3] == internal_PACKET_HEADER[3])
+	if (data[0] == _grutils_data->internal_PACKET_HEADER[0] && data[1] == _grutils_data->internal_PACKET_HEADER[1] && data[2] == _grutils_data->internal_PACKET_HEADER[2] && data[3] == _grutils_data->internal_PACKET_HEADER[3])
 		return true;
 	return false;
 }
@@ -364,13 +348,13 @@ bool validate_packet(const uint8_t *data) {
 bool validate_version(const PoolByteArray &data) {
 	if (data.size() < 2)
 		return false;
-	if (((PoolByteArray)data)[0] == internal_VERSION[0] && ((PoolByteArray)data)[1] == internal_VERSION[1])
+	if (((PoolByteArray)data)[0] == _grutils_data->internal_VERSION[0] && ((PoolByteArray)data)[1] == _grutils_data->internal_VERSION[1])
 		return true;
 	return false;
 }
 
 bool validate_version(const uint8_t *data) {
-	if (data[0] == internal_VERSION[0] && data[1] == internal_VERSION[1])
+	if (data[0] == _grutils_data->internal_VERSION[0] && data[1] == _grutils_data->internal_VERSION[1])
 		return true;
 	return false;
 }

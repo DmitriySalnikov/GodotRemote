@@ -8,11 +8,13 @@
 #include "core/image.h"
 #include "core/pool_vector.h"
 #include "core/reference.h"
+
 #else
+
 #include <Godot.hpp>
 #include <Array.hpp>
 #include <PoolArrays.hpp>
-#include <Reference.hpp>
+#include <Node.hpp>
 #include <Ref.hpp>
 #include <String.hpp>
 #include <Image.hpp>
@@ -21,39 +23,44 @@ using namespace godot;
 
 using namespace GRUtils;
 
+#ifndef GDNATIVE_LIBRARY
 class GodotRemote : public Reference {
 	GD_CLASS(GodotRemote, Reference);
+#else
+class GodotRemote : public Node {
+	GD_CLASS(GodotRemote, Node);
+#endif
 
 	friend class GRDevice;
 	static GodotRemote *singleton;
 
 public:
-	enum DeviceType {
+	enum DeviceType : int {
 		DEVICE_Auto = 0,
 		DEVICE_Development = 1,
 		DEVICE_Standalone = 2,
 	};
 
-	static String ps_general_autoload_name;
-	static String ps_general_port_name;
-	static String ps_general_loglevel_name;
+	static const char* ps_general_autoload_name;
+	static const char* ps_general_port_name;
+	static const char* ps_general_loglevel_name;
 
-	static String ps_notifications_enabled_name;
-	static String ps_noticications_position_name;
-	static String ps_notifications_duration_name;
+	static const char* ps_notifications_enabled_name;
+	static const char* ps_noticications_position_name;
+	static const char* ps_notifications_duration_name;
 
-	static String ps_server_config_adb_name;
-	static String ps_server_custom_input_scene_name;
-	static String ps_server_custom_input_scene_compressed_name;
-	static String ps_server_custom_input_scene_compression_type_name;
-	static String ps_server_stream_skip_frames_name;
-	static String ps_server_stream_enabled_name;
-	static String ps_server_compression_type_name;
-	static String ps_server_jpg_buffer_mb_size_name;
-	static String ps_server_jpg_quality_name;
-	static String ps_server_scale_of_sending_stream_name;
-	static String ps_server_auto_adjust_scale_name;
-	static String ps_server_password_name;
+	static const char* ps_server_config_adb_name;
+	static const char* ps_server_custom_input_scene_name;
+	static const char* ps_server_custom_input_scene_compressed_name;
+	static const char* ps_server_custom_input_scene_compression_type_name;
+	static const char* ps_server_stream_skip_frames_name;
+	static const char* ps_server_stream_enabled_name;
+	static const char* ps_server_compression_type_name;
+	static const char* ps_server_jpg_buffer_mb_size_name;
+	static const char* ps_server_jpg_quality_name;
+	static const char* ps_server_scale_of_sending_stream_name;
+	static const char* ps_server_auto_adjust_scale_name;
+	static const char* ps_server_password_name;
 
 private:
 	bool is_autostart = false;
@@ -61,8 +68,8 @@ private:
 
 	class GRDevice *device = nullptr;
 
-#ifndef GDNATIVE_LIBRARY
 	void register_and_load_settings();
+#ifndef GDNATIVE_LIBRARY
 #endif
 
 	void _create_notification_manager();
@@ -139,8 +146,8 @@ public:
 	bool remove_remote_device();
 
 	static GodotRemote *get_singleton();
-	GodotRemote();
-	~GodotRemote();
+	void _init();
+	void _deinit();
 };
 
 #ifndef GDNATIVE_LIBRARY

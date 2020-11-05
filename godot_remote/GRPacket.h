@@ -2,7 +2,6 @@
 #pragma once
 
 #include "GRUtils.h"
-#include <vector>
 
 #ifndef GDNATIVE_LIBRARY
 
@@ -20,7 +19,7 @@
 #include <String.hpp>
 #endif
 
-enum PacketType {
+enum PacketType : int {
 	NonePacket = 0,
 	SyncTime = 1,
 	ImageData = 2,
@@ -37,10 +36,6 @@ enum PacketType {
 	// Responses
 	Pong = 192,
 };
-
-#ifndef GDNATIVE_LIBRARY
-VARIANT_ENUM_CAST(PacketType)
-#endif
 
 class GRPacket : public Reference {
 	GD_CLASS(GRPacket, Reference);
@@ -148,7 +143,7 @@ class GRPacketInputData : public GRPacket {
 	GD_S_CLASS(GRPacketInputData, GRPacket);
 	friend GRPacket;
 
-	std::vector<Ref<class GRInputData> > inputs;
+	Array inputs; // Ref<GRInputData>
 
 protected:
 #ifndef GDNATIVE_LIBRARY
@@ -168,7 +163,7 @@ public:
 	Ref<class GRInputData> get_input_data(int idx);
 	void remove_input_data(int idx);
 	void add_input_data(Ref<class GRInputData> &input);
-	void set_input_data(std::vector<Ref<class GRInputData> > &_inputs);
+	void set_input_data(Array &_inputs); // Ref<GRInputData>
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -347,3 +342,7 @@ BASIC_PACKET(GRPacketPing, PacketType::Ping);
 BASIC_PACKET(GRPacketPong, PacketType::Pong);
 
 #undef BASIC_PACKET
+
+#ifndef GDNATIVE_LIBRARY
+VARIANT_ENUM_CAST(PacketType)
+#endif

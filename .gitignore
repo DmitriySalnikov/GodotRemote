@@ -12,6 +12,7 @@ __pycache__
 # Binaries
 *.obj
 *.so
+*.dll
 *.o
 *.dylib
 *.pdb
@@ -20,6 +21,10 @@ __pycache__
 *.os
 *.out
 .import/
+obj/
+libs/
+x64/
+x32/
 
 # exist only for testing
 test.gd

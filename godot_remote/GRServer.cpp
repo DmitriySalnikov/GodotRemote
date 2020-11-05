@@ -87,18 +87,25 @@ void GRServer::_bind_methods() {
 #else
 
 void GRServer::_register_methods() {
+	register_method("_notification", &GRServer::_notification);
 }
 
 #endif
 
 void GRServer::_notification(int p_notification) {
 	switch (p_notification) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifndef GDNATIVE_LIBRARY
+			_init();
+#endif
+			break;
 		case NOTIFICATION_CRASH:
 		case NOTIFICATION_EXIT_TREE:
 		case NOTIFICATION_PREDELETE: {
 			if (get_status() == (int)WorkingStatus::Working) {
 				_internal_call_only_deffered_stop();
 			}
+			_deinit();
 			break;
 		}
 	}
@@ -223,8 +230,9 @@ int GRServer::get_custom_input_scene_compression_type() {
 	return custom_input_pck_compression_type;
 }
 
-GRServer::GRServer() :
-		GRDevice() {
+void GRServer::_init(){
+	GRDevice::_init();
+
 	set_name("GodotRemoteServer");
 	tcp_server.instance();
 
@@ -234,7 +242,7 @@ GRServer::GRServer() :
 	init_server_utils();
 }
 
-GRServer::~GRServer() {
+void GRServer::_deinit() {
 	if (get_status() == (int)WorkingStatus::Working) {
 		_internal_call_only_deffered_stop();
 	}
@@ -562,7 +570,7 @@ void GRServer::_thread_listen(void *p_userdata) {
 
 			Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
 			ppeer->set_stream_peer(con);
-			ppeer->set_output_buffer_max_size(compress_buffer.size());
+			ppeer->set_output_buffer_max_size(_grutils_data->compress_buffer.size());
 
 			if (connection_thread_info.is_null()) {
 				Dictionary ret_data;
@@ -996,7 +1004,7 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream>
 #define dict_get(_t, _v, _n, _c, _e, _r) \
 	_t _v;                               \
 	if (dict.has(_n))                    \
-		_v = (_t)dict[_n];               \
+		_v = V_CAST(dict[_n], _t);       \
 	else                                 \
 		goto error_dict;                 \
 	if (_c) {                            \
@@ -1090,7 +1098,7 @@ timeout:
 
 Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_path, bool compress, int compression_type) {
 	Ref<GRPacketCustomInputScene> pack = memnew(GRPacketCustomInputScene);
-	std::vector<String> files;
+	Array files;
 	_scan_resource_for_dependencies_recursive(_scene_path, files);
 
 	if (files.size()) {
@@ -1207,9 +1215,9 @@ Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_
 	return pack;
 }
 
-void GRServer::_scan_resource_for_dependencies_recursive(String _d, std::vector<String> &_arr) {
+void GRServer::_scan_resource_for_dependencies_recursive(String _d, Array&_arr) {
 	//if (  _arr.find(_d, 0) == -1) {
-	if (vec_find_exists(_arr, _d, 0)) {
+	if (_arr.has(_d)) {
 		_arr.push_back(_d);
 	} else {
 		return;
@@ -1229,7 +1237,7 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, std::vector<
 		if ((int)err) {
 			_log(".import file not found for " + imp, LogLevel::LL_Debug);
 		} else {
-			if (vec_find_exists(_arr, imp, 0)) {
+			if (_arr.has(imp)) {
 				_arr.push_back(imp);
 			}
 		}
@@ -1328,7 +1336,9 @@ void GRSViewport::_bind_methods() {
 }
 
 #else
+
 void GRSViewport::_register_methods() {
+	register_method("_notification", &GRSViewport::_notification);
 }
 
 #endif
@@ -1350,6 +1360,14 @@ void GRSViewport::_set_img_data(Ref<ImgProcessingStorage> _data) {
 void GRSViewport::_notification(int p_notification) {
 	TimeCountInit();
 	switch (p_notification) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifndef GDNATIVE_LIBRARY
+			_init();
+#endif
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
 		case NOTIFICATION_PROCESS: {
 			_close_thread();
 
@@ -1496,7 +1514,7 @@ int GRSViewport::get_skip_frames() {
 	return skip_frames;
 }
 
-GRSViewport::GRSViewport() {
+void GRSViewport::_init() {
 	set_name("GRSViewport");
 
 	set_process(false);
@@ -1515,7 +1533,7 @@ GRSViewport::GRSViewport() {
 	set_shadow_atlas_quadrant_subdiv(3, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
 }
 
-GRSViewport::~GRSViewport() {
+void GRSViewport::_deinit() {
 	_close_thread();
 
 	_TS_LOCK_;
@@ -1535,11 +1553,21 @@ void GRSViewportRenderer::_bind_methods() {
 #else
 
 void GRSViewportRenderer::_register_methods() {
+	register_method("_notification", &GRSViewportRenderer::_notification);
 }
+
 #endif
 
 void GRSViewportRenderer::_notification(int p_notification) {
 	switch (p_notification) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifndef GDNATIVE_LIBRARY
+			_init();
+#endif
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
 		case NOTIFICATION_ENTER_TREE: {
 			vp = get_viewport();
 			break;
@@ -1562,11 +1590,13 @@ void GRSViewportRenderer::_notification(int p_notification) {
 	}
 }
 
-GRSViewportRenderer::GRSViewportRenderer() {
+void GRSViewportRenderer::_init() {
 	set_name("GRSViewportRenderer");
 	set_process(true);
 
 	set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
 }
 
+void GRSViewportRenderer::_deinit() {
+}
 #endif // !NO_GODOTREMOTE_SERVER

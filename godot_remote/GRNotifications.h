@@ -33,8 +33,9 @@ using namespace godot;
 
 class GRNotificationPanel;
 class GRNotificationStyle;
+class GRNotificationPanelSTATIC_DATA;
 
-enum NotificationIcon {
+enum NotificationIcon : int {
 	None,
 	_Error,
 	Warning,
@@ -44,7 +45,7 @@ enum NotificationIcon {
 	MAX,
 };
 
-enum NotificationsPosition {
+enum NotificationsPosition : int {
 	//TL, TC, TR,
 	//BL, BC, BR,
 	TL = 0,
@@ -128,8 +129,20 @@ public:
 	static void remove_notification_exact(Node *_notif);
 	static void clear_notifications();
 	static GRNotifications *get_singleton();
-	GRNotifications();
-	~GRNotifications();
+
+	void _init();
+	void _deinit();
+};
+
+// Stupid class to bypass GDNative limitations
+// but also it can be changed back by changing default-style generating
+class GRNotificationPanelSTATIC_DATA {
+public:
+	Ref<GRNotificationStyle> _default_style;
+#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
+	Dictionary _default_textures;
+	Ref<ImageTexture> _default_close_texture;
+#endif
 };
 
 class GRNotificationPanel : public PanelContainer {
@@ -144,11 +157,8 @@ protected:
 	float duration_mul = 1.f;
 	bool is_hovered = false;
 	Ref<GRNotificationStyle> style;
-	static Ref<GRNotificationStyle> _default_style;
-#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
-	static Dictionary _default_textures;
-	static Ref<ImageTexture> _default_close_texture;
-#endif
+
+	static GRNotificationPanelSTATIC_DATA* _default_data;
 
 	class VBoxContainer *vbox_node = nullptr;
 	class HBoxContainer *hbox_node = nullptr;
@@ -178,6 +188,8 @@ public:
 protected:
 #endif
 
+	void _notification(int p_notification);
+
 public:
 	static void clear_styles();
 
@@ -187,8 +199,8 @@ public:
 	String get_text();
 	void update_text(String text);
 
-	GRNotificationPanel();
-	~GRNotificationPanel();
+	void _init();
+	void _deinit();
 };
 
 class GRNotificationPanelUpdatable : public GRNotificationPanel {
@@ -208,6 +220,8 @@ public:
 	static void _register_methods();
 protected:
 #endif
+
+	void _notification(int p_notification);
 
 public:
 	void set_updatable_line(GRNotifications *_owner, String title, String id, String text, NotificationIcon icon, float duration_multiplier = 1.f, Ref<GRNotificationStyle> _style = Ref<GRNotificationStyle>());
@@ -237,8 +251,9 @@ public:
 protected:
 #endif
 
+	void _notification(int p_notification);
+
 public:
-	~GRNotificationStyle();
 
 	void set_panel_style(Ref<StyleBox> style);
 	Ref<StyleBox> get_panel_style();
@@ -257,6 +272,8 @@ public:
 
 	void set_notification_icon(NotificationIcon notification_icon, Ref<Texture> icon_texture);
 	Ref<Texture> get_notification_icon(NotificationIcon notification_icon);
+	
+	void _deinit();
 };
 
 #ifndef GDNATIVE_LIBRARY

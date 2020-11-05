@@ -172,11 +172,12 @@ Ref<StreamPeerBuffer> GRPacketInputData::_get_data() {
 	int count = 0;
 
 	for (int i = 0; i < inputs.size(); i++) {
-		if (inputs[i].is_valid()) {
+		Ref<GRInputData> inp = inputs[i];
+		if (inp.is_valid()) {
 			count++;
 		}
 		else {
-			vec_remove(inputs, i);
+			inputs.remove(i);
 			i--;
 		}
 	}
@@ -212,14 +213,14 @@ Ref<GRInputData> GRPacketInputData::get_input_data(int idx) {
 void GRPacketInputData::remove_input_data(int idx) {
 	ERR_FAIL_INDEX(idx, inputs.size());
 
-	vec_remove(inputs, idx);
+	inputs.remove(idx);
 }
 
 void GRPacketInputData::add_input_data(Ref<class GRInputData>& input) {
 	inputs.push_back(input);
 }
 
-void GRPacketInputData::set_input_data(std::vector<Ref<class GRInputData> >& _inputs) {
+void GRPacketInputData::set_input_data(Array& _inputs) {
 	inputs = _inputs;
 }
 

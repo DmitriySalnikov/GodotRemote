@@ -176,6 +176,8 @@ if host_platform == 'windows' and env['platform'] != 'android':
     opts.Update(env)
 
 if env['platform'] == 'linux':
+    env['SHLIBSUFFIX'] = '.so'
+    
     if env['use_llvm']:
         env['CXX'] = 'clang++'
 
@@ -197,6 +199,7 @@ if env['platform'] == 'linux':
 elif env['platform'] == 'osx':
     # Use Clang on macOS by default
     env['CXX'] = 'clang++'
+    env['SHLIBSUFFIX'] = '.dylib'
 
     if env['bits'] == '32':
         raise ValueError(
@@ -218,6 +221,8 @@ elif env['platform'] == 'osx':
         env.Append(CCFLAGS=['-O3'])
 
 elif env['platform'] == 'ios':
+    env['SHLIBSUFFIX'] = '.dylib'
+
     if env['ios_arch'] == 'x86_64':
         sdk_name = 'iphonesimulator'
         env.Append(CCFLAGS=['-mios-simulator-version-min=10.0'])
@@ -255,6 +260,8 @@ elif env['platform'] == 'ios':
         env.Append(CCFLAGS=['-O3'])
 
 elif env['platform'] == 'windows':
+    env['SHLIBSUFFIX'] = '.dll'
+    
     if host_platform == 'windows' and not env['use_mingw']:
         # MSVC
         env.Append(LINKFLAGS=['/WX'])
@@ -291,6 +298,13 @@ elif env['platform'] == 'windows':
         ])
 
 elif env['platform'] == 'android':
+    env['SHLIBSUFFIX'] = '.so'
+    
+    if env['target'] == 'debug':
+        env.Append(CCFLAGS=['-Og'])
+    elif env['target'] == 'release':
+        env.Append(CCFLAGS=['-O3'])
+    
     if host_platform == 'windows':
         env = env.Clone(tools=['mingw'])
         env["SPAWN"] = mySpawn
@@ -323,18 +337,18 @@ elif env['platform'] == 'android':
     arch_info_table = {
         "armv7" : {
             "march":"armv7-a", "target":"armv7a-linux-androideabi", "tool_path":"arm-linux-androideabi", "compiler_path":"armv7a-linux-androideabi",
-            "ccflags" : ['-mfpu=neon']
+            "ccflags" : ['-mfpu=neon'], "target_platform": "arch-arm"
             },
         "arm64v8" : {
             "march":"armv8-a", "target":"aarch64-linux-android", "tool_path":"aarch64-linux-android", "compiler_path":"aarch64-linux-android",
-            "ccflags" : []
+            "ccflags" : [], "target_platform": "arch-arm64"
             },
         "x86" : {
             "march":"i686", "target":"i686-linux-android", "tool_path":"i686-linux-android", "compiler_path":"i686-linux-android",
-            "ccflags" : ['-mstackrealign']
+            "ccflags" : ['-mstackrealign'], "target_platform": "arch-x86"
             },
         "x86_64" : {"march":"x86-64", "target":"x86_64-linux-android", "tool_path":"x86_64-linux-android", "compiler_path":"x86_64-linux-android",
-            "ccflags" : []
+            "ccflags" : [], "target_platform": "arch-x86_64"
         }
     }
     arch_info = arch_info_table[env['android_arch']]
@@ -343,15 +357,40 @@ elif env['platform'] == 'android':
     env['CC'] = toolchain + "/bin/clang"
     env['CXX'] = toolchain + "/bin/clang++"
     env['AR'] = toolchain + "/bin/" + arch_info['tool_path'] + "-ar"
-
+    env["AS"] = toolchain + "/bin/" + arch_info['tool_path'] + "-as"
+    env["LD"] = toolchain + "/bin/" + arch_info['tool_path'] + "-ld"
+    env["STRIP"] = toolchain + "/bin/" + arch_info['tool_path'] + "-strip"
+    env["RANLIB"] = toolchain + "/bin/" + arch_info['tool_path'] + "-ranlib"
+    env['OBJCOPY'] = toolchain + "/bin/" + arch_info['tool_path'] + "-objcopy"
+    env['LINK'] = toolchain + "/bin/clang++"
+    target_platform = env['ANDROID_NDK_ROOT'] + ("/platforms/android-%s" % api_level) + ('/%s/usr/lib' % arch_info['target_platform'])
+    env['SHLINKFLAGS'] = ["-Wl", "-shared", "--sysroot=%s" % target_platform, "-Wl", "-z", "noexecstack"]
+    env.Append(CPPDEFINES = "ANDROID")
+    
     env.Append(CCFLAGS=['--target=' + arch_info['target'] + env['android_api_level'], '-march=' + arch_info['march'], '-fPIC'])#, '-fPIE', '-fno-addrsig', '-Oz'])
-    env.Append(CCFLAGS=arch_info['ccflags'])
-
+    env.Append(CCFLAGS=arch_info['ccflags'] + ['-std=c++14']) # '-stdlib=libc++', '-static-libstdc++' is the most important part of this script :D
+    env.Append(LINKFLAGS=['-v'])
+    
+# fix for godot-cpp
+#    env.Append(CCFLAGS=arch_info['ccflags'] + ['-std=c++14', '-stdlib=libc++', '-static-libstdc++']) # -stdlib=libc++ is the most important part of this script :D
+    
 arch_suffix = env['bits']
 if env['platform'] == 'android':
     arch_suffix = env['android_arch']
 if env['platform'] == 'ios':
     arch_suffix = env['ios_arch']
+
+lib_arch_dir = ""
+if env["android_arch"] == "armv7":
+    lib_arch_dir = "armeabi-v7a"
+elif env["android_arch"] == "arm64v8":
+    lib_arch_dir = "arm64-v8a"
+elif env["android_arch"] == "x86":
+    lib_arch_dir = "x86"
+elif env["android_arch"] == "x86_64":
+    lib_arch_dir = "x86_64"
+else:
+    print("WARN: Architecture not suitable for embedding into APK; keeping .so at \\bin")
 
 env.Append(CPPDEFINES=['GDNATIVE_LIBRARY'])
 
@@ -378,20 +417,21 @@ env.Append(LIBS=[
         env['platform'],
         env['target'],
         arch_suffix,
-        env['LIBSUFFIX']
-    ),
+        env['LIBSUFFIX']),
 ])
 
 # Sources to compile
 sources = []
 add_sources(sources, 'godot_remote', 'cpp')
 
+#library = env.StaticLibrary(
 library = env.SharedLibrary(
-    target='bin/' + 'libgodot_remote.{}.{}.{}{}'.format(
+    target='bin/' + 'godot_remote.{}.{}.{}{}'.format(
         env['platform'],
         env['target'],
         arch_suffix,
         env['SHLIBSUFFIX']
+        #env['LIBSUFFIX']
     ), source=sources
 )
 Default(library)

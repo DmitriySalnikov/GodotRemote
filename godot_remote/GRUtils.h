@@ -2,8 +2,6 @@
 #ifndef GRUTILS_H
 #define GRUTILS_H
 
-#include <vector>
-
 #ifndef GDNATIVE_LIBRARY
 #include "core/image.h"
 #include "core/io/marshalls.h"
@@ -26,15 +24,19 @@
 #include <Variant.hpp>
 #include <InputDefault.hpp>
 #include <File.hpp>
+#include <Mutex.hpp>
+#include <Thread.hpp>
 using namespace godot;
 #endif
-
-#define vec_remove(vec, idx) vec.erase(vec.begin() + idx);
 
 #ifndef GDNATIVE_LIBRARY
 #define ST() SceneTree::get_singleton()
 #define GD_CLASS(c, p) GDCLASS(c, p)
 #define GD_S_CLASS(c, p) GDCLASS(c, p)
+#define V_CAST(var, type) ((type)var)
+
+// Bind constant with custom name
+#define BIND_ENUM_CONSTANT_CUSTOM(m_constant, m_name) ClassDB::bind_integer_constant(get_class_static(), StringName(), m_name, ((int)(m_constant)));
 
 #define queue_del queue_delete
 #define img_is_empty(img) img->empty()
@@ -42,10 +44,6 @@ using namespace godot;
 
 #define dict_get_key_at_index(dict, i) dict.get_key_at_index(i)
 #define dict_get_value_at_index(dict, i) dict.get_value_at_index(i)
-
-#define vec_find(vec, e, start_idx) std::find(vec.begin() + start_idx, vec.end(), e)
-#define vec_find_idx(vec, e, start_idx) (std::distance(vec.begin(), vec_find(vec, e, start_idx)))
-#define vec_find_exists(vec, e, start_idx) (vec_find(vec, e, start_idx) != vec.end())
 
 #define file_get_as_string(path, err) FileAccess::get_file_as_string(path, err);
 
@@ -61,7 +59,7 @@ using namespace godot;
 
 #else
 
-enum Margin {
+enum Margin : int {
 	MARGIN_LEFT,
 	MARGIN_TOP,
 	MARGIN_RIGHT,
@@ -71,9 +69,6 @@ enum Margin {
 // THREAD SAFE classes
 // ORIGINAL CODE FROM GODOT CORE
 // because GDNative don't has it
-
-#include <Mutex.hpp>
-#include <Thread.hpp>
 
 class ThreadSafe {
 
@@ -87,8 +82,18 @@ public:
 		if (mutex) mutex->unlock();
 	}
 
-	ThreadSafe();
-	~ThreadSafe();
+	ThreadSafe() {
+		mutex = Mutex::_new();
+		if (!mutex) {
+
+			WARN_PRINT("THREAD_SAFE defined, but no default mutex type");
+		}
+	}
+
+	~ThreadSafe() {
+		if (mutex)
+			mutex->free();
+	}
 };
 
 class ThreadSafeMethod {
@@ -117,10 +122,15 @@ public:
 
 // THREAD SAFE END
 
-
 #define ST() ((SceneTree*)Engine::get_singleton()->get_main_loop())
 #define GD_CLASS(c, p) GODOT_CLASS(c, p)
 #define GD_S_CLASS(c, p) GODOT_SUBCLASS(c, p)
+#define V_CAST(var, type) (var.operator type())
+#define GLOBAL_DEF(m_var, m_value) _GLOBAL_DEF(m_var, m_value)
+#define GLOBAL_GET(m_var) ProjectSettings::get_singleton()->get(m_var)
+
+// Bind constant with custom name
+#define BIND_ENUM_CONSTANT(obj, m_constant, m_name) ClassDB::get_singleton()->class_set_property(obj, m_name, m_constant);
 
 #define queue_del queue_free
 #define is_valid_ip is_valid_ip_address
@@ -129,14 +139,48 @@ public:
 #define dict_get_key_at_index(dict, i) dict.keys()[i]
 #define dict_get_value_at_index(dict, i) dict.values()[i]
 
-#define vec_find(vec, e, start_idx) std::find(vec.begin() + start_idx, vec.end(), e)
-#define vec_find_idx(vec, e, start_idx) (std::distance(vec.begin(), vec_find(vec, e, start_idx)))
-#define vec_find_exists(vec, e, start_idx) (vec_find(vec, e, start_idx) != vec.end())
-
 #define file_get_as_string(path, err) _gdn_get_file_as_string(path, err)
 
 #define memnew(obj) new obj
 #define memdelete(obj) delete obj
+
+/*
+template <class T>
+struct VariantCaster {
+
+	static inline T cast(const Variant& p_variant) {
+
+		return p_variant;
+	}
+};
+
+template <class T>
+struct VariantCaster<T&> {
+
+	static inline T cast(const Variant& p_variant) {
+
+		return p_variant;
+	}
+};
+
+template <class T>
+struct VariantCaster<const T&> {
+
+	static inline T cast(const Variant& p_variant) {
+
+		return p_variant;
+	}
+};
+
+#define VARIANT_ENUM_CAST(m_enum)                                     \
+	template <>                                                       \
+	struct VariantCaster<m_enum> {                                    \
+                                                                      \
+		static inline m_enum cast(const Variant &p_variant) {         \
+			return (m_enum)p_variant.operator int();                  \
+		}                                                             \
+	};
+*/
 
 #define ERR_FAIL_V_MSG(m_retval, m_msg)                                              \
 	{                                                                                \
@@ -177,28 +221,24 @@ public:
 #define TimeCountReset()
 #define TimeCount(str)
 
-// Bind constant with custom name
-#define BIND_ENUM_CONSTANT_CUSTOM(m_constant, m_name) \
-	ClassDB::bind_integer_constant(get_class_static(), StringName(), m_name, ((int)(m_constant)));
-
 #endif // DEBUG_ENABLED
 
 #define max(x, y) (x > y ? x : y)
 #define min(x, y) (x < y ? x : y)
 
 #define GR_VERSION(x, y, z)             \
-	if (internal_VERSION.size() == 0) { \
-		internal_VERSION.append(x);     \
-		internal_VERSION.append(y);     \
-		internal_VERSION.append(z);     \
+	if (_grutils_data->internal_VERSION.size() == 0) { \
+		_grutils_data->internal_VERSION.append(x);     \
+		_grutils_data->internal_VERSION.append(y);     \
+		_grutils_data->internal_VERSION.append(z);     \
 	}
 
 #define GR_PACKET_HEADER(a, b, c, d)          \
-	if (internal_PACKET_HEADER.size() == 0) { \
-		internal_PACKET_HEADER.append(a);     \
-		internal_PACKET_HEADER.append(b);     \
-		internal_PACKET_HEADER.append(c);     \
-		internal_PACKET_HEADER.append(d);     \
+	if (_grutils_data->internal_PACKET_HEADER.size() == 0) { \
+		_grutils_data->internal_PACKET_HEADER.append(a);     \
+		_grutils_data->internal_PACKET_HEADER.append(b);     \
+		_grutils_data->internal_PACKET_HEADER.append(c);     \
+		_grutils_data->internal_PACKET_HEADER.append(d);     \
 	}
 
 #define CON_ADDRESS(con) str(con->get_connected_host()) + ":" + str(con->get_connected_port())
@@ -210,7 +250,7 @@ public:
 #define GET_PS_SET(variable_to_store, setting_name) \
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
 
-enum LogLevel {
+enum LogLevel : int {
 	LL_Debug = 0,
 	LL_Normal = 1,
 	LL_Warning = 2,
@@ -218,20 +258,20 @@ enum LogLevel {
 	LL_None,
 };
 
-enum Subsampling {
+enum Subsampling : int {
 	SUBSAMPLING_Y_ONLY = 0,
 	SUBSAMPLING_H1V1 = 1,
 	SUBSAMPLING_H2V1 = 2,
 	SUBSAMPLING_H2V2 = 3
 };
 
-enum ImageCompressionType {
+enum ImageCompressionType : int {
 	Uncompressed = 0,
 	JPG = 1,
 	PNG = 2,
 };
 
-enum TypesOfServerSettings {
+enum TypesOfServerSettings : int {
 	USE_INTERNAL_SERVER_SETTINGS = 0,
 	VIDEO_STREAM_ENABLED = 1,
 	COMPRESSION_TYPE = 2,
@@ -243,9 +283,18 @@ enum TypesOfServerSettings {
 namespace GRUtils {
 	// DEFINES
 
-	extern int current_loglevel;
-	extern PoolByteArray internal_PACKET_HEADER;
-	extern PoolByteArray internal_VERSION;
+	class GRUtilsData {
+	public:
+		int current_loglevel;
+		PoolByteArray internal_PACKET_HEADER;
+		PoolByteArray internal_VERSION;
+#ifndef NO_GODOTREMOTE_SERVER
+		PoolByteArray compress_buffer;
+		int compress_buffer_size_mb;
+#endif
+	};
+
+	extern GRUtilsData* _grutils_data;
 
 	extern void init();
 	extern void deinit();
@@ -253,8 +302,6 @@ namespace GRUtils {
 #ifndef NO_GODOTREMOTE_SERVER
 	extern void init_server_utils();
 	extern void deinit_server_utils();
-	extern PoolByteArray compress_buffer;
-	extern int compress_buffer_size_mb;
 	extern Error compress_jpg(PoolByteArray& ret, const PoolByteArray& img_data, int width, int height, int bytes_for_color = 4, int quality = 75, int subsampling = Subsampling::SUBSAMPLING_H2V2);
 #endif
 
@@ -350,41 +397,17 @@ namespace GRUtils {
 
 #undef POOLARRAYS_STR_ARR
 #endif
-	
-	template <typename T>
-	static String str_arr(std::vector<T> const &arr, const bool force_full = false, const int max_shown_items = 64, String separator = ", ") {
-		String res = "[ ";
-		int s = arr.size();
-		bool is_long = false;
-		if (s > max_shown_items && !force_full) {
-			s = max_shown_items;
-			is_long = true;
-		}
-
-		for (int i = 0; i < s; i++) {
-			res += str(arr[i]);
-			if (i != s - 1 || is_long) {
-				res += separator;
-			}
-		}
-
-		if (is_long) {
-			res += String::num_int64(int64_t(arr.size()) - s) + " more items...";
-		}
-
-		return res + " ]";
-	};
 
 	static PoolByteArray get_packet_header() {
-		return internal_PACKET_HEADER;
+		return _grutils_data->internal_PACKET_HEADER;
 	}
 
 	static PoolByteArray get_gr_version() {
-		return internal_VERSION;
+		return _grutils_data->internal_VERSION;
 	}
 
 	static void set_log_level(LogLevel lvl) {
-		current_loglevel = lvl;
+		_grutils_data->current_loglevel = lvl;
 	}
 
 
@@ -411,6 +434,18 @@ namespace GRUtils {
 		return t;
 	}
 
+	static Variant _GLOBAL_DEF(const String& p_var, const Variant& p_default, bool p_restart_if_changed = false) {
+		Variant ret;
+		if (!ProjectSettings::get_singleton()->has_setting(p_var)) {
+			ProjectSettings::get_singleton()->set(p_var, p_default);
+		}
+		ret = ProjectSettings::get_singleton()->get(p_var);
+
+		ProjectSettings::get_singleton()->set_initial_value(p_var, p_default);
+		//ProjectSettings::get_singleton()->set_builtin_order(p_var);
+		//ProjectSettings::get_singleton()->set_restart_if_changed(p_var, p_restart_if_changed);
+		return ret;
+		}
 #endif
 
 }; // namespace GRUtils

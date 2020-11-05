@@ -4,8 +4,6 @@
 #ifndef NO_GODOTREMOTE_SERVER
 
 #include "GRDevice.h"
-#include "GRPacket.h"
-#include <vector>
 
 #ifndef GDNATIVE_LIBRARY
 
@@ -114,8 +112,9 @@ private:
 	THREAD_FUNC void _thread_connection(void *p_userdata);
 
 	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection = false);
+
 	Ref<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress = true, int compression_type = 0);
-	void _scan_resource_for_dependencies_recursive(String _dir, std::vector<String> &_arr);
+	void _scan_resource_for_dependencies_recursive(String _dir, Array &_arr);
 
 protected:
 	virtual void _internal_call_only_deffered_start() override;
@@ -159,8 +158,8 @@ public:
 	GRSViewport *get_gr_viewport();
 	void force_update_custom_input_scene();
 
-	GRServer();
-	~GRServer();
+	void _init();
+	void _deinit();
 };
 
 class GRSViewport : public Viewport {
@@ -234,8 +233,8 @@ public:
 	void set_skip_frames(int skip);
 	int get_skip_frames();
 
-	GRSViewport();
-	~GRSViewport();
+	void _init();
+	void _deinit();
 };
 
 class GRSViewportRenderer : public Control {
@@ -257,7 +256,8 @@ protected:
 public:
 	Ref<ViewportTexture> tex;
 
-	GRSViewportRenderer();
+	void _init();
+	void _deinit();
 };
 
 #endif // !NO_GODOTREMOTE_SERVER

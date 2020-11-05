@@ -146,12 +146,18 @@ void GRClient::_bind_methods() {
 
 
 void GRClient::_register_methods() {
+	register_method("_notification", &GRClient::_notification);
 }
 
 #endif
 
 void GRClient::_notification(int p_notification) {
 	switch (p_notification) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifndef GDNATIVE_LIBRARY
+			_init();
+#endif
+			break;
 		case NOTIFICATION_EXIT_TREE:
 		case NOTIFICATION_PREDELETE: {
 			is_deleting = true;
@@ -159,13 +165,14 @@ void GRClient::_notification(int p_notification) {
 				_internal_call_only_deffered_stop();
 				set_control_to_show_in(nullptr);
 			}
+			_deinit();
 			break;
 		}
 	}
 }
 
-GRClient::GRClient() :
-		GRDevice() {
+void GRClient::_init(){
+	GRDevice::_init();
 	set_name("GodotRemoteClient");
 
 #ifndef GDNATIVE_LIBRARY
@@ -199,7 +206,7 @@ GRClient::GRClient() :
 #endif
 }
 
-GRClient::~GRClient() {
+void GRClient::_deinit() {
 	is_deleting = true;
 	if (get_status() == (int)WorkingStatus::Working) {
 		_internal_call_only_deffered_stop();
@@ -999,7 +1006,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 
 	dev->_reset_counters();
 
-	std::vector<Ref<GRPacketImageData> > stream_queue;
+	Array stream_queue; // Ref<GRPacketImageData>
 
 	uint64_t time64 = os->get_ticks_usec();
 	uint64_t prev_cycle_time = 0;
@@ -1082,14 +1089,8 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 			Ref<GRPacket> packet = dev->send_queue.front();
 #endif
 
-				if (packet.is_valid()) {
-
-#ifndef GDNATIVE_LIBRARY
-				dev->send_queue.pop_front();
-#else
-				dev->send_queue.erase(dev->send_queue.begin());
-#endif
-
+			if (packet.is_valid()) {
+				dev->send_queue.remove(0);
 				err = ppeer->put_var(packet->get_data());
 
 				if ((int)err) {
@@ -1117,13 +1118,8 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 		if (!_is_processing_img && !stream_queue.empty() && time64 >= next_image_required_frametime) {
 			nothing_happens = false;
 
-#ifndef GDNATIVE_LIBRARY
-			Ref<GRPacketImageData> pack = stream_queue.front()->get();
-			stream_queue.pop_front();
-#else
 			Ref<GRPacketImageData> pack = stream_queue.front();
-			stream_queue.erase(stream_queue.begin());
-#endif
+			stream_queue.remove(0);
 
 			if (pack.is_null()) {
 				_log("Queued image data is null", LogLevel::LL_Error);
@@ -1553,8 +1549,8 @@ void GRInputCollector::_bind_methods() {
 
 #else
 
-
 void GRInputCollector::_register_methods() {
+	register_method("_notification", &GRInputCollector::_notification);
 }
 
 #endif
@@ -1657,6 +1653,14 @@ end:
 
 void GRInputCollector::_notification(int p_notification) {
 	switch (p_notification) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifndef GDNATIVE_LIBRARY
+			_init();
+#endif
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
 		case NOTIFICATION_ENTER_TREE: {
 			parent = cast_to<Control>(get_parent());
 			break;
@@ -1732,7 +1736,7 @@ Ref<GRPacketInputData> GRInputCollector::get_collected_input_data() {
 	return res;
 }
 
-GRInputCollector::GRInputCollector() {
+void GRInputCollector::_init() {
 	_TS_LOCK_;
 	parent = nullptr;
 	set_process(true);
@@ -1741,7 +1745,7 @@ GRInputCollector::GRInputCollector() {
 	_TS_UNLOCK_;
 }
 
-GRInputCollector::~GRInputCollector() {
+void GRInputCollector::_deinit() {
 	_TS_LOCK_;
 	sensors.resize(0);
 	collected_input_data.resize(0);
@@ -1775,15 +1779,29 @@ void GRTextureRect::_bind_methods() {
 
 
 void GRTextureRect::_register_methods() {
+	register_method("_notification", &GRTextureRect::_notification);
 }
 
 #endif
 
-GRTextureRect::GRTextureRect() {
+void GRTextureRect::_notification(int p_notification) {
+	switch (p_notification) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifndef GDNATIVE_LIBRARY
+			_init();
+#endif
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
+	}
+}
+
+void GRTextureRect::_init() {
 	connect("resized", this, "_tex_size_changed");
 }
 
-GRTextureRect::~GRTextureRect() {
+void GRTextureRect::_deinit() {
 	if (this_in_client)
 		*this_in_client = nullptr;
 	disconnect("resized", this, "_tex_size_changed");
