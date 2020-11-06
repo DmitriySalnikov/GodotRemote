@@ -25,6 +25,7 @@ __pycache__
 *.filters
 *.os
 *.out
+api.json
 .import/
 obj/
 libs/
