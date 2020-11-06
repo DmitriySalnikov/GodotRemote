@@ -54,8 +54,8 @@ protected:
 	void _update_avg_fps(uint64_t frametime);
 
 	virtual void _reset_counters();
-	virtual void _internal_call_only_deffered_start() = 0;
-	virtual void _internal_call_only_deffered_stop() = 0;
+	virtual void _internal_call_only_deffered_start() {};
+	virtual void _internal_call_only_deffered_stop() {};
 
 #ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();

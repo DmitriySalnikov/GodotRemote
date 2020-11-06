@@ -11,11 +11,13 @@ __pycache__
 
 # Binaries
 *.obj
+*.iobj
 *.so
 *.dll
 *.o
 *.dylib
 *.pdb
+*.ipdb
 *.ilk
 *.exe
 *.exp

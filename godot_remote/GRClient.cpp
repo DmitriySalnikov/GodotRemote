@@ -149,7 +149,7 @@ void GRClient::_bind_methods() {
 void GRClient::_register_methods() {
 	///////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////
-
+	/*
 	register_method("_internal_call_only_deffered_start", &GRClient::_internal_call_only_deffered_start);
 	register_method("_internal_call_only_deffered_stop", &GRClient::_internal_call_only_deffered_stop);
 
@@ -166,11 +166,13 @@ void GRClient::_register_methods() {
 	register_method("get_status", &GRClient::get_status);
 
 	register_signal<GRClient>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
-
+	*/
 	///////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////
 
 	register_method("_notification", &GRClient::_notification);
+	register_method("_thread_connection", &GRClient::_thread_connection);
+	register_method("_thread_image_decoder", &GRClient::_thread_image_decoder);
 
 	register_method("_update_texture_from_iamge", &GRClient::_update_texture_from_iamge);
 	register_method("_update_stream_texture_state", &GRClient::_update_stream_texture_state);
@@ -264,15 +266,15 @@ void GRClient::_notification(int p_notification) {
 			_init();
 #endif
 			break;
-		case NOTIFICATION_EXIT_TREE:
 		case NOTIFICATION_PREDELETE: {
+			_deinit();
+			GRDevice::_deinit();
+			break;
+		case NOTIFICATION_EXIT_TREE:
 			is_deleting = true;
 			if (get_status() == (int)WorkingStatus::Working) {
 				_internal_call_only_deffered_stop();
-				set_control_to_show_in(nullptr, 0);
 			}
-			_deinit();
-			GRDevice::_deinit();
 			break;
 		}
 	}
@@ -367,6 +369,7 @@ void GRClient::_internal_call_only_deffered_stop() {
 	_log("Stopping GodotRemote client", LogLevel::LL_Debug);
 	set_status(WorkingStatus::Stopping);
 	_remove_custom_input_scene();
+	set_control_to_show_in(nullptr, 0);
 
 	connection_mutex->lock();
 	if (thread_connection.is_valid()) {
@@ -912,8 +915,8 @@ void GRClient::disable_overriding_server_settings() {
 ////////////////// STATIC ////////////////////
 //////////////////////////////////////////////
 
-void GRClient::_thread_connection(void *p_userdata) {
-	Ref<ConnectionThreadParams> con_thread = (ConnectionThreadParams *)p_userdata;
+void GRClient::_thread_connection(THREAD_DATA p_userdata) {
+	Ref<ConnectionThreadParamsClient> con_thread = (ConnectionThreadParamsClient*)p_userdata;
 	GRClient *dev = con_thread->dev;
 	Ref<StreamPeerTCP> con = con_thread->peer;
 
@@ -1089,12 +1092,17 @@ void GRClient::_thread_connection(void *p_userdata) {
 	con_thread->finished = true;
 }
 
-void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
+void GRClient::_connection_loop(Ref<ConnectionThreadParamsClient> con_thread) {
 	GRClient *dev = con_thread->dev;
 	Ref<StreamPeerTCP> connection = con_thread->peer;
 	Ref<PacketPeerStream> ppeer = con_thread->ppeer;
 
-	Thread *_img_thread = nullptr;
+#ifndef GDNATIVE_LIBRARY
+	Thread* _img_thread = nullptr;
+#else
+	Ref<Thread> _img_thread;
+#endif
+
 	bool _is_processing_img = false;
 
 	OS *os = OS::get_singleton();
@@ -1123,11 +1131,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 		uint64_t cycle_start_time = os->get_ticks_usec();
 
 		if (!_is_processing_img) {
-			if (_img_thread) {
-				t_wait_to_finish(_img_thread);
-				memdelete(_img_thread);
-				_img_thread = nullptr;
-			}
+			Thread_close(_img_thread);
 		}
 
 		bool nothing_happens = true;
@@ -1229,13 +1233,9 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 			dev->_update_avg_fps(time64 - prev_display_image_time);
 			prev_display_image_time = time64;
 
-			if (_img_thread) {
-				t_wait_to_finish(_img_thread);
-				memdelete(_img_thread);
-				_img_thread = nullptr;
-			}
+			Thread_close(_img_thread);
 
-			ImgProcessingStorage *ips = new ImgProcessingStorage(dev);
+			ImgProcessingStorageClient *ips = new ImgProcessingStorageClient(dev);
 			if (pack->get_is_empty()) {
 				dev->_update_avg_fps(0);
 				dev->call_deferred("_update_texture_from_iamge", Ref<Image>());
@@ -1271,8 +1271,12 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 		while (ppeer->get_available_packet_count() > 0 && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
 			nothing_happens = false;
 
+#ifndef GDNATIVE_LIBRARY
 			Variant buf;
-			ppeer->get_var(buf);
+			err = ppeer->get_var(buf);
+#else
+			Variant buf = ppeer->get_var();
+#endif
 
 			if ((int)err)
 				goto end_recv;
@@ -1391,18 +1395,14 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParams> con_thread) {
 		GRNotifications::add_notification("Disconnected", "Lost connection to " + address, NotificationIcon::Fail, true, 1.f);
 	}
 
-	if (_img_thread) {
-		t_wait_to_finish(_img_thread);
-		memdelete(_img_thread);
-		_img_thread = nullptr;
-	}
+	Thread_close(_img_thread);
 
 	_log("Closing connection");
 	con_thread->break_connection = true;
 }
 
-void GRClient::_thread_image_decoder(void *p_userdata) {
-	ImgProcessingStorage *ips = (ImgProcessingStorage *)p_userdata;
+void GRClient::_thread_image_decoder(THREAD_DATA p_userdata) {
+	ImgProcessingStorageClient *ips = (ImgProcessingStorageClient*)p_userdata;
 	*ips->_is_processing_img = true;
 
 	Error err = Error::OK;
@@ -1490,6 +1490,7 @@ GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<PacketPeerStre
 	err = ppeer->get_var(ret);
 	packet_error_check("Can't get first authorization packet from server. Code: " + str((int)err));
 #else
+	err = Error::OK;
 	ret = ppeer->get_var();
 #endif
 
@@ -1513,6 +1514,7 @@ GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<PacketPeerStre
 		err = ppeer->get_var(ret);
 		packet_error_check("Can't get final authorization packet from server. Code: " + str((int)err));
 #else
+		err = Error::OK;
 		ret = ppeer->get_var();
 #endif
 

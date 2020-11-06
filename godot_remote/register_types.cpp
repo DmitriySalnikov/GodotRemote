@@ -80,18 +80,63 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void* handle) {
 	register_class<GRNotificationPanelUpdatable>();
 	register_class<GRNotificationStyle>();
 
-	//register_class<GRDevice>();
+	register_class<GRDevice>();
+
+	///////////////////////////////////////
+	///////////////////////////////////////
+	// must be registered to instantiate
+
+	// Packets
+	register_class<GRPacket>();
+	register_class<GRPacketClientStreamAspect>();
+	register_class<GRPacketClientStreamOrientation>();
+	register_class<GRPacketCustomInputScene>();
+	register_class<GRPacketImageData>();
+	register_class<GRPacketInputData>();
+	register_class<GRPacketMouseModeSync>();
+	register_class<GRPacketServerSettings>();
+	register_class<GRPacketSyncTime>();
+
+	register_class<GRPacketPing>();
+	register_class<GRPacketPong>();
+
+	// Input Data
+	register_class<GRInputData>();
+	register_class<GRInputDeviceSensorsData>();
+	register_class<GRInputDataEvent>();
+
+	register_class<GRIEDataWithModifiers>();
+	register_class<GRIEDataMouse>();
+	register_class<GRIEDataGesture>();
+
+	register_class<GRIEDataAction>();
+	register_class<GRIEDataJoypadButton>();
+	register_class<GRIEDataJoypadMotion>();
+	register_class<GRIEDataKey>();
+	register_class<GRIEDataMagnifyGesture>();
+	register_class<GRIEDataMIDI>();
+	register_class<GRIEDataMouseButton>();
+	register_class<GRIEDataMouseMotion>();
+	register_class<GRIEDataPanGesture>();
+	register_class<GRIEDataScreenDrag>();
+	register_class<GRIEDataScreenTouch>();
+
+	//////////////////////////////////////
+	//////////////////////////////////////
 
 #ifndef NO_GODOTREMOTE_SERVER
 	register_class<GRServer>();
-	register_class<GRServer::ListenerThreadParams>();
+	register_class<GRServer::ListenerThreadParamsServer>();
+	register_class<GRServer::ConnectionThreadParamsServer>();
+	register_class<GRSViewport::ImgProcessingStorageViewport>();
 	register_class<GRSViewport>();
 	register_class<GRSViewportRenderer>();
 #endif
 
 #ifndef NO_GODOTREMOTE_CLIENT
 	register_class<GRClient>();
-	register_class<GRClient::ConnectionThreadParams>();
+	register_class<GRClient::ConnectionThreadParamsClient>();
+	register_class<GRClient::ImgProcessingStorageClient>();
 	register_class<GRInputCollector>();
 	register_class<GRTextureRect>();
 #endif

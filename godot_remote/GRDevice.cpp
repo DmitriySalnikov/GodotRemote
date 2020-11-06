@@ -62,6 +62,22 @@ void GRDevice::_bind_methods() {
 void GRDevice::_register_methods() {
 	register_method("_notification", &GRDevice::_notification);
 
+	register_method("_internal_call_only_deffered_start", &GRDevice::_internal_call_only_deffered_start);
+	register_method("_internal_call_only_deffered_stop", &GRDevice::_internal_call_only_deffered_stop);
+
+	register_method("_internal_call_only_deffered_restart", &GRDevice::_internal_call_only_deffered_restart);
+
+	register_method("get_avg_ping", &GRDevice::get_avg_ping);
+	register_method("get_avg_fps", &GRDevice::get_avg_fps);
+
+	register_method("get_port", &GRDevice::get_port);
+	register_method("set_port", &GRDevice::set_port);
+
+	register_method("start", &GRDevice::start);
+	register_method("stop", &GRDevice::stop);
+	register_method("get_status", &GRDevice::get_status);
+
+	register_signal<GRDevice>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
 }
 
 void GRDevice::_bind_constants(GRDevice* dev) {

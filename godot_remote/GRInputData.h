@@ -67,6 +67,8 @@ class GRInputData : public Reference {
 	friend class GRInputDeviceSensorsData;
 
 protected:
+	GDNATIVE_BASIC_REGISTER;
+
 	Ref<StreamPeerBuffer> data;
 	virtual InputType _get_type() { return InputType::_NoneIT; };
 
@@ -104,6 +106,8 @@ class GRInputDeviceSensorsData : public GRInputData {
 	GD_S_CLASS(GRInputDeviceSensorsData, GRInputData);
 
 protected:
+	GDNATIVE_BASIC_REGISTER;
+
 	virtual InputType _get_type() override { return InputType::_InputDeviceSensors; };
 
 public:
@@ -119,6 +123,8 @@ class GRInputDataEvent : public GRInputData {
 	GD_S_CLASS(GRInputDataEvent, GRInputData);
 
 protected:
+	GDNATIVE_BASIC_REGISTER;
+
 	virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2 &rect) {
 		data->seek(0);
 		data->get_8();
@@ -144,6 +150,8 @@ public:
 		friend GRInputData;                                                                       \
                                                                                                   \
 	protected:                                                                                    \
+		GDNATIVE_BASIC_REGISTER;                                                                  \
+                                                                                                  \
 		virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2 &rect) override; \
 		virtual void _parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) override;         \
 		virtual InputType _get_type() override { return _type; };                                 \

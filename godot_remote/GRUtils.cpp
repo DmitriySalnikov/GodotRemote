@@ -39,13 +39,18 @@ void deinit() {
 }
 
 #ifndef NO_GODOTREMOTE_SERVER
+GRUtilsDataServer* GRUtils::_grutils_data_server = nullptr;
+
 void init_server_utils() {
-	GET_PS_SET(_grutils_data->compress_buffer_size_mb, GodotRemote::ps_server_jpg_buffer_mb_size_name);
-	_grutils_data->compress_buffer.resize((1024 * 1024) * _grutils_data->compress_buffer_size_mb);
+	_grutils_data_server = new GRUtilsDataServer();
+
+	GET_PS_SET(_grutils_data_server->compress_buffer_size_mb, GodotRemote::ps_server_jpg_buffer_mb_size_name);
+	_grutils_data_server->compress_buffer.resize((1024 * 1024) * _grutils_data_server->compress_buffer_size_mb);
 }
 
 void deinit_server_utils() {
-	_grutils_data->compress_buffer.resize(0);
+	_grutils_data_server->compress_buffer.resize(0);
+	delete _grutils_data_server;
 }
 #endif
 
@@ -162,9 +167,9 @@ Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width,
 	params.m_subsampling = (jpge::subsampling_t)subsampling;
 
 	ERR_FAIL_COND_V(!params.check(), Error::ERR_INVALID_PARAMETER);
-	auto rb = _grutils_data->compress_buffer.read();
+	auto rb = _grutils_data_server->compress_buffer.read();
 	auto ri = img_data.read();
-	int size = _grutils_data->compress_buffer.size();
+	int size = _grutils_data_server->compress_buffer.size();
 
 	TimeCountInit();
 

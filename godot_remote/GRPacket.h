@@ -41,12 +41,7 @@ class GRPacket : public Reference {
 	GD_CLASS(GRPacket, Reference);
 
 protected:
-#ifndef GDNATIVE_LIBRARY
-#else
-public:
-	static void _register_methods() {};
-protected:
-#endif
+	GDNATIVE_BASIC_REGISTER;
 
 	virtual Ref<StreamPeerBuffer> _get_data() {
 		Ref<StreamPeerBuffer> buf(memnew(StreamPeerBuffer));
@@ -75,12 +70,7 @@ class GRPacketSyncTime : public GRPacket {
 	uint64_t time = 0;
 
 protected:
-#ifndef GDNATIVE_LIBRARY
-#else
-public:
-	static void _register_methods() {};
-protected:
-#endif
+	GDNATIVE_BASIC_REGISTER;
 
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
@@ -107,12 +97,7 @@ class GRPacketImageData : public GRPacket {
 	bool is_empty = false;
 
 protected:
-#ifndef GDNATIVE_LIBRARY
-#else
-public:
-	static void _register_methods() {};
-protected:
-#endif
+	GDNATIVE_BASIC_REGISTER;
 
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
@@ -146,12 +131,7 @@ class GRPacketInputData : public GRPacket {
 	Array inputs; // Ref<GRInputData>
 
 protected:
-#ifndef GDNATIVE_LIBRARY
-#else
-public:
-	static void _register_methods() {};
-protected:
-#endif
+	GDNATIVE_BASIC_REGISTER;
 
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
@@ -175,12 +155,7 @@ class GRPacketServerSettings : public GRPacket {
 	Dictionary settings;
 
 protected:
-#ifndef GDNATIVE_LIBRARY
-#else
-public:
-	static void _register_methods() {};
-protected:
-#endif
+	GDNATIVE_BASIC_REGISTER;
 
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
@@ -202,12 +177,7 @@ class GRPacketMouseModeSync : public GRPacket {
 	Input::MouseMode mouse_mode;
 
 protected:
-#ifndef GDNATIVE_LIBRARY
-#else
-public:
-	static void _register_methods() {};
-protected:
-#endif
+	GDNATIVE_BASIC_REGISTER;
 
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
@@ -232,12 +202,7 @@ class GRPacketCustomInputScene : public GRPacket {
 	PoolByteArray scene_data;
 
 protected:
-#ifndef GDNATIVE_LIBRARY
-#else
-public:
-	static void _register_methods() {};
-protected:
-#endif
+	GDNATIVE_BASIC_REGISTER;
 
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
@@ -266,12 +231,7 @@ class GRPacketClientStreamOrientation : public GRPacket {
 	bool vertical;
 
 protected:
-#ifndef GDNATIVE_LIBRARY
-#else
-public:
-	static void _register_methods() {};
-protected:
-#endif
+	GDNATIVE_BASIC_REGISTER;
 
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
@@ -292,12 +252,7 @@ class GRPacketClientStreamAspect : public GRPacket {
 	float stream_aspect;
 
 protected:
-#ifndef GDNATIVE_LIBRARY
-#else
-public:
-	static void _register_methods() {};
-protected:
-#endif
+	GDNATIVE_BASIC_REGISTER;
 
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
@@ -314,23 +269,13 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // REQUESTS AND RESPONSES
 
-#ifndef GDNATIVE_LIBRARY
-#else
-#define GDNATIVE_REGISTER               \
-public:                                 \
-	static void _register_methods() {}; \
-protected:
-
-#endif // !GDNATIVE_LIBRARY
-
-
 #define BASIC_PACKET(_name, _type)                                                            \
 	class _name : public GRPacket {                                                           \
 		GD_S_CLASS(_name, GRPacket);                                                          \
 		friend GRPacket;                                                                      \
                                                                                               \
 	protected:                                                                                \
-		GDNATIVE_REGISTER                                                                     \
+		GDNATIVE_BASIC_REGISTER;                                                              \
 		virtual Ref<StreamPeerBuffer> _get_data() override { return GRPacket::_get_data(); }; \
 		virtual bool _create(Ref<StreamPeerBuffer> buf) override { return true; };            \
                                                                                               \

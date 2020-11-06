@@ -33,52 +33,58 @@ private:
 #else
 public:
 #endif
-	class ListenerThreadParams : public Reference {
-		GD_CLASS(ListenerThreadParams, Reference);
+	class ListenerThreadParamsServer : public Reference {
+		GD_CLASS(ListenerThreadParamsServer, Reference);
 
 	public:
 		GRServer *dev = nullptr;
-		class Thread *thread_ref = nullptr;
+#ifndef GDNATIVE_LIBRARY
+		class Thread* thread_ref = nullptr;
+#else
+		Ref<Thread> thread_ref;
+#endif
 		bool stop_thread = false;
 		bool finished = false;
 
-		void close_thread() {
-			stop_thread = true;
-			if (thread_ref) {
-				t_wait_to_finish(thread_ref);
-				memdelete(thread_ref);
-				thread_ref = nullptr;
-			}
-		}
-
 		static void _register_methods() {};
 		void _init() {};
-		~ListenerThreadParams() {
+
+		void close_thread() {
+			stop_thread = true;
+			Thread_close(thread_ref);
+		}
+
+		~ListenerThreadParamsServer() {
 			close_thread();
 		}
 	};
 
-	class ConnectionThreadParams : public Reference {
-		GD_CLASS(ConnectionThreadParams, Reference);
+	class ConnectionThreadParamsServer : public Reference {
+		GD_CLASS(ConnectionThreadParamsServer, Reference);
 
 	public:
 		String device_id = "";
 		GRServer *dev = nullptr;
 		Ref<PacketPeerStream> ppeer;
-		class Thread *thread_ref = nullptr;
+
+#ifndef GDNATIVE_LIBRARY
+		class Thread* thread_ref = nullptr;
+#else
+		Ref<Thread> thread_ref;
+#endif
+
 		bool break_connection = false;
 		bool finished = false;
 
+		static void _register_methods() {};
+		void _init() {};
+
 		void close_thread() {
 			break_connection = true;
-			if (thread_ref) {
-				t_wait_to_finish(thread_ref);
-				memdelete(thread_ref);
-				thread_ref = nullptr;
-			}
+			Thread_close(thread_ref);
 		}
 
-		~ConnectionThreadParams() {
+		~ConnectionThreadParamsServer() {
 			close_thread();
 			if (ppeer.is_valid()) {
 				ppeer.unref();
@@ -89,7 +95,7 @@ public:
 private:
 
 	Mutex *connection_mutex = nullptr;
-	Ref<ListenerThreadParams> server_thread_listen;
+	Ref<ListenerThreadParamsServer> server_thread_listen;
 	Ref<TCP_Server> tcp_server;
 	class GRSViewport *resize_viewport = nullptr;
 	int client_connected = 0;
@@ -116,8 +122,8 @@ private:
 
 	virtual void _reset_counters() override;
 
-	THREAD_FUNC void _thread_listen(void *p_userdata);
-	THREAD_FUNC void _thread_connection(void *p_userdata);
+	THREAD_FUNC void _thread_listen(THREAD_DATA p_userdata);
+	THREAD_FUNC void _thread_connection(THREAD_DATA p_userdata);
 
 	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection DEF_ARG(= false));
 
@@ -174,12 +180,12 @@ public:
 class GRSViewport : public Viewport {
 	GD_CLASS(GRSViewport, Viewport);
 	friend GRServer;
-	friend class ImgProcessingStorage;
+	friend class ImgProcessingStorageViewport;
 	_TS_CLASS_;
 
 public:
-	class ImgProcessingStorage : public Reference {
-		GD_CLASS(ImgProcessingStorage, Reference);
+	class ImgProcessingStorageViewport : public Reference {
+		GD_CLASS(ImgProcessingStorageViewport, Reference);
 
 	public:
 		PoolByteArray ret_data;
@@ -188,19 +194,27 @@ public:
 		int bytes_in_color, jpg_quality;
 		bool is_empty = false;
 
-		~ImgProcessingStorage() {
+		static void _register_methods() {};
+		void _init() {};
+
+		~ImgProcessingStorageViewport() {
 			ret_data.resize(0);
 		}
 	};
 
 private:
-	Thread *_thread_process = nullptr;
-	Ref<Image> last_image;
-	Ref<ImgProcessingStorage> last_image_data;
+#ifndef GDNATIVE_LIBRARY
+	Thread* _thread_process = nullptr;
+#else
+	Ref<Thread> _thread_process;
+#endif
 
-	void _close_thread();
-	void _set_img_data(Ref<ImgProcessingStorage> _data);
-	THREAD_FUNC void _processing_thread(void *p_user);
+	Ref<Image> last_image;
+	Ref<ImgProcessingStorageViewport> last_image_data;
+
+	void _close_thread() { Thread_close(_thread_process); }
+	void _set_img_data(Ref<ImgProcessingStorageViewport> _data);
+	THREAD_FUNC void _processing_thread(THREAD_DATA p_user);
 
 protected:
 	Viewport *main_vp = nullptr;
@@ -227,7 +241,7 @@ protected:
 	void _update_size();
 
 public:
-	Ref<ImgProcessingStorage> get_last_compressed_image_data();
+	Ref<ImgProcessingStorageViewport> get_last_compressed_image_data();
 	bool has_compressed_image_data();
 	void force_get_image();
 

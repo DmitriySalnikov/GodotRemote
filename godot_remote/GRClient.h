@@ -51,10 +51,15 @@ class GRClient : public GRDevice {
 		HORIZONTAL = 2,
 	};
 
-
-public:
+#ifndef GDNATIVE_LIBRARY
 private:
-	class ImgProcessingStorage {
+#else
+public:
+#endif
+
+	class ImgProcessingStorageClient : public Reference {
+		GD_CLASS(ImgProcessingStorageClient, Reference);
+
 	public:
 		GRClient *dev = nullptr;
 		PoolByteArray tex_data;
@@ -64,27 +69,34 @@ private:
 		Size2 size;
 		bool *_is_processing_img = nullptr;
 
-		ImgProcessingStorage(GRClient *_dev) {
+		static void _register_methods() {};
+		void _init() {};
+
+		ImgProcessingStorageClient() {}
+
+		ImgProcessingStorageClient(GRClient * _dev) {
 			dev = _dev;
 		}
 
-		~ImgProcessingStorage() {
+		~ImgProcessingStorageClient() {
 			tex_data.resize(0);
 		}
 	};
 
-#ifndef GDNATIVE_LIBRARY
-#else
-public:
-#endif
-	class ConnectionThreadParams : public Reference{
-		GD_CLASS(ConnectionThreadParams, Reference);
+	class ConnectionThreadParamsClient : public Reference{
+		GD_CLASS(ConnectionThreadParamsClient, Reference);
 
 	public:
 		GRClient *dev = nullptr;
 		Ref<StreamPeerTCP> peer;
 		Ref<PacketPeerStream> ppeer;
-		class Thread *thread_ref = nullptr;
+
+#ifndef GDNATIVE_LIBRARY
+		class Thread* thread_ref = nullptr;
+#else
+		Ref<Thread> thread_ref;
+#endif
+
 		bool break_connection = false;
 		bool stop_thread = false;
 		bool finished = false;
@@ -92,16 +104,13 @@ public:
 		void close_thread() {
 			break_connection = true;
 			stop_thread = true;
-			if (thread_ref) {
-				t_wait_to_finish(thread_ref);
-				memdelete(thread_ref);
-				thread_ref = nullptr;
-			}
+			Thread_close(thread_ref);
 		}
 
 		static void _register_methods() {};
 		void _init() {};
-		~ConnectionThreadParams() {
+
+		~ConnectionThreadParamsClient() {
 			close_thread();
 			if (peer.is_valid()) {
 				peer.unref();
@@ -119,7 +128,7 @@ private:
 	class Control *control_to_show_in = nullptr;
 	class GRTextureRect *tex_shows_stream = nullptr;
 	class GRInputCollector *input_collector = nullptr;
-	Ref<ConnectionThreadParams> thread_connection;
+	Ref<ConnectionThreadParamsClient> thread_connection;
 	ScreenOrientation is_vertical = ScreenOrientation::NONE;
 
 	String device_id = "UNKNOWN";
@@ -180,10 +189,10 @@ private:
 	void _update_stream_texture_state(ENUM_ARG(StreamState) _stream_state);
 	virtual void _reset_counters() override;
 
-	THREAD_FUNC void _thread_connection(void *p_userdata);
-	THREAD_FUNC void _thread_image_decoder(void *p_userdata);
+	THREAD_FUNC void _thread_connection(THREAD_DATA p_userdata);
+	THREAD_FUNC void _thread_image_decoder(THREAD_DATA p_userdata);
 
-	static void _connection_loop(Ref<ConnectionThreadParams> con_thread);
+	static void _connection_loop(Ref<ConnectionThreadParamsClient> con_thread);
 	static GRDevice::AuthResult _auth_on_server(GRClient *dev, Ref<PacketPeerStream> &con);
 
 protected:

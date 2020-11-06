@@ -54,6 +54,7 @@ using namespace godot;
 #define file_get_as_string(path, err) FileAccess::get_file_as_string(path, err);
 
 #define THREAD_FUNC static
+#define THREAD_DATA void*
 #define t_wait_to_finish(thread) t_wait_to_finish(thread)
 #define _TS_CLASS_	_THREAD_SAFE_CLASS_
 #define _TS_METHOD_	_THREAD_SAFE_METHOD_
@@ -62,6 +63,12 @@ using namespace godot;
 #define Mutex_create() Mutex::create()
 #define Thread_create(_class, function, data_to_send, inst) Thread::create(&_class::function, data_to_send)
 #define Thread_set_name(_name) Thread::set_name()
+#define Thread_close(_name)  \
+if (_name) {                 \
+	t_wait_to_finish(_name); \
+	memdelete(_name);        \
+	_name = nullptr;         \
+}
 
 #else
 
@@ -117,6 +124,7 @@ public:
 };
 
 #define THREAD_FUNC
+#define THREAD_DATA Variant
 #define t_wait_to_finish(thread) thread->wait_to_finish()
 #define _TS_CLASS_ ThreadSafe __thread__safe__
 #define _TS_METHOD_ ThreadSafeMethod __thread_safe_method__(&__thread__safe__)
@@ -125,6 +133,12 @@ public:
 #define Mutex_create() Mutex::_new()
 #define Thread_create(_class, function, data_to_send, inst) _gdn_thread_create(inst, #function, data_to_send)
 #define Thread_set_name(_name)
+#define Thread_close(_name)  \
+if (_name.is_valid()) {      \
+	t_wait_to_finish(_name); \
+	_name.unref();           \
+	_name = nullptr;         \
+}
 
 // THREAD SAFE END
 
@@ -155,6 +169,12 @@ public:
 
 #define memnew(obj) obj::_new()
 #define memdelete(obj) obj->free()
+
+#define GDNATIVE_BASIC_REGISTER         \
+public:                                 \
+	void _init() {};                    \
+	static void _register_methods() {}; \
+protected:
 
 /*
 template <class T>
@@ -201,7 +221,7 @@ struct VariantCaster<const T&> {
 	}
 #define ERR_FAIL_COND_V_MSG(m_cond, m_retval, m_msg)                                                            \
 	{                                                                                                           \
-		if(!((int)m_cond)){                                                                                          \
+		if(((int)m_cond)){                                                                                      \
 			ERR_PRINT(String("Condition \"") + #m_cond + "\" is true. Returned: " + #m_retval + ".\n" + m_msg); \
 			return m_retval;                                                                                    \
 		}                                                                                                       \
@@ -296,12 +316,17 @@ namespace GRUtils {
 		int current_loglevel;
 		PoolByteArray internal_PACKET_HEADER;
 		PoolByteArray internal_VERSION;
-#ifndef NO_GODOTREMOTE_SERVER
-		PoolByteArray compress_buffer;
-		int compress_buffer_size_mb;
-#endif
 	};
 
+#ifndef NO_GODOTREMOTE_SERVER
+	class GRUtilsDataServer {
+	public:
+		PoolByteArray compress_buffer;
+		int compress_buffer_size_mb;
+	};
+
+	extern GRUtilsDataServer* _grutils_data_server;
+#endif
 	extern GRUtilsData* _grutils_data;
 
 	extern void init();
@@ -438,9 +463,9 @@ namespace GRUtils {
 		return "";
 	}
 
-	static Thread* _gdn_thread_create(Object* instance, String func_name, Variant user_data) {
-		Thread* t = memnew(Thread);
-		t->start(instance, "", user_data);
+	static Ref<Thread> _gdn_thread_create(Object* instance, String func_name, Variant user_data) {
+		Ref<Thread> t = newref(Thread);
+		t->start(instance, func_name, user_data);
 		return t;
 	}
 

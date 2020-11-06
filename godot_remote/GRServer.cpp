@@ -89,7 +89,7 @@ void GRServer::_bind_methods() {
 void GRServer::_register_methods() {
 	///////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////
-
+	/*
 	register_method("_internal_call_only_deffered_start", &GRServer::_internal_call_only_deffered_start);
 	register_method("_internal_call_only_deffered_stop", &GRServer::_internal_call_only_deffered_stop);
 
@@ -106,11 +106,13 @@ void GRServer::_register_methods() {
 	register_method("get_status", &GRServer::get_status);
 
 	register_signal<GRServer>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
-
+	*/
 	///////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////
 
 	register_method("_notification", &GRServer::_notification);
+	register_method("_thread_listen", &GRServer::_thread_listen);
+	register_method("_thread_connection", &GRServer::_thread_connection);
 
 	register_method("_load_settings", &GRServer::_load_settings);
 	register_method("_remove_resize_viewport", &GRServer::_remove_resize_viewport);
@@ -168,14 +170,14 @@ void GRServer::_notification(int p_notification) {
 			_init();
 #endif
 			break;
-		case NOTIFICATION_CRASH:
-		case NOTIFICATION_EXIT_TREE:
 		case NOTIFICATION_PREDELETE: {
+			_deinit();
+			GRDevice::_deinit();
+			break;
+		case NOTIFICATION_EXIT_TREE:
 			if (get_status() == (int)WorkingStatus::Working) {
 				_internal_call_only_deffered_stop();
 			}
-			_deinit();
-			GRDevice::_deinit();
 			break;
 		}
 	}
@@ -558,13 +560,13 @@ void GRServer::_reset_counters() {
 ////////////////// STATIC ////////////////////
 //////////////////////////////////////////////
 
-void GRServer::_thread_listen(void *p_userdata) {
+void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 	Thread_set_name("GR_listen_thread");
-	Ref<ListenerThreadParams> this_thread_info = (ListenerThreadParams *)p_userdata;
+	Ref<ListenerThreadParamsServer> this_thread_info = (ListenerThreadParamsServer *)p_userdata;
 	GRServer *dev = this_thread_info->dev;
 	Ref<TCP_Server> srv = dev->tcp_server;
 	OS *os = OS::get_singleton();
-	Ref<ConnectionThreadParams> connection_thread_info;
+	Ref<ConnectionThreadParamsServer> connection_thread_info;
 	Error err = Error::OK;
 	bool listening_error_notification_shown = false;
 
@@ -640,7 +642,7 @@ void GRServer::_thread_listen(void *p_userdata) {
 
 			Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
 			ppeer->set_stream_peer(con);
-			ppeer->set_output_buffer_max_size(_grutils_data->compress_buffer.size());
+			ppeer->set_output_buffer_max_size(_grutils_data_server->compress_buffer.size());
 
 			if (connection_thread_info.is_null()) {
 				Dictionary ret_data;
@@ -701,8 +703,8 @@ void GRServer::_thread_listen(void *p_userdata) {
 	this_thread_info->finished = true;
 }
 
-void GRServer::_thread_connection(void *p_userdata) {
-	Ref<ConnectionThreadParams> thread_info = (ConnectionThreadParams *)p_userdata;
+void GRServer::_thread_connection(THREAD_DATA p_userdata) {
+	Ref<ConnectionThreadParamsServer> thread_info = (ConnectionThreadParamsServer *)p_userdata;
 	Ref<StreamPeerTCP> connection = thread_info->ppeer->get_stream_peer();
 	Ref<PacketPeerStream> ppeer = thread_info->ppeer;
 	GRServer *dev = thread_info->dev;
@@ -899,7 +901,12 @@ void GRServer::_thread_connection(void *p_userdata) {
 				(os->get_ticks_usec() - recv_start_time) < send_data_time_us / 2) {
 			nothing_happens = false;
 			Variant res;
+#ifndef GDNATIVE_LIBRARY
 			err = (Error)(int)ppeer->get_var(res);
+#else
+			err = Error::OK;
+			res = ppeer->get_var();
+#endif
 
 			if ((int)err) {
 				_log("Can't receive packet!", LogLevel::LL_Error);
@@ -1109,8 +1116,14 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream>
 
 		// GET auth data
 		wait_packet("auth_data");
+
+#ifndef GDNATIVE_LIBRARY
 		err = (Error)(int)ppeer->get_var(res);
 		packet_error_check("Can't get authorization data from client to " + address + ". Code: " + str((int)err));
+#else
+		err = Error::OK;
+		res = ppeer->get_var();
+#endif
 
 		Dictionary dict = res;
 		if (dict.empty()) {
@@ -1324,9 +1337,9 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, Array&_arr) 
 ////////////// GRSViewport ///////////////////
 //////////////////////////////////////////////
 
-void GRSViewport::_processing_thread(void *p_user) {
+void GRSViewport::_processing_thread(THREAD_DATA p_user) {
 	GRSViewport *vp = (GRSViewport *)p_user;
-	Ref<ImgProcessingStorage> ips(memnew(ImgProcessingStorage));
+	Ref<ImgProcessingStorageViewport> ips(memnew(ImgProcessingStorageViewport));
 	Ref<Image> img = vp->last_image;
 
 	TimeCountInit();
@@ -1405,6 +1418,7 @@ void GRSViewport::_bind_methods() {
 
 void GRSViewport::_register_methods() {
 	register_method("_notification", &GRSViewport::_notification);
+	register_method("_processing_thread", &GRSViewport::_processing_thread);
 
 	register_method("_update_size", &GRSViewport::_update_size);
 	register_method("set_rendering_scale", &GRSViewport::set_rendering_scale);
@@ -1415,15 +1429,7 @@ void GRSViewport::_register_methods() {
 
 #endif
 
-void GRSViewport::_close_thread() {
-	if (_thread_process) {
-		t_wait_to_finish(_thread_process);
-		memdelete(_thread_process);
-		_thread_process = nullptr;
-	}
-}
-
-void GRSViewport::_set_img_data(Ref<ImgProcessingStorage> _data) {
+void GRSViewport::_set_img_data(Ref<ImgProcessingStorageViewport> _data) {
 	_TS_LOCK_;
 	last_image_data = _data;
 	_TS_UNLOCK_;
@@ -1446,7 +1452,7 @@ void GRSViewport::_notification(int p_notification) {
 			if (!video_stream_enabled) {
 				if (!is_empty_image_sended) {
 					is_empty_image_sended = true;
-					Ref<ImgProcessingStorage> ips(memnew(ImgProcessingStorage));
+					Ref<ImgProcessingStorageViewport> ips(memnew(ImgProcessingStorageViewport));
 					ips->width = 0;
 					ips->height = 0;
 					ips->format = Image::Format::FORMAT_RGB8;
@@ -1527,7 +1533,7 @@ void GRSViewport::_update_size() {
 	}
 }
 
-Ref<GRSViewport::ImgProcessingStorage> GRSViewport::get_last_compressed_image_data() {
+Ref<GRSViewport::ImgProcessingStorageViewport> GRSViewport::get_last_compressed_image_data() {
 	_TS_LOCK_;
 	auto res = last_image_data;
 	last_image_data.unref();
