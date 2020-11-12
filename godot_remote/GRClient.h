@@ -41,7 +41,7 @@ enum StreamState : int {
 };
 
 class GRClient : public GRDevice {
-	GD_CLASS(GRClient, GRDevice);
+	GD_S_CLASS(GRClient, GRDevice);
 
 	friend class GRTextureRect;
 
@@ -204,7 +204,17 @@ protected:
 #else
 public:
 	static void _register_methods();
-	void _bind_constants();
+
+	CONST_FAKE_SET();
+	CONST_GET(ConnectionType, CONNECTION_ADB);
+	CONST_GET(ConnectionType, CONNECTION_WiFi);
+
+	CONST_GET(StretchMode, STRETCH_KEEP_ASPECT);
+	CONST_GET(StretchMode, STRETCH_FILL);
+
+	CONST_GET(StreamState, STREAM_NO_SIGNAL);
+	CONST_GET(StreamState, STREAM_ACTIVE);
+	CONST_GET(StreamState, STREAM_NO_IMAGE);
 protected:
 #endif
 

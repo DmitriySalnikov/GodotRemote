@@ -148,15 +148,21 @@ if (_name.is_valid()) {      \
 #define DEF_ARG(a) 
 //#define DEF_ARGS(...) ,__VA_ARGS__ 
 
+#define STR_TEXT(a) #a
+#define CONST_FAKE_SET() void set_constant(int val) {}
+#define CONST_FAKE_REG(cl) register_method("set_constant", &cl::set_constant)
+
+#define CONST_GET(en, val) int get_##en##val() { return (int)en::val; }
+#define CONST_REG(cl, en, val, name)                                             \
+register_method(STR_TEXT(get_##en##val), &cl::get_##en##val);                    \
+register_property<cl, int>(name, &cl::set_constant, &cl::get_##en##val, en::val)
+
 #define ST() ((SceneTree*)Engine::get_singleton()->get_main_loop())
 #define GD_CLASS(c, p) GODOT_CLASS(c, p)
 #define GD_S_CLASS(c, p) GODOT_SUBCLASS(c, p)
 #define V_CAST(var, type) (var.operator type())
 #define GLOBAL_DEF(m_var, m_value) _GLOBAL_DEF(m_var, m_value)
 #define GLOBAL_GET(m_var) ProjectSettings::get_singleton()->get(m_var)
-
-// Bind constant with custom name
-#define BIND_ENUM_CONSTANT(obj, m_constant, m_name) ClassDB::get_singleton()->class_set_property(obj, m_name, m_constant);
 
 #define queue_del queue_free
 #define is_valid_ip is_valid_ip_address

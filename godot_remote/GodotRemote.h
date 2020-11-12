@@ -36,9 +36,9 @@ class GodotRemote : public Node {
 
 public:
 	enum DeviceType : int {
-		DEVICE_Auto = 0,
-		DEVICE_Development = 1,
-		DEVICE_Standalone = 2,
+		DEVICE_AUTO = 0,
+		DEVICE_SERVER = 1,
+		DEVICE_CLIENT = 2,
 	};
 
 	static const char* ps_general_autoload_name;
@@ -94,7 +94,46 @@ protected:
 #else
 public:
 	static void _register_methods();
-	void _bind_constants();
+
+	CONST_FAKE_SET();
+	CONST_GET(DeviceType, DEVICE_AUTO);
+	CONST_GET(DeviceType, DEVICE_SERVER);
+	CONST_GET(DeviceType, DEVICE_CLIENT);
+
+	CONST_GET(TypesOfServerSettings, USE_INTERNAL_SERVER_SETTINGS);
+	CONST_GET(TypesOfServerSettings, VIDEO_STREAM_ENABLED);
+	CONST_GET(TypesOfServerSettings, COMPRESSION_TYPE);
+	CONST_GET(TypesOfServerSettings, JPG_QUALITY);
+	CONST_GET(TypesOfServerSettings, SKIP_FRAMES);
+	CONST_GET(TypesOfServerSettings, RENDER_SCALE);
+
+	CONST_GET(NotificationIcon, None);
+	CONST_GET(NotificationIcon, _Error);
+	CONST_GET(NotificationIcon, Warning);
+	CONST_GET(NotificationIcon, Success);
+	CONST_GET(NotificationIcon, Fail);
+
+	CONST_GET(NotificationsPosition, TL);
+	CONST_GET(NotificationsPosition, TC);
+	CONST_GET(NotificationsPosition, TR);
+	CONST_GET(NotificationsPosition, BL);
+	CONST_GET(NotificationsPosition, BC);
+	CONST_GET(NotificationsPosition, BR);
+
+	CONST_GET(Subsampling, SUBSAMPLING_Y_ONLY);
+	CONST_GET(Subsampling, SUBSAMPLING_H1V1);
+	CONST_GET(Subsampling, SUBSAMPLING_H2V1);
+	CONST_GET(Subsampling, SUBSAMPLING_H2V2);
+
+	CONST_GET(LogLevel, LL_None);
+	CONST_GET(LogLevel, LL_Debug);
+	CONST_GET(LogLevel, LL_Normal);
+	CONST_GET(LogLevel, LL_Warning);
+	CONST_GET(LogLevel, LL_Error);
+
+	CONST_GET(ImageCompressionType, Uncompressed);
+	CONST_GET(ImageCompressionType, JPG);
+	CONST_GET(ImageCompressionType, PNG);
 protected:
 #endif
 
@@ -102,47 +141,47 @@ protected:
 
 public:
 	// GRNotifications
-	class GRNotificationPanel *get_notification(String title) const;
-	Array get_all_notifications() const;
-	Array get_notifications_with_title(String title) const;
+	class GRNotificationPanel *get_notification(String title);
+	Array get_all_notifications();
+	Array get_notifications_with_title(String title);
 
-	void set_notifications_layer(int layer) const;
-	int get_notifications_layer() const;
+	void set_notifications_layer(int layer);
+	int get_notifications_layer();
 
-	void set_notifications_position(ENUM_ARG(NotificationsPosition) positon) const;
-	NotificationsPosition get_notifications_position() const;
+	void set_notifications_position(ENUM_ARG(NotificationsPosition) positon);
+	ENUM_ARG(NotificationsPosition) get_notifications_position();
 
-	void set_notifications_enabled(bool _enabled) const;
-	bool get_notifications_enabled() const;
+	void set_notifications_enabled(bool _enabled);
+	bool get_notifications_enabled();
 
-	void set_notifications_duration(float _duration) const;
-	float get_notifications_duration() const;
+	void set_notifications_duration(float _duration);
+	float get_notifications_duration();
 
-	void set_notifications_style(Ref<class GRNotificationStyle> _style) const;
-	Ref<class GRNotificationStyle> get_notifications_style() const;
+	void set_notifications_style(Ref<class GRNotificationStyle> _style);
+	Ref<class GRNotificationStyle> get_notifications_style();
 
 	void add_notification_or_append_string(String title, String text, ENUM_ARG(NotificationIcon) icon, bool new_string DEF_ARG(= true), float duration_multiplier DEF_ARG(= 1.f));
-	void add_notification_or_update_line(String title, String id, String text, ENUM_ARG(NotificationIcon) icon, float duration_multiplier DEF_ARG(= 1.f)) const;
-	void add_notification(String title, String text, ENUM_ARG(NotificationIcon) icon, bool update_existing DEF_ARG(= true), float duration_multiplier DEF_ARG(= 1.f)) const;
-	void remove_notification(String title, bool all_entries = true) const;
-	void remove_notification_exact(Node *_notif) const;
-	void clear_notifications() const;
+	void add_notification_or_update_line(String title, String id, String text, ENUM_ARG(NotificationIcon) icon, float duration_multiplier DEF_ARG(= 1.f));
+	void add_notification(String title, String text, ENUM_ARG(NotificationIcon) icon, bool update_existing DEF_ARG(= true), float duration_multiplier DEF_ARG(= 1.f));
+	void remove_notification(String title, bool all_entries = true);
+	void remove_notification_exact(Node *_notif);
+	void clear_notifications();
 	// GRNotifications end
 
 	// GRUtils functions binds for GDScript
-	void set_log_level(ENUM_ARG(LogLevel) lvl) const;
-	void set_gravity(const Vector3 &p_gravity) const;
-	void set_accelerometer(const Vector3 &p_accel) const;
-	void set_magnetometer(const Vector3 &p_magnetometer) const;
-	void set_gyroscope(const Vector3 &p_gyroscope) const;
+	void set_log_level(ENUM_ARG(LogLevel) lvl);
+	void set_gravity(const Vector3 &p_gravity);
+	void set_accelerometer(const Vector3 &p_accel);
+	void set_magnetometer(const Vector3 &p_magnetometer);
+	void set_gyroscope(const Vector3 &p_gyroscope);
 	// GRUtils end
 
-	class GRDevice *get_device() const;
-	class String get_version() const;
+	class GRDevice *get_device();
+	class String get_version();
 
 	// must be call_deffered
-	void create_and_start_device(ENUM_ARG(DeviceType) type DEF_ARG(= DeviceType::DEVICE_Auto));
-	bool create_remote_device(ENUM_ARG(DeviceType) type DEF_ARG(= DeviceType::DEVICE_Auto));
+	void create_and_start_device(ENUM_ARG(DeviceType) type DEF_ARG(= DeviceType::DEVICE_AUTO));
+	bool create_remote_device(ENUM_ARG(DeviceType) type DEF_ARG(= DeviceType::DEVICE_AUTO));
 	bool start_remote_device();
 	bool remove_remote_device();
 

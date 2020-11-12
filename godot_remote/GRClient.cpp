@@ -243,18 +243,18 @@ void GRClient::_register_methods() {
 	//register_property<GRClient, bool>("viewport_orientation_syncing", &GRClient::set_viewport_orientation_syncing, &GRClient::is_viewport_orientation_syncing, true);
 	//register_property<GRClient, bool>("viewport_aspect_ratio_syncing", &GRClient::set_viewport_aspect_ratio_syncing, &GRClient::is_viewport_aspect_ratio_syncing, true);
 	//register_property<GRClient, bool>("server_settings_syncing", &GRClient::set_server_settings_syncing, &GRClient::is_server_settings_syncing, true);
-}
+	
+	CONST_FAKE_REG(GRClient);
 
-void GRClient::_bind_constants() {
-	BIND_ENUM_CONSTANT(this, ConnectionType::CONNECTION_ADB, "CONNECTION_ADB");
-	BIND_ENUM_CONSTANT(this, ConnectionType::CONNECTION_WiFi, "CONNECTION_WiFi");
+	CONST_REG(GRClient, ConnectionType, CONNECTION_ADB, "CONNECTION_ADB");
+	CONST_REG(GRClient, ConnectionType, CONNECTION_WiFi, "CONNECTION_WiFi");
 
-	BIND_ENUM_CONSTANT(this, StretchMode::STRETCH_KEEP_ASPECT, "STRETCH_KEEP_ASPECT");
-	BIND_ENUM_CONSTANT(this, StretchMode::STRETCH_FILL, "STRETCH_FILL");
+	CONST_REG(GRClient, StretchMode, STRETCH_KEEP_ASPECT, "STRETCH_KEEP_ASPECT");
+	CONST_REG(GRClient, StretchMode, STRETCH_FILL, "STRETCH_FILL");
 
-	BIND_ENUM_CONSTANT(this, StreamState::STREAM_NO_SIGNAL, "STREAM_NO_SIGNAL");
-	BIND_ENUM_CONSTANT(this, StreamState::STREAM_ACTIVE, "STREAM_ACTIVE");
-	BIND_ENUM_CONSTANT(this, StreamState::STREAM_NO_IMAGE, "STREAM_NO_IMAGE");
+	CONST_REG(GRClient, StreamState, STREAM_NO_SIGNAL, "STREAM_NO_SIGNAL");
+	CONST_REG(GRClient, StreamState, STREAM_ACTIVE, "STREAM_ACTIVE");
+	CONST_REG(GRClient, StreamState, STREAM_NO_IMAGE, "STREAM_NO_IMAGE");
 }
 
 #endif
@@ -282,7 +282,6 @@ void GRClient::_notification(int p_notification) {
 
 void GRClient::_init(){
 	set_name("GodotRemoteClient");
-	_bind_constants();
 	GRDevice::_init();
 
 #ifndef GDNATIVE_LIBRARY
@@ -294,7 +293,6 @@ void GRClient::_init(){
 	device_id = str(rng->randf() * rng->randf()).md5_text().substr(0, 6);
 	memdelete(rng);
 #endif
-
 
 	send_queue_mutex = Mutex_create();
 	connection_mutex = Mutex_create();

@@ -78,32 +78,32 @@ void GRDevice::_register_methods() {
 	register_method("get_status", &GRDevice::get_status);
 
 	register_signal<GRDevice>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
-}
 
-void GRDevice::_bind_constants(GRDevice* dev) {
-	BIND_ENUM_CONSTANT(dev, WorkingStatus::Starting, "STATUS_STARTING");
-	BIND_ENUM_CONSTANT(dev, WorkingStatus::Stopping, "STATUS_STOPPING");
-	BIND_ENUM_CONSTANT(dev, WorkingStatus::Working, "STATUS_WORKING");
-	BIND_ENUM_CONSTANT(dev, WorkingStatus::Stopped, "STATUS_STOPPED");
+	CONST_FAKE_REG(GRDevice);
 
-	BIND_ENUM_CONSTANT(dev, InputType::_NoneIT, "InputTypeNone");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputDeviceSensors, "InputDeviceSensors");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEvent, "InputEvent");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventAction, "InputEventAction");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventGesture, "InputEventGesture");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventJoypadButton, "InputEventJoypadButton");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventJoypadMotion, "InputEventJoypadMotion");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventKey, "InputEventKey");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventMagnifyGesture, "InputEventMagnifyGesture");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventMIDI, "InputEventMIDI");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventMouse, "InputEventMouse");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventMouseButton, "InputEventMouseButton");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventMouseMotion, "InputEventMouseMotion");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventPanGesture, "InputEventPanGesture");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventScreenDrag, "InputEventScreenDrag");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventScreenTouch, "InputEventScreenTouch");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventWithModifiers, "InputEventWithModifiers");
-	BIND_ENUM_CONSTANT(dev, InputType::_InputEventMAX, "InputEventMAX");
+	CONST_REG(GRDevice, WorkingStatus, Starting, "STATUS_STARTING");
+	CONST_REG(GRDevice, WorkingStatus, Stopping, "STATUS_STOPPING");
+	CONST_REG(GRDevice, WorkingStatus, Working, "STATUS_WORKING");
+	CONST_REG(GRDevice, WorkingStatus, Stopped, "STATUS_STOPPED");
+	
+	CONST_REG(GRDevice, InputType, _NoneIT, "InputTypeNone");
+	CONST_REG(GRDevice, InputType, _InputDeviceSensors, "InputDeviceSensors");
+	CONST_REG(GRDevice, InputType, _InputEvent, "InputEvent");
+	CONST_REG(GRDevice, InputType, _InputEventAction, "InputEventAction");
+	CONST_REG(GRDevice, InputType, _InputEventGesture, "InputEventGesture");
+	CONST_REG(GRDevice, InputType, _InputEventJoypadButton, "InputEventJoypadButton");
+	CONST_REG(GRDevice, InputType, _InputEventJoypadMotion, "InputEventJoypadMotion");
+	CONST_REG(GRDevice, InputType, _InputEventKey, "InputEventKey");
+	CONST_REG(GRDevice, InputType, _InputEventMagnifyGesture, "InputEventMagnifyGesture");
+	CONST_REG(GRDevice, InputType, _InputEventMIDI, "InputEventMIDI");
+	CONST_REG(GRDevice, InputType, _InputEventMouse, "InputEventMouse");
+	CONST_REG(GRDevice, InputType, _InputEventMouseButton, "InputEventMouseButton");
+	CONST_REG(GRDevice, InputType, _InputEventMouseMotion, "InputEventMouseMotion");
+	CONST_REG(GRDevice, InputType, _InputEventPanGesture, "InputEventPanGesture");
+	CONST_REG(GRDevice, InputType, _InputEventScreenDrag, "InputEventScreenDrag");
+	CONST_REG(GRDevice, InputType, _InputEventScreenTouch, "InputEventScreenTouch");
+	CONST_REG(GRDevice, InputType, _InputEventWithModifiers, "InputEventWithModifiers");
+	CONST_REG(GRDevice, InputType, _InputEventMAX, "InputEventMAX");
 }
 
 #endif
@@ -166,7 +166,6 @@ void GRDevice::set_port(uint16_t _port) {
 
 void GRDevice::start() {
 	call_deferred("_internal_call_only_deffered_start");
-	
 }
 
 void GRDevice::stop() {
@@ -189,7 +188,6 @@ WorkingStatus GRDevice::get_status() {
 }
 
 void GRDevice::_init() {
-	_bind_constants(this);
 	port = GET_PS(GodotRemote::ps_general_port_name);
 }
 

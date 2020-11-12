@@ -406,15 +406,19 @@ void GRServer::_adjust_viewport_scale() {
 
 	const float smooth = 0.8f;
 	float scale = resize_viewport->auto_scale;
+
+	if (!auto_adjust_scale) {
+		//if (scale == -1.f)
+		//	return;
+
+		scale = -1.f;
+		goto end;
+	}
+
 	if (prev_avg_fps == 0) {
 		prev_avg_fps = avg_fps;
 	} else {
 		prev_avg_fps = (prev_avg_fps * smooth) + (avg_fps * (1.f - smooth));
-	}
-
-	if (!auto_adjust_scale) {
-		scale = -1.f;
-		goto end;
 	}
 	_log(prev_avg_fps);
 
@@ -431,6 +435,7 @@ void GRServer::_adjust_viewport_scale() {
 
 end:
 	resize_viewport->auto_scale = scale;
+	prev_avg_fps = 0;
 	resize_viewport->call_deferred("_update_size");
 }
 

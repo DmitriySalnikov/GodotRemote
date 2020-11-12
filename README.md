@@ -199,9 +199,9 @@ device_removed()
 # --- Enumerations
 
 DeviceType:
-    DEVICE_Auto = 0
-    DEVICE_Development = 1
-    DEVICE_Standalone = 2
+    DEVICE_AUTO = 0
+    DEVICE_SERVER = 1
+    DEVICE_CLIENT = 2
 
 ImageCompressionType:
     IMAGE_COMPRESSION_UNCOMPRESSED = 0

@@ -19,15 +19,14 @@ using namespace godot;
 GRUtilsData* GRUtils::_grutils_data = nullptr;
 
 namespace GRUtils {
-int current_loglevel = LogLevel::LL_Normal;
-
 void init() {
 	_grutils_data = new GRUtilsData();
+	_grutils_data->current_loglevel = LogLevel::LL_Normal;
 
 	GR_PACKET_HEADER('G', 'R', 'H', 'D');
 	GR_VERSION(1, 0, 0);
 
-	GET_PS_SET(current_loglevel, GodotRemote::ps_general_loglevel_name);
+	GET_PS_SET(_grutils_data->current_loglevel, GodotRemote::ps_general_loglevel_name);
 }
 
 void deinit() {
@@ -71,7 +70,7 @@ void _log(const Variant &val, LogLevel lvl) {
 
 #define print_error_ext(msg) Godot::print_error("[GodotRemote Error] " + str(val), __FUNCTION__, __FILE__, __LINE__ )
 
-	if (lvl >= current_loglevel && lvl < LogLevel::LL_None) {
+	if (lvl >= _grutils_data->current_loglevel && lvl < LogLevel::LL_None) {
 		if (lvl == LogLevel::LL_Error) {
 			print_error_ext("[GodotRemote Error] " + str(val));
 		}
