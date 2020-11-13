@@ -25,6 +25,22 @@ enum WorkingStatus : int {
 	Starting,
 };
 
+enum ConnectionType : int {
+	CONNECTION_WiFi = 0,
+	CONNECTION_ADB = 1,
+};
+
+enum StretchMode : int {
+	STRETCH_KEEP_ASPECT = 0,
+	STRETCH_FILL = 1,
+};
+
+enum StreamState : int {
+	STREAM_NO_SIGNAL = 0,
+	STREAM_ACTIVE = 1,
+	STREAM_NO_IMAGE = 2,
+};
+
 class GRDevice : public Node {
 	GD_CLASS(GRDevice, Node);
 
@@ -63,30 +79,6 @@ protected:
 public:
 	static void _register_methods();
 
-	CONST_FAKE_SET();
-	CONST_GET(WorkingStatus, Starting);
-	CONST_GET(WorkingStatus, Stopped);
-	CONST_GET(WorkingStatus, Stopping);
-	CONST_GET(WorkingStatus, Working);
-	
-	CONST_GET(InputType, _NoneIT);
-	CONST_GET(InputType, _InputDeviceSensors);
-	CONST_GET(InputType, _InputEvent);
-	CONST_GET(InputType, _InputEventAction);
-	CONST_GET(InputType, _InputEventGesture);
-	CONST_GET(InputType, _InputEventJoypadButton);
-	CONST_GET(InputType, _InputEventJoypadMotion);
-	CONST_GET(InputType, _InputEventKey);
-	CONST_GET(InputType, _InputEventMagnifyGesture);
-	CONST_GET(InputType, _InputEventMIDI);
-	CONST_GET(InputType, _InputEventMouse);
-	CONST_GET(InputType, _InputEventMouseButton);
-	CONST_GET(InputType, _InputEventMouseMotion);
-	CONST_GET(InputType, _InputEventPanGesture);
-	CONST_GET(InputType, _InputEventScreenDrag);
-	CONST_GET(InputType, _InputEventScreenTouch);
-	CONST_GET(InputType, _InputEventWithModifiers);
-	CONST_GET(InputType, _InputEventMAX);
 protected:
 #endif
 

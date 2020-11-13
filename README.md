@@ -12,28 +12,39 @@ If you are developing on a non-touch device, this module is the best way to quic
 
 ## Compiling the Module
 
-To compile module you need:
+### As part of Godot
 
-1. [configure environment](https://docs.godotengine.org/en/3.2/development/compiling/index.html) to build editor for your platform (you need to clone [3.2 branch](https://github.com/godotengine/godot/tree/3.2) not master);
-2. copy ```godot_remote``` folder to the ```modules/``` directory or make [symlink](https://en.wikipedia.org/wiki/Symbolic_link);
-3. compile editor with instructions from documentation above (example ```scons p=windows tools=yes```);
+1. [configure environment](https://docs.godotengine.org/en/3.2/development/compiling/index.html) to build editor for your platform (you need to clone [3.2 branch](https://github.com/godotengine/godot/tree/3.2) not master)
+2. copy ```godot_remote``` folder to the ```modules/``` directory or make [symlink](https://en.wikipedia.org/wiki/Symbolic_link)
+3. compile engine with instructions from documentation above (e.g. ```scons p=windows tools=yes -j[place here count of your CPU threads]```)
 4. run ```bin/godot[based on config]```.
 
 If everything compiles successfully, you'll find the new category in project settings ```Debug/Godot Remote``` where you can configure server.
 
 ![Settings](Images/Screenshots/settings.png)
 
+### As GDNative module
+
+1. [Configure environment](https://docs.godotengine.org/en/3.2/development/compiling/index.html) to build editor for your platform
+2. Generate api.json for GDNative api. ```bin/godot --gdnative-generate-json-api api.json```
+3. Copy api.json to the root directory of this repository
+4. Compile godot-cpp (e.g. in godot-cpp directory run ```scons generate_bindings=true platform=windows target=release bits=64 -j8 ../api.json```)
+5. Compile module for your platform (Available platforms: windows, osx, x11, ios, android. Tested platforms: windows, linux, android)
+   1. For android: Run in root directory ```[path to your android ndk root dir]/ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk  APP_PLATFORM=android-21```
+   2. For all other platforms: ```scons platform=windows target=release-j8```
+6. Use produced library in ```bin/```
+
+GDNative has limitations so here ```GodotRemote``` is not a singleton and you need to create autoload scene with attached NativeScript for ```GodotRemote``` class.
+
+Enum constants in this version change too (see [API Reference] )
+
+### Additional parameters
+
 Also module has additional compilation parameters
 
 1. ```godot_remote_no_default_resources``` (yes/no) default no - compile with or without default resources
 2. ```godot_remote_disable_server``` (yes/no) default no - do not include server code
 3. ```godot_remote_disable_client``` (yes/no) default no - do not include client code
-
-Example:
-
-```bash
-scons p=windows tools=yes godot_remote_no_default_resources=no godot_remote_disable_client=no
-```
 
 ## Download
 
@@ -67,6 +78,18 @@ Methods will be declared follows this template:
 
 ```python
 return_type function_name([arg_name1 : type [= defalut value]][, arg_name2 : type [= defalut value]])
+```
+
+**Important:** All enums in GDNative version is exposed in GodotRemote class because of limitations.
+For example, if you want to use StreamState.STREAM_ACTIVE from GRClient you need to get property GRClient_STREAM_ACTIVE of GodotRemote __object__
+
+```python
+# Godot module:
+GRClient.STREAM_ACTIVE:
+
+# GDNative
+# *GodotRemote is autoload scene with attached NativeScript
+GodotRemote.GRClient_STREAM_ACTIVE
 ```
 
 ### GodotRemote
@@ -209,11 +232,11 @@ ImageCompressionType:
     IMAGE_COMPRESSION_PNG = 2
 
 LogLevel:
-    LL_None = 4
-    LL_Debug = 0
-    LL_Normal = 1
-    LL_Warning = 2
-    LL_Error = 3
+    LL_NONE = 4
+    LL_DEBUG = 0
+    LL_NORMAL = 1
+    LL_WARNING = 2
+    LL_ERROR = 3
 
 NotificationIcon:
     NOTIFICATION_ICON_NONE = 0
@@ -354,10 +377,12 @@ password
 custom_input_scene
 
 # Is custom input scene compressed
+## Doesn't work in GDNative
 # type bool, default true
 custom_input_scene_compressed
 
 # Compression type of custom input scene
+## Doesn't work in GDNative
 # type File.CompressionMode, default FastLZ
 custom_input_scene_compression_type
 

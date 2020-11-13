@@ -22,7 +22,8 @@ __pycache__
 *.exe
 *.exp
 *.lib
-*.filters
+*.vcxproj.filters
+*.vcxproj.user
 *.os
 *.out
 api.json

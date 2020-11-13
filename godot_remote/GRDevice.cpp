@@ -60,50 +60,24 @@ void GRDevice::_bind_methods() {
 #else
 
 void GRDevice::_register_methods() {
-	register_method("_notification", &GRDevice::_notification);
+	METHOD_REG(GRDevice, _notification);
 
-	register_method("_internal_call_only_deffered_start", &GRDevice::_internal_call_only_deffered_start);
-	register_method("_internal_call_only_deffered_stop", &GRDevice::_internal_call_only_deffered_stop);
+	METHOD_REG(GRDevice, _internal_call_only_deffered_start);
+	METHOD_REG(GRDevice, _internal_call_only_deffered_stop);
 
-	register_method("_internal_call_only_deffered_restart", &GRDevice::_internal_call_only_deffered_restart);
+	METHOD_REG(GRDevice, _internal_call_only_deffered_restart);
 
-	register_method("get_avg_ping", &GRDevice::get_avg_ping);
-	register_method("get_avg_fps", &GRDevice::get_avg_fps);
+	METHOD_REG(GRDevice, get_avg_ping);
+	METHOD_REG(GRDevice, get_avg_fps);
 
-	register_method("get_port", &GRDevice::get_port);
-	register_method("set_port", &GRDevice::set_port);
+	METHOD_REG(GRDevice, get_port);
+	METHOD_REG(GRDevice, set_port);
 
-	register_method("start", &GRDevice::start);
-	register_method("stop", &GRDevice::stop);
-	register_method("get_status", &GRDevice::get_status);
+	METHOD_REG(GRDevice, start);
+	METHOD_REG(GRDevice, stop);
+	METHOD_REG(GRDevice, get_status);
 
 	register_signal<GRDevice>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
-
-	CONST_FAKE_REG(GRDevice);
-
-	CONST_REG(GRDevice, WorkingStatus, Starting, "STATUS_STARTING");
-	CONST_REG(GRDevice, WorkingStatus, Stopping, "STATUS_STOPPING");
-	CONST_REG(GRDevice, WorkingStatus, Working, "STATUS_WORKING");
-	CONST_REG(GRDevice, WorkingStatus, Stopped, "STATUS_STOPPED");
-	
-	CONST_REG(GRDevice, InputType, _NoneIT, "InputTypeNone");
-	CONST_REG(GRDevice, InputType, _InputDeviceSensors, "InputDeviceSensors");
-	CONST_REG(GRDevice, InputType, _InputEvent, "InputEvent");
-	CONST_REG(GRDevice, InputType, _InputEventAction, "InputEventAction");
-	CONST_REG(GRDevice, InputType, _InputEventGesture, "InputEventGesture");
-	CONST_REG(GRDevice, InputType, _InputEventJoypadButton, "InputEventJoypadButton");
-	CONST_REG(GRDevice, InputType, _InputEventJoypadMotion, "InputEventJoypadMotion");
-	CONST_REG(GRDevice, InputType, _InputEventKey, "InputEventKey");
-	CONST_REG(GRDevice, InputType, _InputEventMagnifyGesture, "InputEventMagnifyGesture");
-	CONST_REG(GRDevice, InputType, _InputEventMIDI, "InputEventMIDI");
-	CONST_REG(GRDevice, InputType, _InputEventMouse, "InputEventMouse");
-	CONST_REG(GRDevice, InputType, _InputEventMouseButton, "InputEventMouseButton");
-	CONST_REG(GRDevice, InputType, _InputEventMouseMotion, "InputEventMouseMotion");
-	CONST_REG(GRDevice, InputType, _InputEventPanGesture, "InputEventPanGesture");
-	CONST_REG(GRDevice, InputType, _InputEventScreenDrag, "InputEventScreenDrag");
-	CONST_REG(GRDevice, InputType, _InputEventScreenTouch, "InputEventScreenTouch");
-	CONST_REG(GRDevice, InputType, _InputEventWithModifiers, "InputEventWithModifiers");
-	CONST_REG(GRDevice, InputType, _InputEventMAX, "InputEventMAX");
 }
 
 #endif

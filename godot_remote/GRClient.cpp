@@ -150,51 +150,51 @@ void GRClient::_register_methods() {
 	///////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////
 	/*
-	register_method("_internal_call_only_deffered_start", &GRClient::_internal_call_only_deffered_start);
-	register_method("_internal_call_only_deffered_stop", &GRClient::_internal_call_only_deffered_stop);
+	METHOD_REG(GRClient::_internal_call_only_deffered_start);
+	METHOD_REG(GRClient::_internal_call_only_deffered_stop);
 
-	register_method("_internal_call_only_deffered_restart", &GRClient::_internal_call_only_deffered_restart);
+	METHOD_REG(GRClient::_internal_call_only_deffered_restart);
 
-	register_method("get_avg_ping", &GRClient::get_avg_ping);
-	register_method("get_avg_fps", &GRClient::get_avg_fps);
+	METHOD_REG(GRClient::get_avg_ping);
+	METHOD_REG(GRClient::get_avg_fps);
 
-	register_method("get_port", &GRClient::get_port);
-	register_method("set_port", &GRClient::set_port);
+	METHOD_REG(GRClient::get_port);
+	METHOD_REG(GRClient::set_port);
 
-	register_method("start", &GRClient::start);
-	register_method("stop", &GRClient::stop);
-	register_method("get_status", &GRClient::get_status);
+	METHOD_REG(GRClient::start);
+	METHOD_REG(GRClient::stop);
+	METHOD_REG(GRClient::get_status);
 
 	register_signal<GRClient>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
 	*/
 	///////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////
 
-	register_method("_notification", &GRClient::_notification);
-	register_method("_thread_connection", &GRClient::_thread_connection);
-	register_method("_thread_image_decoder", &GRClient::_thread_image_decoder);
+	METHOD_REG(GRClient, _notification);
+	METHOD_REG(GRClient, _thread_connection);
+	METHOD_REG(GRClient, _thread_image_decoder);
 
-	register_method("_update_texture_from_iamge", &GRClient::_update_texture_from_iamge);
-	register_method("_update_stream_texture_state", &GRClient::_update_stream_texture_state);
-	register_method("_force_update_stream_viewport_signals", &GRClient::_force_update_stream_viewport_signals);
-	register_method("_viewport_size_changed", &GRClient::_viewport_size_changed);
-	register_method("_load_custom_input_scene", &GRClient::_load_custom_input_scene);
-	register_method("_remove_custom_input_scene", &GRClient::_remove_custom_input_scene);
+	METHOD_REG(GRClient, _update_texture_from_iamge);
+	METHOD_REG(GRClient, _update_stream_texture_state);
+	METHOD_REG(GRClient, _force_update_stream_viewport_signals);
+	METHOD_REG(GRClient, _viewport_size_changed);
+	METHOD_REG(GRClient, _load_custom_input_scene);
+	METHOD_REG(GRClient, _remove_custom_input_scene);
 
-	register_method("send_packet", &GRClient::send_packet);
+	METHOD_REG(GRClient, send_packet);
 
-	register_method("set_control_to_show_in", &GRClient::set_control_to_show_in);
-	register_method("set_custom_no_signal_texture", &GRClient::set_custom_no_signal_texture);
-	register_method("set_custom_no_signal_vertical_texture", &GRClient::set_custom_no_signal_vertical_texture);
-	register_method("set_custom_no_signal_material", &GRClient::set_custom_no_signal_material);
-	register_method("set_address_port", &GRClient::set_address_port);
-	register_method("set_address", &GRClient::set_address);
-	register_method("set_server_setting", &GRClient::set_server_setting);
-	register_method("disable_overriding_server_settings", &GRClient::disable_overriding_server_settings);
+	METHOD_REG(GRClient, set_control_to_show_in);
+	METHOD_REG(GRClient, set_custom_no_signal_texture);
+	METHOD_REG(GRClient, set_custom_no_signal_vertical_texture);
+	METHOD_REG(GRClient, set_custom_no_signal_material);
+	METHOD_REG(GRClient, set_address_port);
+	METHOD_REG(GRClient, set_address);
+	METHOD_REG(GRClient, set_server_setting);
+	METHOD_REG(GRClient, disable_overriding_server_settings);
 
-	register_method("get_address", &GRClient::get_address);
-	register_method("is_stream_active", &GRClient::is_stream_active);
-	register_method("is_connected_to_host", &GRClient::is_connected_to_host);
+	METHOD_REG(GRClient, get_address);
+	METHOD_REG(GRClient, is_stream_active);
+	METHOD_REG(GRClient, is_connected_to_host);
 
 	register_signal<GRClient>("stream_state_changed", "state", GODOT_VARIANT_TYPE_INT);
 	register_signal<GRClient>("connection_state_changed", "is_connected", GODOT_VARIANT_TYPE_BOOL);
@@ -202,33 +202,33 @@ void GRClient::_register_methods() {
 	register_signal<GRClient>("server_settings_received", "settings", GODOT_VARIANT_TYPE_DICTIONARY);
 
 	// SETGET
-	register_method("set_capture_on_focus", &GRClient::set_capture_on_focus);
-	register_method("set_capture_when_hover", &GRClient::set_capture_when_hover);
-	register_method("set_capture_pointer", &GRClient::set_capture_pointer);
-	register_method("set_capture_input", &GRClient::set_capture_input);
-	register_method("set_connection_type", &GRClient::set_connection_type);
-	register_method("set_target_send_fps", &GRClient::set_target_send_fps);
-	register_method("set_stretch_mode", &GRClient::set_stretch_mode);
-	register_method("set_texture_filtering", &GRClient::set_texture_filtering);
-	register_method("set_password", &GRClient::set_password);
-	register_method("set_device_id", &GRClient::set_device_id);
-	register_method("set_viewport_orientation_syncing", &GRClient::set_viewport_orientation_syncing);
-	register_method("set_viewport_aspect_ratio_syncing", &GRClient::set_viewport_aspect_ratio_syncing);
-	register_method("set_server_settings_syncing", &GRClient::set_server_settings_syncing);
+	METHOD_REG(GRClient, set_capture_on_focus);
+	METHOD_REG(GRClient, set_capture_when_hover);
+	METHOD_REG(GRClient, set_capture_pointer);
+	METHOD_REG(GRClient, set_capture_input);
+	METHOD_REG(GRClient, set_connection_type);
+	METHOD_REG(GRClient, set_target_send_fps);
+	METHOD_REG(GRClient, set_stretch_mode);
+	METHOD_REG(GRClient, set_texture_filtering);
+	METHOD_REG(GRClient, set_password);
+	METHOD_REG(GRClient, set_device_id);
+	METHOD_REG(GRClient, set_viewport_orientation_syncing);
+	METHOD_REG(GRClient, set_viewport_aspect_ratio_syncing);
+	METHOD_REG(GRClient, set_server_settings_syncing);
 
-	register_method("is_capture_on_focus", &GRClient::is_capture_on_focus);
-	register_method("is_capture_when_hover", &GRClient::is_capture_when_hover);
-	register_method("is_capture_pointer", &GRClient::is_capture_pointer);
-	register_method("is_capture_input", &GRClient::is_capture_input);
-	register_method("get_connection_type", &GRClient::get_connection_type);
-	register_method("get_target_send_fps", &GRClient::get_target_send_fps);
-	register_method("get_stretch_mode", &GRClient::get_stretch_mode);
-	register_method("get_texture_filtering", &GRClient::get_texture_filtering);
-	register_method("get_password", &GRClient::get_password);
-	register_method("get_device_id", &GRClient::get_device_id);
-	register_method("is_viewport_orientation_syncing", &GRClient::is_viewport_orientation_syncing);
-	register_method("is_viewport_aspect_ratio_syncing", &GRClient::is_viewport_aspect_ratio_syncing);
-	register_method("is_server_settings_syncing", &GRClient::is_server_settings_syncing);
+	METHOD_REG(GRClient, is_capture_on_focus);
+	METHOD_REG(GRClient, is_capture_when_hover);
+	METHOD_REG(GRClient, is_capture_pointer);
+	METHOD_REG(GRClient, is_capture_input);
+	METHOD_REG(GRClient, get_connection_type);
+	METHOD_REG(GRClient, get_target_send_fps);
+	METHOD_REG(GRClient, get_stretch_mode);
+	METHOD_REG(GRClient, get_texture_filtering);
+	METHOD_REG(GRClient, get_password);
+	METHOD_REG(GRClient, get_device_id);
+	METHOD_REG(GRClient, is_viewport_orientation_syncing);
+	METHOD_REG(GRClient, is_viewport_aspect_ratio_syncing);
+	METHOD_REG(GRClient, is_server_settings_syncing);
 
 	//register_property<GRClient, bool>("capture_on_focus", &GRClient::set_capture_on_focus, &GRClient::is_capture_on_focus, false);
 	//register_property<GRClient, bool>("capture_when_hover", &GRClient::set_capture_when_hover, &GRClient::is_capture_when_hover, false);
@@ -243,18 +243,6 @@ void GRClient::_register_methods() {
 	//register_property<GRClient, bool>("viewport_orientation_syncing", &GRClient::set_viewport_orientation_syncing, &GRClient::is_viewport_orientation_syncing, true);
 	//register_property<GRClient, bool>("viewport_aspect_ratio_syncing", &GRClient::set_viewport_aspect_ratio_syncing, &GRClient::is_viewport_aspect_ratio_syncing, true);
 	//register_property<GRClient, bool>("server_settings_syncing", &GRClient::set_server_settings_syncing, &GRClient::is_server_settings_syncing, true);
-	
-	CONST_FAKE_REG(GRClient);
-
-	CONST_REG(GRClient, ConnectionType, CONNECTION_ADB, "CONNECTION_ADB");
-	CONST_REG(GRClient, ConnectionType, CONNECTION_WiFi, "CONNECTION_WiFi");
-
-	CONST_REG(GRClient, StretchMode, STRETCH_KEEP_ASPECT, "STRETCH_KEEP_ASPECT");
-	CONST_REG(GRClient, StretchMode, STRETCH_FILL, "STRETCH_FILL");
-
-	CONST_REG(GRClient, StreamState, STREAM_NO_SIGNAL, "STREAM_NO_SIGNAL");
-	CONST_REG(GRClient, StreamState, STREAM_ACTIVE, "STREAM_ACTIVE");
-	CONST_REG(GRClient, StreamState, STREAM_NO_IMAGE, "STREAM_NO_IMAGE");
 }
 
 #endif
@@ -1647,16 +1635,16 @@ void GRInputCollector::_bind_methods() {
 #else
 
 void GRInputCollector::_register_methods() {
-	register_method("_notification", &GRInputCollector::_notification);
+	METHOD_REG(GRInputCollector, _notification);
 
-	register_method("_input", &GRInputCollector::_input);
+	METHOD_REG(GRInputCollector, _input);
 
-	register_method("is_capture_on_focus", &GRInputCollector::is_capture_on_focus);
-	register_method("set_capture_on_focus", &GRInputCollector::set_capture_on_focus);
-	register_method("is_capture_when_hover", &GRInputCollector::is_capture_when_hover);
-	register_method("set_capture_when_hover", &GRInputCollector::set_capture_when_hover);
-	register_method("is_capture_pointer", &GRInputCollector::is_capture_pointer);
-	register_method("set_capture_pointer", &GRInputCollector::set_capture_pointer);
+	METHOD_REG(GRInputCollector, is_capture_on_focus);
+	METHOD_REG(GRInputCollector, set_capture_on_focus);
+	METHOD_REG(GRInputCollector, is_capture_when_hover);
+	METHOD_REG(GRInputCollector, set_capture_when_hover);
+	METHOD_REG(GRInputCollector, is_capture_pointer);
+	METHOD_REG(GRInputCollector, set_capture_pointer);
 
 	//register_property<GRInputCollector, bool>("capture_on_focus", &GRInputCollector::set_capture_on_focus, &GRInputCollector::is_capture_on_focus);
 	//register_property<GRInputCollector, bool>("capture_when_hover", &GRInputCollector::set_capture_when_hover, &GRInputCollector::is_capture_when_hover);
@@ -1889,9 +1877,9 @@ void GRTextureRect::_bind_methods() {
 
 
 void GRTextureRect::_register_methods() {
-	register_method("_notification", &GRTextureRect::_notification);
+	METHOD_REG(GRTextureRect, _notification);
 
-	register_method("_tex_size_changed", &GRTextureRect::_tex_size_changed);
+	METHOD_REG(GRTextureRect, _tex_size_changed);
 }
 
 #endif

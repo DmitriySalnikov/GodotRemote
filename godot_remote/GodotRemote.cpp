@@ -1,7 +1,6 @@
 /* GodotRemote.cpp */
 #include "GodotRemote.h"
 #include "GRClient.h"
-#include "GRDevice.h"
 #include "GRServer.h"
 
 #ifndef GDNATIVE_LIBRARY
@@ -55,9 +54,9 @@ GodotRemote *GodotRemote::get_singleton() {
 void GodotRemote::_init() {
 	if (!singleton)
 		singleton = this;
+	register_and_load_settings();
 	GRUtils::init();
 
-	register_and_load_settings();
 	if (!Engine::get_singleton()->is_editor_hint()) {
 		call_deferred("_create_notification_manager");
 		if (is_autostart)
@@ -164,16 +163,16 @@ void GodotRemote::_bind_methods() {
 	BIND_ENUM_CONSTANT_CUSTOM(NotificationsPosition::BR, "NOTIFICATIONS_POSITION_BR");
 
 	// GRUtils
-	BIND_ENUM_CONSTANT_CUSTOM(Subsampling::SUBSAMPLING_Y_ONLY, "Y_ONLY");
-	BIND_ENUM_CONSTANT_CUSTOM(Subsampling::SUBSAMPLING_H1V1, "H1V1");
-	BIND_ENUM_CONSTANT_CUSTOM(Subsampling::SUBSAMPLING_H2V1, "H2V1");
-	BIND_ENUM_CONSTANT_CUSTOM(Subsampling::SUBSAMPLING_H2V2, "H2V2");
+	BIND_ENUM_CONSTANT_CUSTOM(Subsampling::SUBSAMPLING_Y_ONLY, "SS_Y_ONLY");
+	BIND_ENUM_CONSTANT_CUSTOM(Subsampling::SUBSAMPLING_H1V1, "SS_H1V1");
+	BIND_ENUM_CONSTANT_CUSTOM(Subsampling::SUBSAMPLING_H2V1, "SS_H2V1");
+	BIND_ENUM_CONSTANT_CUSTOM(Subsampling::SUBSAMPLING_H2V2, "SS_H2V2");
 
-	BIND_ENUM_CONSTANT_CUSTOM(LogLevel::LL_None, "NONE");
-	BIND_ENUM_CONSTANT_CUSTOM(LogLevel::LL_Debug, "DEBUG");
-	BIND_ENUM_CONSTANT_CUSTOM(LogLevel::LL_Normal, "NORMAL");
-	BIND_ENUM_CONSTANT_CUSTOM(LogLevel::LL_Warning, "WARNING");
-	BIND_ENUM_CONSTANT_CUSTOM(LogLevel::LL_Error, "ERROR");
+	BIND_ENUM_CONSTANT_CUSTOM(LogLevel::LL_None, "LL_NONE");
+	BIND_ENUM_CONSTANT_CUSTOM(LogLevel::LL_Debug, "LL_DEBUG");
+	BIND_ENUM_CONSTANT_CUSTOM(LogLevel::LL_Normal, "LL_NORMAL");
+	BIND_ENUM_CONSTANT_CUSTOM(LogLevel::LL_Warning, "LL_WARNING");
+	BIND_ENUM_CONSTANT_CUSTOM(LogLevel::LL_Error, "LL_ERROR");
 
 	BIND_ENUM_CONSTANT_CUSTOM(ImageCompressionType::Uncompressed, "IMAGE_COMPRESSION_UNCOMPRESSED");
 	BIND_ENUM_CONSTANT_CUSTOM(ImageCompressionType::JPG, "IMAGE_COMPRESSION_JPG");
@@ -190,42 +189,42 @@ void GodotRemote::_bind_methods() {
 #else
 
 void GodotRemote::_register_methods() {
-	register_method("_notification", &GodotRemote::_notification);
+	METHOD_REG(GodotRemote, _notification);
 
-	register_method("_create_notification_manager", &GodotRemote::_create_notification_manager);
+	METHOD_REG(GodotRemote, _create_notification_manager);
 
-	register_method("create_and_start_device", &GodotRemote::create_and_start_device);
-	register_method("create_remote_device", &GodotRemote::create_remote_device);
-	register_method("start_remote_device", &GodotRemote::start_remote_device);
-	register_method("remove_remote_device", &GodotRemote::remove_remote_device);
+	METHOD_REG(GodotRemote, create_and_start_device);
+	METHOD_REG(GodotRemote, create_remote_device);
+	METHOD_REG(GodotRemote, start_remote_device);
+	METHOD_REG(GodotRemote, remove_remote_device);
 
-	register_method("get_device", &GodotRemote::get_device);
-	register_method("get_version", &GodotRemote::get_version);
+	METHOD_REG(GodotRemote, get_device);
+	METHOD_REG(GodotRemote, get_version);
 	
 	// GRNotifications
-	register_method("get_notification", &GodotRemote::get_notification);
+	METHOD_REG(GodotRemote, get_notification);
 
-	register_method("get_all_notifications", &GodotRemote::get_all_notifications);
-	register_method("get_notifications_with_title", &GodotRemote::get_notifications_with_title);
+	METHOD_REG(GodotRemote, get_all_notifications);
+	METHOD_REG(GodotRemote, get_notifications_with_title);
 
-	register_method("add_notification_or_append_string", &GodotRemote::add_notification_or_append_string);
-	register_method("add_notification_or_update_line", &GodotRemote::add_notification_or_update_line);
-	register_method("add_notification", &GodotRemote::add_notification);
-	register_method("remove_notification", &GodotRemote::remove_notification);
-	register_method("remove_notification_exact", &GodotRemote::remove_notification_exact);
-	register_method("clear_notifications", &GodotRemote::clear_notifications);
+	METHOD_REG(GodotRemote, add_notification_or_append_string);
+	METHOD_REG(GodotRemote, add_notification_or_update_line);
+	METHOD_REG(GodotRemote, add_notification);
+	METHOD_REG(GodotRemote, remove_notification);
+	METHOD_REG(GodotRemote, remove_notification_exact);
+	METHOD_REG(GodotRemote, clear_notifications);
 
-	register_method("set_notifications_layer", &GodotRemote::set_notifications_layer);
-	register_method("set_notifications_position", &GodotRemote::set_notifications_position);
-	register_method("set_notifications_enabled", &GodotRemote::set_notifications_enabled);
-	register_method("set_notifications_duration", &GodotRemote::set_notifications_duration);
-	register_method("set_notifications_style", &GodotRemote::set_notifications_style);
+	METHOD_REG(GodotRemote, set_notifications_layer);
+	METHOD_REG(GodotRemote, set_notifications_position);
+	METHOD_REG(GodotRemote, set_notifications_enabled);
+	METHOD_REG(GodotRemote, set_notifications_duration);
+	METHOD_REG(GodotRemote, set_notifications_style);
 
-	register_method("get_notifications_layer", &GodotRemote::get_notifications_layer);
-	register_method("get_notifications_position", &GodotRemote::get_notifications_position);
-	register_method("get_notifications_enabled", &GodotRemote::get_notifications_enabled);
-	register_method("get_notifications_duration", &GodotRemote::get_notifications_duration);
-	register_method("get_notifications_style", &GodotRemote::get_notifications_style);
+	METHOD_REG(GodotRemote, get_notifications_layer);
+	METHOD_REG(GodotRemote, get_notifications_position);
+	METHOD_REG(GodotRemote, get_notifications_enabled);
+	METHOD_REG(GodotRemote, get_notifications_duration);
+	METHOD_REG(GodotRemote, get_notifications_style);
 
 	register_property<GodotRemote, int>("notifications_layer", &GodotRemote::set_notifications_layer, &GodotRemote::get_notifications_layer, 128);
 	register_property<GodotRemote, int>("notifications_position", &GodotRemote::set_notifications_position, &GodotRemote::get_notifications_position, NotificationsPosition::TC);
@@ -236,54 +235,97 @@ void GodotRemote::_register_methods() {
 	register_signal<GodotRemote>("device_added", Dictionary::make());
 	register_signal<GodotRemote>("device_removed", Dictionary::make());
 
-	register_method("set_log_level", &GodotRemote::set_log_level);
+	METHOD_REG(GodotRemote, set_log_level);
 
-	register_method("set_gravity", &GodotRemote::set_gravity);
-	register_method("set_accelerometer", &GodotRemote::set_accelerometer);
-	register_method("set_magnetometer", &GodotRemote::set_magnetometer);
-	register_method("set_gyroscope", &GodotRemote::set_gyroscope);
+	METHOD_REG(GodotRemote, set_gravity);
+	METHOD_REG(GodotRemote, set_accelerometer);
+	METHOD_REG(GodotRemote, set_magnetometer);
+	METHOD_REG(GodotRemote, set_gyroscope);
 
 	CONST_FAKE_REG(GodotRemote);
 
-	CONST_REG(GodotRemote, DeviceType, DEVICE_AUTO, "DEVICE_AUTO");
-	CONST_REG(GodotRemote, DeviceType, DEVICE_SERVER, "DEVICE_SERVER");
-	CONST_REG(GodotRemote, DeviceType, DEVICE_CLIENT, "DEVICE_CLIENT");
+	// GodotRemote
 
-	CONST_REG(GodotRemote, TypesOfServerSettings, USE_INTERNAL_SERVER_SETTINGS, "USE_INTERNAL_SERVER_SETTINGS");
-	CONST_REG(GodotRemote, TypesOfServerSettings, VIDEO_STREAM_ENABLED, "SERVER_PARAM_VIDEO_STREAM_ENABLED");
-	CONST_REG(GodotRemote, TypesOfServerSettings, COMPRESSION_TYPE, "SERVER_PARAM_COMPRESSION_TYPE");
-	CONST_REG(GodotRemote, TypesOfServerSettings, JPG_QUALITY, "SERVER_PARAM_JPG_QUALITY");
-	CONST_REG(GodotRemote, TypesOfServerSettings, SKIP_FRAMES, "SERVER_PARAM_SKIP_FRAMES");
-	CONST_REG(GodotRemote, TypesOfServerSettings, RENDER_SCALE, "SERVER_PARAM_RENDER_SCALE");
+	CONST_REG_GR(GodotRemote, DeviceType, DEVICE_AUTO, "DEVICE_AUTO");
+	CONST_REG_GR(GodotRemote, DeviceType, DEVICE_SERVER, "DEVICE_SERVER");
+	CONST_REG_GR(GodotRemote, DeviceType, DEVICE_CLIENT, "DEVICE_CLIENT");
 
-	CONST_REG(GodotRemote, NotificationIcon, None, "NOTIFICATION_ICON_NONE");
-	CONST_REG(GodotRemote, NotificationIcon, _Error, "NOTIFICATION_ICON_ERROR");
-	CONST_REG(GodotRemote, NotificationIcon, Warning, "NOTIFICATION_ICON_WARNING");
-	CONST_REG(GodotRemote, NotificationIcon, Success, "NOTIFICATION_ICON_SUCCESS");
-	CONST_REG(GodotRemote, NotificationIcon, Fail, "NOTIFICATION_ICON_FAIL");
+	CONST_REG_GR(GodotRemote, TypesOfServerSettings, USE_INTERNAL_SERVER_SETTINGS, "USE_INTERNAL_SERVER_SETTINGS");
+	CONST_REG_GR(GodotRemote, TypesOfServerSettings, VIDEO_STREAM_ENABLED, "SERVER_PARAM_VIDEO_STREAM_ENABLED");
+	CONST_REG_GR(GodotRemote, TypesOfServerSettings, COMPRESSION_TYPE, "SERVER_PARAM_COMPRESSION_TYPE");
+	CONST_REG_GR(GodotRemote, TypesOfServerSettings, JPG_QUALITY, "SERVER_PARAM_JPG_QUALITY");
+	CONST_REG_GR(GodotRemote, TypesOfServerSettings, SKIP_FRAMES, "SERVER_PARAM_SKIP_FRAMES");
+	CONST_REG_GR(GodotRemote, TypesOfServerSettings, RENDER_SCALE, "SERVER_PARAM_RENDER_SCALE");
 
-	CONST_REG(GodotRemote, NotificationsPosition, TL, "NOTIFICATIONS_POSITION_TL");
-	CONST_REG(GodotRemote, NotificationsPosition, TC, "NOTIFICATIONS_POSITION_TC");
-	CONST_REG(GodotRemote, NotificationsPosition, TR, "NOTIFICATIONS_POSITION_TR");
-	CONST_REG(GodotRemote, NotificationsPosition, BL, "NOTIFICATIONS_POSITION_BL");
-	CONST_REG(GodotRemote, NotificationsPosition, BC, "NOTIFICATIONS_POSITION_BC");
-	CONST_REG(GodotRemote, NotificationsPosition, BR, "NOTIFICATIONS_POSITION_BR");
+	CONST_REG_GR(GodotRemote, NotificationIcon, None, "NOTIFICATION_ICON_NONE");
+	CONST_REG_GR(GodotRemote, NotificationIcon, _Error, "NOTIFICATION_ICON_ERROR");
+	CONST_REG_GR(GodotRemote, NotificationIcon, Warning, "NOTIFICATION_ICON_WARNING");
+	CONST_REG_GR(GodotRemote, NotificationIcon, Success, "NOTIFICATION_ICON_SUCCESS");
+	CONST_REG_GR(GodotRemote, NotificationIcon, Fail, "NOTIFICATION_ICON_FAIL");
+
+	CONST_REG_GR(GodotRemote, NotificationsPosition, TL, "NOTIFICATIONS_POSITION_TL");
+	CONST_REG_GR(GodotRemote, NotificationsPosition, TC, "NOTIFICATIONS_POSITION_TC");
+	CONST_REG_GR(GodotRemote, NotificationsPosition, TR, "NOTIFICATIONS_POSITION_TR");
+	CONST_REG_GR(GodotRemote, NotificationsPosition, BL, "NOTIFICATIONS_POSITION_BL");
+	CONST_REG_GR(GodotRemote, NotificationsPosition, BC, "NOTIFICATIONS_POSITION_BC");
+	CONST_REG_GR(GodotRemote, NotificationsPosition, BR, "NOTIFICATIONS_POSITION_BR");
 
 	// GRUtils
-	CONST_REG(GodotRemote, Subsampling, SUBSAMPLING_Y_ONLY, "Y_ONLY");
-	CONST_REG(GodotRemote, Subsampling, SUBSAMPLING_H1V1, "H1V1");
-	CONST_REG(GodotRemote, Subsampling, SUBSAMPLING_H2V1, "H2V1");
-	CONST_REG(GodotRemote, Subsampling, SUBSAMPLING_H2V2, "H2V2");
 
-	CONST_REG(GodotRemote, LogLevel, LL_None, "NONE");
-	CONST_REG(GodotRemote, LogLevel, LL_Debug, "DEBUG");
-	CONST_REG(GodotRemote, LogLevel, LL_Normal, "NORMAL");
-	CONST_REG(GodotRemote, LogLevel, LL_Warning, "WARNING");
-	CONST_REG(GodotRemote, LogLevel, LL_Error, "ERROR");
+	CONST_REG_GR(GodotRemote, Subsampling, SUBSAMPLING_Y_ONLY, "SS_Y_ONLY");
+	CONST_REG_GR(GodotRemote, Subsampling, SUBSAMPLING_H1V1, "SS_H1V1");
+	CONST_REG_GR(GodotRemote, Subsampling, SUBSAMPLING_H2V1, "SS_H2V1");
+	CONST_REG_GR(GodotRemote, Subsampling, SUBSAMPLING_H2V2, "SS_H2V2");
 
-	CONST_REG(GodotRemote, ImageCompressionType, Uncompressed, "IMAGE_COMPRESSION_UNCOMPRESSED");
-	CONST_REG(GodotRemote, ImageCompressionType, JPG, "IMAGE_COMPRESSION_JPG");
-	CONST_REG(GodotRemote, ImageCompressionType, PNG, "IMAGE_COMPRESSION_PNG");
+	CONST_REG_GR(GodotRemote, LogLevel, LL_None, "LL_NONE");
+	CONST_REG_GR(GodotRemote, LogLevel, LL_Debug, "LL_DEBUG");
+	CONST_REG_GR(GodotRemote, LogLevel, LL_Normal, "LL_NORMAL");
+	CONST_REG_GR(GodotRemote, LogLevel, LL_Warning, "LL_WARNING");
+	CONST_REG_GR(GodotRemote, LogLevel, LL_Error, "LL_ERROR");
+
+	CONST_REG_GR(GodotRemote, ImageCompressionType, Uncompressed, "IMAGE_COMPRESSION_UNCOMPRESSED");
+	CONST_REG_GR(GodotRemote, ImageCompressionType, JPG, "IMAGE_COMPRESSION_JPG");
+	CONST_REG_GR(GodotRemote, ImageCompressionType, PNG, "IMAGE_COMPRESSION_PNG");
+
+	///////////////////////
+	// Other constants
+	// GRDevice
+
+	CONST_REG(GRDevice, WorkingStatus, Starting, "STATUS_STARTING");
+	CONST_REG(GRDevice, WorkingStatus, Stopping, "STATUS_STOPPING");
+	CONST_REG(GRDevice, WorkingStatus, Working, "STATUS_WORKING");
+	CONST_REG(GRDevice, WorkingStatus, Stopped, "STATUS_STOPPED");
+
+	CONST_REG(GRDevice, InputType, _NoneIT, "InputTypeNone");
+	CONST_REG(GRDevice, InputType, _InputDeviceSensors, "InputDeviceSensors");
+	CONST_REG(GRDevice, InputType, _InputEvent, "InputEvent");
+	CONST_REG(GRDevice, InputType, _InputEventAction, "InputEventAction");
+	CONST_REG(GRDevice, InputType, _InputEventGesture, "InputEventGesture");
+	CONST_REG(GRDevice, InputType, _InputEventJoypadButton, "InputEventJoypadButton");
+	CONST_REG(GRDevice, InputType, _InputEventJoypadMotion, "InputEventJoypadMotion");
+	CONST_REG(GRDevice, InputType, _InputEventKey, "InputEventKey");
+	CONST_REG(GRDevice, InputType, _InputEventMagnifyGesture, "InputEventMagnifyGesture");
+	CONST_REG(GRDevice, InputType, _InputEventMIDI, "InputEventMIDI");
+	CONST_REG(GRDevice, InputType, _InputEventMouse, "InputEventMouse");
+	CONST_REG(GRDevice, InputType, _InputEventMouseButton, "InputEventMouseButton");
+	CONST_REG(GRDevice, InputType, _InputEventMouseMotion, "InputEventMouseMotion");
+	CONST_REG(GRDevice, InputType, _InputEventPanGesture, "InputEventPanGesture");
+	CONST_REG(GRDevice, InputType, _InputEventScreenDrag, "InputEventScreenDrag");
+	CONST_REG(GRDevice, InputType, _InputEventScreenTouch, "InputEventScreenTouch");
+	CONST_REG(GRDevice, InputType, _InputEventWithModifiers, "InputEventWithModifiers");
+	CONST_REG(GRDevice, InputType, _InputEventMAX, "InputEventMAX");
+
+	// GRClient
+
+	CONST_REG(GRClient, ConnectionType, CONNECTION_ADB, "CONNECTION_ADB");
+	CONST_REG(GRClient, ConnectionType, CONNECTION_WiFi, "CONNECTION_WiFi");
+
+	CONST_REG(GRClient, StretchMode, STRETCH_KEEP_ASPECT, "STRETCH_KEEP_ASPECT");
+	CONST_REG(GRClient, StretchMode, STRETCH_FILL, "STRETCH_FILL");
+
+	CONST_REG(GRClient, StreamState, STREAM_NO_SIGNAL, "STREAM_NO_SIGNAL");
+	CONST_REG(GRClient, StreamState, STREAM_ACTIVE, "STREAM_ACTIVE");
+	CONST_REG(GRClient, StreamState, STREAM_NO_IMAGE, "STREAM_NO_IMAGE");
 }
 #endif
 
@@ -400,13 +442,13 @@ void GodotRemote::register_and_load_settings() {
 }
 #define DEF_SET_ENUM(var, type, name, def_val, info_type, info_hint_type, info_hint_string) \
 {                                                                                           \
-		Dictionary d;                                                                       \
-		d["name"] = name;                                                                   \
-		d["type"] = info_type;                                                              \
-		d["hint"] = GlobalConstants::info_hint_type;                                        \
-		d["hint_string"] = info_hint_string;                                                \
-		var = (type)(int)GLOBAL_DEF(name, def_val);                                         \
-		ProjectSettings::get_singleton()->add_property_info(d);                             \
+	Dictionary d;                                                                           \
+	d["name"] = name;                                                                       \
+	d["type"] = info_type;                                                                  \
+	d["hint"] = GlobalConstants::info_hint_type;                                            \
+	d["hint_string"] = info_hint_string;                                                    \
+	var = (type)(int)GLOBAL_DEF(name, def_val);                                             \
+	ProjectSettings::get_singleton()->add_property_info(d);                                 \
 }
 #define DEF_(name, def_val, info_type, info_hint_type, info_hint_string) \
 {                                                                        \

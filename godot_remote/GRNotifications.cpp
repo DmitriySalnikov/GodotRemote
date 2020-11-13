@@ -180,17 +180,17 @@ void GRNotifications::_bind_methods() {
 #else
 
 void GRNotifications::_register_methods() {
-	register_method("_notification", &GRNotifications::_notification);
+	METHOD_REG(GRNotifications, _notification);
 
-	register_method("_set_notifications_position", &GRNotifications::_set_notifications_position);
-	register_method("_add_notification_or_append_string", &GRNotifications::_add_notification_or_append_string);
-	register_method("_add_notification_or_update_line", &GRNotifications::_add_notification_or_update_line);
-	register_method("_add_notification", &GRNotifications::_add_notification);
-	register_method("_remove_notification", &GRNotifications::_remove_notification);
-	register_method("_remove_exact_notification", &GRNotifications::_remove_exact_notification);
-	register_method("_clear_notifications", &GRNotifications::_clear_notifications);
+	METHOD_REG(GRNotifications, _set_notifications_position);
+	METHOD_REG(GRNotifications, _add_notification_or_append_string);
+	METHOD_REG(GRNotifications, _add_notification_or_update_line);
+	METHOD_REG(GRNotifications, _add_notification);
+	METHOD_REG(GRNotifications, _remove_notification);
+	METHOD_REG(GRNotifications, _remove_exact_notification);
+	METHOD_REG(GRNotifications, _clear_notifications);
 
-	register_method("_remove_list", &GRNotifications::_remove_list);
+	METHOD_REG(GRNotifications, _remove_list);
 
 	register_signal<GRNotifications>("notifications_toggled", "is_enabled", GODOT_VARIANT_TYPE_BOOL);
 	register_signal<GRNotifications>("notifications_cleared", Dictionary::make());
@@ -591,15 +591,15 @@ void GRNotificationPanel::_bind_methods() {
 #else
 
 void GRNotificationPanel::_register_methods() {
-	register_method("_notification", &GRNotificationPanel::_notification);
+	METHOD_REG(GRNotificationPanel, _notification);
 
-	register_method("_remove_this_notification", &GRNotificationPanel::_remove_this_notification);
-	register_method("_panel_hovered", &GRNotificationPanel::_panel_hovered);
-	register_method("_panel_lose_hover", &GRNotificationPanel::_panel_lose_hover);
+	METHOD_REG(GRNotificationPanel, _remove_this_notification);
+	METHOD_REG(GRNotificationPanel, _panel_hovered);
+	METHOD_REG(GRNotificationPanel, _panel_lose_hover);
 
-	register_method("get_title", &GRNotificationPanel::get_title);
-	register_method("get_text", &GRNotificationPanel::get_text);
-	register_method("update_text", &GRNotificationPanel::update_text);
+	METHOD_REG(GRNotificationPanel, get_title);
+	METHOD_REG(GRNotificationPanel, get_text);
+	METHOD_REG(GRNotificationPanel, update_text);
 }
 
 #endif
@@ -776,10 +776,10 @@ void GRNotificationPanelUpdatable::_bind_methods() {
 #else
 
 void GRNotificationPanelUpdatable::_register_methods() {
-	register_method("_notification", &GRNotificationPanelUpdatable::_notification);
+	METHOD_REG(GRNotificationPanelUpdatable, _notification);
 
-	register_method("clear_lines", &GRNotificationPanelUpdatable::clear_lines);
-	register_method("remove_updatable_line", &GRNotificationPanelUpdatable::remove_updatable_line);
+	METHOD_REG(GRNotificationPanelUpdatable, clear_lines);
+	METHOD_REG(GRNotificationPanelUpdatable, remove_updatable_line);
 }
 
 #endif
@@ -877,22 +877,22 @@ void GRNotificationStyle::_bind_methods() {
 #else
 
 void GRNotificationStyle::_register_methods() {
-	register_method("_notification", &GRNotificationStyle::_notification);
+	METHOD_REG(GRNotificationStyle, _notification);
 
-	register_method("set_notification_icon", &GRNotificationStyle::set_notification_icon);
-	register_method("get_notification_icon", &GRNotificationStyle::get_notification_icon);
+	METHOD_REG(GRNotificationStyle, set_notification_icon);
+	METHOD_REG(GRNotificationStyle, get_notification_icon);
 
-	register_method("set_panel_style", &GRNotificationStyle::set_panel_style);
-	register_method("set_close_button_theme", &GRNotificationStyle::set_close_button_theme);
-	register_method("set_close_button_icon", &GRNotificationStyle::set_close_button_icon);
-	register_method("set_title_font", &GRNotificationStyle::set_title_font);
-	register_method("set_text_font", &GRNotificationStyle::set_text_font);
+	METHOD_REG(GRNotificationStyle, set_panel_style);
+	METHOD_REG(GRNotificationStyle, set_close_button_theme);
+	METHOD_REG(GRNotificationStyle, set_close_button_icon);
+	METHOD_REG(GRNotificationStyle, set_title_font);
+	METHOD_REG(GRNotificationStyle, set_text_font);
 
-	register_method("get_panel_style", &GRNotificationStyle::get_panel_style);
-	register_method("get_close_button_theme", &GRNotificationStyle::get_close_button_theme);
-	register_method("get_close_button_icon", &GRNotificationStyle::get_close_button_icon);
-	register_method("get_title_font", &GRNotificationStyle::get_title_font);
-	register_method("get_text_font", &GRNotificationStyle::get_text_font);
+	METHOD_REG(GRNotificationStyle, get_panel_style);
+	METHOD_REG(GRNotificationStyle, get_close_button_theme);
+	METHOD_REG(GRNotificationStyle, get_close_button_icon);
+	METHOD_REG(GRNotificationStyle, get_title_font);
+	METHOD_REG(GRNotificationStyle, get_text_font);
 
 	//register_property<GRNotificationStyle, Object>("panel_style", &GRNotificationStyle::set_panel_style, &GRNotificationStyle::get_panel_style, nullptr);
 	//register_property<GRNotificationStyle, Object>("close_button_theme", &GRNotificationStyle::set_close_button_theme, &GRNotificationStyle::get_close_button_theme, nullptr);

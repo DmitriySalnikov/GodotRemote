@@ -24,22 +24,6 @@
 using namespace godot;
 #endif
 
-enum ConnectionType : int {
-	CONNECTION_WiFi = 0,
-	CONNECTION_ADB = 1,
-};
-
-enum StretchMode : int {
-	STRETCH_KEEP_ASPECT = 0,
-	STRETCH_FILL = 1,
-};
-
-enum StreamState : int {
-	STREAM_NO_SIGNAL = 0,
-	STREAM_ACTIVE = 1,
-	STREAM_NO_IMAGE = 2,
-};
-
 class GRClient : public GRDevice {
 	GD_S_CLASS(GRClient, GRDevice);
 
@@ -204,17 +188,6 @@ protected:
 #else
 public:
 	static void _register_methods();
-
-	CONST_FAKE_SET();
-	CONST_GET(ConnectionType, CONNECTION_ADB);
-	CONST_GET(ConnectionType, CONNECTION_WiFi);
-
-	CONST_GET(StretchMode, STRETCH_KEEP_ASPECT);
-	CONST_GET(StretchMode, STRETCH_FILL);
-
-	CONST_GET(StreamState, STREAM_NO_SIGNAL);
-	CONST_GET(StreamState, STREAM_ACTIVE);
-	CONST_GET(StreamState, STREAM_NO_IMAGE);
 protected:
 #endif
 

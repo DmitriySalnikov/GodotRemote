@@ -3,6 +3,7 @@
 
 #include "GRNotifications.h"
 #include "GRUtils.h"
+#include "GRDevice.h"
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/image.h"
@@ -96,44 +97,87 @@ public:
 	static void _register_methods();
 
 	CONST_FAKE_SET();
-	CONST_GET(DeviceType, DEVICE_AUTO);
-	CONST_GET(DeviceType, DEVICE_SERVER);
-	CONST_GET(DeviceType, DEVICE_CLIENT);
 
-	CONST_GET(TypesOfServerSettings, USE_INTERNAL_SERVER_SETTINGS);
-	CONST_GET(TypesOfServerSettings, VIDEO_STREAM_ENABLED);
-	CONST_GET(TypesOfServerSettings, COMPRESSION_TYPE);
-	CONST_GET(TypesOfServerSettings, JPG_QUALITY);
-	CONST_GET(TypesOfServerSettings, SKIP_FRAMES);
-	CONST_GET(TypesOfServerSettings, RENDER_SCALE);
+	// GodotRemote
 
-	CONST_GET(NotificationIcon, None);
-	CONST_GET(NotificationIcon, _Error);
-	CONST_GET(NotificationIcon, Warning);
-	CONST_GET(NotificationIcon, Success);
-	CONST_GET(NotificationIcon, Fail);
+	CONST_GET(GodotRemote, DeviceType, DEVICE_AUTO);
+	CONST_GET(GodotRemote, DeviceType, DEVICE_SERVER);
+	CONST_GET(GodotRemote, DeviceType, DEVICE_CLIENT);
 
-	CONST_GET(NotificationsPosition, TL);
-	CONST_GET(NotificationsPosition, TC);
-	CONST_GET(NotificationsPosition, TR);
-	CONST_GET(NotificationsPosition, BL);
-	CONST_GET(NotificationsPosition, BC);
-	CONST_GET(NotificationsPosition, BR);
+	CONST_GET(GodotRemote, TypesOfServerSettings, USE_INTERNAL_SERVER_SETTINGS);
+	CONST_GET(GodotRemote, TypesOfServerSettings, VIDEO_STREAM_ENABLED);
+	CONST_GET(GodotRemote, TypesOfServerSettings, COMPRESSION_TYPE);
+	CONST_GET(GodotRemote, TypesOfServerSettings, JPG_QUALITY);
+	CONST_GET(GodotRemote, TypesOfServerSettings, SKIP_FRAMES);
+	CONST_GET(GodotRemote, TypesOfServerSettings, RENDER_SCALE);
 
-	CONST_GET(Subsampling, SUBSAMPLING_Y_ONLY);
-	CONST_GET(Subsampling, SUBSAMPLING_H1V1);
-	CONST_GET(Subsampling, SUBSAMPLING_H2V1);
-	CONST_GET(Subsampling, SUBSAMPLING_H2V2);
+	CONST_GET(GodotRemote, NotificationIcon, None);
+	CONST_GET(GodotRemote, NotificationIcon, _Error);
+	CONST_GET(GodotRemote, NotificationIcon, Warning);
+	CONST_GET(GodotRemote, NotificationIcon, Success);
+	CONST_GET(GodotRemote, NotificationIcon, Fail);
 
-	CONST_GET(LogLevel, LL_None);
-	CONST_GET(LogLevel, LL_Debug);
-	CONST_GET(LogLevel, LL_Normal);
-	CONST_GET(LogLevel, LL_Warning);
-	CONST_GET(LogLevel, LL_Error);
+	CONST_GET(GodotRemote, NotificationsPosition, TL);
+	CONST_GET(GodotRemote, NotificationsPosition, TC);
+	CONST_GET(GodotRemote, NotificationsPosition, TR);
+	CONST_GET(GodotRemote, NotificationsPosition, BL);
+	CONST_GET(GodotRemote, NotificationsPosition, BC);
+	CONST_GET(GodotRemote, NotificationsPosition, BR);
 
-	CONST_GET(ImageCompressionType, Uncompressed);
-	CONST_GET(ImageCompressionType, JPG);
-	CONST_GET(ImageCompressionType, PNG);
+	CONST_GET(GodotRemote, Subsampling, SUBSAMPLING_Y_ONLY);
+	CONST_GET(GodotRemote, Subsampling, SUBSAMPLING_H1V1);
+	CONST_GET(GodotRemote, Subsampling, SUBSAMPLING_H2V1);
+	CONST_GET(GodotRemote, Subsampling, SUBSAMPLING_H2V2);
+
+	CONST_GET(GodotRemote, LogLevel, LL_None);
+	CONST_GET(GodotRemote, LogLevel, LL_Debug);
+	CONST_GET(GodotRemote, LogLevel, LL_Normal);
+	CONST_GET(GodotRemote, LogLevel, LL_Warning);
+	CONST_GET(GodotRemote, LogLevel, LL_Error);
+
+	CONST_GET(GodotRemote, ImageCompressionType, Uncompressed);
+	CONST_GET(GodotRemote, ImageCompressionType, JPG);
+	CONST_GET(GodotRemote, ImageCompressionType, PNG);
+
+	// Other constants
+	// GRDevice
+
+	CONST_GET(GRDevice, WorkingStatus, Starting);
+	CONST_GET(GRDevice, WorkingStatus, Stopped);
+	CONST_GET(GRDevice, WorkingStatus, Stopping);
+	CONST_GET(GRDevice, WorkingStatus, Working);
+	
+	CONST_GET(GRDevice, InputType, _NoneIT);
+	CONST_GET(GRDevice, InputType, _InputDeviceSensors);
+	CONST_GET(GRDevice, InputType, _InputEvent);
+	CONST_GET(GRDevice, InputType, _InputEventAction);
+	CONST_GET(GRDevice, InputType, _InputEventGesture);
+	CONST_GET(GRDevice, InputType, _InputEventJoypadButton);
+	CONST_GET(GRDevice, InputType, _InputEventJoypadMotion);
+	CONST_GET(GRDevice, InputType, _InputEventKey);
+	CONST_GET(GRDevice, InputType, _InputEventMagnifyGesture);
+	CONST_GET(GRDevice, InputType, _InputEventMIDI);
+	CONST_GET(GRDevice, InputType, _InputEventMouse);
+	CONST_GET(GRDevice, InputType, _InputEventMouseButton);
+	CONST_GET(GRDevice, InputType, _InputEventMouseMotion);
+	CONST_GET(GRDevice, InputType, _InputEventPanGesture);
+	CONST_GET(GRDevice, InputType, _InputEventScreenDrag);
+	CONST_GET(GRDevice, InputType, _InputEventScreenTouch);
+	CONST_GET(GRDevice, InputType, _InputEventWithModifiers);
+	CONST_GET(GRDevice, InputType, _InputEventMAX);
+
+	// GRClient
+
+	CONST_GET(GRClient, ConnectionType, CONNECTION_ADB);
+	CONST_GET(GRClient, ConnectionType, CONNECTION_WiFi);
+
+	CONST_GET(GRClient, StretchMode, STRETCH_KEEP_ASPECT);
+	CONST_GET(GRClient, StretchMode, STRETCH_FILL);
+
+	CONST_GET(GRClient, StreamState, STREAM_NO_SIGNAL);
+	CONST_GET(GRClient, StreamState, STREAM_ACTIVE);
+	CONST_GET(GRClient, StreamState, STREAM_NO_IMAGE);
+
 protected:
 #endif
 

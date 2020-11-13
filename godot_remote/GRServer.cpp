@@ -90,55 +90,55 @@ void GRServer::_register_methods() {
 	///////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////
 	/*
-	register_method("_internal_call_only_deffered_start", &GRServer::_internal_call_only_deffered_start);
-	register_method("_internal_call_only_deffered_stop", &GRServer::_internal_call_only_deffered_stop);
+	METHOD_REG(GRServer, _internal_call_only_deffered_start);
+	METHOD_REG(GRServer, _internal_call_only_deffered_stop);
 
-	register_method("_internal_call_only_deffered_restart", &GRServer::_internal_call_only_deffered_restart);
+	METHOD_REG(GRServer, _internal_call_only_deffered_restart);
 
-	register_method("get_avg_ping", &GRServer::get_avg_ping);
-	register_method("get_avg_fps", &GRServer::get_avg_fps);
+	METHOD_REG(GRServer, get_avg_ping);
+	METHOD_REG(GRServer, get_avg_fps);
 
-	register_method("get_port", &GRServer::get_port);
-	register_method("set_port", &GRServer::set_port);
+	METHOD_REG(GRServer, get_port);
+	METHOD_REG(GRServer, set_port);
 
-	register_method("start", &GRServer::start);
-	register_method("stop", &GRServer::stop);
-	register_method("get_status", &GRServer::get_status);
+	METHOD_REG(GRServer, start);
+	METHOD_REG(GRServer, stop);
+	METHOD_REG(GRServer, get_status);
 
 	register_signal<GRServer>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
 	*/
 	///////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////
 
-	register_method("_notification", &GRServer::_notification);
-	register_method("_thread_listen", &GRServer::_thread_listen);
-	register_method("_thread_connection", &GRServer::_thread_connection);
+	METHOD_REG(GRServer, _notification);
+	METHOD_REG(GRServer, _thread_listen);
+	METHOD_REG(GRServer, _thread_connection);
 
-	register_method("_load_settings", &GRServer::_load_settings);
-	register_method("_remove_resize_viewport", &GRServer::_remove_resize_viewport);
+	METHOD_REG(GRServer, _load_settings);
+	METHOD_REG(GRServer, _remove_resize_viewport);
 
-	register_method("get_gr_viewport", &GRServer::get_gr_viewport);
-	register_method("force_update_custom_input_scene", &GRServer::force_update_custom_input_scene);
+	METHOD_REG(GRServer, get_gr_viewport);
+	METHOD_REG(GRServer, force_update_custom_input_scene);
 
-	register_method("set_video_stream_enabled", &GRServer::set_video_stream_enabled);
-	register_method("set_skip_frames", &GRServer::set_skip_frames);
-	//register_method("set_auto_adjust_scale", &GRServer::set_auto_adjust_scale);
-	register_method("set_jpg_quality", &GRServer::set_jpg_quality);
-	register_method("set_render_scale", &GRServer::set_render_scale);
-	register_method("set_password", &GRServer::set_password);
-	register_method("set_custom_input_scene", &GRServer::set_custom_input_scene);
-	register_method("set_custom_input_scene_compressed", &GRServer::set_custom_input_scene_compressed);
-	register_method("set_custom_input_scene_compression_type", &GRServer::set_custom_input_scene_compression_type);
+	METHOD_REG(GRServer, set_video_stream_enabled);
+	METHOD_REG(GRServer, set_skip_frames);
+	//METHOD_REG(GRServer, set_auto_adjust_scale);
+	METHOD_REG(GRServer, set_jpg_quality);
+	METHOD_REG(GRServer, set_render_scale);
+	METHOD_REG(GRServer, set_password);
+	METHOD_REG(GRServer, set_custom_input_scene);
+	METHOD_REG(GRServer, set_custom_input_scene_compressed);
+	METHOD_REG(GRServer, set_custom_input_scene_compression_type);
 
-	register_method("is_video_stream_enabled", &GRServer::is_video_stream_enabled);
-	register_method("get_skip_frames", &GRServer::get_skip_frames);
-	//register_method("is_auto_adjust_scale", &GRServer::is_auto_adjust_scale);
-	register_method("get_jpg_quality", &GRServer::get_jpg_quality);
-	register_method("get_render_scale", &GRServer::get_render_scale);
-	register_method("get_password", &GRServer::get_password);
-	register_method("get_custom_input_scene", &GRServer::get_custom_input_scene);
-	register_method("is_custom_input_scene_compressed", &GRServer::is_custom_input_scene_compressed);
-	register_method("get_custom_input_scene_compression_type", &GRServer::get_custom_input_scene_compression_type);
+	METHOD_REG(GRServer, is_video_stream_enabled);
+	METHOD_REG(GRServer, get_skip_frames);
+	//METHOD_REG(GRServer, is_auto_adjust_scale);
+	METHOD_REG(GRServer, get_jpg_quality);
+	METHOD_REG(GRServer, get_render_scale);
+	METHOD_REG(GRServer, get_password);
+	METHOD_REG(GRServer, get_custom_input_scene);
+	METHOD_REG(GRServer, is_custom_input_scene_compressed);
+	METHOD_REG(GRServer, get_custom_input_scene_compression_type);
 
 	//register_property<GRServer, bool>("video_stream_enabled", &GRServer::set_video_stream_enabled, &GRServer::is_video_stream_enabled, true);
 	//register_property<GRServer, int>("skip_frames", &GRServer::set_skip_frames, &GRServer::get_skip_frames, 0);
@@ -448,8 +448,10 @@ void GRServer::_load_settings() {
 	// only updated by server itself
 	password = GET_PS(GodotRemote::ps_server_password_name);
 	set_custom_input_scene(GET_PS(GodotRemote::ps_server_custom_input_scene_name));
+#ifndef GDNATIVE_LIBRARY
 	set_custom_input_scene_compressed(GET_PS(GodotRemote::ps_server_custom_input_scene_compressed_name));
 	set_custom_input_scene_compression_type((int)GET_PS(GodotRemote::ps_server_custom_input_scene_compression_type_name));
+#endif
 
 	GRNotifications::add_notification_or_update_line(title, "cis", "Custom input scene: " + str(get_custom_input_scene()), NotificationIcon::None, 1.f);
 	if (!get_custom_input_scene().empty()) {
@@ -1422,12 +1424,12 @@ void GRSViewport::_bind_methods() {
 #else
 
 void GRSViewport::_register_methods() {
-	register_method("_notification", &GRSViewport::_notification);
-	register_method("_processing_thread", &GRSViewport::_processing_thread);
+	METHOD_REG(GRSViewport, _notification);
+	METHOD_REG(GRSViewport, _processing_thread);
 
-	register_method("_update_size", &GRSViewport::_update_size);
-	register_method("set_rendering_scale", &GRSViewport::set_rendering_scale);
-	register_method("get_rendering_scale", &GRSViewport::get_rendering_scale);
+	METHOD_REG(GRSViewport, _update_size);
+	METHOD_REG(GRSViewport, set_rendering_scale);
+	METHOD_REG(GRSViewport, get_rendering_scale);
 
 	register_property<GRSViewport, float>("rendering_scale", &GRSViewport::set_rendering_scale, &GRSViewport::get_rendering_scale, 0.3f, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_RANGE, "0,1,0.001");
 }
@@ -1636,7 +1638,7 @@ void GRSViewportRenderer::_bind_methods() {
 #else
 
 void GRSViewportRenderer::_register_methods() {
-	register_method("_notification", &GRSViewportRenderer::_notification);
+	METHOD_REG(GRSViewportRenderer, _notification);
 }
 
 #endif

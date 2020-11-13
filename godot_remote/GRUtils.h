@@ -148,14 +148,21 @@ if (_name.is_valid()) {      \
 #define DEF_ARG(a) 
 //#define DEF_ARGS(...) ,__VA_ARGS__ 
 
-#define STR_TEXT(a) #a
 #define CONST_FAKE_SET() void set_constant(int val) {}
 #define CONST_FAKE_REG(cl) register_method("set_constant", &cl::set_constant)
+#define METHOD_REG(cl, fn) register_method(#fn, &cl::fn)
 
-#define CONST_GET(en, val) int get_##en##val() { return (int)en::val; }
-#define CONST_REG(cl, en, val, name)                                             \
-register_method(STR_TEXT(get_##en##val), &cl::get_##en##val);                    \
-register_property<cl, int>(name, &cl::set_constant, &cl::get_##en##val, en::val)
+#define CONST_FUNC_CAT(cl, en, val) _get_##cl##_##en##_##val
+#define CONST_FUNC_CAT_S(cl, en, val) "_get_" #cl "_" #en "_" #val
+#define CONST_GET(cl, en, val) int CONST_FUNC_CAT(cl, en, val)() { return (int)en::val; }
+
+#define CONST_REG(cl, en, val, name)                                                                                              \
+register_method(CONST_FUNC_CAT_S(cl, en, val), &GodotRemote::CONST_FUNC_CAT(cl, en, val));                                        \
+register_property<GodotRemote, int>(#cl "_" name, &GodotRemote::set_constant, &GodotRemote::CONST_FUNC_CAT(cl, en, val), en::val)
+
+#define CONST_REG_GR(cl, en, val, name)                                                        \
+register_method(CONST_FUNC_CAT_S(cl, en, val), &cl::CONST_FUNC_CAT(cl, en, val));              \
+register_property<cl, int>(name, &cl::set_constant, &cl::CONST_FUNC_CAT(cl, en, val), en::val)
 
 #define ST() ((SceneTree*)Engine::get_singleton()->get_main_loop())
 #define GD_CLASS(c, p) GODOT_CLASS(c, p)
