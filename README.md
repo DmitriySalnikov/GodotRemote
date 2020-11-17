@@ -29,7 +29,7 @@ If everything compiles successfully, you'll find the new category in project set
 2. Generate api.json for GDNative api. ```bin/godot --gdnative-generate-json-api api.json```
 3. Copy api.json to the root directory of this repository
 4. Compile godot-cpp (e.g. in godot-cpp directory run ```scons generate_bindings=true platform=windows target=release bits=64 -j8 ../api.json```)
-5. Compile module for your platform (Available platforms: windows, osx, x11, ios, android. Tested platforms: windows, linux, android)
+5. Compile module for your platform (Available platforms: windows, osx, linux, ios, android. Tested platforms: windows, linux, android)
    1. For android: Run in root directory ```[path to your android ndk root dir]/ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk  APP_PLATFORM=android-21```
    2. For all other platforms: ```scons platform=windows target=release-j8```
 6. Use produced library in ```bin/```

@@ -56,7 +56,7 @@ func _ready():
 	#empty_top.visible = true
 	
 	version.text = "GR version: " + GodotRemote.get_version()
-	var d : GRClient = GodotRemote.get_device()
+	var d = GodotRemote.get_device()
 	d.connect("connection_state_changed", self, "_connection_changed")
 	d.connect("status_changed", self, "_status_changed")
 	d.connect("server_settings_received", self, "_server_settings_received")
@@ -127,7 +127,7 @@ func _on_GRSettings_visibility_changed():
 		GodotRemote.get_device().capture_input = true
 
 func update_values():
-	var d : GRClient = GodotRemote.get_device()
+	var d = GodotRemote.get_device()
 	
 	device_id.text = d.device_id
 	con_type_menu.selected = d.connection_type
@@ -157,7 +157,7 @@ func update_values():
 	_on_con_Type_item_selected(con_type_menu.selected)
 
 func _set_all_server_settings():
-	var d : GRClient = GodotRemote.get_device()
+	var d = GodotRemote.get_device()
 	if G.override_server_settings and d.is_connected_to_host():
 		d.set_server_setting(GodotRemote.SERVER_PARAM_JPG_QUALITY, jpg_quality.value)
 		d.set_server_setting(GodotRemote.SERVER_PARAM_RENDER_SCALE, render_scale.value)
@@ -167,7 +167,7 @@ func _set_all_server_settings():
 
 func _status_changed(_status : int):
 	if timer.is_stopped():
-		_set_buttons_disabled(_status == GRDevice.STATUS_STARTING or _status == GRDevice.STATUS_STOPPING)
+		_set_buttons_disabled(_status == GodotRemote.GRDevice_STATUS_STARTING or _status == GodotRemote.GRDevice_STATUS_STOPPING)
 	_update_start_stop()
 
 func _connection_changed(connected : bool):
@@ -193,17 +193,17 @@ func _server_settings_received(_settings : Dictionary):
 
 func _on_button_disable_Timer_timeout():
 	var _status = GodotRemote.get_device().get_status()
-	_set_buttons_disabled(_status == GRDevice.STATUS_STARTING or _status == GRDevice.STATUS_STOPPING)
+	_set_buttons_disabled(_status == GodotRemote.GRDevice_STATUS_STARTING or _status == GodotRemote.GRDevice_STATUS_STOPPING)
 
 func _update_start_stop():
 	match GodotRemote.get_device().get_status():
-		GRDevice.STATUS_STARTING: 
+		GodotRemote.GRDevice_STATUS_STARTING: 
 			start_stop.text = "   Starting Client   "
-		GRDevice.STATUS_STOPPING: 
+		GodotRemote.GRDevice_STATUS_STOPPING: 
 			start_stop.text = "   Stopping Client   "
-		GRDevice.STATUS_WORKING: 
+		GodotRemote.GRDevice_STATUS_WORKING: 
 			start_stop.text = "     Stop Client     "
-		GRDevice.STATUS_STOPPED: 
+		GodotRemote.GRDevice_STATUS_STOPPED: 
 			start_stop.text = "    Launch Client    "
 
 func _set_buttons_disabled(state : bool):
@@ -229,16 +229,16 @@ func _on_Version_pressed():
 	OS.shell_open("https://github.com/DmitriySalnikov/GodotRemote")
 
 func _on_StartStop_pressed():
-	var d : GRClient = GodotRemote.get_device()
+	var d = GodotRemote.get_device()
 	
 	_disable_buttons_by_timer()
 	match d.get_status():
-		GRDevice.STATUS_STARTING: pass
-		GRDevice.STATUS_STOPPING: pass
-		GRDevice.STATUS_WORKING: 
+		GodotRemote.GRDevice_STATUS_STARTING: pass
+		GodotRemote.GRDevice_STATUS_STOPPING: pass
+		GodotRemote.GRDevice_STATUS_WORKING: 
 			_set_buttons_disabled(true)
 			d.stop()
-		GRDevice.STATUS_STOPPED: 
+		GodotRemote.GRDevice_STATUS_STOPPED: 
 			_set_buttons_disabled(true)
 			d.start()
 

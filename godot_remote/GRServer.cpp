@@ -67,11 +67,11 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_custom_input_scene_compressed"), &GRServer::is_custom_input_scene_compressed);
 	ClassDB::bind_method(D_METHOD("get_custom_input_scene_compression_type"), &GRServer::get_custom_input_scene_compression_type);
 
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "video_stream_enabled"), "set_video_stream_enabled", "is_video_stream_enabled");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "skip_frames"), "set_skip_frames", "get_skip_frames");
-	//ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "is_auto_adjust_scale");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "jpg_quality"), "set_jpg_quality", "get_jpg_quality");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "render_scale"), "set_render_scale", "get_render_scale");
+	//ADD_PROPERTY(PropertyInfo(Variant::BOOL, "video_stream_enabled"), "set_video_stream_enabled", "is_video_stream_enabled");
+	//ADD_PROPERTY(PropertyInfo(Variant::INT, "skip_frames"), "set_skip_frames", "get_skip_frames");
+	////ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "is_auto_adjust_scale");
+	//ADD_PROPERTY(PropertyInfo(Variant::INT, "jpg_quality"), "set_jpg_quality", "get_jpg_quality");
+	//ADD_PROPERTY(PropertyInfo(Variant::INT, "render_scale"), "set_render_scale", "get_render_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "custom_input_scene"), "set_custom_input_scene", "get_custom_input_scene");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "custom_input_scene_compressed"), "set_custom_input_scene_compressed", "is_custom_input_scene_compressed");
@@ -106,6 +106,7 @@ void GRServer::_register_methods() {
 	METHOD_REG(GRServer, get_status);
 
 	register_signal<GRServer>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
+	register_property<GRServer, uint16_t>("port", &GRServer::set_port, &GRServer::get_port, 52341);
 	*/
 	///////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////
@@ -145,10 +146,10 @@ void GRServer::_register_methods() {
 	////register_property<GRServer, bool>("auto_adjust_scale", &GRServer::set_auto_adjust_scale, &GRServer::is_auto_adjust_scale, true);
 	//register_property<GRServer, int>("jpg_quality", &GRServer::set_jpg_quality, &GRServer::get_jpg_quality, 80);
 	//register_property<GRServer, int>("render_scale", &GRServer::set_render_scale, &GRServer::get_render_scale, 0.3f);
-	//register_property<GRServer, int>("password", &GRServer::set_password, &GRServer::get_password, "");
-	//register_property<GRServer, String>("custom_input_scene", &GRServer::set_custom_input_scene, &GRServer::get_custom_input_scene, "");
-	//register_property<GRServer, int>("custom_input_scene_compressed", &GRServer::set_custom_input_scene_compressed, &GRServer::is_custom_input_scene_compressed, true);
-	//register_property<GRServer, int>("custom_input_scene_compression_type", &GRServer::set_custom_input_scene_compression_type, &GRServer::get_custom_input_scene_compression_type, 0);
+	register_property<GRServer, String>("password", &GRServer::set_password, &GRServer::get_password, "");
+	register_property<GRServer, String>("custom_input_scene", &GRServer::set_custom_input_scene, &GRServer::get_custom_input_scene, "");
+	register_property<GRServer, bool>("custom_input_scene_compressed", &GRServer::set_custom_input_scene_compressed, &GRServer::is_custom_input_scene_compressed, true);
+	register_property<GRServer, int>("custom_input_scene_compression_type", &GRServer::set_custom_input_scene_compression_type, &GRServer::get_custom_input_scene_compression_type, 0);
 
 	register_signal<GRServer>("client_connected", "device_id", GODOT_VARIANT_TYPE_STRING);
 	register_signal<GRServer>("client_disconnected", "device_id", GODOT_VARIANT_TYPE_STRING);
@@ -337,9 +338,10 @@ void GRServer::_internal_call_only_deffered_start() {
 	set_status(WorkingStatus::Starting);
 	_log("Starting GodotRemote server");
 
-	if (server_thread_listen.is_valid()) {
+	if (server_thread_listen) {
 		server_thread_listen->close_thread();
-		server_thread_listen.unref();
+		server_thread_listen->free();
+		server_thread_listen = nullptr;
 	}
 
 	if (!resize_viewport) {
@@ -347,9 +349,9 @@ void GRServer::_internal_call_only_deffered_start() {
 		add_child(resize_viewport);
 	}
 
-	server_thread_listen.instance();
+	server_thread_listen = memnew(ListenerThreadParamsServer);
 	server_thread_listen->dev = this;
-	server_thread_listen->thread_ref = Thread_create(GRServer, _thread_listen, server_thread_listen.ptr(), this);
+	server_thread_listen->thread_ref = Thread_create(GRServer, _thread_listen, server_thread_listen, this);
 
 	set_status(WorkingStatus::Working);
 	call_deferred("_load_settings");
@@ -370,9 +372,10 @@ void GRServer::_internal_call_only_deffered_stop() {
 	set_status(WorkingStatus::Stopping);
 	_log("Stopping GodotRemote server");
 
-	if (server_thread_listen.is_valid()) {
+	if (server_thread_listen) {
 		server_thread_listen->close_thread();
-		server_thread_listen.unref();
+		server_thread_listen->free();
+		server_thread_listen = nullptr;
 	}
 
 	if (resize_viewport)
@@ -525,6 +528,7 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 				case TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS:
 					if ((bool)value) {
 						call_deferred("_load_settings");
+						keys.clear();
 						return;
 					}
 					break;
@@ -554,8 +558,10 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 			}
 		}
 	}
+	keys.clear();
 
 #undef SET_BODY
+#undef SET_BODY_CONVERT
 }
 
 void GRServer::_reset_counters() {
@@ -569,11 +575,11 @@ void GRServer::_reset_counters() {
 
 void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 	Thread_set_name("GR_listen_thread");
-	Ref<ListenerThreadParamsServer> this_thread_info = (ListenerThreadParamsServer *)p_userdata;
+	ListenerThreadParamsServer* this_thread_info = (ListenerThreadParamsServer *)p_userdata;
 	GRServer *dev = this_thread_info->dev;
 	Ref<TCP_Server> srv = dev->tcp_server;
 	OS *os = OS::get_singleton();
-	Ref<ConnectionThreadParamsServer> connection_thread_info;
+	ConnectionThreadParamsServer* connection_thread_info = nullptr;
 	Error err = Error::OK;
 	bool listening_error_notification_shown = false;
 
@@ -630,7 +636,7 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 		}
 		listening_error_notification_shown = false;
 
-		if (connection_thread_info.is_valid()) {
+		if (connection_thread_info) {
 			if (connection_thread_info->ppeer.is_null()) {
 				connection_thread_info->break_connection = true;
 			}
@@ -638,7 +644,8 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 			if (connection_thread_info->finished || connection_thread_info->break_connection) {
 				_log("Waiting connection thread...", LogLevel::LL_Debug);
 				connection_thread_info->close_thread();
-				connection_thread_info.unref();
+				connection_thread_info->free();
+				connection_thread_info = nullptr;
 			}
 		}
 
@@ -651,7 +658,7 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 			ppeer->set_stream_peer(con);
 			ppeer->set_output_buffer_max_size(_grutils_data_server->compress_buffer.size());
 
-			if (connection_thread_info.is_null()) {
+			if (!connection_thread_info) {
 				Dictionary ret_data;
 				GRDevice::AuthResult res = _auth_client(dev, ppeer, ret_data, false);
 				String dev_id = "";
@@ -662,7 +669,7 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 
 				switch (res) {
 					case GRDevice::AuthResult::OK:
-						connection_thread_info.instance();
+						connection_thread_info = memnew(ConnectionThreadParamsServer);
 						connection_thread_info->device_id = dev_id;
 
 						connection_thread_info->dev = dev;
@@ -671,7 +678,7 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 						dev->custom_input_scene_was_updated = false;
 						dev->client_connected++;
 
-						connection_thread_info->thread_ref = Thread_create(GRServer, _thread_connection, connection_thread_info.ptr(), dev);
+						connection_thread_info->thread_ref = Thread_create(GRServer, _thread_connection, connection_thread_info, dev);
 						_log("New connection from " + address, LogLevel::LL_Normal);
 						
 						dev->call_deferred("emit_signal", "client_connected", dev_id);
@@ -699,11 +706,12 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 		}
 	}
 
-	if (connection_thread_info.is_valid()) {
+	if (connection_thread_info) {
 		_log("Closing connection thread...", LogLevel::LL_Debug);
 		connection_thread_info->break_connection = true;
 		connection_thread_info->close_thread();
-		connection_thread_info.unref();
+		connection_thread_info->free();
+		connection_thread_info = nullptr;
 	}
 
 	dev->tcp_server->stop();
@@ -711,7 +719,7 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 }
 
 void GRServer::_thread_connection(THREAD_DATA p_userdata) {
-	Ref<ConnectionThreadParamsServer> thread_info = (ConnectionThreadParamsServer *)p_userdata;
+	ConnectionThreadParamsServer* thread_info = (ConnectionThreadParamsServer *)p_userdata;
 	Ref<StreamPeerTCP> connection = thread_info->ppeer->get_stream_peer();
 	Ref<PacketPeerStream> ppeer = thread_info->ppeer;
 	GRServer *dev = thread_info->dev;
@@ -807,9 +815,13 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 
 				if ((int)err) {
 					_log("Can't send image data! Code: " + str((int)err), LogLevel::LL_Error);
+					ips->free();
+					ips = nullptr;
 					goto end_send;
 				}
 			}
+			ips->free();
+			ips = nullptr;
 		} else {
 			if (!dev->is_video_stream_enabled()) {
 				dev->_update_avg_fps(0);
@@ -1298,6 +1310,7 @@ Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_
 		_log("Files to pack not found!", LogLevel::LL_Error);
 	}
 
+	files.clear();
 	return pack;
 }
 
@@ -1346,11 +1359,11 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, Array&_arr) 
 
 void GRSViewport::_processing_thread(THREAD_DATA p_user) {
 	GRSViewport *vp = (GRSViewport *)p_user;
-	Ref<ImgProcessingStorageViewport> ips(memnew(ImgProcessingStorageViewport));
+	ImgProcessingStorageViewport* ips = memnew(ImgProcessingStorageViewport);
 	Ref<Image> img = vp->last_image;
 
 	TimeCountInit();
-	if (ips.is_null()) {
+	if (!ips) {
 		goto end;
 	}
 
@@ -1436,8 +1449,11 @@ void GRSViewport::_register_methods() {
 
 #endif
 
-void GRSViewport::_set_img_data(Ref<ImgProcessingStorageViewport> _data) {
+void GRSViewport::_set_img_data(ImgProcessingStorageViewport* _data) {
 	_TS_LOCK_;
+	if (last_image_data)
+		last_image_data->free();
+
 	last_image_data = _data;
 	_TS_UNLOCK_;
 }
@@ -1459,14 +1475,14 @@ void GRSViewport::_notification(int p_notification) {
 			if (!video_stream_enabled) {
 				if (!is_empty_image_sended) {
 					is_empty_image_sended = true;
-					Ref<ImgProcessingStorageViewport> ips(memnew(ImgProcessingStorageViewport));
-					ips->width = 0;
-					ips->height = 0;
-					ips->format = Image::Format::FORMAT_RGB8;
-					ips->bytes_in_color = 3;
-					ips->jpg_quality = 1;
-					ips->is_empty = true;
-					_set_img_data(ips);
+					ImgProcessingStorageViewport* ipsv = memnew(ImgProcessingStorageViewport);
+					ipsv->width = 0;
+					ipsv->height = 0;
+					ipsv->format = Image::Format::FORMAT_RGB8;
+					ipsv->bytes_in_color = 3;
+					ipsv->jpg_quality = 1;
+					ipsv->is_empty = true;
+					_set_img_data(ipsv);
 				}
 
 				return;
@@ -1540,17 +1556,17 @@ void GRSViewport::_update_size() {
 	}
 }
 
-Ref<GRSViewport::ImgProcessingStorageViewport> GRSViewport::get_last_compressed_image_data() {
+GRSViewport::ImgProcessingStorageViewport* GRSViewport::get_last_compressed_image_data() {
 	_TS_LOCK_;
 	auto res = last_image_data;
-	last_image_data.unref();
+	last_image_data = nullptr;
 	_TS_UNLOCK_;
 
 	return res;
 }
 
 bool GRSViewport::has_compressed_image_data() {
-	return last_image_data.is_valid();
+	return last_image_data;
 }
 
 void GRSViewport::force_get_image() {
@@ -1622,7 +1638,9 @@ void GRSViewport::_deinit() {
 	_close_thread();
 
 	_TS_LOCK_;
-	last_image_data.unref();
+	if(last_image_data)
+		last_image_data->free();
+	last_image_data = nullptr;
 	last_image.unref();
 	_TS_UNLOCK_;
 }

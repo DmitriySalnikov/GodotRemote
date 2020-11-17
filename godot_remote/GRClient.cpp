@@ -166,6 +166,7 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient::get_status);
 
 	register_signal<GRClient>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
+	register_property<GRClient, uint16_t>("port", &GRClient::set_port, &GRClient::get_port, 52341);
 	*/
 	///////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////
@@ -230,19 +231,19 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, is_viewport_aspect_ratio_syncing);
 	METHOD_REG(GRClient, is_server_settings_syncing);
 
-	//register_property<GRClient, bool>("capture_on_focus", &GRClient::set_capture_on_focus, &GRClient::is_capture_on_focus, false);
-	//register_property<GRClient, bool>("capture_when_hover", &GRClient::set_capture_when_hover, &GRClient::is_capture_when_hover, false);
-	//register_property<GRClient, bool>("capture_pointer", &GRClient::set_capture_pointer, &GRClient::is_capture_pointer, true);
-	//register_property<GRClient, bool>("capture_input", &GRClient::set_capture_input, &GRClient::is_capture_input, true);
-	//register_property<GRClient, int>("connection_type", &GRClient::set_connection_type, &GRClient::get_connection_type, CONNECTION_WiFi, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_ENUM, "WiFi,ADB");
-	//register_property<GRClient, int>("target_send_fps", &GRClient::set_target_send_fps, &GRClient::get_target_send_fps, 60, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_RANGE, "1,1000");
-	//register_property<GRClient, int>("stretch_mode", &GRClient::set_stretch_mode, &GRClient::get_stretch_mode, STRETCH_KEEP_ASPECT, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_ENUM, "Fill,Keep Aspect");
-	//register_property<GRClient, bool>("texture_filtering", &GRClient::set_texture_filtering, &GRClient::get_texture_filtering, true);
-	//register_property<GRClient, String>("password", &GRClient::set_password, & GRClient::get_password, "");
-	//register_property<GRClient, String>("device_id", &GRClient::set_device_id, & GRClient::get_device_id, "");
-	//register_property<GRClient, bool>("viewport_orientation_syncing", &GRClient::set_viewport_orientation_syncing, &GRClient::is_viewport_orientation_syncing, true);
-	//register_property<GRClient, bool>("viewport_aspect_ratio_syncing", &GRClient::set_viewport_aspect_ratio_syncing, &GRClient::is_viewport_aspect_ratio_syncing, true);
-	//register_property<GRClient, bool>("server_settings_syncing", &GRClient::set_server_settings_syncing, &GRClient::is_server_settings_syncing, true);
+	register_property<GRClient, bool>("capture_on_focus", &GRClient::set_capture_on_focus, &GRClient::is_capture_on_focus, false);
+	register_property<GRClient, bool>("capture_when_hover", &GRClient::set_capture_when_hover, &GRClient::is_capture_when_hover, false);
+	register_property<GRClient, bool>("capture_pointer", &GRClient::set_capture_pointer, &GRClient::is_capture_pointer, true);
+	register_property<GRClient, bool>("capture_input", &GRClient::set_capture_input, &GRClient::is_capture_input, true);
+	register_property<GRClient, int>("connection_type", &GRClient::set_connection_type, &GRClient::get_connection_type, CONNECTION_WiFi, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_ENUM, "WiFi,ADB");
+	register_property<GRClient, int>("target_send_fps", &GRClient::set_target_send_fps, &GRClient::get_target_send_fps, 60, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_RANGE, "1,1000");
+	register_property<GRClient, int>("stretch_mode", &GRClient::set_stretch_mode, &GRClient::get_stretch_mode, STRETCH_KEEP_ASPECT, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_ENUM, "Fill,Keep Aspect");
+	register_property<GRClient, bool>("texture_filtering", &GRClient::set_texture_filtering, &GRClient::get_texture_filtering, true);
+	register_property<GRClient, String>("password", &GRClient::set_password, & GRClient::get_password, "");
+	register_property<GRClient, String>("device_id", &GRClient::set_device_id, & GRClient::get_device_id, "");
+	register_property<GRClient, bool>("viewport_orientation_syncing", &GRClient::set_viewport_orientation_syncing, &GRClient::is_viewport_orientation_syncing, true);
+	register_property<GRClient, bool>("viewport_aspect_ratio_syncing", &GRClient::set_viewport_aspect_ratio_syncing, &GRClient::is_viewport_aspect_ratio_syncing, true);
+	register_property<GRClient, bool>("server_settings_syncing", &GRClient::set_server_settings_syncing, &GRClient::is_server_settings_syncing, true);
 }
 
 #endif
@@ -282,6 +283,7 @@ void GRClient::_init(){
 	memdelete(rng);
 #endif
 
+	//send_queue = Array();
 	send_queue_mutex = Mutex_create();
 	connection_mutex = Mutex_create();
 
@@ -329,14 +331,15 @@ void GRClient::_internal_call_only_deffered_start() {
 	_log("Starting GodotRemote client", LogLevel::LL_Debug);
 	set_status(WorkingStatus::Starting);
 
-	if (thread_connection.is_valid()) {
+	if (thread_connection) {
 		thread_connection->close_thread();
-		thread_connection.unref();
+		thread_connection->free();
+		thread_connection = nullptr;
 	}
-	thread_connection.instance();
+	thread_connection = memnew(ConnectionThreadParamsClient);
 	thread_connection->dev = this;
 	thread_connection->peer.instance();
-	thread_connection->thread_ref = Thread_create(GRClient, _thread_connection, thread_connection.ptr(), this);
+	thread_connection->thread_ref = Thread_create(GRClient, _thread_connection, thread_connection, this);
 
 	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 	set_status(WorkingStatus::Working);
@@ -358,15 +361,17 @@ void GRClient::_internal_call_only_deffered_stop() {
 	set_control_to_show_in(nullptr, 0);
 
 	connection_mutex->lock();
-	if (thread_connection.is_valid()) {
+	if (thread_connection) {
 		thread_connection->break_connection = true;
 		thread_connection->stop_thread = true;
 		connection_mutex->unlock();
 		thread_connection->close_thread();
-		thread_connection.unref();
+		thread_connection->free();
+		thread_connection = nullptr;
 	}
 	send_queue_mutex->unlock();
 	connection_mutex->unlock();
+	send_queue.resize(0);
 
 	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 	set_status(WorkingStatus::Stopped);
@@ -634,7 +639,7 @@ String GRClient::get_device_id() {
 }
 
 bool GRClient::is_connected_to_host() {
-	if (thread_connection.is_valid() && thread_connection->peer.is_valid()) {
+	if (thread_connection && thread_connection->peer.is_valid()) {
 		return thread_connection->peer->is_connected_to_host() && is_connection_working;
 	}
 	return false;
@@ -902,7 +907,7 @@ void GRClient::disable_overriding_server_settings() {
 //////////////////////////////////////////////
 
 void GRClient::_thread_connection(THREAD_DATA p_userdata) {
-	Ref<ConnectionThreadParamsClient> con_thread = (ConnectionThreadParamsClient*)p_userdata;
+	ConnectionThreadParamsClient* con_thread = (ConnectionThreadParamsClient*)p_userdata;
 	GRClient *dev = con_thread->dev;
 	Ref<StreamPeerTCP> con = con_thread->peer;
 
@@ -999,7 +1004,7 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 
 		bool long_wait = false;
 
-		Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
+		Ref<PacketPeerStream> ppeer = newref(PacketPeerStream);
 		ppeer->set_stream_peer(con);
 		ppeer->set_input_buffer_max_size(dev->input_buffer_size_in_mb * 1024 * 1024);
 
@@ -1078,7 +1083,7 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 	con_thread->finished = true;
 }
 
-void GRClient::_connection_loop(Ref<ConnectionThreadParamsClient> con_thread) {
+void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 	GRClient *dev = con_thread->dev;
 	Ref<StreamPeerTCP> connection = con_thread->peer;
 	Ref<PacketPeerStream> ppeer = con_thread->ppeer;
@@ -1097,8 +1102,9 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParamsClient> con_thread) {
 
 	dev->_reset_counters();
 
-	Array stream_queue; // Ref<GRPacketImageData>
-
+	//Array stream_queue; // Ref<GRPacketImageData>
+	std::vector<Ref<GRPacketImageData>> stream_queue; // Ref<GRPacketImageData>
+	
 	uint64_t time64 = os->get_ticks_usec();
 	uint64_t prev_cycle_time = 0;
 	uint64_t prev_send_input_time = time64;
@@ -1170,14 +1176,10 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParamsClient> con_thread) {
 		while (!dev->send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
 			dev->send_queue_mutex->lock();
 
-#ifndef GDNATIVE_LIBRARY
-			Ref<GRPacket> packet = dev->send_queue.front()->get();
-#else
 			Ref<GRPacket> packet = dev->send_queue.front();
-#endif
+			dev->send_queue.erase(dev->send_queue.begin());
 
 			if (packet.is_valid()) {
-				dev->send_queue.remove(0);
 				err = ppeer->put_var(packet->get_data());
 
 				if ((int)err) {
@@ -1206,7 +1208,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParamsClient> con_thread) {
 			nothing_happens = false;
 
 			Ref<GRPacketImageData> pack = stream_queue.front();
-			stream_queue.remove(0);
+			stream_queue.erase(stream_queue.begin());
 
 			if (pack.is_null()) {
 				_log("Queued image data is null", LogLevel::LL_Error);
@@ -1221,20 +1223,23 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParamsClient> con_thread) {
 
 			Thread_close(_img_thread);
 
-			ImgProcessingStorageClient *ips = new ImgProcessingStorageClient(dev);
+			ImgProcessingStorageClient* ipsc = memnew(ImgProcessingStorageClient);
+			ipsc->dev = dev;
+
 			if (pack->get_is_empty()) {
 				dev->_update_avg_fps(0);
 				dev->call_deferred("_update_texture_from_iamge", Ref<Image>());
 				dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
 			} else {
-				ips->tex_data = pack->get_image_data();
-				ips->compression_type = (ImageCompressionType)pack->get_compression_type();
-				ips->size = pack->get_size();
-				ips->format = pack->get_format();
-				ips->_is_processing_img = &_is_processing_img;
-				_img_thread = Thread_create(GRClient, _thread_image_decoder, ips, dev);
+				ipsc->tex_data = pack->get_image_data();
+				ipsc->compression_type = (ImageCompressionType)pack->get_compression_type();
+				ipsc->size = pack->get_size();
+				ipsc->format = pack->get_format();
+				ipsc->_is_processing_img = &_is_processing_img;
+				_img_thread = Thread_create(GRClient, _thread_image_decoder, ipsc, dev);
 			}
 
+			pack.unref();
 			TimeCount("Get image from queue");
 		}
 	end_img_process:
@@ -1249,6 +1254,10 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParamsClient> con_thread) {
 		}
 
 		if (stream_queue.size() > 10) {
+			//for (int i = 0; i<stream_queue.size(); i++)
+			//{
+			//	((Ref<GRPacketImageData>)stream_queue[i]).unref();
+			//}
 			stream_queue.clear();
 		}
 
@@ -1372,6 +1381,7 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParamsClient> con_thread) {
 	dev->send_queue_mutex->unlock();
 
 	dev->connection_mutex->unlock();
+	stream_queue.clear();
 
 	if (connection->is_connected_to_host()) {
 		_log("Lost connection to " + address, LogLevel::LL_Error);
@@ -1388,21 +1398,21 @@ void GRClient::_connection_loop(Ref<ConnectionThreadParamsClient> con_thread) {
 }
 
 void GRClient::_thread_image_decoder(THREAD_DATA p_userdata) {
-	ImgProcessingStorageClient *ips = (ImgProcessingStorageClient*)p_userdata;
-	*ips->_is_processing_img = true;
+	ImgProcessingStorageClient* ipsc = p_userdata;
+	*ipsc->_is_processing_img = true;
 
 	Error err = Error::OK;
-	GRClient *dev = ips->dev;
+	GRClient *dev = ipsc->dev;
 	Ref<Image> img(memnew(Image));
-	ImageCompressionType type = ips->compression_type;
+	ImageCompressionType type = ipsc->compression_type;
 
 	TimeCountInit();
 	switch (type) {
 		case ImageCompressionType::Uncompressed: {
 #ifndef GDNATIVE_LIBRARY
-			img->create(ips->size.x, ips->size.y, false, (Image::Format)ips->format, ips->tex_data);
+			img->create(ipsc->size.x, ipsc->size.y, false, (Image::Format)ipsc->format, ipsc->tex_data);
 #else
-			img->create_from_data(ips->size.x, ips->size.y, false, (Image::Format)ips->format, ips->tex_data);
+			img->create_from_data(ipsc->size.x, ipsc->size.y, false, (Image::Format)ipsc->format, ipsc->tex_data);
 #endif
 			if (img_is_empty(img)) { // is NOT OK
 				err = Error::FAILED;
@@ -1412,7 +1422,7 @@ void GRClient::_thread_image_decoder(THREAD_DATA p_userdata) {
 			break;
 		}
 		case ImageCompressionType::JPG: {
-			err = img->load_jpg_from_buffer(ips->tex_data);
+			err = img->load_jpg_from_buffer(ipsc->tex_data);
 			if ((int)err || img_is_empty(img)) { // is NOT OK
 				_log("Can't decode JPG image.", LogLevel::LL_Error);
 				GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str((int)err), NotificationIcon::_Error, true, 1.f);
@@ -1420,7 +1430,7 @@ void GRClient::_thread_image_decoder(THREAD_DATA p_userdata) {
 			break;
 		}
 		case ImageCompressionType::PNG: {
-			err = img->load_png_from_buffer(ips->tex_data);
+			err = img->load_png_from_buffer(ipsc->tex_data);
 			if ((int)err || img_is_empty(img)) { // is NOT OK
 				_log("Can't decode PNG image.", LogLevel::LL_Error);
 				GRNotifications::add_notification("Stream Error", "Can't decode PNG image. Code: " + str((int)err), NotificationIcon::_Error, true, 1.f);
@@ -1441,8 +1451,8 @@ void GRClient::_thread_image_decoder(THREAD_DATA p_userdata) {
 		}
 	}
 
-	*ips->_is_processing_img = false;
-	delete ips;
+	*ipsc->_is_processing_img = false;
+	ipsc->free();
 }
 
 GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<PacketPeerStream> &ppeer) {
@@ -1599,6 +1609,7 @@ void GRInputCollector::_release_pointers() {
 				_collect_input(iemb);
 			}
 		}
+		buttons.clear();
 	}
 
 	{
@@ -1612,6 +1623,7 @@ void GRInputCollector::_release_pointers() {
 				_collect_input(iest);
 			}
 		}
+		touches.clear();
 	}
 }
 
@@ -1646,9 +1658,9 @@ void GRInputCollector::_register_methods() {
 	METHOD_REG(GRInputCollector, is_capture_pointer);
 	METHOD_REG(GRInputCollector, set_capture_pointer);
 
-	//register_property<GRInputCollector, bool>("capture_on_focus", &GRInputCollector::set_capture_on_focus, &GRInputCollector::is_capture_on_focus);
-	//register_property<GRInputCollector, bool>("capture_when_hover", &GRInputCollector::set_capture_when_hover, &GRInputCollector::is_capture_when_hover);
-	//register_property<GRInputCollector, bool>("capture_pointer", &GRInputCollector::set_capture_pointer, &GRInputCollector::is_capture_pointer);
+	register_property<GRInputCollector, bool>("capture_on_focus", &GRInputCollector::set_capture_on_focus, &GRInputCollector::is_capture_on_focus, false);
+	register_property<GRInputCollector, bool>("capture_when_hover", &GRInputCollector::set_capture_when_hover, &GRInputCollector::is_capture_when_hover, true);
+	register_property<GRInputCollector, bool>("capture_pointer", &GRInputCollector::set_capture_pointer, &GRInputCollector::is_capture_pointer, true);
 }
 
 #endif
@@ -1849,6 +1861,8 @@ void GRInputCollector::_deinit() {
 	collected_input_data.resize(0);
 	if (this_in_client)
 		*this_in_client = nullptr;
+	mouse_buttons.clear();
+	screen_touches.clear();
 	_TS_UNLOCK_;
 }
 

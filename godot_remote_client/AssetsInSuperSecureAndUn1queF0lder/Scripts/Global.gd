@@ -59,9 +59,9 @@ func _ready():
 	
 	_load_settings()
 	
-	GodotRemote.create_remote_device(GodotRemote.DEVICE_Standalone)
+	GodotRemote.create_remote_device(GodotRemote.DEVICE_CLIENT)
 	
-	var d : GRClient = GodotRemote.get_device()
+	var d = GodotRemote.get_device()
 	d.capture_when_hover = false
 	
 	_set_all_values()
@@ -100,9 +100,9 @@ func _notification(what):
 			_save_settings()
 
 func _set_all_values():
-	var dev : GRClient = GodotRemote.get_device()
+	var dev = GodotRemote.get_device()
 	var i_w : int = dev.get_status()
-	if i_w == GRDevice.STATUS_WORKING:
+	if i_w == GodotRemote.GRDevice_STATUS_WORKING:
 		dev.stop()
 	
 	dev.device_id = device_id

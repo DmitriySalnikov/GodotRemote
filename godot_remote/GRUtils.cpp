@@ -38,7 +38,7 @@ void deinit() {
 }
 
 #ifndef NO_GODOTREMOTE_SERVER
-GRUtilsDataServer* GRUtils::_grutils_data_server = nullptr;
+GRUtilsDataServer* _grutils_data_server = nullptr;
 
 void init_server_utils() {
 	_grutils_data_server = new GRUtilsDataServer();
@@ -68,20 +68,22 @@ void _log(const Variant &val, LogLevel lvl) {
 
 #else
 
-#define print_error_ext(msg) Godot::print_error("[GodotRemote Error] " + str(val), __FUNCTION__, __FILE__, __LINE__ )
-
+#define print_error_ext() Godot::print_error(str(val), "[GodotRemote Error]", __FILE__, __LINE__ )
+#define print_warning_ext() Godot::print_warning(str(val), "[GodotRemote Warning]", __FILE__, __LINE__ )
+	
 	if (lvl >= _grutils_data->current_loglevel && lvl < LogLevel::LL_None) {
 		if (lvl == LogLevel::LL_Error) {
-			print_error_ext("[GodotRemote Error] " + str(val));
+			print_error_ext();
 		}
 		else if (lvl == LogLevel::LL_Warning) {
-			print_error_ext("[GodotRemote Warning] " + str(val));
+			print_warning_ext();
 		}
 		else {
 			Godot::print("[GodotRemote] " + str(val));
 		}
 	}
 #undef print_error_ext
+#undef print_warning_ext
 #endif
 #endif
 }
@@ -118,12 +120,18 @@ String str_arr(const Dictionary arr, const bool force_full, const int max_shown_
 		is_long = true;
 	}
 
+	Array keys = arr.keys();
+	Array values = arr.values();
+
 	for (int i = 0; i < s; i++) {
-		res += str(dict_get_key_at_index(arr, i)) + " : " + str(dict_get_value_at_index(arr, i));
+		res += str(keys[i]) + " : " + str(values[i]);
 		if (i != s - 1 || is_long) {
 			res += separator;
 		}
 	}
+
+	keys.clear();
+	values.clear();
 
 	if (is_long) {
 		res += String::num_int64(int64_t(arr.size()) - s) + " more items...";

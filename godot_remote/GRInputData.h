@@ -77,6 +77,10 @@ public:
 		data = Ref<StreamPeerBuffer>(memnew(StreamPeerBuffer));
 	}
 
+	~GRInputData() {
+		data->resize(0);
+	}
+
 	PoolByteArray get_data() {
 		return data->get_data_array();
 	}

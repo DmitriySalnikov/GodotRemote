@@ -33,8 +33,8 @@ private:
 #else
 public:
 #endif
-	class ListenerThreadParamsServer : public Reference {
-		GD_CLASS(ListenerThreadParamsServer, Reference);
+	class ListenerThreadParamsServer : public Object {
+		GD_CLASS(ListenerThreadParamsServer, Object);
 
 	public:
 		GRServer *dev = nullptr;
@@ -59,8 +59,8 @@ public:
 		}
 	};
 
-	class ConnectionThreadParamsServer : public Reference {
-		GD_CLASS(ConnectionThreadParamsServer, Reference);
+	class ConnectionThreadParamsServer : public Object {
+		GD_CLASS(ConnectionThreadParamsServer, Object);
 
 	public:
 		String device_id = "";
@@ -95,7 +95,7 @@ public:
 private:
 
 	Mutex *connection_mutex = nullptr;
-	Ref<ListenerThreadParamsServer> server_thread_listen;
+	ListenerThreadParamsServer* server_thread_listen;
 	Ref<TCP_Server> tcp_server;
 	class GRSViewport *resize_viewport = nullptr;
 	int client_connected = 0;
@@ -109,7 +109,7 @@ private:
 	bool auto_adjust_scale = false;
 
 	bool custom_input_pck_compressed = true;
-	int custom_input_pck_compression_type = 0; /* Compression::Mode */
+	ENUM_ARG(Compression::Mode) custom_input_pck_compression_type = 0;
 	const String custom_input_scene_regex_resource_finder_pattern = "\\\"(res://.*?)\\\"";
 	Ref<class RegEx> custom_input_scene_regex_resource_finder;
 
@@ -184,8 +184,8 @@ class GRSViewport : public Viewport {
 	_TS_CLASS_;
 
 public:
-	class ImgProcessingStorageViewport : public Reference {
-		GD_CLASS(ImgProcessingStorageViewport, Reference);
+	class ImgProcessingStorageViewport : public Object {
+		GD_CLASS(ImgProcessingStorageViewport, Object);
 
 	public:
 		PoolByteArray ret_data;
@@ -195,7 +195,9 @@ public:
 		bool is_empty = false;
 
 		static void _register_methods() {};
-		void _init() {};
+		void _init() {
+			ret_data = PoolByteArray();
+		};
 
 		~ImgProcessingStorageViewport() {
 			ret_data.resize(0);
@@ -210,10 +212,10 @@ private:
 #endif
 
 	Ref<Image> last_image;
-	Ref<ImgProcessingStorageViewport> last_image_data;
+	ImgProcessingStorageViewport* last_image_data;
 
 	void _close_thread() { Thread_close(_thread_process); }
-	void _set_img_data(Ref<ImgProcessingStorageViewport> _data);
+	void _set_img_data(ImgProcessingStorageViewport* _data);
 	THREAD_FUNC void _processing_thread(THREAD_DATA p_user);
 
 protected:
@@ -241,7 +243,7 @@ protected:
 	void _update_size();
 
 public:
-	Ref<ImgProcessingStorageViewport> get_last_compressed_image_data();
+	ImgProcessingStorageViewport* get_last_compressed_image_data();
 	bool has_compressed_image_data();
 	void force_get_image();
 

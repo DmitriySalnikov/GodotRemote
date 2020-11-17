@@ -38,17 +38,17 @@ func _mouse_mode_changed(_mode):
 
 func _stream_state_changed(_is_connected):
 	match _is_connected:
-		GRClient.STREAM_NO_SIGNAL:
+		GodotRemote.GRClient_STREAM_NO_SIGNAL:
 			OS.keep_screen_on = G.keepscreenon
 			$Stats.visible = false
 			$BackgroundTouchHint.visible = false
 			
-		GRClient.STREAM_ACTIVE:
+		GodotRemote.GRClient_STREAM_ACTIVE:
 			OS.keep_screen_on = true
 			$Stats.visible = not $GRSettings.visible
 			$BackgroundTouchHint.visible = false
 			
-		GRClient.STREAM_NO_IMAGE:
+		GodotRemote.GRClient_STREAM_NO_IMAGE:
 			$Stats.visible = not $GRSettings.visible
 			$BackgroundTouchHint.visible = true
 

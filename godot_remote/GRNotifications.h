@@ -243,7 +243,7 @@ private:
 	Ref<Texture> close_button_icon;
 	Ref<Font> title_font;
 	Ref<Font> text_font;
-	Dictionary icons;
+	Ref<Texture> n_icons[NotificationIcon::MAX];
 
 protected:
 #ifndef GDNATIVE_LIBRARY

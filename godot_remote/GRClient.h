@@ -4,6 +4,7 @@
 #ifndef NO_GODOTREMOTE_CLIENT
 
 #include "GRDevice.h"
+#include <vector>
 
 #ifndef GDNATIVE_LIBRARY
 
@@ -41,8 +42,8 @@ private:
 public:
 #endif
 
-	class ImgProcessingStorageClient : public Reference {
-		GD_CLASS(ImgProcessingStorageClient, Reference);
+	class ImgProcessingStorageClient : public Object {
+		GD_CLASS(ImgProcessingStorageClient, Object);
 
 	public:
 		GRClient *dev = nullptr;
@@ -54,21 +55,17 @@ public:
 		bool *_is_processing_img = nullptr;
 
 		static void _register_methods() {};
-		void _init() {};
-
-		ImgProcessingStorageClient() {}
-
-		ImgProcessingStorageClient(GRClient * _dev) {
-			dev = _dev;
-		}
+		void _init() {
+			tex_data = PoolByteArray();
+		};
 
 		~ImgProcessingStorageClient() {
 			tex_data.resize(0);
 		}
 	};
 
-	class ConnectionThreadParamsClient : public Reference{
-		GD_CLASS(ConnectionThreadParamsClient, Reference);
+	class ConnectionThreadParamsClient : public Object {
+		GD_CLASS(ConnectionThreadParamsClient, Object);
 
 	public:
 		GRClient *dev = nullptr;
@@ -112,7 +109,7 @@ private:
 	class Control *control_to_show_in = nullptr;
 	class GRTextureRect *tex_shows_stream = nullptr;
 	class GRInputCollector *input_collector = nullptr;
-	Ref<ConnectionThreadParamsClient> thread_connection;
+	ConnectionThreadParamsClient* thread_connection;
 	ScreenOrientation is_vertical = ScreenOrientation::NONE;
 
 	String device_id = "UNKNOWN";
@@ -127,7 +124,7 @@ private:
 
 	Mutex *send_queue_mutex = nullptr;
 	Mutex *connection_mutex = nullptr;
-	Array send_queue; // Ref<GRPacket>
+	std::vector<Ref<GRPacket>> send_queue; // Ref<GRPacket>
 	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
@@ -154,7 +151,7 @@ private:
 
 	template <class T>
 	T _find_queued_packet_by_type() {
-		for (int i = 0; i< send_queue.size(); i++)
+		for (int i = 0; i < send_queue.size(); i++)
 		{
 			T o = send_queue[i];
 			if (o.is_valid()) {
@@ -176,7 +173,7 @@ private:
 	THREAD_FUNC void _thread_connection(THREAD_DATA p_userdata);
 	THREAD_FUNC void _thread_image_decoder(THREAD_DATA p_userdata);
 
-	static void _connection_loop(Ref<ConnectionThreadParamsClient> con_thread);
+	static void _connection_loop(ConnectionThreadParamsClient* con_thread);
 	static GRDevice::AuthResult _auth_on_server(GRClient *dev, Ref<PacketPeerStream> &con);
 
 protected:

@@ -113,9 +113,7 @@ void GRNotifications::_add_notification_or_update_line(String title, String id, 
 		np->set_updatable_line(this, title, id, text, (NotificationIcon)icon, duration_multiplier, style);
 	} else {
 
-		_log("BEFORE");
 		np = memnew(GRNotificationPanelUpdatable);
-		_log(L"охгдеж");
 		notif_list_node->add_child(np);
 		if (notifications_position <= NotificationsPosition::TR)
 			notif_list_node->move_child(np, 0);
@@ -430,7 +428,14 @@ void GRNotifications::_deinit() {
 	if (this == singleton)
 		singleton = nullptr;
 	call_deferred("_remove_list");
+
+	notifications.clear();
+	GRNotificationPanel::_default_data->_default_close_texture.unref();
+	GRNotificationPanel::_default_data->_default_style.unref();
+	GRNotificationPanel::_default_data->_default_textures.clear();
 	delete GRNotificationPanel::_default_data;
+
+	style.unref();
 }
 
 void GRNotifications::_remove_list() {
@@ -679,7 +684,6 @@ void GRNotificationPanel::update_text(String text) {
 
 void GRNotificationPanel::_init() {
 	set_name("NotificationPanel");
-	_log("GRNotificationPanel");
 
 	if (_default_data->_default_style.is_null())
 		_default_data->_default_style = generate_default_style();
@@ -747,7 +751,6 @@ void GRNotificationPanel::_deinit() {
 
 
 void GRNotificationPanelUpdatable::_init() {
-	_log("GRNotificationPanelUpdatable");
 	GRNotificationPanel::_init();
 }
 
@@ -764,6 +767,7 @@ String GRNotificationPanelUpdatable::_get_text_from_lines() {
 			res += "\n";
 		}
 	}
+	lv.clear();
 	return res;
 }
 
@@ -894,11 +898,11 @@ void GRNotificationStyle::_register_methods() {
 	METHOD_REG(GRNotificationStyle, get_title_font);
 	METHOD_REG(GRNotificationStyle, get_text_font);
 
-	//register_property<GRNotificationStyle, Object>("panel_style", &GRNotificationStyle::set_panel_style, &GRNotificationStyle::get_panel_style, nullptr);
-	//register_property<GRNotificationStyle, Object>("close_button_theme", &GRNotificationStyle::set_close_button_theme, &GRNotificationStyle::get_close_button_theme, nullptr);
-	//register_property<GRNotificationStyle, Object>("close_button_icon", &GRNotificationStyle::set_close_button_icon, &GRNotificationStyle::get_close_button_icon, nullptr);
-	//register_property<GRNotificationStyle, Object>("title_font", &GRNotificationStyle::set_title_font, &GRNotificationStyle::get_title_font, nullptr);
-	//register_property<GRNotificationStyle, Object>("text_font", &GRNotificationStyle::set_text_font, &GRNotificationStyle::get_text_font, nullptr);
+	register_property<GRNotificationStyle, Ref<StyleBox>>("panel_style", &GRNotificationStyle::set_panel_style, &GRNotificationStyle::get_panel_style, nullptr);
+	register_property<GRNotificationStyle, Ref<Theme>>("close_button_theme", &GRNotificationStyle::set_close_button_theme, &GRNotificationStyle::get_close_button_theme, nullptr);
+	register_property<GRNotificationStyle, Ref<Texture>>("close_button_icon", &GRNotificationStyle::set_close_button_icon, &GRNotificationStyle::get_close_button_icon, nullptr);
+	register_property<GRNotificationStyle, Ref<Font>>("title_font", &GRNotificationStyle::set_title_font, &GRNotificationStyle::get_title_font, nullptr);
+	register_property<GRNotificationStyle, Ref<Font>>("text_font", &GRNotificationStyle::set_text_font, &GRNotificationStyle::get_text_font, nullptr);
 }
 
 #endif
@@ -917,6 +921,10 @@ void GRNotificationStyle::_notification(int p_notification) {
 }
 
 void GRNotificationStyle::_init() {
+	for (int i = 0; i < NotificationIcon::MAX; i++)
+	{
+		n_icons[i] = Ref<Texture>();
+	}
 }
 
 void GRNotificationStyle::_deinit() {
@@ -925,7 +933,11 @@ void GRNotificationStyle::_deinit() {
 	close_button_icon.unref();
 	title_font.unref();
 	text_font.unref();
-	icons.clear();
+	
+	for (int i = 0; i < NotificationIcon::MAX; i++)
+	{
+		n_icons[i].unref();
+	}
 }
 
 void GRNotificationStyle::set_panel_style(Ref<StyleBox> style) {
@@ -970,13 +982,9 @@ Ref<Font> GRNotificationStyle::get_text_font() {
 
 void GRNotificationStyle::set_notification_icon(ENUM_ARG(NotificationIcon) notification_icon, Ref<Texture> icon_texture) {
 	ERR_FAIL_INDEX(notification_icon, (int)NotificationIcon::MAX);
-	ERR_FAIL_COND(icon_texture.is_null());
-	icons[notification_icon] = icon_texture;
+	n_icons[notification_icon] = icon_texture;
 }
 
 Ref<Texture> GRNotificationStyle::get_notification_icon(ENUM_ARG(NotificationIcon) notification_icon) {
-	if (icons.has(notification_icon)) {
-		return icons[notification_icon];
-	}
-	return Ref<Texture>();
+	return n_icons[notification_icon];
 }

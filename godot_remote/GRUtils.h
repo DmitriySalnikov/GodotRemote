@@ -55,7 +55,7 @@ using namespace godot;
 
 #define THREAD_FUNC static
 #define THREAD_DATA void*
-#define t_wait_to_finish(thread) t_wait_to_finish(thread)
+#define t_wait_to_finish(thread) Thread::wait_to_finish(thread)
 #define _TS_CLASS_	_THREAD_SAFE_CLASS_
 #define _TS_METHOD_	_THREAD_SAFE_METHOD_
 #define _TS_LOCK_	_THREAD_SAFE_LOCK_
@@ -137,7 +137,7 @@ public:
 if (_name.is_valid()) {      \
 	t_wait_to_finish(_name); \
 	_name.unref();           \
-	_name = nullptr;         \
+	_name = Ref<Thread>();   \
 }
 
 // THREAD SAFE END
@@ -175,8 +175,8 @@ register_property<cl, int>(name, &cl::set_constant, &cl::CONST_FUNC_CAT(cl, en, 
 #define is_valid_ip is_valid_ip_address
 #define img_is_empty(img) img->is_empty()
 
-#define dict_get_key_at_index(dict, i) dict.keys()[i]
-#define dict_get_value_at_index(dict, i) dict.values()[i]
+#define dict_get_key_at_index(dict, i) _gdn_dictionary_get_key_at_index(dict, i)
+#define dict_get_value_at_index(dict, i) _gdn_dictionary_get_value_at_index(dict, i)
 
 #define file_get_as_string(path, err) _gdn_get_file_as_string(path, err)
 
@@ -186,6 +186,11 @@ register_property<cl, int>(name, &cl::set_constant, &cl::CONST_FUNC_CAT(cl, en, 
 #define GDNATIVE_BASIC_REGISTER         \
 public:                                 \
 	void _init() {};                    \
+	static void _register_methods() {}; \
+protected:
+
+#define GDNATIVE_BASIC_REGISTER_NO_INIT \
+public:                                 \
 	static void _register_methods() {}; \
 protected:
 
@@ -476,7 +481,21 @@ namespace GRUtils {
 		return "";
 	}
 
-	static Ref<Thread> _gdn_thread_create(Object* instance, String func_name, Variant user_data) {
+	static Variant _gdn_dictionary_get_key_at_index(Dictionary d, int idx) {
+		Array k = d.keys();
+		Variant r = k[idx];
+		k.clear();
+		return r;
+	}
+
+	static Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx) {
+		Array v = d.values();
+		Variant r = v[idx];
+		v.clear();
+		return r;
+	}
+
+	static Ref<Thread> _gdn_thread_create(Object* instance, String func_name, const Object* user_data) {
 		Ref<Thread> t = newref(Thread);
 		t->start(instance, func_name, user_data);
 		return t;

@@ -120,6 +120,10 @@ public:
 	void set_start_time(uint64_t time);
 	void set_frametime(uint64_t _frametime);
 	void set_is_empty(bool _empty);
+
+	~GRPacketImageData() {
+		img_data.resize(0);
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -144,6 +148,10 @@ public:
 	void remove_input_data(int idx);
 	void add_input_data(Ref<class GRInputData> &input);
 	void set_input_data(Array &_inputs); // Ref<GRInputData>
+
+	~GRPacketInputData() {
+		inputs.clear();
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -166,6 +174,10 @@ public:
 	Dictionary get_settings();
 	void set_settings(Dictionary &_settings);
 	void add_setting(int _setting, Variant value);
+
+	~GRPacketServerSettings() {
+		settings.clear();
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -220,6 +232,10 @@ public:
 	void set_original_size(int val);
 	int get_compression_type();
 	void set_compression_type(int val);
+
+	~GRPacketCustomInputScene() {
+		scene_data.resize(0);
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////

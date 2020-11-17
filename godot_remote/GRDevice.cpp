@@ -78,6 +78,7 @@ void GRDevice::_register_methods() {
 	METHOD_REG(GRDevice, get_status);
 
 	register_signal<GRDevice>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
+	register_property<GRDevice, uint16_t>("port", &GRDevice::set_port, &GRDevice::get_port, 52341);
 }
 
 #endif
