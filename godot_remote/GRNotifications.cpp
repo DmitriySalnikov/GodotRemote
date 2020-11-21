@@ -46,8 +46,8 @@ using namespace GRUtils;
 GRNotifications* GRNotifications::singleton = nullptr;
 GRNotificationPanelSTATIC_DATA* GRNotificationPanel::_default_data = nullptr;
 
-Array GRNotifications::_get_notifications_with_title(String title) { // GRNotificationPanel *
-	Array res; // GRNotificationPanel *
+std::vector<GRNotificationPanel*> GRNotifications::_get_notifications_with_title(String title) { // GRNotificationPanel *
+	std::vector<GRNotificationPanel*> res; // GRNotificationPanel *
 
 	if (singleton) {
 		for (int i = singleton->notifications.size() - 1; i >= 0; i--) {
@@ -371,7 +371,7 @@ void GRNotifications::_remove_exact_notification(Node *_notif) {
 		emit_signal("notification_removed", np->get_text(), clearing_notifications);
 
 		notif_list_node->remove_child(np);
-		notifications.erase(np);
+		vec_remove_idx(notifications, np);
 		memdelete(np);
 
 		// FORCE UPDATE SIZE OF CONTEINER
@@ -384,7 +384,7 @@ void GRNotifications::_clear_notifications() {
 	for (int i = 0; i < notifications.size(); i++) {
 		GRNotificationPanel* tmp = notifications[i];
 		notif_list_node->remove_child(tmp);
-		notifications.erase(tmp);
+		vec_remove_idx(notifications, tmp);
 		memdelete(tmp);
 	}
 	emit_signal("notifications_cleared");
@@ -759,15 +759,15 @@ void GRNotificationPanelUpdatable::_deinit() {
 }
 
 String GRNotificationPanelUpdatable::_get_text_from_lines() {
-	Array lv = lines.values();
 	String res = "";
-	for (int i = 0; i < lv.size(); i++) {
-		res += V_CAST(lv[i], String);
-		if (i < lv.size() - 1) {
+	int i = 0;
+	for (auto lv : lines) {
+		res += str(lv.second);
+		if (i < lines.size() - 1) {
 			res += "\n";
 		}
+		i++;
 	}
-	lv.clear();
 	return res;
 }
 
@@ -831,7 +831,7 @@ void GRNotificationPanelUpdatable::set_updatable_line(GRNotifications *_owner, S
 }
 
 void GRNotificationPanelUpdatable::remove_updatable_line(String id) {
-	if (lines.has(id)) {
+	if (lines.find(id) != lines.end()) {
 		lines.erase(id);
 		text_node->set_text(_get_text_from_lines());
 

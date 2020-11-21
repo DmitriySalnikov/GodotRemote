@@ -117,8 +117,9 @@ private:
 	void _adjust_viewport_scale();
 
 	void _load_settings();
-	void _update_settings_from_client(const Dictionary settings);
+	void _update_settings_from_client(const std::map<int, Variant> settings);
 	void _remove_resize_viewport(Node *vp);
+	void _on_grviewport_deleting();
 
 	virtual void _reset_counters() override;
 
@@ -216,6 +217,8 @@ private:
 
 	void _close_thread() { Thread_close(_thread_process); }
 	void _set_img_data(ImgProcessingStorageViewport* _data);
+	void _on_renderer_deleting();
+
 	THREAD_FUNC void _processing_thread(THREAD_DATA p_user);
 
 protected:

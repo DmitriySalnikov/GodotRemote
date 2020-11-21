@@ -25,8 +25,8 @@ using namespace godot;
 using namespace GRUtils;
 
 #ifndef GDNATIVE_LIBRARY
-class GodotRemote : public Reference {
-	GD_CLASS(GodotRemote, Reference);
+class GodotRemote : public Object {
+	GD_CLASS(GodotRemote, Object);
 #else
 class GodotRemote : public Node {
 	GD_CLASS(GodotRemote, Node);

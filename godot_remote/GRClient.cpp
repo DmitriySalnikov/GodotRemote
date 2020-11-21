@@ -57,6 +57,12 @@ using namespace godot;
 #define BUTTON_WHEEL_RIGHT GlobalConstants::BUTTON_WHEEL_RIGHT
 #endif
 
+enum class DeletingVarName {
+	CONTROL_TO_SHOW_STREAM,
+	TEXTURE_TO_SHOW_STREAM,
+	INPUT_COLLECTOR,
+};
+
 using namespace GRUtils;
 
 #ifndef GDNATIVE_LIBRARY
@@ -68,6 +74,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_viewport_size_changed"), &GRClient::_viewport_size_changed);
 	ClassDB::bind_method(D_METHOD("_load_custom_input_scene", "_data"), &GRClient::_load_custom_input_scene);
 	ClassDB::bind_method(D_METHOD("_remove_custom_input_scene"), &GRClient::_remove_custom_input_scene);
+	ClassDB::bind_method(D_METHOD("_on_node_deleting", "var_name"), &GRClient::_on_node_deleting);
 
 	ClassDB::bind_method(D_METHOD("send_packet", "packet"), &GRClient::send_packet);
 
@@ -181,6 +188,7 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, _viewport_size_changed);
 	METHOD_REG(GRClient, _load_custom_input_scene);
 	METHOD_REG(GRClient, _remove_custom_input_scene);
+	METHOD_REG(GRClient, _on_node_deleting);
 
 	METHOD_REG(GRClient, send_packet);
 
@@ -308,6 +316,7 @@ void GRClient::_deinit() {
 	if (get_status() == (int)WorkingStatus::Working) {
 		_internal_call_only_deffered_stop();
 	}
+	set_control_to_show_in(nullptr, 0);
 	memdelete(send_queue_mutex);
 	memdelete(connection_mutex);
 
@@ -358,7 +367,7 @@ void GRClient::_internal_call_only_deffered_stop() {
 	_log("Stopping GodotRemote client", LogLevel::LL_Debug);
 	set_status(WorkingStatus::Stopping);
 	_remove_custom_input_scene();
-	set_control_to_show_in(nullptr, 0);
+	//set_control_to_show_in(nullptr, 0);
 
 	connection_mutex->lock();
 	if (thread_connection) {
@@ -369,9 +378,9 @@ void GRClient::_internal_call_only_deffered_stop() {
 		thread_connection->free();
 		thread_connection = nullptr;
 	}
+	send_queue.resize(0);
 	send_queue_mutex->unlock();
 	connection_mutex->unlock();
-	send_queue.resize(0);
 
 	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 	set_status(WorkingStatus::Stopped);
@@ -391,6 +400,7 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 	if (control_to_show_in && !control_to_show_in->is_queued_for_deletion() &&
 			control_to_show_in->is_connected("resized", this, "_viewport_size_changed")) {
 		control_to_show_in->disconnect("resized", this, "_viewport_size_changed");
+		control_to_show_in->disconnect("tree_exiting", this, "_on_node_deleting");
 	}
 
 	_remove_custom_input_scene();
@@ -402,6 +412,10 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 
 		tex_shows_stream = memnew(GRTextureRect);
 		input_collector = memnew(GRInputCollector);
+
+		tex_shows_stream->connect("tree_exiting", this, "_on_node_deleting", vec_args({ (int)DeletingVarName::TEXTURE_TO_SHOW_STREAM }));
+		input_collector->connect("tree_exiting", this, "_on_node_deleting", vec_args({ (int)DeletingVarName::INPUT_COLLECTOR }));
+		control_to_show_in->connect("tree_exiting", this, "_on_node_deleting", vec_args({ (int)DeletingVarName::CONTROL_TO_SHOW_STREAM }));
 
 		tex_shows_stream->set_name("GodotRemoteStreamSprite");
 		input_collector->set_name("GodotRemoteInputCollector");
@@ -423,6 +437,23 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 		signal_connection_state = StreamState::STREAM_ACTIVE; // force execute update function
 		call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 		call_deferred("_force_update_stream_viewport_signals"); // force update if client connected faster than scene loads
+	}
+}
+
+void GRClient::_on_node_deleting(int var_name) {
+	switch ((DeletingVarName)var_name) {
+	case DeletingVarName::CONTROL_TO_SHOW_STREAM:
+		control_to_show_in = nullptr;
+		set_control_to_show_in(nullptr, 0);
+		break;
+	case DeletingVarName::TEXTURE_TO_SHOW_STREAM:
+		tex_shows_stream = nullptr;
+		break;
+	case DeletingVarName::INPUT_COLLECTOR:
+		input_collector = nullptr;
+		break;
+	default:
+		break;
 	}
 }
 
@@ -1067,6 +1098,8 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 				break;
 		}
 
+		ppeer->call_deferred("free");
+
 		prev_auth_error = res;
 
 		if (con->is_connected_to_host()) {
@@ -1175,20 +1208,18 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 		start_while_time = os->get_ticks_usec();
 		while (!dev->send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
 			dev->send_queue_mutex->lock();
-
 			Ref<GRPacket> packet = dev->send_queue.front();
 			dev->send_queue.erase(dev->send_queue.begin());
+			dev->send_queue_mutex->unlock();
 
 			if (packet.is_valid()) {
 				err = ppeer->put_var(packet->get_data());
 
 				if ((int)err) {
 					_log("Put data from queue failed with code: " + str((int)err), LogLevel::LL_Error);
-					dev->send_queue_mutex->unlock();
 					goto end_send;
 				}
 			}
-			dev->send_queue_mutex->unlock();
 		}
 		TimeCount("Send queue");
 	end_send:
@@ -1318,7 +1349,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 						continue;
 					}
 
-					dev->call_deferred("emit_signal", "server_settings_received", data->get_settings());
+					dev->call_deferred("emit_signal", "server_settings_received", map_to_dict(data->get_settings()));
 					break;
 				}
 				case PacketType::MouseModeSync: {
@@ -1834,10 +1865,10 @@ void GRInputCollector::set_tex_rect(TextureRect *tr) {
 Ref<GRPacketInputData> GRInputCollector::get_collected_input_data() {
 	Ref<GRPacketInputData> res(memnew(GRPacketInputData));
 	Ref<GRInputDeviceSensorsData> s(memnew(GRInputDeviceSensorsData));
-	s->set_sensors(sensors);
 
 	_TS_LOCK_;
 
+	s->set_sensors(sensors);
 	collected_input_data.push_back(s);
 	res->set_input_data(collected_input_data);
 	collected_input_data.resize(0);

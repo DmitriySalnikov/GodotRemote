@@ -443,4 +443,61 @@ void set_gyroscope(const Vector3 &p_gyroscope) {
 		id->set_gyroscope(p_gyroscope);
 }
 
+Array vec_args(const std::vector<Variant>& args) {
+	return vec_to_arr(args);
+}
+
+#ifndef GDNATIVE_LIBRARY
+
+#else
+String _gdn_get_file_as_string(String path, Error* ret_err) {
+	auto f = memnew(File);
+	Error r = f->open(path, File::ModeFlags::READ);
+	*ret_err = r;
+	if (r == Error::OK) {
+		String txt = f->get_as_text();
+		f->close();
+		memdelete(f);
+		return txt;
+	}
+	else {
+		memdelete(f);
+	}
+	return "";
+}
+
+Variant _gdn_dictionary_get_key_at_index(Dictionary d, int idx) {
+	Array k = d.keys();
+	Variant r = k[idx];
+	k.clear();
+	return r;
+}
+
+Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx) {
+	Array v = d.values();
+	Variant r = v[idx];
+	v.clear();
+	return r;
+}
+
+Ref<Thread> _gdn_thread_create(Object* instance, String func_name, const Object* user_data) {
+	Ref<Thread> t = newref(Thread);
+	t->start(instance, func_name, user_data);
+	return t;
+}
+
+Variant _GLOBAL_DEF(const String& p_var, const Variant& p_default, bool p_restart_if_changed) {
+	Variant ret;
+	if (!ProjectSettings::get_singleton()->has_setting(p_var)) {
+		ProjectSettings::get_singleton()->set(p_var, p_default);
+	}
+	ret = ProjectSettings::get_singleton()->get(p_var);
+
+	ProjectSettings::get_singleton()->set_initial_value(p_var, p_default);
+	//ProjectSettings::get_singleton()->set_builtin_order(p_var);
+	//ProjectSettings::get_singleton()->set_restart_if_changed(p_var, p_restart_if_changed);
+	return ret;
+}
+#endif
+
 } // namespace GRUtils

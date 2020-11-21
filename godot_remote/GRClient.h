@@ -4,10 +4,8 @@
 #ifndef NO_GODOTREMOTE_CLIENT
 
 #include "GRDevice.h"
-#include <vector>
 
 #ifndef GDNATIVE_LIBRARY
-
 #include "core/io/ip_address.h"
 #include "core/io/stream_peer_tcp.h"
 #include "scene/gui/texture_rect.h"
@@ -165,6 +163,7 @@ private:
 	void _load_custom_input_scene(Ref<class GRPacketCustomInputScene> _data);
 	void _remove_custom_input_scene();
 	void _viewport_size_changed();
+	void _on_node_deleting(int var_name);
 
 	void _update_texture_from_iamge(Ref<Image> img);
 	void _update_stream_texture_state(ENUM_ARG(StreamState) _stream_state);
@@ -250,7 +249,8 @@ private:
 	GRInputCollector **this_in_client = nullptr; //somebody help
 
 	class TextureRect *texture_rect = nullptr;
-	Array collected_input_data; // Ref<GRInputData>
+	//Array collected_input_data; // Ref<GRInputData>
+	std::vector<Ref<GRInputData>> collected_input_data;
 	class Control *parent;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;

@@ -72,10 +72,10 @@ private:
 	NotificationsPosition notifications_position = NotificationsPosition::TL;
 
 	class VBoxContainer *notif_list_node = nullptr;
-	Array notifications; // GRNotificationPanel *
+	std::vector<GRNotificationPanel*> notifications; // GRNotificationPanel *
 	Ref<GRNotificationStyle> style;
 
-	Array _get_notifications_with_title(String title); // GRNotificationPanel *
+	std::vector<GRNotificationPanel*> _get_notifications_with_title(String title); // GRNotificationPanel *
 	GRNotificationPanel *_get_notification(String title);
 
 	void _set_all_notifications_positions(NotificationsPosition pos);
@@ -209,7 +209,7 @@ class GRNotificationPanelUpdatable : public GRNotificationPanel {
 	friend GRNotifications;
 
 protected:
-	Dictionary lines;
+	std::map<String, String> lines;
 	String _get_text_from_lines();
 	bool configured = false;
 

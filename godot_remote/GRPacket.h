@@ -2,6 +2,7 @@
 #pragma once
 
 #include "GRUtils.h"
+#include "GRInputData.h"
 
 #ifndef GDNATIVE_LIBRARY
 
@@ -122,7 +123,7 @@ public:
 	void set_is_empty(bool _empty);
 
 	~GRPacketImageData() {
-		img_data.resize(0);
+		//img_data.resize(0);
 	}
 };
 
@@ -132,7 +133,7 @@ class GRPacketInputData : public GRPacket {
 	GD_S_CLASS(GRPacketInputData, GRPacket);
 	friend GRPacket;
 
-	Array inputs; // Ref<GRInputData>
+	std::vector<Ref<GRInputData>> inputs;
 
 protected:
 	GDNATIVE_BASIC_REGISTER;
@@ -146,11 +147,11 @@ public:
 	int get_inputs_count();
 	Ref<class GRInputData> get_input_data(int idx);
 	void remove_input_data(int idx);
-	void add_input_data(Ref<class GRInputData> &input);
-	void set_input_data(Array &_inputs); // Ref<GRInputData>
+	void add_input_data(Ref<GRInputData> &input);
+	void set_input_data(std::vector<Ref<GRInputData>>& _inputs); // Ref<GRInputData>
 
 	~GRPacketInputData() {
-		inputs.clear();
+		//inputs.clear();
 	}
 };
 
@@ -160,7 +161,7 @@ class GRPacketServerSettings : public GRPacket {
 	GD_S_CLASS(GRPacketServerSettings, GRPacket);
 	friend GRPacket;
 
-	Dictionary settings;
+	std::map<int, Variant> settings;
 
 protected:
 	GDNATIVE_BASIC_REGISTER;
@@ -171,12 +172,12 @@ protected:
 public:
 	virtual PacketType get_type() override { return PacketType::ServerSettings; };
 
-	Dictionary get_settings();
-	void set_settings(Dictionary &_settings);
+	std::map<int, Variant> get_settings();
+	void set_settings(std::map<int, Variant>&_settings);
 	void add_setting(int _setting, Variant value);
 
 	~GRPacketServerSettings() {
-		settings.clear();
+		//settings.clear();
 	}
 };
 
@@ -234,7 +235,7 @@ public:
 	void set_compression_type(int val);
 
 	~GRPacketCustomInputScene() {
-		scene_data.resize(0);
+		//scene_data.resize(0);
 	}
 };
 

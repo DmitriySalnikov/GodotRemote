@@ -43,6 +43,7 @@ using namespace GRUtils;
 void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_load_settings"), &GRServer::_load_settings);
 	ClassDB::bind_method(D_METHOD("_remove_resize_viewport", "vp"), &GRServer::_remove_resize_viewport);
+	ClassDB::bind_method(D_METHOD("_on_grviewport_deleting"), &GRServer::_on_grviewport_deleting);
 
 	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRServer::get_gr_viewport);
 	ClassDB::bind_method(D_METHOD("force_update_custom_input_scene"), &GRServer::force_update_custom_input_scene);
@@ -114,6 +115,7 @@ void GRServer::_register_methods() {
 	METHOD_REG(GRServer, _notification);
 	METHOD_REG(GRServer, _thread_listen);
 	METHOD_REG(GRServer, _thread_connection);
+	METHOD_REG(GRServer, _on_grviewport_deleting);
 
 	METHOD_REG(GRServer, _load_settings);
 	METHOD_REG(GRServer, _remove_resize_viewport);
@@ -395,6 +397,10 @@ void GRServer::_remove_resize_viewport(Node *node) {
 	}
 }
 
+void GRServer::_on_grviewport_deleting() {
+	resize_viewport = nullptr;
+}
+
 GRSViewport *GRServer::get_gr_viewport() {
 	return resize_viewport;
 }
@@ -490,7 +496,7 @@ void GRServer::_load_settings() {
 	}
 }
 
-void GRServer::_update_settings_from_client(const Dictionary settings) {
+void GRServer::_update_settings_from_client(const std::map<int, Variant> settings) {
 #define SET_BODY(_func, _id, _text, _type)                                                                                     \
 	if (_func(value)) {                                                                                                        \
 		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value)), NotificationIcon::None, 1.f); \
@@ -504,7 +510,6 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 		using_client_settings_recently_updated = true;                                                                         \
 	}
 
-	Array keys = settings.keys();
 	const String title = "Server settings updated";
 
 	GRNotificationPanelUpdatable *np = cast_to<GRNotificationPanelUpdatable>(GRNotifications::get_notification(title));
@@ -517,9 +522,9 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", NotificationIcon::_Error, true, 1.f);
 	}
 
-	for (int i = 0; i < settings.size(); i++) {
-		Variant key = keys[i];
-		Variant value = settings[key];
+	for (auto p : settings) {
+		Variant key = p.first;
+		Variant value = p.second;
 		_log("Trying to set server setting from client with key: " + str((int)key) + " and value: " + str(value), LogLevel::LL_Debug);
 
 		if (key.get_type() == Variant::INT) {
@@ -528,7 +533,6 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 				case TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS:
 					if ((bool)value) {
 						call_deferred("_load_settings");
-						keys.clear();
 						return;
 					}
 					break;
@@ -558,7 +562,6 @@ void GRServer::_update_settings_from_client(const Dictionary settings) {
 			}
 		}
 	}
-	keys.clear();
 
 #undef SET_BODY
 #undef SET_BODY_CONVERT
@@ -1360,7 +1363,9 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, Array&_arr) 
 void GRSViewport::_processing_thread(THREAD_DATA p_user) {
 	GRSViewport *vp = (GRSViewport *)p_user;
 	ImgProcessingStorageViewport* ips = memnew(ImgProcessingStorageViewport);
+	_TS_LOCK_;
 	Ref<Image> img = vp->last_image;
+	_TS_UNLOCK_;
 
 	TimeCountInit();
 	if (!ips) {
@@ -1428,6 +1433,7 @@ end:
 
 void GRSViewport::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_update_size"), &GRSViewport::_update_size);
+	ClassDB::bind_method(D_METHOD("_on_renderer_deleting"), &GRSViewport::_on_renderer_deleting);
 	ClassDB::bind_method(D_METHOD("set_rendering_scale"), &GRSViewport::set_rendering_scale);
 	ClassDB::bind_method(D_METHOD("get_rendering_scale"), &GRSViewport::get_rendering_scale);
 
@@ -1439,6 +1445,7 @@ void GRSViewport::_bind_methods() {
 void GRSViewport::_register_methods() {
 	METHOD_REG(GRSViewport, _notification);
 	METHOD_REG(GRSViewport, _processing_thread);
+	METHOD_REG(GRSViewport, _on_renderer_deleting);
 
 	METHOD_REG(GRSViewport, _update_size);
 	METHOD_REG(GRSViewport, set_rendering_scale);
@@ -1456,6 +1463,10 @@ void GRSViewport::_set_img_data(ImgProcessingStorageViewport* _data) {
 
 	last_image_data = _data;
 	_TS_UNLOCK_;
+}
+
+void GRSViewport::_on_renderer_deleting() {
+	renderer = nullptr;
 }
 
 void GRSViewport::_notification(int p_notification) {
@@ -1497,6 +1508,7 @@ void GRSViewport::_notification(int p_notification) {
 				if (get_texture().is_null())
 					break;
 
+				_TS_LOCK_;
 				last_image = get_texture()->get_data(); // extremely slow
 				TimeCount("Get image data from VisualServer");
 
@@ -1505,6 +1517,7 @@ void GRSViewport::_notification(int p_notification) {
 				} else {
 					_log("Can't copy viewport image data", LogLevel::LL_Error);
 				}
+				_TS_UNLOCK_;
 			}
 			break;
 		}
@@ -1515,14 +1528,17 @@ void GRSViewport::_notification(int p_notification) {
 
 			renderer = memnew(GRSViewportRenderer);
 			renderer->tex = main_vp->get_texture();
+			renderer->connect("tree_exiting", this, "_on_renderer_deleting");
 			add_child(renderer);
 
 			break;
 		}
 		case NOTIFICATION_EXIT_TREE: {
-			remove_child(renderer);
-			//renderer->queue_delete();
-			memdelete(renderer);
+			if (renderer) {
+				remove_child(renderer);
+				//renderer->queue_delete();
+				memdelete(renderer);
+			}
 			main_vp->disconnect("size_changed", this, "_update_size");
 			main_vp = nullptr;
 			break;

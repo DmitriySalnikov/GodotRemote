@@ -1,6 +1,6 @@
 /* GRPacket.cpp */
 #include "GRPacket.h"
-#include "GRInputData.h"
+
 #ifndef GDNATIVE_LIBRARY
 
 #include "core/os/os.h"
@@ -177,7 +177,8 @@ Ref<StreamPeerBuffer> GRPacketInputData::_get_data() {
 			count++;
 		}
 		else {
-			inputs.remove(i);
+			//inputs.remove(i);
+			inputs.erase(inputs.begin() + i);
 			i--;
 		}
 	}
@@ -213,14 +214,15 @@ Ref<GRInputData> GRPacketInputData::get_input_data(int idx) {
 void GRPacketInputData::remove_input_data(int idx) {
 	ERR_FAIL_INDEX(idx, inputs.size());
 
-	inputs.remove(idx);
+	//inputs.remove(idx);
+	inputs.erase(inputs.begin() + idx);
 }
 
-void GRPacketInputData::add_input_data(Ref<class GRInputData>& input) {
+void GRPacketInputData::add_input_data(Ref<GRInputData>& input) {
 	inputs.push_back(input);
 }
 
-void GRPacketInputData::set_input_data(Array& _inputs) {
+void GRPacketInputData::set_input_data(std::vector<Ref<GRInputData>>& _inputs) {
 	inputs = _inputs;
 }
 
@@ -228,21 +230,21 @@ void GRPacketInputData::set_input_data(Array& _inputs) {
 // SERVER SETTINGS
 Ref<StreamPeerBuffer> GRPacketServerSettings::_get_data() {
 	auto buf = GRPacket::_get_data();
-	buf->put_var(settings);
+	buf->put_var(map_to_dict(settings));
 	return buf;
 }
 
 bool GRPacketServerSettings::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
-	settings = buf->get_var();
+	settings = dict_to_map<int, Variant>(buf->get_var());
 	return true;
 }
 
-Dictionary GRPacketServerSettings::get_settings() {
+std::map<int, Variant> GRPacketServerSettings::get_settings() {
 	return settings;
 }
 
-void GRPacketServerSettings::set_settings(Dictionary& _settings) {
+void GRPacketServerSettings::set_settings(std::map<int, Variant>& _settings) {
 	settings = _settings;
 }
 

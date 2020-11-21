@@ -3,7 +3,6 @@
 #include "GRClient.h"
 #include "GRServer.h"
 
-
 #ifndef GDNATIVE_LIBRARY
 #include "core/os/os.h"
 #include "core/project_settings.h"

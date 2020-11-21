@@ -2,6 +2,9 @@
 #ifndef GRUTILS_H
 #define GRUTILS_H
 
+#include <vector>
+#include <map>
+
 #ifndef GDNATIVE_LIBRARY
 #include "core/image.h"
 #include "core/io/marshalls.h"
@@ -194,44 +197,6 @@ public:                                 \
 	static void _register_methods() {}; \
 protected:
 
-/*
-template <class T>
-struct VariantCaster {
-
-	static inline T cast(const Variant& p_variant) {
-
-		return p_variant;
-	}
-};
-
-template <class T>
-struct VariantCaster<T&> {
-
-	static inline T cast(const Variant& p_variant) {
-
-		return p_variant;
-	}
-};
-
-template <class T>
-struct VariantCaster<const T&> {
-
-	static inline T cast(const Variant& p_variant) {
-
-		return p_variant;
-	}
-};
-
-#define VARIANT_ENUM_CAST(m_enum)                                     \
-	template <>                                                       \
-	struct VariantCaster<m_enum> {                                    \
-                                                                      \
-		static inline m_enum cast(const Variant &p_variant) {         \
-			return (m_enum)p_variant.operator int();                  \
-		}                                                             \
-	};
-*/
-
 #define ERR_FAIL_V_MSG(m_retval, m_msg)                                              \
 	{                                                                                \
 		ERR_PRINT(String("Method failed. Returning: ") + #m_retval + ".\n" + m_msg); \
@@ -376,6 +341,8 @@ namespace GRUtils {
 	extern void set_magnetometer(const Vector3& p_magnetometer);
 	extern void set_gyroscope(const Vector3& p_gyroscope);
 
+	extern Array vec_args(const std::vector<Variant>& args);
+
 	// LITERALS
 
 	// conversion from usec to msec. most useful to OS::delay_usec()
@@ -384,6 +351,57 @@ namespace GRUtils {
 	}
 
 	// IMPLEMENTATINS
+
+	template <class T>
+	extern String str_arr(const std::vector<T> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ") {
+		String res = "[ ";
+		int s = arr.size();
+		bool is_long = false;
+		if (s > max_shown_items && !force_full) {
+			s = max_shown_items;
+			is_long = true;
+		}
+
+		for (int i = 0; i < s; i++) {
+			res += str(arr[i]);
+			if (i != s - 1 || is_long) {
+				res += separator;
+			}
+		}
+
+		if (is_long) {
+			res += str(int64_t(arr.size()) - s) + " more items...";
+		}
+
+		return res + " ]";
+	}
+
+	template <class K, class V>
+	extern String str_arr(const std::map<K, V> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ") {
+		String res = "{ ";
+		int s = arr.size();
+		bool is_long = false;
+		if (s > max_shown_items && !force_full) {
+			s = max_shown_items;
+			is_long = true;
+		}
+
+		int i = 0;
+		for (auto p : arr) {
+			if(i++ >= s)
+				break;
+			res += str(p.first) + " : " + str(p.second);
+			if (i != s - 1 || is_long) {
+				res += separator;
+			}
+		}
+
+		if (is_long) {
+			res += String::num_int64(int64_t(arr.size()) - s) + " more items...";
+		}
+
+		return res + " }";
+	}
 
 #ifndef GDNATIVE_LIBRARY
 	template <class T>
@@ -461,58 +479,61 @@ namespace GRUtils {
 		_grutils_data->current_loglevel = lvl;
 	}
 
+	template<class T>
+	inline void vec_remove_idx(std::vector<T>& v, const T& item) {
+		v.erase(std::remove(v.begin(), v.end(), item), v.end());
+	}
+
+	template <class K, class V>
+	static Dictionary map_to_dict(std::map<K, V> m) {
+		Dictionary res;
+		for (auto p : m){
+			res[p.first] = p.second;
+		}
+		return res;
+	}
+
+	template <class K, class V>
+	static std::map<K, V> dict_to_map(Dictionary d) {
+		std::map<K, V> res;
+		Array keys = d.keys();
+		Array values = d.values();
+		for (int i = 0; i < keys.size(); i++) {
+			res[keys[i]] = values[i];
+		}
+		keys.clear();
+		values.clear();
+		return res;
+	}
+
+	template <class V>
+	static Array vec_to_arr(std::vector<V> v) {
+		Array res;
+		res.resize((int)v.size());
+		for (int i = 0; i < v.size(); i++) {
+			res[i] = v[i];
+		}
+		return res;
+	}
+
+	template <class V>
+	static std::vector<V> arr_to_vec(Array a) {
+		std::vector<V> res;
+		res.resize(a.size());
+		for (int i = 0; i < a.size(); i++) {
+			res[i] = a[i];
+		}
+		return res;
+	}
 
 #ifndef GDNATIVE_LIBRARY
 
 #else
-	static String _gdn_get_file_as_string(String path, Error *ret_err) {
-		auto f = memnew(File);
-		Error r = f->open(path, File::ModeFlags::READ);
-		*ret_err = r;
-		if (r == Error::OK) {
-			String txt = f->get_as_text();
-			f->close();
-			memdelete(f);
-			return txt;
-		}
-		else {
-			memdelete(f);
-		}
-		return "";
-	}
-
-	static Variant _gdn_dictionary_get_key_at_index(Dictionary d, int idx) {
-		Array k = d.keys();
-		Variant r = k[idx];
-		k.clear();
-		return r;
-	}
-
-	static Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx) {
-		Array v = d.values();
-		Variant r = v[idx];
-		v.clear();
-		return r;
-	}
-
-	static Ref<Thread> _gdn_thread_create(Object* instance, String func_name, const Object* user_data) {
-		Ref<Thread> t = newref(Thread);
-		t->start(instance, func_name, user_data);
-		return t;
-	}
-
-	static Variant _GLOBAL_DEF(const String& p_var, const Variant& p_default, bool p_restart_if_changed = false) {
-		Variant ret;
-		if (!ProjectSettings::get_singleton()->has_setting(p_var)) {
-			ProjectSettings::get_singleton()->set(p_var, p_default);
-		}
-		ret = ProjectSettings::get_singleton()->get(p_var);
-
-		ProjectSettings::get_singleton()->set_initial_value(p_var, p_default);
-		//ProjectSettings::get_singleton()->set_builtin_order(p_var);
-		//ProjectSettings::get_singleton()->set_restart_if_changed(p_var, p_restart_if_changed);
-		return ret;
-		}
+	extern String _gdn_get_file_as_string(String path, Error* ret_err);
+	extern Variant _gdn_dictionary_get_key_at_index(Dictionary d, int idx);
+	extern Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx);
+	extern Ref<Thread> _gdn_thread_create(Object* instance, String func_name, const Object* user_data);
+	extern Variant _GLOBAL_DEF(const String& p_var, const Variant& p_default, bool p_restart_if_changed = false);
 #endif
 
 }; // namespace GRUtils
