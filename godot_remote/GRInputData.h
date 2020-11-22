@@ -84,18 +84,19 @@ public:
 	PoolByteArray get_data() {
 		return data->get_data_array();
 	}
-	void set_data(PoolByteArray &_data) {
+	void set_data(PoolByteArray& _data) {
 		data->set_data_array(_data);
 	}
 	virtual InputType get_type() {
 		if (data->get_size()) {
 			data->seek(0);
 			return (InputType)data->get_8();
-		} else {
+		}
+		else {
 			return _get_type();
 		}
 	};
-	static Ref<GRInputData> create(const PoolByteArray &buf);
+	static Ref<GRInputData> create(const PoolByteArray& buf);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -129,13 +130,13 @@ class GRInputDataEvent : public GRInputData {
 protected:
 	GDNATIVE_BASIC_REGISTER;
 
-	virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2 &rect) {
+	virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2& rect) {
 		data->seek(0);
 		data->get_8();
 		ev->set_device(data->get_32());
 		return data;
 	};
-	virtual void _parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) {
+	virtual void _parse_event(const Ref<InputEvent>& ev, const Rect2& rect) {
 		data->resize(0);
 		data->put_8((uint8_t)get_type());
 		data->put_32(ev->get_device());
@@ -143,8 +144,8 @@ protected:
 	virtual InputType _get_type() override { return InputType::_NoneIT; };
 
 public:
-	Ref<InputEvent> construct_event(const Rect2 &rect = Rect2());
-	static Ref<GRInputDataEvent> parse_event(const Ref<InputEvent> &ev, const Rect2 &rect);
+	Ref<InputEvent> construct_event(const Rect2& rect = Rect2());
+	static Ref<GRInputDataEvent> parse_event(const Ref<InputEvent>& ev, const Rect2& rect);
 };
 
 #define INPUT_EVENT_DATA(__class, _parent, _type)                                                 \

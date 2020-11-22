@@ -46,6 +46,8 @@ using namespace godot;
 
 // Bind constant with custom name
 #define BIND_ENUM_CONSTANT_CUSTOM(m_constant, m_name) ClassDB::bind_integer_constant(get_class_static(), StringName(), m_name, ((int)(m_constant)));
+#define GDNATIVE_BASIC_REGISTER
+#define GDNATIVE_BASIC_REGISTER_NO_INIT
 
 #define queue_del queue_delete
 #define img_is_empty(img) img->empty()
@@ -65,7 +67,7 @@ using namespace godot;
 #define _TS_UNLOCK_	_THREAD_SAFE_UNLOCK_
 #define Mutex_create() Mutex::create()
 #define Thread_create(_class, function, data_to_send, inst) Thread::create(&_class::function, data_to_send)
-#define Thread_set_name(_name) Thread::set_name()
+#define Thread_set_name(_name) Thread::set_name(_name)
 #define Thread_close(_name)  \
 if (_name) {                 \
 	t_wait_to_finish(_name); \
@@ -146,7 +148,7 @@ if (_name.is_valid()) {      \
 // THREAD SAFE END
 
 #define ENUM_ARG(en) int 
-#define ENUM_CONV(en) (en)
+#define ENUM_CONV(en) 
 
 #define DEF_ARG(a) 
 //#define DEF_ARGS(...) ,__VA_ARGS__ 
@@ -233,9 +235,14 @@ protected:
 
 #endif // DEBUG_ENABLED
 
+#define LEAVE_IF_EDITOR()                      \
+if (Engine::get_singleton()->is_editor_hint()) \
+	return;
+
 #define newref(_class) Ref<_class>(memnew(_class))
 #define max(x, y) (x > y ? x : y)
 #define min(x, y) (x < y ? x : y)
+#define _log(val, ll) __log(val, ll, __FILE__, __LINE__)
 
 #define GR_VERSION(x, y, z)             \
 	if (_grutils_data->internal_VERSION.size() == 0) { \
@@ -294,7 +301,8 @@ enum TypesOfServerSettings : int {
 namespace GRUtils {
 	// DEFINES
 
-	class GRUtilsData {
+	class GRUtilsData : public Object {
+		GD_CLASS(GRUtilsData, Object);
 	public:
 		int current_loglevel;
 		PoolByteArray internal_PACKET_HEADER;
@@ -323,7 +331,7 @@ namespace GRUtils {
 
 	extern Error compress_bytes(const PoolByteArray& bytes, PoolByteArray& res, int type);
 	extern Error decompress_bytes(const PoolByteArray& bytes, int output_size, PoolByteArray& res, int type);
-	extern void _log(const Variant& val, LogLevel lvl = LogLevel::LL_Normal);
+	extern void __log(const Variant& val, LogLevel lvl = LogLevel::LL_Normal, String file = "", int line = 0);
 
 	extern String str(const Variant& val);
 	extern String str_arr(const Array arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ");
@@ -340,8 +348,6 @@ namespace GRUtils {
 	extern void set_accelerometer(const Vector3& p_accel);
 	extern void set_magnetometer(const Vector3& p_magnetometer);
 	extern void set_gyroscope(const Vector3& p_gyroscope);
-
-	extern Array vec_args(const std::vector<Variant>& args);
 
 	// LITERALS
 
@@ -388,7 +394,7 @@ namespace GRUtils {
 
 		int i = 0;
 		for (auto p : arr) {
-			if(i++ >= s)
+			if (i++ >= s)
 				break;
 			res += str(p.first) + " : " + str(p.second);
 			if (i != s - 1 || is_long) {
@@ -487,7 +493,7 @@ namespace GRUtils {
 	template <class K, class V>
 	static Dictionary map_to_dict(std::map<K, V> m) {
 		Dictionary res;
-		for (auto p : m){
+		for (auto p : m) {
 			res[p.first] = p.second;
 		}
 		return res;
@@ -527,8 +533,11 @@ namespace GRUtils {
 	}
 
 #ifndef GDNATIVE_LIBRARY
+	extern Vector<Variant> vec_args(const std::vector<Variant>& args);
 
 #else
+	extern Array vec_args(const std::vector<Variant>& args);
+
 	extern String _gdn_get_file_as_string(String path, Error* ret_err);
 	extern Variant _gdn_dictionary_get_key_at_index(Dictionary d, int idx);
 	extern Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx);

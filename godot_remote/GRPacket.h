@@ -56,7 +56,7 @@ protected:
 
 public:
 	virtual PacketType get_type() { return PacketType::NonePacket; };
-	static Ref<GRPacket> create(const PoolByteArray &bytes);
+	static Ref<GRPacket> create(const PoolByteArray& bytes);
 	PoolByteArray get_data() {
 		return _get_data()->get_data_array();
 	};
@@ -114,7 +114,7 @@ public:
 	uint64_t get_frametime();
 	bool get_is_empty();
 
-	void set_image_data(PoolByteArray &buf);
+	void set_image_data(PoolByteArray& buf);
 	void set_compression_type(int type);
 	void set_size(Size2 _size);
 	void set_format(int _format);
@@ -147,7 +147,7 @@ public:
 	int get_inputs_count();
 	Ref<class GRInputData> get_input_data(int idx);
 	void remove_input_data(int idx);
-	void add_input_data(Ref<GRInputData> &input);
+	void add_input_data(Ref<GRInputData>& input);
 	void set_input_data(std::vector<Ref<GRInputData>>& _inputs); // Ref<GRInputData>
 
 	~GRPacketInputData() {
@@ -173,7 +173,7 @@ public:
 	virtual PacketType get_type() override { return PacketType::ServerSettings; };
 
 	std::map<int, Variant> get_settings();
-	void set_settings(std::map<int, Variant>&_settings);
+	void set_settings(std::map<int, Variant>& _settings);
 	void add_setting(int _setting, Variant value);
 
 	~GRPacketServerSettings() {

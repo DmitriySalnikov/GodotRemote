@@ -63,7 +63,7 @@ class GRNotifications : public CanvasLayer {
 
 public:
 private:
-	static GRNotifications *singleton;
+	static GRNotifications* singleton;
 
 	bool clearing_notifications = false;
 
@@ -71,12 +71,12 @@ private:
 	bool notifications_enabled = true;
 	NotificationsPosition notifications_position = NotificationsPosition::TL;
 
-	class VBoxContainer *notif_list_node = nullptr;
+	class VBoxContainer* notif_list_node = nullptr;
 	std::vector<GRNotificationPanel*> notifications; // GRNotificationPanel *
 	Ref<GRNotificationStyle> style;
 
 	std::vector<GRNotificationPanel*> _get_notifications_with_title(String title); // GRNotificationPanel *
-	GRNotificationPanel *_get_notification(String title);
+	GRNotificationPanel* _get_notification(String title);
 
 	void _set_all_notifications_positions(NotificationsPosition pos);
 
@@ -85,7 +85,7 @@ private:
 	void _add_notification_or_update_line(String title, String id, String text, ENUM_ARG(NotificationIcon) icon, float duration_multiplier);
 	void _add_notification(String title, String text, ENUM_ARG(NotificationIcon) icon, bool update_existing, float duration_multiplier);
 	void _remove_notification(String title, bool all_entries);
-	void _remove_exact_notification(Node *_notif);
+	void _remove_exact_notification(Node* _notif);
 	void _clear_notifications();
 
 	void _remove_list();
@@ -105,7 +105,7 @@ public:
 	/// All functions below need to be called after init notification manager
 	/// For example call this after yield(get_tree(), "idle_frame")
 
-	static GRNotificationPanel *get_notification(String title);
+	static GRNotificationPanel* get_notification(String title);
 	static Array get_all_notifications();
 	static Array get_notifications_with_title(String title);
 
@@ -126,9 +126,9 @@ public:
 
 	static void add_notification(String title, String text, NotificationIcon icon DEF_ARG(= NotificationIcon::None), bool update_existing = true, float duration_multiplier = 1.f);
 	static void remove_notification(String title, bool all_entries = true);
-	static void remove_notification_exact(Node *_notif);
+	static void remove_notification_exact(Node* _notif);
 	static void clear_notifications();
-	static GRNotifications *get_singleton();
+	static GRNotifications* get_singleton();
 
 	void _init();
 	void _deinit();
@@ -151,7 +151,7 @@ class GRNotificationPanel : public PanelContainer {
 	friend GRNotifications;
 
 protected:
-	GRNotifications *owner = nullptr;
+	GRNotifications* owner = nullptr;
 
 	NotificationIcon notification_icon = NotificationIcon::None;
 	float duration_mul = 1.f;
@@ -160,18 +160,18 @@ protected:
 
 	static GRNotificationPanelSTATIC_DATA* _default_data;
 
-	class VBoxContainer *vbox_node = nullptr;
-	class HBoxContainer *hbox_node = nullptr;
-	class TextureRect *icon_tex_node = nullptr;
-	class Label *title_node = nullptr;
-	class Label *text_node = nullptr;
-	class Button *close_node = nullptr;
-	class Tween *tween_node = nullptr;
+	class VBoxContainer* vbox_node = nullptr;
+	class HBoxContainer* hbox_node = nullptr;
+	class TextureRect* icon_tex_node = nullptr;
+	class Label* title_node = nullptr;
+	class Label* text_node = nullptr;
+	class Button* close_node = nullptr;
+	class Tween* tween_node = nullptr;
 
 	void _panel_hovered();
 	void _panel_lose_hover();
 	void _remove_this_notification();
-	void _setup_tween(Tween *_tween);
+	void _setup_tween(Tween* _tween);
 	void _update_style();
 
 	static Ref<class GRNotificationStyle> generate_default_style();
@@ -194,7 +194,7 @@ public:
 	static void clear_styles();
 
 	void set_notification_position(NotificationsPosition position);
-	virtual void set_data(GRNotifications *_owner, String title, String text, NotificationIcon icon, float duration_multiplier DEF_ARG(= 1.f), Ref<GRNotificationStyle> _style DEF_ARG(= Ref<GRNotificationStyle>()));
+	virtual void set_data(GRNotifications* _owner, String title, String text, NotificationIcon icon, float duration_multiplier DEF_ARG(= 1.f), Ref<GRNotificationStyle> _style DEF_ARG(= Ref<GRNotificationStyle>()));
 	String get_title();
 	String get_text();
 	void update_text(String text);
@@ -224,7 +224,7 @@ protected:
 	void _notification(int p_notification);
 
 public:
-	void set_updatable_line(GRNotifications *_owner, String title, String id, String text, NotificationIcon icon, float duration_multiplier DEF_ARG(= 1.f), Ref<GRNotificationStyle> _style DEF_ARG(= Ref<GRNotificationStyle>()));
+	void set_updatable_line(GRNotifications* _owner, String title, String id, String text, NotificationIcon icon, float duration_multiplier DEF_ARG(= 1.f), Ref<GRNotificationStyle> _style DEF_ARG(= Ref<GRNotificationStyle>()));
 	void remove_updatable_line(String id);
 	void clear_lines();
 
@@ -275,7 +275,7 @@ public:
 
 	void set_notification_icon(ENUM_ARG(NotificationIcon) notification_icon, Ref<Texture> icon_texture);
 	Ref<Texture> get_notification_icon(ENUM_ARG(NotificationIcon) notification_icon);
-	
+
 	void _init();
 	void _deinit();
 };

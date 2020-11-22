@@ -102,7 +102,7 @@ func _notification(what):
 func _set_all_values():
 	var dev = GodotRemote.get_device()
 	var i_w : int = dev.get_status()
-	if i_w == GodotRemote.GRDevice_STATUS_WORKING:
+	if i_w == C.GRDevice_STATUS_WORKING:
 		dev.stop()
 	
 	dev.device_id = device_id
@@ -118,11 +118,11 @@ func _set_all_values():
 	OS.keep_screen_on = keepscreenon
 	
 	if override_server_settings:
-		dev.set_server_setting(GodotRemote.SERVER_PARAM_VIDEO_STREAM_ENABLED, server_video_stream)
-		dev.set_server_setting(GodotRemote.SERVER_PARAM_COMPRESSION_TYPE, server_compression_type)
-		dev.set_server_setting(GodotRemote.SERVER_PARAM_JPG_QUALITY, server_jpg_quality)
-		dev.set_server_setting(GodotRemote.SERVER_PARAM_RENDER_SCALE, server_render_scale)
-		dev.set_server_setting(GodotRemote.SERVER_PARAM_SKIP_FRAMES, server_skip_fps)
+		dev.set_server_setting(C.GodotRemote_SERVER_PARAM_VIDEO_STREAM_ENABLED, server_video_stream)
+		dev.set_server_setting(C.GodotRemote_SERVER_PARAM_COMPRESSION_TYPE, server_compression_type)
+		dev.set_server_setting(C.GodotRemote_SERVER_PARAM_JPG_QUALITY, server_jpg_quality)
+		dev.set_server_setting(C.GodotRemote_SERVER_PARAM_RENDER_SCALE, server_render_scale)
+		dev.set_server_setting(C.GodotRemote_SERVER_PARAM_SKIP_FRAMES, server_skip_fps)
 	
 	if i_w:
 		dev.start()

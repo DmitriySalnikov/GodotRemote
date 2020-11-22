@@ -33,7 +33,7 @@ class GodotRemote : public Node {
 #endif
 
 	friend class GRDevice;
-	static GodotRemote *singleton;
+	static GodotRemote* singleton;
 
 public:
 	enum DeviceType : int {
@@ -67,7 +67,7 @@ private:
 	bool is_autostart = false;
 	bool is_notifications_enabled = true;
 
-	class GRDevice *device = nullptr;
+	class GRDevice* device = nullptr;
 
 	void register_and_load_settings();
 #ifndef GDNATIVE_LIBRARY
@@ -79,7 +79,7 @@ private:
 #ifndef GDNATIVE_LIBRARY
 #ifdef TOOLS_ENABLED
 	int64_t adb_pid = 0;
-	class Timer *adb_start_timer = nullptr;
+	class Timer* adb_start_timer = nullptr;
 
 	void _prepare_editor();
 	void _run_emitted();
@@ -146,7 +146,7 @@ public:
 	CONST_GET(GRDevice, WorkingStatus, Stopped);
 	CONST_GET(GRDevice, WorkingStatus, Stopping);
 	CONST_GET(GRDevice, WorkingStatus, Working);
-	
+
 	CONST_GET(GRDevice, InputType, _NoneIT);
 	CONST_GET(GRDevice, InputType, _InputDeviceSensors);
 	CONST_GET(GRDevice, InputType, _InputEvent);
@@ -185,7 +185,7 @@ protected:
 
 public:
 	// GRNotifications
-	class GRNotificationPanel *get_notification(String title);
+	class GRNotificationPanel* get_notification(String title);
 	Array get_all_notifications();
 	Array get_notifications_with_title(String title);
 
@@ -208,20 +208,21 @@ public:
 	void add_notification_or_update_line(String title, String id, String text, ENUM_ARG(NotificationIcon) icon, float duration_multiplier DEF_ARG(= 1.f));
 	void add_notification(String title, String text, ENUM_ARG(NotificationIcon) icon, bool update_existing DEF_ARG(= true), float duration_multiplier DEF_ARG(= 1.f));
 	void remove_notification(String title, bool all_entries = true);
-	void remove_notification_exact(Node *_notif);
+	void remove_notification_exact(Node* _notif);
 	void clear_notifications();
 	// GRNotifications end
 
 	// GRUtils functions binds for GDScript
 	void set_log_level(ENUM_ARG(LogLevel) lvl);
-	void set_gravity(const Vector3 &p_gravity);
-	void set_accelerometer(const Vector3 &p_accel);
-	void set_magnetometer(const Vector3 &p_magnetometer);
-	void set_gyroscope(const Vector3 &p_gyroscope);
+	void set_gravity(const Vector3& p_gravity);
+	void set_accelerometer(const Vector3& p_accel);
+	void set_magnetometer(const Vector3& p_magnetometer);
+	void set_gyroscope(const Vector3& p_gyroscope);
 	// GRUtils end
 
-	class GRDevice *get_device();
-	class String get_version();
+	GRDevice* get_device();
+	String get_version();
+	bool is_gdnative();
 
 	// must be call_deffered
 	void create_and_start_device(ENUM_ARG(DeviceType) type DEF_ARG(= DeviceType::DEVICE_AUTO));
@@ -229,7 +230,7 @@ public:
 	bool start_remote_device();
 	bool remove_remote_device();
 
-	static GodotRemote *get_singleton();
+	static GodotRemote* get_singleton();
 	void _init();
 	void _deinit();
 };

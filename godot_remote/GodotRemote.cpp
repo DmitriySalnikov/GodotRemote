@@ -21,7 +21,7 @@
 using namespace godot;
 #endif
 
-GodotRemote *GodotRemote::singleton = nullptr;
+GodotRemote* GodotRemote::singleton = nullptr;
 
 using namespace GRUtils;
 
@@ -47,21 +47,21 @@ const char* GodotRemote::ps_server_custom_input_scene_name = "debug/godot_remote
 const char* GodotRemote::ps_server_custom_input_scene_compressed_name = "debug/godot_remote/server_custom_input_scene/send_custom_input_scene_compressed";
 const char* GodotRemote::ps_server_custom_input_scene_compression_type_name = "debug/godot_remote/server_custom_input_scene/custom_input_scene_compression_type";
 
-GodotRemote *GodotRemote::get_singleton() {
+GodotRemote* GodotRemote::get_singleton() {
 	return singleton;
 }
 
 void GodotRemote::_init() {
 	if (!singleton)
 		singleton = this;
+	LEAVE_IF_EDITOR();
+
 	register_and_load_settings();
 	GRUtils::init();
 
-	if (!Engine::get_singleton()->is_editor_hint()) {
-		call_deferred("_create_notification_manager");
-		if (is_autostart)
-			call_deferred("create_and_start_device", DeviceType::DEVICE_AUTO);
-	}
+	call_deferred("_create_notification_manager");
+	if (is_autostart)
+		call_deferred("create_and_start_device", DeviceType::DEVICE_AUTO);
 
 #ifndef GDNATIVE_LIBRARY
 #ifdef TOOLS_ENABLED
@@ -71,6 +71,7 @@ void GodotRemote::_init() {
 }
 
 void GodotRemote::_deinit() {
+	LEAVE_IF_EDITOR();
 	remove_remote_device();
 	_remove_notifications_manager();
 
@@ -79,8 +80,7 @@ void GodotRemote::_deinit() {
 	call_deferred("_adb_start_timer_timeout");
 #endif
 #endif
-	if (singleton == this)
-	{
+	if (singleton == this) {
 		singleton = nullptr;
 	}
 	GRUtils::deinit();
@@ -104,6 +104,7 @@ void GodotRemote::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_device"), &GodotRemote::get_device);
 	ClassDB::bind_method(D_METHOD("get_version"), &GodotRemote::get_version);
+	ClassDB::bind_method(D_METHOD("is_gdnative"), &GodotRemote::is_gdnative);
 
 	BIND_ENUM_CONSTANT_CUSTOM(DeviceType::DEVICE_AUTO, "DEVICE_AUTO");
 	BIND_ENUM_CONSTANT_CUSTOM(DeviceType::DEVICE_SERVER, "DEVICE_SERVER");
@@ -200,7 +201,8 @@ void GodotRemote::_register_methods() {
 
 	METHOD_REG(GodotRemote, get_device);
 	METHOD_REG(GodotRemote, get_version);
-	
+	METHOD_REG(GodotRemote, is_gdnative);
+
 	// GRNotifications
 	METHOD_REG(GodotRemote, get_notification);
 
@@ -231,7 +233,7 @@ void GodotRemote::_register_methods() {
 	register_property<GodotRemote, bool>("notifications_enabled", &GodotRemote::set_notifications_enabled, &GodotRemote::get_notifications_enabled, true);
 	register_property<GodotRemote, float>("notifications_duration", &GodotRemote::set_notifications_duration, &GodotRemote::get_notifications_duration, 3.f);
 	register_property<GodotRemote, Ref<GRNotificationStyle>>("notifications_style", &GodotRemote::set_notifications_style, &GodotRemote::get_notifications_style, nullptr);
-	
+
 	register_signal<GodotRemote>("device_added", Dictionary::make());
 	register_signal<GodotRemote>("device_removed", Dictionary::make());
 
@@ -331,18 +333,18 @@ void GodotRemote::_register_methods() {
 
 void GodotRemote::_notification(int p_notification) {
 	switch (p_notification) {
-		case NOTIFICATION_POSTINITIALIZE:
+	case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-			_init();
+		_init();
 #endif
-			break;
-		case NOTIFICATION_PREDELETE:
-			_deinit();
-			break;
+		break;
+	case NOTIFICATION_PREDELETE:
+		_deinit();
+		break;
 	}
 }
 
-GRDevice *GodotRemote::get_device() {
+GRDevice* GodotRemote::get_device() {
 	return device;
 }
 
@@ -351,39 +353,47 @@ String GodotRemote::get_version() {
 	return str(ver[0]) + "." + str(ver[1]) + "." + str(ver[2]);
 }
 
+bool GodotRemote::is_gdnative() {
+#ifndef GDNATIVE_LIBRARY
+	return false;
+#else
+	return true;
+#endif
+}
+
 bool GodotRemote::create_remote_device(ENUM_ARG(DeviceType) type) {
 	remove_remote_device();
 
-	GRDevice *d = nullptr;
+	GRDevice* d = nullptr;
 
 	switch (type) {
 		// automatically start server if it not a standalone build
-		case GodotRemote::DEVICE_AUTO:
-			if (!OS::get_singleton()->has_feature("standalone")) {
-#ifndef NO_GODOTREMOTE_SERVER
-				d = memnew(GRServer);
-#else
-				ERR_FAIL_V_MSG(false, "Server not included in this build!");
-#endif
-			}
-			break;
-		case GodotRemote::DEVICE_SERVER:
+	case GodotRemote::DEVICE_AUTO:
+		if (!OS::get_singleton()->has_feature("standalone")) {
 #ifndef NO_GODOTREMOTE_SERVER
 			d = memnew(GRServer);
 #else
 			ERR_FAIL_V_MSG(false, "Server not included in this build!");
 #endif
-			break;
-		case GodotRemote::DEVICE_CLIENT:
-#ifndef NO_GODOTREMOTE_CLIENT
-			d = memnew(GRClient);
+		}
+		break;
+	case GodotRemote::DEVICE_SERVER:
+#ifndef NO_GODOTREMOTE_SERVER
+		d = memnew(GRServer);
 #else
-			ERR_FAIL_V_MSG(false, "Client not included in this build!");
+		ERR_FAIL_V_MSG(false, "Server not included in this build!");
 #endif
-			break;
-		default:
-			ERR_FAIL_V_MSG(false, "Not allowed type!");
-			break;
+		break;
+	case GodotRemote::DEVICE_CLIENT:
+#ifndef NO_GODOTREMOTE_CLIENT
+		d = memnew(GRClient);
+#else
+		ERR_FAIL_V_MSG(false, "Client not included in this build!");
+#endif
+		break;
+	default:
+		ERR_FAIL_V_MSG(false, "Not allowed type!");
+		break;
 	}
 
 	if (d) {
@@ -418,13 +428,13 @@ bool GodotRemote::remove_remote_device() {
 
 void GodotRemote::register_and_load_settings() {
 #ifndef GDNATIVE_LIBRARY
-#define DEF_SET(var, name, def_val, def_val, info_type, info_hint_type, info_hint_string) \
+#define DEF_SET(var, name, def_val, info_type, info_hint_type, info_hint_string) \
 	var = GLOBAL_DEF(name, def_val);                                                      \
 	ProjectSettings::get_singleton()->set_custom_property_info(name, PropertyInfo(info_type, name, info_hint_type, info_hint_string))
-#define DEF_SET_ENUM(var, type, name, def_val, def_val, info_type, info_hint_type, info_hint_string) \
+#define DEF_SET_ENUM(var, type, name, def_val, info_type, info_hint_type, info_hint_string) \
 	var = (type)(int)GLOBAL_DEF(name, def_val);                                                      \
 	ProjectSettings::get_singleton()->set_custom_property_info(name, PropertyInfo(info_type, name, info_hint_type, info_hint_string))
-#define DEF_(name, def_val, def_val, info_type, info_hint_type, info_hint_string) \
+#define DEF_(name, def_val, info_type, info_hint_type, info_hint_string) \
 	GLOBAL_DEF(name, def_val);                                                    \
 	ProjectSettings::get_singleton()->set_custom_property_info(name, PropertyInfo(info_type, name, info_hint_type, info_hint_string))
 
@@ -497,9 +507,9 @@ void GodotRemote::register_and_load_settings() {
 }
 
 void GodotRemote::_create_notification_manager() {
-	GRNotifications *notif = memnew(GRNotifications);
-	ST()->get_root()->call_deferred("add_child", notif);
-	ST()->get_root()->call_deferred("move_child", notif, 0);
+	GRNotifications* notif = memnew(GRNotifications);
+	ST()->get_root()->add_child(notif);
+	ST()->get_root()->move_child(notif, 0);
 }
 
 void GodotRemote::_remove_notifications_manager() {
@@ -547,7 +557,8 @@ void GodotRemote::_adb_port_forwarding() {
 		}
 
 		adb_start_timer->start(4.f);
-	} else {
+	}
+	else {
 		_log("ADB path not specified.", LogLevel::LL_Debug);
 	}
 }
@@ -565,7 +576,8 @@ void GodotRemote::_adb_start_timer_timeout() {
 	if (err) {
 		String start_url = String("\"{0}\" reverse --no-rebind tcp:{1} tcp:{2}").format(varray(adb, GET_PS(ps_general_port_name), GET_PS(ps_general_port_name)));
 		_log("Can't execute adb port forwarding: '" + start_url + "' error code: " + str(err), LogLevel::LL_Error);
-	} else {
+	}
+	else {
 		_log("ADB port configuring completed", LogLevel::LL_Normal);
 	}
 
@@ -581,7 +593,7 @@ void GodotRemote::_adb_start_timer_timeout() {
 //////////////////////////////////////////////////////////////////////////
 // EXTERNAL FUNCTIONS
 
-GRNotificationPanel *GodotRemote::get_notification(String title) {
+GRNotificationPanel* GodotRemote::get_notification(String title) {
 	return GRNotifications::get_notification(title);
 }
 
@@ -602,7 +614,7 @@ int GodotRemote::get_notifications_layer() {
 	return 0;
 }
 void GodotRemote::set_notifications_position(ENUM_ARG(NotificationsPosition) positon) {
-	GRNotifications::set_notifications_position(ENUM_CONV(NotificationsPosition)positon);
+	GRNotifications::set_notifications_position((NotificationsPosition)positon);
 }
 ENUM_ARG(NotificationsPosition) GodotRemote::get_notifications_position() {
 	return GRNotifications::get_notifications_position();
@@ -626,18 +638,18 @@ Ref<GRNotificationStyle> GodotRemote::get_notifications_style() {
 	return GRNotifications::get_notifications_style();
 }
 void GodotRemote::add_notification_or_append_string(String title, String text, ENUM_ARG(NotificationIcon)icon, bool new_string, float duration_multiplier) {
-	GRNotifications::add_notification_or_append_string(title, text, ENUM_CONV(NotificationIcon)icon, new_string, duration_multiplier);
+	GRNotifications::add_notification_or_append_string(title, text, (NotificationIcon)icon, new_string, duration_multiplier);
 }
 void GodotRemote::add_notification_or_update_line(String title, String id, String text, ENUM_ARG(NotificationIcon)icon, float duration_multiplier) {
-	GRNotifications::add_notification_or_update_line(title, id, text, ENUM_CONV(NotificationIcon)icon, duration_multiplier);
+	GRNotifications::add_notification_or_update_line(title, id, text, (NotificationIcon)icon, duration_multiplier);
 }
 void GodotRemote::add_notification(String title, String text, ENUM_ARG(NotificationIcon)icon, bool update_existing, float duration_multiplier) {
-	GRNotifications::add_notification(title, text, ENUM_CONV(NotificationIcon)icon, update_existing, duration_multiplier);
+	GRNotifications::add_notification(title, text, (NotificationIcon)icon, update_existing, duration_multiplier);
 }
 void GodotRemote::remove_notification(String title, bool all_entries) {
 	GRNotifications::remove_notification(title, all_entries);
 }
-void GodotRemote::remove_notification_exact(Node *_notif) {
+void GodotRemote::remove_notification_exact(Node* _notif) {
 	GRNotifications::remove_notification_exact(_notif);
 }
 void GodotRemote::clear_notifications() {
@@ -649,16 +661,16 @@ void GodotRemote::clear_notifications() {
 void GodotRemote::set_log_level(ENUM_ARG(LogLevel) lvl) {
 	GRUtils::set_log_level((LogLevel)lvl);
 }
-void GodotRemote::set_gravity(const Vector3 &p_gravity) {
+void GodotRemote::set_gravity(const Vector3& p_gravity) {
 	GRUtils::set_gravity(p_gravity);
 }
-void GodotRemote::set_accelerometer(const Vector3 &p_accel) {
+void GodotRemote::set_accelerometer(const Vector3& p_accel) {
 	GRUtils::set_accelerometer(p_accel);
 }
-void GodotRemote::set_magnetometer(const Vector3 &p_magnetometer) {
+void GodotRemote::set_magnetometer(const Vector3& p_magnetometer) {
 	GRUtils::set_magnetometer(p_magnetometer);
 }
-void GodotRemote::set_gyroscope(const Vector3 &p_gyroscope) {
+void GodotRemote::set_gyroscope(const Vector3& p_gyroscope) {
 	GRUtils::set_gyroscope(p_gyroscope);
 }
 // GRUtils end

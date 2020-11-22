@@ -26,6 +26,7 @@ config/icon="res://AssetsInSuperSecureAndUn1queF0lder/Icon.png"
 
 [autoload]
 
+C="*res://AssetsInSuperSecureAndUn1queF0lder/Scripts/Constants.gd"
 G="*res://AssetsInSuperSecureAndUn1queF0lder/Scripts/Global.gd"
 TIM="*res://AssetsInSuperSecureAndUn1queF0lder/Scripts/TouchInputManager.gd"
 JoyMappings="*res://AssetsInSuperSecureAndUn1queF0lder/Scripts/JoyMappings.gd"

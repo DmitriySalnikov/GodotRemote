@@ -38,17 +38,17 @@ func _mouse_mode_changed(_mode):
 
 func _stream_state_changed(_is_connected):
 	match _is_connected:
-		GodotRemote.GRClient_STREAM_NO_SIGNAL:
+		C.GRClient_STREAM_NO_SIGNAL:
 			OS.keep_screen_on = G.keepscreenon
 			$Stats.visible = false
 			$BackgroundTouchHint.visible = false
 			
-		GodotRemote.GRClient_STREAM_ACTIVE:
+		C.GRClient_STREAM_ACTIVE:
 			OS.keep_screen_on = true
 			$Stats.visible = not $GRSettings.visible
 			$BackgroundTouchHint.visible = false
 			
-		GodotRemote.GRClient_STREAM_NO_IMAGE:
+		C.GRClient_STREAM_NO_IMAGE:
 			$Stats.visible = not $GRSettings.visible
 			$BackgroundTouchHint.visible = true
 
@@ -90,9 +90,9 @@ func _input(e):
 	if e is InputEventKey:
 		if e.pressed:
 			match e.scancode:
-				KEY_F2: GodotRemote.set_log_level(GodotRemote.LL_None)
-				KEY_F3: GodotRemote.set_log_level(GodotRemote.LL_Normal)
-				KEY_F4: GodotRemote.set_log_level(GodotRemote.LL_Debug)
+				KEY_F2: GodotRemote.set_log_level(C.GodotRemote_LL_None)
+				KEY_F3: GodotRemote.set_log_level(C.GodotRemote_LL_Normal)
+				KEY_F4: GodotRemote.set_log_level(C.GodotRemote_LL_Debug)
 				KEY_ESCAPE: 
 					if TIM.IsVisible:
 						TIM.hide()

@@ -59,7 +59,7 @@ std::vector<GRNotificationPanel*> GRNotifications::_get_notifications_with_title
 	return res;
 }
 
-GRNotificationPanel *GRNotifications::_get_notification(String title) {
+GRNotificationPanel* GRNotifications::_get_notification(String title) {
 	for (int i = singleton->notifications.size() - 1; i >= 0; i--) {
 		if (((GRNotificationPanel*)notifications[i])->get_title() == title) {
 			return notifications[i];
@@ -72,18 +72,18 @@ void GRNotifications::_set_notifications_position(ENUM_ARG(NotificationsPosition
 	NotificationsPosition pos = (NotificationsPosition)positon;
 	if (notif_list_node) {
 		switch (pos) {
-			case NotificationsPosition::TL:
-			case NotificationsPosition::TC:
-			case NotificationsPosition::TR:
-				notif_list_node->set_v_grow_direction(Control::GROW_DIRECTION_END);
-				notif_list_node->set_alignment(BoxContainer::ALIGN_BEGIN);
-				break;
-			case NotificationsPosition::BL:
-			case NotificationsPosition::BC:
-			case NotificationsPosition::BR:
-				notif_list_node->set_v_grow_direction(Control::GROW_DIRECTION_BEGIN);
-				notif_list_node->set_alignment(BoxContainer::ALIGN_END);
-				break;
+		case NotificationsPosition::TL:
+		case NotificationsPosition::TC:
+		case NotificationsPosition::TR:
+			notif_list_node->set_v_grow_direction(Control::GROW_DIRECTION_END);
+			notif_list_node->set_alignment(BoxContainer::ALIGN_BEGIN);
+			break;
+		case NotificationsPosition::BL:
+		case NotificationsPosition::BC:
+		case NotificationsPosition::BR:
+			notif_list_node->set_v_grow_direction(Control::GROW_DIRECTION_BEGIN);
+			notif_list_node->set_alignment(BoxContainer::ALIGN_END);
+			break;
 		}
 	}
 
@@ -95,10 +95,11 @@ void GRNotifications::_add_notification_or_append_string(String title, String te
 	if (!notifications_enabled)
 		return;
 
-	auto *np = _get_notification(title);
+	auto* np = _get_notification(title);
 	if (np) {
 		np->update_text(np->get_text() + (new_string ? "\n" + text : text));
-	} else {
+	}
+	else {
 		_add_notification(title, text, icon, false, duration_multiplier);
 	}
 }
@@ -107,11 +108,12 @@ void GRNotifications::_add_notification_or_update_line(String title, String id, 
 	if (!notifications_enabled)
 		return;
 
-	auto *np = cast_to<GRNotificationPanelUpdatable>(_get_notification(title));
+	auto* np = cast_to<GRNotificationPanelUpdatable>(_get_notification(title));
 	if (np) {
 		_log("Updating existing updatable notification with Title: \"" + title + "\" ID: \"" + id + "\" Text:\"" + text + "\"", LogLevel::LL_Debug);
 		np->set_updatable_line(this, title, id, text, (NotificationIcon)icon, duration_multiplier, style);
-	} else {
+	}
+	else {
 
 		np = memnew(GRNotificationPanelUpdatable);
 		notif_list_node->add_child(np);
@@ -139,18 +141,18 @@ void GRNotifications::_set_all_notifications_positions(NotificationsPosition pos
 
 void GRNotifications::_notification(int p_what) {
 	switch (p_what) {
-		case NOTIFICATION_POSTINITIALIZE:
+	case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-			_init();
+		_init();
 #endif
-			break;
-		case NOTIFICATION_PREDELETE:
-			_deinit();
-			break;
-		case NOTIFICATION_EXIT_TREE: {
-			GRNotificationPanel::clear_styles();
-			break;
-		}
+		break;
+	case NOTIFICATION_PREDELETE:
+		_deinit();
+		break;
+	case NOTIFICATION_EXIT_TREE: {
+		GRNotificationPanel::clear_styles();
+		break;
+	}
 	}
 }
 
@@ -198,7 +200,7 @@ void GRNotifications::_register_methods() {
 
 #endif
 
-GRNotificationPanel *GRNotifications::get_notification(String title) {
+GRNotificationPanel* GRNotifications::get_notification(String title) {
 	if (singleton) {
 		return singleton->_get_notification(title);
 	}
@@ -305,7 +307,7 @@ void GRNotifications::remove_notification(String title, bool all_entries) {
 	}
 }
 
-void GRNotifications::remove_notification_exact(Node *_notif) {
+void GRNotifications::remove_notification_exact(Node* _notif) {
 	if (singleton) {
 		singleton->call_deferred("_remove_exact_notification", _notif);
 	}
@@ -322,14 +324,15 @@ void GRNotifications::_add_notification(String title, String text, ENUM_ARG(Noti
 		return;
 
 	if (notif_list_node && !notif_list_node->is_queued_for_deletion()) {
-		GRNotificationPanel *np;
+		GRNotificationPanel* np;
 		if (update_existing) {
 			np = _get_notification(title);
 			if (np) {
 				_log("Updating existing notification with Title: \"" + title + "\"" + " and Text:\"" + text + "\"", LogLevel::LL_Debug);
 				if (notifications_position <= NotificationsPosition::TR) {
 					notif_list_node->move_child(np, 0);
-				} else {
+				}
+				else {
 					notif_list_node->move_child(np, notif_list_node->get_child_count() - 1);
 				}
 				goto set_new_data;
@@ -360,13 +363,14 @@ void GRNotifications::_remove_notification(String title, bool all_entries) {
 		for (int i = 0; i < nps.size(); i++) {
 			_remove_exact_notification(nps[i]);
 		}
-	} else {
+	}
+	else {
 		_remove_exact_notification(_get_notification(title));
 	}
 }
 
-void GRNotifications::_remove_exact_notification(Node *_notif) {
-	GRNotificationPanel *np = cast_to<GRNotificationPanel>(_notif);
+void GRNotifications::_remove_exact_notification(Node* _notif) {
+	GRNotificationPanel* np = cast_to<GRNotificationPanel>(_notif);
 	if (np) {
 		emit_signal("notification_removed", np->get_text(), clearing_notifications);
 
@@ -391,20 +395,19 @@ void GRNotifications::_clear_notifications() {
 	clearing_notifications = false;
 }
 
-GRNotifications *GRNotifications::get_singleton() {
+GRNotifications* GRNotifications::get_singleton() {
 	return singleton;
 }
 
 void GRNotifications::_init() {
+	set_name("Notifications");
+
+	LEAVE_IF_EDITOR();
+
 	if (!singleton)
 		singleton = this;
 
-	set_name("Notifications");
-
 	GRNotificationPanel::_default_data = new GRNotificationPanelSTATIC_DATA();
-
-	if (Engine::get_singleton()->is_editor_hint())
-		return;
 
 	notifications_enabled = GET_PS(GodotRemote::ps_notifications_enabled_name);
 	notifications_position = (NotificationsPosition)(int)GET_PS(GodotRemote::ps_noticications_position_name);
@@ -425,6 +428,8 @@ void GRNotifications::_init() {
 }
 
 void GRNotifications::_deinit() {
+	LEAVE_IF_EDITOR();
+
 	if (this == singleton)
 		singleton = nullptr;
 	call_deferred("_remove_list");
@@ -434,6 +439,7 @@ void GRNotifications::_deinit() {
 	GRNotificationPanel::_default_data->_default_style.unref();
 	GRNotificationPanel::_default_data->_default_textures.clear();
 	delete GRNotificationPanel::_default_data;
+	GRNotificationPanel::_default_data = nullptr;
 
 	style.unref();
 }
@@ -467,7 +473,7 @@ void GRNotificationPanel::_remove_this_notification() {
 	}
 }
 
-void GRNotificationPanel::_setup_tween(Tween *_tween) {
+void GRNotificationPanel::_setup_tween(Tween* _tween) {
 	const float duration = owner->get_notifications_duration() * duration_mul;
 	_tween->remove_all();
 	_tween->interpolate_property(this, NodePath("modulate"), Color(1, 1, 1, 1), Color(1, 1, 1, 0), duration, Tween::TRANS_QUART, Tween::EASE_IN);
@@ -611,45 +617,45 @@ void GRNotificationPanel::_register_methods() {
 
 void GRNotificationPanel::_notification(int p_notification) {
 	switch (p_notification) {
-		case NOTIFICATION_POSTINITIALIZE:
+	case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-			_init();
+		_init();
 #endif
-			break;
-		case NOTIFICATION_PREDELETE:
-			_deinit();
-			break;
+		break;
+	case NOTIFICATION_PREDELETE:
+		_deinit();
+		break;
 	}
 }
 
 void GRNotificationPanel::clear_styles() {
 	if (_default_data) {
 		_default_data->_default_style.unref();
-	#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
+#ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 		_default_data->_default_close_texture.unref();
 		_default_data->_default_textures.clear();
-	#endif
+#endif
 	}
 }
 
 void GRNotificationPanel::set_notification_position(NotificationsPosition position) {
 	switch (position) {
-		case NotificationsPosition::TL:
-		case NotificationsPosition::BL:
-			set_h_size_flags(0);
-			break;
-		case NotificationsPosition::TR:
-		case NotificationsPosition::BR:
-			set_h_size_flags(SIZE_SHRINK_END);
-			break;
-		case NotificationsPosition::TC:
-		case NotificationsPosition::BC:
-			set_h_size_flags(SIZE_SHRINK_CENTER);
-			break;
+	case NotificationsPosition::TL:
+	case NotificationsPosition::BL:
+		set_h_size_flags(0);
+		break;
+	case NotificationsPosition::TR:
+	case NotificationsPosition::BR:
+		set_h_size_flags(SIZE_SHRINK_END);
+		break;
+	case NotificationsPosition::TC:
+	case NotificationsPosition::BC:
+		set_h_size_flags(SIZE_SHRINK_CENTER);
+		break;
 	}
 }
 
-void GRNotificationPanel::set_data(GRNotifications *_owner, String title, String text, NotificationIcon icon, float duration_multiplier, Ref<GRNotificationStyle> _style) {
+void GRNotificationPanel::set_data(GRNotifications* _owner, String title, String text, NotificationIcon icon, float duration_multiplier, Ref<GRNotificationStyle> _style) {
 	owner = _owner;
 	notification_icon = icon;
 	title_node->set_text(title);
@@ -684,6 +690,8 @@ void GRNotificationPanel::update_text(String text) {
 
 void GRNotificationPanel::_init() {
 	set_name("NotificationPanel");
+
+	LEAVE_IF_EDITOR();
 
 	if (_default_data->_default_style.is_null())
 		_default_data->_default_style = generate_default_style();
@@ -741,6 +749,8 @@ void GRNotificationPanel::_init() {
 }
 
 void GRNotificationPanel::_deinit() {
+	LEAVE_IF_EDITOR();
+
 	if (style.is_valid())
 		style.unref();
 }
@@ -751,11 +761,16 @@ void GRNotificationPanel::_deinit() {
 
 
 void GRNotificationPanelUpdatable::_init() {
+	LEAVE_IF_EDITOR();
+#ifndef GDNATIVE_LIBRARY
+#else
 	GRNotificationPanel::_init();
+#endif
 }
 
 
 void GRNotificationPanelUpdatable::_deinit() {
+	LEAVE_IF_EDITOR();
 }
 
 String GRNotificationPanelUpdatable::_get_text_from_lines() {
@@ -790,19 +805,19 @@ void GRNotificationPanelUpdatable::_register_methods() {
 
 void GRNotificationPanelUpdatable::_notification(int p_notification) {
 	switch (p_notification) {
-		case NOTIFICATION_POSTINITIALIZE:
+	case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-			_init();
+		_init();
 #endif
-			break;
-		case NOTIFICATION_PREDELETE:
-			_deinit();
-			GRNotificationPanel::_deinit();
-			break;
+		break;
+	case NOTIFICATION_PREDELETE:
+		_deinit();
+		GRNotificationPanel::_deinit();
+		break;
 	}
 }
 
-void GRNotificationPanelUpdatable::set_updatable_line(GRNotifications *_owner, String title, String id, String text, NotificationIcon icon, float duration_multiplier, Ref<GRNotificationStyle> _style) {
+void GRNotificationPanelUpdatable::set_updatable_line(GRNotifications* _owner, String title, String id, String text, NotificationIcon icon, float duration_multiplier, Ref<GRNotificationStyle> _style) {
 	if (configured) {
 		lines[id] = text;
 		text_node->set_text(_get_text_from_lines());
@@ -811,7 +826,8 @@ void GRNotificationPanelUpdatable::set_updatable_line(GRNotifications *_owner, S
 		if (!is_hovered) {
 			tween_node->start();
 		}
-	} else {
+	}
+	else {
 		owner = _owner;
 		notification_icon = icon;
 		lines[id] = text;
@@ -909,33 +925,35 @@ void GRNotificationStyle::_register_methods() {
 
 void GRNotificationStyle::_notification(int p_notification) {
 	switch (p_notification) {
-		case NOTIFICATION_POSTINITIALIZE:
+	case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-			_init();
+		_init();
 #endif
-			break;
-		case NOTIFICATION_PREDELETE:
-			_deinit();
-			break;
+		break;
+	case NOTIFICATION_PREDELETE:
+		_deinit();
+		break;
 	}
 }
 
 void GRNotificationStyle::_init() {
-	for (int i = 0; i < NotificationIcon::MAX; i++)
-	{
+	LEAVE_IF_EDITOR();
+
+	for (int i = 0; i < NotificationIcon::MAX; i++) {
 		n_icons[i] = Ref<Texture>();
 	}
 }
 
 void GRNotificationStyle::_deinit() {
+	LEAVE_IF_EDITOR();
+
 	panel_style.unref();
 	close_button_theme.unref();
 	close_button_icon.unref();
 	title_font.unref();
 	text_font.unref();
-	
-	for (int i = 0; i < NotificationIcon::MAX; i++)
-	{
+
+	for (int i = 0; i < NotificationIcon::MAX; i++) {
 		n_icons[i].unref();
 	}
 }

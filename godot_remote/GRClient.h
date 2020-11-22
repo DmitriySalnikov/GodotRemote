@@ -44,20 +44,22 @@ public:
 		GD_CLASS(ImgProcessingStorageClient, Object);
 
 	public:
-		GRClient *dev = nullptr;
+		GRClient* dev = nullptr;
 		PoolByteArray tex_data;
 		uint64_t framerate = 0;
 		int format = 0;
 		ImageCompressionType compression_type = ImageCompressionType::Uncompressed;
 		Size2 size;
-		bool *_is_processing_img = nullptr;
+		bool* _is_processing_img = nullptr;
 
 		static void _register_methods() {};
 		void _init() {
+			LEAVE_IF_EDITOR();
 			tex_data = PoolByteArray();
 		};
 
 		~ImgProcessingStorageClient() {
+			LEAVE_IF_EDITOR();
 			tex_data.resize(0);
 		}
 	};
@@ -66,7 +68,7 @@ public:
 		GD_CLASS(ConnectionThreadParamsClient, Object);
 
 	public:
-		GRClient *dev = nullptr;
+		GRClient* dev = nullptr;
 		Ref<StreamPeerTCP> peer;
 		Ref<PacketPeerStream> ppeer;
 
@@ -90,6 +92,7 @@ public:
 		void _init() {};
 
 		~ConnectionThreadParamsClient() {
+			LEAVE_IF_EDITOR();
 			close_thread();
 			if (peer.is_valid()) {
 				peer.unref();
@@ -103,11 +106,11 @@ private:
 
 	bool is_deleting = false;
 	bool is_connection_working = false;
-	Node *settings_menu_node = nullptr;
-	class Control *control_to_show_in = nullptr;
-	class GRTextureRect *tex_shows_stream = nullptr;
-	class GRInputCollector *input_collector = nullptr;
-	ConnectionThreadParamsClient* thread_connection;
+	Node* settings_menu_node = nullptr;
+	class Control* control_to_show_in = nullptr;
+	class GRTextureRect* tex_shows_stream = nullptr;
+	class GRInputCollector* input_collector = nullptr;
+	ConnectionThreadParamsClient* thread_connection = nullptr;
 	ScreenOrientation is_vertical = ScreenOrientation::NONE;
 
 	String device_id = "UNKNOWN";
@@ -120,8 +123,8 @@ private:
 	bool _server_settings_syncing = false;
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
-	Mutex *send_queue_mutex = nullptr;
-	Mutex *connection_mutex = nullptr;
+	Mutex* send_queue_mutex = nullptr;
+	Mutex* connection_mutex = nullptr;
 	std::vector<Ref<GRPacket>> send_queue; // Ref<GRPacket>
 	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 	int input_buffer_size_in_mb = 4;
@@ -144,13 +147,12 @@ private:
 	Ref<class ShaderMaterial> no_signal_mat;
 #endif
 
-	Node *custom_input_scene = nullptr;
+	Node* custom_input_scene = nullptr;
 	String custom_input_scene_tmp_pck_file = "user://custom_input_scene.pck";
 
 	template <class T>
 	T _find_queued_packet_by_type() {
-		for (int i = 0; i < send_queue.size(); i++)
-		{
+		for (int i = 0; i < send_queue.size(); i++) {
 			T o = send_queue[i];
 			if (o.is_valid()) {
 				return o;
@@ -173,7 +175,7 @@ private:
 	THREAD_FUNC void _thread_image_decoder(THREAD_DATA p_userdata);
 
 	static void _connection_loop(ConnectionThreadParamsClient* con_thread);
-	static GRDevice::AuthResult _auth_on_server(GRClient *dev, Ref<PacketPeerStream> &con);
+	static GRDevice::AuthResult _auth_on_server(GRClient* dev, Ref<PacketPeerStream>& con);
 
 protected:
 	virtual void _internal_call_only_deffered_start() override;
@@ -190,7 +192,7 @@ protected:
 	void _notification(int p_notification);
 
 public:
-	void set_control_to_show_in(class Control *ctrl, int position_in_node DEF_ARG(= 0));
+	void set_control_to_show_in(class Control* ctrl, int position_in_node DEF_ARG(= 0));
 	void set_custom_no_signal_texture(Ref<Texture> custom_tex);
 	void set_custom_no_signal_vertical_texture(Ref<Texture> custom_tex);
 	void set_custom_no_signal_material(Ref<Material> custom_mat);
@@ -245,13 +247,13 @@ class GRInputCollector : public Node {
 	_TS_CLASS_;
 
 private:
-	GRClient *dev = nullptr;
-	GRInputCollector **this_in_client = nullptr; //somebody help
+	GRClient* dev = nullptr;
+	GRInputCollector** this_in_client = nullptr; //somebody help
 
-	class TextureRect *texture_rect = nullptr;
+	class TextureRect* texture_rect = nullptr;
 	//Array collected_input_data; // Ref<GRInputData>
 	std::vector<Ref<GRInputData>> collected_input_data;
-	class Control *parent;
+	class Control* parent;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
 	bool dont_capture_pointer = false;
@@ -288,7 +290,7 @@ public:
 	bool is_capture_input();
 	void set_capture_input(bool value);
 
-	void set_tex_rect(class TextureRect *tr);
+	void set_tex_rect(class TextureRect* tr);
 
 	Ref<class GRPacketInputData> get_collected_input_data();
 
@@ -300,8 +302,8 @@ class GRTextureRect : public TextureRect {
 	GD_CLASS(GRTextureRect, TextureRect);
 	friend GRClient;
 
-	GRClient *dev = nullptr;
-	GRTextureRect **this_in_client = nullptr;
+	GRClient* dev = nullptr;
+	GRTextureRect** this_in_client = nullptr;
 	void _tex_size_changed();
 
 protected:

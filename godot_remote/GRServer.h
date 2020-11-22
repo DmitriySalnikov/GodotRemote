@@ -9,7 +9,9 @@
 
 #include "core/io/stream_peer_tcp.h"
 #include "core/io/tcp_server.h"
+#include "core/io/compression.h"
 #include "scene/gui/control.h"
+#include "modules/regex/regex.h"
 #include "scene/main/viewport.h"
 #else
 
@@ -37,7 +39,7 @@ public:
 		GD_CLASS(ListenerThreadParamsServer, Object);
 
 	public:
-		GRServer *dev = nullptr;
+		GRServer* dev = nullptr;
 #ifndef GDNATIVE_LIBRARY
 		class Thread* thread_ref = nullptr;
 #else
@@ -55,6 +57,7 @@ public:
 		}
 
 		~ListenerThreadParamsServer() {
+			LEAVE_IF_EDITOR();
 			close_thread();
 		}
 	};
@@ -64,7 +67,7 @@ public:
 
 	public:
 		String device_id = "";
-		GRServer *dev = nullptr;
+		GRServer* dev = nullptr;
 		Ref<PacketPeerStream> ppeer;
 
 #ifndef GDNATIVE_LIBRARY
@@ -85,6 +88,7 @@ public:
 		}
 
 		~ConnectionThreadParamsServer() {
+			LEAVE_IF_EDITOR();
 			close_thread();
 			if (ppeer.is_valid()) {
 				ppeer.unref();
@@ -94,10 +98,10 @@ public:
 
 private:
 
-	Mutex *connection_mutex = nullptr;
-	ListenerThreadParamsServer* server_thread_listen;
+	Mutex* connection_mutex = nullptr;
+	ListenerThreadParamsServer* server_thread_listen = nullptr;
 	Ref<TCP_Server> tcp_server;
-	class GRSViewport *resize_viewport = nullptr;
+	class GRSViewport* resize_viewport = nullptr;
 	int client_connected = 0;
 
 	bool using_client_settings = false;
@@ -109,7 +113,7 @@ private:
 	bool auto_adjust_scale = false;
 
 	bool custom_input_pck_compressed = true;
-	ENUM_ARG(Compression::Mode) custom_input_pck_compression_type = 0;
+	ENUM_ARG(Compression::Mode) custom_input_pck_compression_type = ENUM_CONV(Compression::Mode)0;
 	const String custom_input_scene_regex_resource_finder_pattern = "\\\"(res://.*?)\\\"";
 	Ref<class RegEx> custom_input_scene_regex_resource_finder;
 
@@ -118,7 +122,7 @@ private:
 
 	void _load_settings();
 	void _update_settings_from_client(const std::map<int, Variant> settings);
-	void _remove_resize_viewport(Node *vp);
+	void _remove_resize_viewport(Node* vp);
 	void _on_grviewport_deleting();
 
 	virtual void _reset_counters() override;
@@ -126,10 +130,10 @@ private:
 	THREAD_FUNC void _thread_listen(THREAD_DATA p_userdata);
 	THREAD_FUNC void _thread_connection(THREAD_DATA p_userdata);
 
-	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection DEF_ARG(= false));
+	static AuthResult _auth_client(GRServer* dev, Ref<PacketPeerStream>& ppeer, Dictionary& ret_data, bool refuse_connection DEF_ARG(= false));
 
-	Ref<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress DEF_ARG(= true), int compression_type DEF_ARG(= 0));
-	void _scan_resource_for_dependencies_recursive(String _dir, Array &_arr);
+	Ref<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress DEF_ARG(= true), ENUM_ARG(Compression::Mode) compression_type DEF_ARG(= ENUM_CONV(Compression::Mode)0));
+	void _scan_resource_for_dependencies_recursive(String _dir, Array& _arr);
 
 protected:
 	virtual void _internal_call_only_deffered_start() override;
@@ -140,7 +144,6 @@ protected:
 #else
 public:
 	static void _register_methods();
-	void _bind_constants();
 protected:
 #endif
 
@@ -171,7 +174,7 @@ public:
 	float get_render_scale();
 	// NOT VIEWPORT
 
-	GRSViewport *get_gr_viewport();
+	GRSViewport* get_gr_viewport();
 	void force_update_custom_input_scene();
 
 	void _init();
@@ -197,10 +200,12 @@ public:
 
 		static void _register_methods() {};
 		void _init() {
+			LEAVE_IF_EDITOR();
 			ret_data = PoolByteArray();
 		};
 
 		~ImgProcessingStorageViewport() {
+			LEAVE_IF_EDITOR();
 			ret_data.resize(0);
 		}
 	};
@@ -213,7 +218,7 @@ private:
 #endif
 
 	Ref<Image> last_image;
-	ImgProcessingStorageViewport* last_image_data;
+	ImgProcessingStorageViewport* last_image_data = nullptr;
 
 	void _close_thread() { Thread_close(_thread_process); }
 	void _set_img_data(ImgProcessingStorageViewport* _data);
@@ -222,8 +227,8 @@ private:
 	THREAD_FUNC void _processing_thread(THREAD_DATA p_user);
 
 protected:
-	Viewport *main_vp = nullptr;
-	class GRSViewportRenderer *renderer = nullptr;
+	Viewport* main_vp = nullptr;
+	class GRSViewportRenderer* renderer = nullptr;
 	bool video_stream_enabled = true;
 	float rendering_scale = 0.3f;
 	float auto_scale = 0.5f;
@@ -269,7 +274,7 @@ class GRSViewportRenderer : public Control {
 	GD_CLASS(GRSViewportRenderer, Control);
 
 protected:
-	Viewport *vp = nullptr;
+	Viewport* vp = nullptr;
 
 #ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();

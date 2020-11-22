@@ -29,7 +29,7 @@ void GRDevice::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_status"), &GRDevice::get_status);
 
 	ADD_SIGNAL(MethodInfo("status_changed", PropertyInfo(Variant::INT, "status")));
-	
+
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "port"), "set_port", "get_port");
 
 	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Starting, "STATUS_STARTING");
@@ -93,7 +93,7 @@ void GRDevice::_notification(int p_notification) {
 	case NOTIFICATION_PREDELETE:
 		_deinit();
 		break;
-}
+	}
 }
 
 void GRDevice::_reset_counters() {
@@ -163,10 +163,12 @@ WorkingStatus GRDevice::get_status() {
 }
 
 void GRDevice::_init() {
+	LEAVE_IF_EDITOR();
 	port = GET_PS(GodotRemote::ps_general_port_name);
 }
 
 void GRDevice::_deinit() {
+	LEAVE_IF_EDITOR();
 	if (GodotRemote::get_singleton()) {
 		GodotRemote::get_singleton()->device = nullptr;
 	}
