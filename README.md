@@ -12,7 +12,7 @@ If you are developing on a non-touch device, this module is the best way to quic
 
 ## Compiling the Module
 
-### As part of Godot
+### As a module
 
 1. [configure environment](https://docs.godotengine.org/en/3.2/development/compiling/index.html) to build editor for your platform (you need to clone [3.2 branch](https://github.com/godotengine/godot/tree/3.2) not master)
 2. copy ```godot_remote``` folder to the ```modules/``` directory or make [symlink](https://en.wikipedia.org/wiki/Symbolic_link)
@@ -23,7 +23,7 @@ If everything compiles successfully, you'll find the new category in project set
 
 ![Settings](Images/Screenshots/settings.png)
 
-### As GDNative module
+### As a GDNative library
 
 1. [Configure environment](https://docs.godotengine.org/en/3.2/development/compiling/index.html) to build editor for your platform
 2. Generate api.json for GDNative api. ```bin/godot --gdnative-generate-json-api api.json```
@@ -31,16 +31,20 @@ If everything compiles successfully, you'll find the new category in project set
 4. Compile godot-cpp (e.g. in godot-cpp directory run ```scons generate_bindings=true platform=windows target=release bits=64 -j8 ../api.json```)
 5. Compile module for your platform (Available platforms: windows, osx, linux, ios, android. Tested platforms: windows, linux, android)
    1. For android: Run in root directory ```[path to your android ndk root dir]/ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk  APP_PLATFORM=android-21```
-   2. For all other platforms: ```scons platform=windows target=release-j8```
+   2. For all other platforms: ```scons platform=windows target=release -j8```
 6. Use produced library in ```bin/```
 
 GDNative has limitations so here ```GodotRemote``` is not a singleton and you need to create autoload scene with attached NativeScript for ```GodotRemote``` class.
 
 Enum constants in this version change too (see [API Reference] )
 
+**To work correctly, this [pull request](https://github.com/godotengine/godot-cpp/pull/469) must be accepted, otherwise the module will not work at all. And without this [pull request](https://github.com/godotengine/godot/pull/43227) compilation will just fail.
+But even with this fix GDNative is completely broken at the moment especially with arrays and dictionaries.
+Therefore, when working with GDNative, unexpected errors and memory leaks may occur that do not exist in a normal module.**
+
 ### Additional parameters
 
-Also module has additional compilation parameters
+Also module has additional compilation parameters for scons script
 
 1. ```godot_remote_no_default_resources``` (yes/no) default no - compile with or without default resources
 2. ```godot_remote_disable_server``` (yes/no) default no - do not include server code
@@ -48,7 +52,7 @@ Also module has additional compilation parameters
 
 ## Download
 
-Currently this is a module and it's need to be compiled as part of the engine but precompiled binaries can be found on [GitHub Releases](https://github.com/DmitriySalnikov/GodotRemote/releases) page
+Precompiled binaries can be found on [GitHub Releases](https://github.com/DmitriySalnikov/GodotRemote/releases) page
 
 ### Mobile app
 
@@ -198,6 +202,7 @@ GRDevice get_device()
 # Utility functions
 
 # Not exposed to GDScript fuctions from Input class
+# And currently not available in GDNative
 void set_accelerometer(value: Vector3)
 void set_gravity(value: Vector3)
 void set_gyroscope(value: Vector3)
@@ -352,22 +357,6 @@ WorkingStatus:
 ```python
 # --- Properties
 
-# Is video stream enabled
-# type bool, default false
-video_stream_enabled
-
-# How many frames need to skip.
-# type int, default 0
-skip_frames
-
-# JPG quality
-# type int, default 80
-jpg_quality
-
-# Scale of sending image
-# type float, default 0.3
-render_scale
-
 # Server password
 # type String, default ""
 password
@@ -387,6 +376,30 @@ custom_input_scene_compressed
 custom_input_scene_compression_type
 
 # --- Methods
+
+# Set whether the stream is enabled
+bool set_video_stream_enabled(value : bool)
+
+# Get whether the stream is enabled
+bool is_video_stream_enabled()
+
+# Set how many frames to skip
+bool set_skip_frames(frames : int)
+
+# Get the number of skipping frames
+int get_skip_frames()
+
+# Set JPG quality
+bool set_jpg_quality(quality : int)
+
+# Get JPG quality
+int get_jpg_quality()
+
+# Set the scale of the stream
+bool set_render_scale(scale : float)
+
+# Get stream scale
+float get_render_scale()
 
 # Force update custom input scene on client
 void force_update_custom_input_scene()

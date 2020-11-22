@@ -16,6 +16,7 @@
 
 #else
 
+#include <Godot.hpp>
 #include <Image.hpp>
 #include <Marshalls.hpp>
 #include <OS.hpp>
@@ -28,6 +29,7 @@
 #include <InputDefault.hpp>
 #include <File.hpp>
 #include <Mutex.hpp>
+#include <Object.hpp>
 #include <Thread.hpp>
 using namespace godot;
 #endif
@@ -303,6 +305,7 @@ namespace GRUtils {
 
 	class GRUtilsData : public Object {
 		GD_CLASS(GRUtilsData, Object);
+		GDNATIVE_BASIC_REGISTER;
 	public:
 		int current_loglevel;
 		PoolByteArray internal_PACKET_HEADER;

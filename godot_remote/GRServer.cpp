@@ -47,11 +47,11 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRServer::get_gr_viewport);
 	ClassDB::bind_method(D_METHOD("force_update_custom_input_scene"), &GRServer::force_update_custom_input_scene);
 
-	ClassDB::bind_method(D_METHOD("set_video_stream_enabled"), &GRServer::set_video_stream_enabled);
-	ClassDB::bind_method(D_METHOD("set_skip_frames"), &GRServer::set_skip_frames);
+	ClassDB::bind_method(D_METHOD("set_video_stream_enabled", "value"), &GRServer::set_video_stream_enabled);
+	ClassDB::bind_method(D_METHOD("set_skip_frames", "frames"), &GRServer::set_skip_frames);
 	//ClassDB::bind_method(D_METHOD("set_auto_adjust_scale"), &GRServer::set_auto_adjust_scale);
-	ClassDB::bind_method(D_METHOD("set_jpg_quality"), &GRServer::set_jpg_quality);
-	ClassDB::bind_method(D_METHOD("set_render_scale"), &GRServer::set_render_scale);
+	ClassDB::bind_method(D_METHOD("set_jpg_quality", "quality"), &GRServer::set_jpg_quality);
+	ClassDB::bind_method(D_METHOD("set_render_scale", "scale"), &GRServer::set_render_scale);
 	ClassDB::bind_method(D_METHOD("set_password", "password"), &GRServer::set_password);
 	ClassDB::bind_method(D_METHOD("set_custom_input_scene", "_scn"), &GRServer::set_custom_input_scene);
 	ClassDB::bind_method(D_METHOD("set_custom_input_scene_compressed", "_is_compressed"), &GRServer::set_custom_input_scene_compressed);
@@ -66,7 +66,7 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_custom_input_scene"), &GRServer::get_custom_input_scene);
 	ClassDB::bind_method(D_METHOD("is_custom_input_scene_compressed"), &GRServer::is_custom_input_scene_compressed);
 	ClassDB::bind_method(D_METHOD("get_custom_input_scene_compression_type"), &GRServer::get_custom_input_scene_compression_type);
-
+	
 	//ADD_PROPERTY(PropertyInfo(Variant::BOOL, "video_stream_enabled"), "set_video_stream_enabled", "is_video_stream_enabled");
 	//ADD_PROPERTY(PropertyInfo(Variant::INT, "skip_frames"), "set_skip_frames", "get_skip_frames");
 	////ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "is_auto_adjust_scale");
