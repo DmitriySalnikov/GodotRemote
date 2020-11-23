@@ -34,13 +34,15 @@ If everything compiles successfully, you'll find the new category in project set
    2. For all other platforms: ```scons platform=windows target=release -j8```
 6. Use produced library in ```bin/```
 
-GDNative has limitations so here ```GodotRemote``` is not a singleton and you need to create autoload scene with attached NativeScript for ```GodotRemote``` class.
+GDNative has limitations so here ```GodotRemote``` is not a singleton and you need to create autoload scene with attached NativeScript for ```GodotRemote``` class. Also there is no any settings in ```Debug/Godot Remote```.
 
-Enum constants in this version change too (see [API Reference] )
+Enum constants in this version changed too (see [API Reference] )
 
 **To work correctly, this [pull request](https://github.com/godotengine/godot-cpp/pull/469) must be accepted, otherwise the module will not work at all. And without this [pull request](https://github.com/godotengine/godot/pull/43227) compilation will just fail.
 But even with this fix GDNative is completely broken at the moment especially with arrays and dictionaries.
 Therefore, when working with GDNative, unexpected errors and memory leaks may occur that do not exist in a normal module.**
+
+If GDNative becomes more stable, I will add the necessary code to easily integrate this module into any project, but now it just works.. sometimes.
 
 ### Additional parameters
 

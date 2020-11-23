@@ -117,39 +117,39 @@ func _setup_constants():
 		GodotRemote_IMAGE_COMPRESSION_JPG = GodotRemote.IMAGE_COMPRESSION_JPG
 		GodotRemote_IMAGE_COMPRESSION_PNG = GodotRemote.IMAGE_COMPRESSION_PNG
 		
-		GRDevice_STATUS_STARTING = GRDevice.STATUS_STARTING
-		GRDevice_STATUS_STOPPING = GRDevice.STATUS_STOPPING
-		GRDevice_STATUS_WORKING = GRDevice.STATUS_WORKING
-		GRDevice_STATUS_STOPPED = GRDevice.STATUS_STOPPED
+		GRDevice_STATUS_STARTING = ClassDB.class_get_integer_constant("GRDevice", "STATUS_STARTING")
+		GRDevice_STATUS_STOPPING = ClassDB.class_get_integer_constant("GRDevice", "STATUS_STOPPING")
+		GRDevice_STATUS_WORKING = ClassDB.class_get_integer_constant("GRDevice", "STATUS_WORKING")
+		GRDevice_STATUS_STOPPED = ClassDB.class_get_integer_constant("GRDevice", "STATUS_STOPPED")
 		
-		GRDevice_InputTypeNone = GRDevice.InputTypeNone
-		GRDevice_InputDeviceSensors = GRDevice.InputDeviceSensors
-		GRDevice_InputEvent = GRDevice.InputEvent
-		GRDevice_InputEventAction = GRDevice.InputEventAction
-		GRDevice_InputEventGesture = GRDevice.InputEventGesture
-		GRDevice_InputEventJoypadButton = GRDevice.InputEventJoypadButton
-		GRDevice_InputEventJoypadMotion = GRDevice.InputEventJoypadMotion
-		GRDevice_InputEventKey = GRDevice.InputEventKey
-		GRDevice_InputEventMagnifyGesture = GRDevice.InputEventMagnifyGesture
-		GRDevice_InputEventMIDI = GRDevice.InputEventMIDI
-		GRDevice_InputEventMouse = GRDevice.InputEventMouse
-		GRDevice_InputEventMouseButton = GRDevice.InputEventMouseButton
-		GRDevice_InputEventMouseMotion = GRDevice.InputEventMouseMotion
-		GRDevice_InputEventPanGesture = GRDevice.InputEventPanGesture
-		GRDevice_InputEventScreenDrag = GRDevice.InputEventScreenDrag
-		GRDevice_InputEventScreenTouch = GRDevice.InputEventScreenTouch
-		GRDevice_InputEventWithModifiers = GRDevice.InputEventWithModifiers
-		GRDevice_InputEventMAX = GRDevice.InputEventMAX
+		GRDevice_InputTypeNone = ClassDB.class_get_integer_constant("GRDevice", "InputTypeNone")
+		GRDevice_InputDeviceSensors = ClassDB.class_get_integer_constant("GRDevice", "InputDeviceSensors")
+		GRDevice_InputEvent = ClassDB.class_get_integer_constant("GRDevice", "InputEvent")
+		GRDevice_InputEventAction = ClassDB.class_get_integer_constant("GRDevice", "InputEventAction")
+		GRDevice_InputEventGesture = ClassDB.class_get_integer_constant("GRDevice", "InputEventGesture")
+		GRDevice_InputEventJoypadButton = ClassDB.class_get_integer_constant("GRDevice", "InputEventJoypadButton")
+		GRDevice_InputEventJoypadMotion = ClassDB.class_get_integer_constant("GRDevice", "InputEventJoypadMotion")
+		GRDevice_InputEventKey = ClassDB.class_get_integer_constant("GRDevice", "InputEventKey")
+		GRDevice_InputEventMagnifyGesture = ClassDB.class_get_integer_constant("GRDevice", "InputEventMagnifyGesture")
+		GRDevice_InputEventMIDI = ClassDB.class_get_integer_constant("GRDevice", "InputEventMIDI")
+		GRDevice_InputEventMouse = ClassDB.class_get_integer_constant("GRDevice", "InputEventMouse")
+		GRDevice_InputEventMouseButton = ClassDB.class_get_integer_constant("GRDevice", "InputEventMouseButton")
+		GRDevice_InputEventMouseMotion = ClassDB.class_get_integer_constant("GRDevice", "InputEventMouseMotion")
+		GRDevice_InputEventPanGesture = ClassDB.class_get_integer_constant("GRDevice", "InputEventPanGesture")
+		GRDevice_InputEventScreenDrag = ClassDB.class_get_integer_constant("GRDevice", "InputEventScreenDrag")
+		GRDevice_InputEventScreenTouch = ClassDB.class_get_integer_constant("GRDevice", "InputEventScreenTouch")
+		GRDevice_InputEventWithModifiers = ClassDB.class_get_integer_constant("GRDevice", "InputEventWithModifiers")
+		GRDevice_InputEventMAX = ClassDB.class_get_integer_constant("GRDevice", "InputEventMAX")
 		
-		GRClient_CONNECTION_ADB = GRClient.CONNECTION_ADB
-		GRClient_CONNECTION_WiFi = GRClient.CONNECTION_WiFi
+		GRClient_CONNECTION_ADB = ClassDB.class_get_integer_constant("GRClient.", "CONNECTION_ADB")
+		GRClient_CONNECTION_WiFi = ClassDB.class_get_integer_constant("GRClient", "CONNECTION_WiFi")
 		
-		GRClient_STRETCH_KEEP_ASPECT = GRClient.STRETCH_KEEP_ASPECT
-		GRClient_STRETCH_FILL = GRClient.STRETCH_FILL
+		GRClient_STRETCH_KEEP_ASPECT = ClassDB.class_get_integer_constant("GRClient", "STRETCH_KEEP_ASPECT")
+		GRClient_STRETCH_FILL = ClassDB.class_get_integer_constant("GRClient", "STRETCH_FILL")
 		
-		GRClient_STREAM_NO_SIGNAL = GRClient.STREAM_NO_SIGNAL
-		GRClient_STREAM_ACTIVE = GRClient.STREAM_ACTIVE
-		GRClient_STREAM_NO_IMAGE = GRClient.STREAM_NO_IMAGE
+		GRClient_STREAM_NO_SIGNAL = ClassDB.class_get_integer_constant("GRClient", "STREAM_NO_SIGNAL")
+		GRClient_STREAM_ACTIVE = ClassDB.class_get_integer_constant("GRClient", "STREAM_ACTIVE")
+		GRClient_STREAM_NO_IMAGE = ClassDB.class_get_integer_constant("GRClient", "STREAM_NO_IMAGE")
 		
 	else:
 		

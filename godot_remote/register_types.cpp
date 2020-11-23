@@ -20,6 +20,7 @@
 
 void register_godot_remote_types() {
 	ClassDB::register_class<GodotRemote>();
+	ClassDB::register_class<GRUtilsData>();
 	Engine::get_singleton()->add_singleton(Engine::Singleton("GodotRemote", memnew(GodotRemote)));
 	//GRUtils::init();
 
@@ -72,6 +73,7 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void* handle) {
 	Godot::nativescript_init(handle);
 
 	register_class<GodotRemote>();
+	register_class<GRUtilsData>();
 	//Engine::get_singleton()->add_singleton(Engine::Singleton("GodotRemote", memnew(GodotRemote)));
 	//GRUtils::init(); // moved to GodotRemote::init()
 

@@ -27,7 +27,7 @@ var show_stats : bool = false setget set_show_stats
 var override_server_settings : bool = false setget set_override_settings
 var sync_server_settings : bool = false setget set_sync_server_settings
 var server_video_stream : bool = true setget set_server_video_stream
-var server_compression_type : int = GodotRemote.IMAGE_COMPRESSION_JPG setget set_server_compression_type
+var server_compression_type : int = C.GodotRemote_IMAGE_COMPRESSION_JPG setget set_server_compression_type
 var server_jpg_quality : int = 80 setget set_server_jpg_quality
 var server_render_scale : float = 0.3 setget set_server_render_scale
 var server_skip_fps : int = 0 setget set_server_skip_fps
@@ -59,7 +59,7 @@ func _ready():
 	
 	_load_settings()
 	
-	GodotRemote.create_remote_device(GodotRemote.DEVICE_CLIENT)
+	GodotRemote.create_remote_device(C.GodotRemote_DEVICE_CLIENT)
 	
 	var d = GodotRemote.get_device()
 	d.capture_when_hover = false
