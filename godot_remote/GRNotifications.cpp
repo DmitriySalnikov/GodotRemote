@@ -693,7 +693,7 @@ void GRNotificationPanel::_init() {
 
 	LEAVE_IF_EDITOR();
 
-	if (_default_data->_default_style.is_null())
+	if (_default_data && _default_data->_default_style.is_null())
 		_default_data->_default_style = generate_default_style();
 
 	set_mouse_filter(Control::MouseFilter::MOUSE_FILTER_PASS);
