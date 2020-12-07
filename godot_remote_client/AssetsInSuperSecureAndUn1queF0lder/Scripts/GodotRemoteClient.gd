@@ -40,9 +40,11 @@ func _mouse_mode_changed(_mode):
 
 func _custom_input_scene_added():
 	$BackgroundTouchHint/Panel/TextureRect.visible = false
+	GodotRemote.get_device().capture_pointer = G.capture_input_when_custom_scene
 
 func _custom_input_scene_removed():
 	$BackgroundTouchHint/Panel/TextureRect.visible = true
+	GodotRemote.get_device().capture_pointer = true
 
 func _stream_state_changed(_is_connected):
 	match _is_connected:

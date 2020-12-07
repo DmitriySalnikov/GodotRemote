@@ -28,6 +28,7 @@ onready var stats = $Scroll/H/Grid/ShowStats
 onready var sync_orient = $Scroll/H/Grid/SyncOrientation
 onready var sync_aspect = $Scroll/H/Grid/SyncAspect
 onready var keepscreen = $Scroll/H/Grid/KeepScreen
+onready var captureinput = $Scroll/H/Grid/CaptureInput
 
 onready var enabled_server_settings = $Scroll/H/Grid/OverrideServerSetting
 onready var sync_server_settings = $Scroll/H/Grid/SyncServerSettings
@@ -52,6 +53,7 @@ var updated_by_code := false
 
 func _ready():
 	scroll.get_v_scrollbar().rect_min_size.x = 24
+	scroll.get_h_scrollbar().rect_min_size.y = 24
 	donations.visible = false
 	#empty_top.visible = true
 	
@@ -98,7 +100,7 @@ func _points_update(points):
 	donations.text = "Points: " + str(points)
 
 func _on_GRSettings_resized():
-	var cols = 2 if rect_size.x / rect_size.y > 1.2 else 1
+	var cols = 2 if (rect_size.x / rect_size.y > 1.3) else 1
 	if cols != grid.columns:
 		grid.columns = cols
 
@@ -142,6 +144,7 @@ func update_values():
 	sync_orient.pressed = G.sync_viewport_orientation
 	sync_aspect.pressed = G.sync_viewport_aspect_ratio
 	keepscreen.pressed = G.keepscreenon
+	captureinput.pressed = G.capture_input_when_custom_scene
 	
 	enabled_server_settings.pressed = G.override_server_settings
 	sync_server_settings.pressed = G.sync_server_settings
@@ -314,6 +317,11 @@ func _on_keep_screen_CheckButton_toggled(button_pressed):
 	G.keepscreenon = button_pressed
 	if !GodotRemote.get_device().is_stream_active():
 		OS.keep_screen_on = button_pressed
+
+func _on_CaptureInput_toggled(button_pressed: bool) -> void:
+	G.capture_input_when_custom_scene = button_pressed
+	if GodotRemote.get_device().get_custom_input_scene():
+		GodotRemote.get_device().capture_pointer = button_pressed
 
 func _on_override_settings_State_toggled(button_pressed):
 	G.override_server_settings = button_pressed

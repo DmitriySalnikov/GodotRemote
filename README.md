@@ -587,11 +587,12 @@ There is no need to describe other classes here
 
 ## Custom Input Scenes
 
-In custom input scenes you can use everything you want but to send InputEvent's from client to server you must emulate input.
-
+In custom input scenes you can use everything you want but to send InputEvent's from client to server you must emulate input. Or use the send_user_data() method and user_data_received signal for send and receive custom packets.
 Example:
 
 ```python
+# -- With InputEvent's
+
 func _on_pressed():
     # Create event for pressed state
     var iea_p = InputEventAction.new()
@@ -604,6 +605,19 @@ func _on_pressed():
     # Parse event to send it to the server
     Input.parse_input_event(iea_p)
     Input.parse_input_event(iea_r)
+
+# -- With custom packets
+
+# on first device
+func _ready():
+    GodotRemote.get_device().connect("user_data_received", self, "_on_user_data_received")
+
+func _on_user_data_received(id, data):
+    print("Received packet: %s, data: %s" % [id, data])
+
+# on second device
+func _on_button_pressed():
+    GodotRemote.get_device().send_user_data("bg_color", color, false)
 ```
 
 ## License

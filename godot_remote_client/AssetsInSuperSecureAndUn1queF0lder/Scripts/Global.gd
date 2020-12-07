@@ -21,6 +21,7 @@ var password : String = "" setget set_password
 var sync_viewport_orientation : bool = true setget set_sync_viewport_orientation
 var sync_viewport_aspect_ratio : bool = true setget set_sync_viewport_aspect_ratio
 var keepscreenon : bool = false setget set_keep_screen_on
+var capture_input_when_custom_scene : bool = false setget set_capture_input_when_custom_scene
 
 var show_stats : bool = false setget set_show_stats
 
@@ -145,6 +146,7 @@ func _save_settings():
 	d["v_orient"] = sync_viewport_orientation
 	d["v_aspect"] = sync_viewport_aspect_ratio
 	d["keepscreenon"] = keepscreenon
+	d["capture_input_when_custom_scene"] = capture_input_when_custom_scene
 	
 	d["ov_s_settings"] = override_server_settings
 	d["sync_s_settings"] = sync_server_settings
@@ -200,6 +202,7 @@ func _load_settings():
 			sync_viewport_orientation = _safe_get_from_dict(d, "v_orient", sync_viewport_orientation)
 			sync_viewport_aspect_ratio = _safe_get_from_dict(d, "v_aspect", sync_viewport_aspect_ratio)
 			keepscreenon = _safe_get_from_dict(d, "keepscreenon", keepscreenon)
+			capture_input_when_custom_scene = _safe_get_from_dict(d, "capture_input_when_custom_scene", capture_input_when_custom_scene)
 			
 			override_server_settings = _safe_get_from_dict(d, "ov_s_settings", override_server_settings)
 			sync_server_settings = _safe_get_from_dict(d, "sync_s_settings", sync_server_settings)
@@ -261,6 +264,10 @@ func set_sync_viewport_aspect_ratio(val : bool):
 
 func set_keep_screen_on(val : bool):
 	keepscreenon = val
+	_save_settings()
+
+func set_capture_input_when_custom_scene(val : bool):
+	capture_input_when_custom_scene = val
 	_save_settings()
 
 func set_override_settings(val : bool):
