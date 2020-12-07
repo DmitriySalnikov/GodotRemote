@@ -133,7 +133,7 @@ private:
 	static AuthResult _auth_client(GRServer* dev, Ref<PacketPeerStream>& ppeer, Dictionary& ret_data, bool refuse_connection DEF_ARG(= false));
 
 	Ref<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress DEF_ARG(= true), ENUM_ARG(Compression::Mode) compression_type DEF_ARG(= ENUM_CONV(Compression::Mode)0));
-	void _scan_resource_for_dependencies_recursive(String _dir, Array& _arr);
+	void _scan_resource_for_dependencies_recursive(String _dir, std::vector<String>& _arr);
 
 protected:
 	virtual void _internal_call_only_deffered_start() override;

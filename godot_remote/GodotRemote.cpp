@@ -22,30 +22,31 @@ using namespace godot;
 #endif
 
 GodotRemote* GodotRemote::singleton = nullptr;
+bool GodotRemote::is_init_completed = false;
 
 using namespace GRUtils;
 
-const char* GodotRemote::ps_general_autoload_name = "debug/godot_remote/general/autostart";
-const char* GodotRemote::ps_general_port_name = "debug/godot_remote/general/port";
-const char* GodotRemote::ps_general_loglevel_name = "debug/godot_remote/general/log_level";
+GR_PS_NAME_TYPE GodotRemote::ps_general_autoload_name = "debug/godot_remote/general/autostart";
+GR_PS_NAME_TYPE GodotRemote::ps_general_port_name = "debug/godot_remote/general/port";
+GR_PS_NAME_TYPE GodotRemote::ps_general_loglevel_name = "debug/godot_remote/general/log_level";
 
-const char* GodotRemote::ps_notifications_enabled_name = "debug/godot_remote/notifications/notifications_enabled";
-const char* GodotRemote::ps_noticications_position_name = "debug/godot_remote/notifications/notifications_position";
-const char* GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notifications/notifications_duration";
+GR_PS_NAME_TYPE GodotRemote::ps_notifications_enabled_name = "debug/godot_remote/notifications/notifications_enabled";
+GR_PS_NAME_TYPE GodotRemote::ps_noticications_position_name = "debug/godot_remote/notifications/notifications_position";
+GR_PS_NAME_TYPE GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notifications/notifications_duration";
 
-const char* GodotRemote::ps_server_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
-const char* GodotRemote::ps_server_stream_skip_frames_name = "debug/godot_remote/server/skip_frames";
-const char* GodotRemote::ps_server_stream_enabled_name = "debug/godot_remote/server/video_stream_enabled";
-const char* GodotRemote::ps_server_compression_type_name = "debug/godot_remote/server/compression_type";
-const char* GodotRemote::ps_server_jpg_quality_name = "debug/godot_remote/server/jpg_quality";
-const char* GodotRemote::ps_server_jpg_buffer_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
-const char* GodotRemote::ps_server_auto_adjust_scale_name = "debug/godot_remote/server/auto_adjust_scale";
-const char* GodotRemote::ps_server_scale_of_sending_stream_name = "debug/godot_remote/server/scale_of_sending_stream";
-const char* GodotRemote::ps_server_password_name = "debug/godot_remote/server/password";
+GR_PS_NAME_TYPE GodotRemote::ps_server_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
+GR_PS_NAME_TYPE GodotRemote::ps_server_stream_skip_frames_name = "debug/godot_remote/server/skip_frames";
+GR_PS_NAME_TYPE GodotRemote::ps_server_stream_enabled_name = "debug/godot_remote/server/video_stream_enabled";
+GR_PS_NAME_TYPE GodotRemote::ps_server_compression_type_name = "debug/godot_remote/server/compression_type";
+GR_PS_NAME_TYPE GodotRemote::ps_server_jpg_quality_name = "debug/godot_remote/server/jpg_quality";
+GR_PS_NAME_TYPE GodotRemote::ps_server_jpg_buffer_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
+GR_PS_NAME_TYPE GodotRemote::ps_server_auto_adjust_scale_name = "debug/godot_remote/server/auto_adjust_scale";
+GR_PS_NAME_TYPE GodotRemote::ps_server_scale_of_sending_stream_name = "debug/godot_remote/server/scale_of_sending_stream";
+GR_PS_NAME_TYPE GodotRemote::ps_server_password_name = "debug/godot_remote/server/password";
 
-const char* GodotRemote::ps_server_custom_input_scene_name = "debug/godot_remote/server_custom_input_scene/custom_input_scene";
-const char* GodotRemote::ps_server_custom_input_scene_compressed_name = "debug/godot_remote/server_custom_input_scene/send_custom_input_scene_compressed";
-const char* GodotRemote::ps_server_custom_input_scene_compression_type_name = "debug/godot_remote/server_custom_input_scene/custom_input_scene_compression_type";
+GR_PS_NAME_TYPE GodotRemote::ps_server_custom_input_scene_name = "debug/godot_remote/server_custom_input_scene/custom_input_scene";
+GR_PS_NAME_TYPE GodotRemote::ps_server_custom_input_scene_compressed_name = "debug/godot_remote/server_custom_input_scene/send_custom_input_scene_compressed";
+GR_PS_NAME_TYPE GodotRemote::ps_server_custom_input_scene_compression_type_name = "debug/godot_remote/server_custom_input_scene/custom_input_scene_compression_type";
 
 GodotRemote* GodotRemote::get_singleton() {
 	return singleton;
@@ -54,9 +55,10 @@ GodotRemote* GodotRemote::get_singleton() {
 void GodotRemote::_init() {
 	if (!singleton)
 		singleton = this;
-	LEAVE_IF_EDITOR();
 
 	register_and_load_settings();
+	LEAVE_IF_EDITOR();
+
 	GRUtils::init();
 
 	call_deferred("_create_notification_manager");
@@ -122,7 +124,7 @@ void GodotRemote::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_all_notifications"), &GodotRemote::get_all_notifications);
 	ClassDB::bind_method(D_METHOD("get_notifications_with_title", "title"), &GodotRemote::get_notifications_with_title);
 
-	ClassDB::bind_method(D_METHOD("add_notification_or_append_string", "title", "text", "icon", "add_to_new_line"), &GodotRemote::add_notification_or_append_string, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("add_notification_or_append_string", "title", "text", "icon", "add_to_new_line", "duration_multiplier"), &GodotRemote::add_notification_or_append_string, DEFVAL(true), DEFVAL(1.f));
 	ClassDB::bind_method(D_METHOD("add_notification_or_update_line", "title", "id", "text", "icon", "duration_multiplier"), &GodotRemote::add_notification_or_update_line, DEFVAL(1.f));
 	ClassDB::bind_method(D_METHOD("add_notification", "title", "text", "notification_icon", "update_existing", "duration_multiplier"), &GodotRemote::add_notification, DEFVAL((int)NotificationIcon::None), DEFVAL(true), DEFVAL(1.f));
 	ClassDB::bind_method(D_METHOD("remove_notification", "title", "is_all_entries"), &GodotRemote::remove_notification, DEFVAL(true));
@@ -429,13 +431,13 @@ bool GodotRemote::remove_remote_device() {
 void GodotRemote::register_and_load_settings() {
 #ifndef GDNATIVE_LIBRARY
 #define DEF_SET(var, name, def_val, info_type, info_hint_type, info_hint_string) \
-	var = GLOBAL_DEF(name, def_val);                                                      \
+	var = GLOBAL_DEF(name, def_val);                                             \
 	ProjectSettings::get_singleton()->set_custom_property_info(name, PropertyInfo(info_type, name, info_hint_type, info_hint_string))
 #define DEF_SET_ENUM(var, type, name, def_val, info_type, info_hint_type, info_hint_string) \
-	var = (type)(int)GLOBAL_DEF(name, def_val);                                                      \
+	var = (type)(int)GLOBAL_DEF(name, def_val);                                             \
 	ProjectSettings::get_singleton()->set_custom_property_info(name, PropertyInfo(info_type, name, info_hint_type, info_hint_string))
 #define DEF_(name, def_val, info_type, info_hint_type, info_hint_string) \
-	GLOBAL_DEF(name, def_val);                                                    \
+	GLOBAL_DEF(name, def_val);                                           \
 	ProjectSettings::get_singleton()->set_custom_property_info(name, PropertyInfo(info_type, name, info_hint_type, info_hint_string))
 
 #else

@@ -123,9 +123,7 @@ private:
 	bool _server_settings_syncing = false;
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
-	Mutex* send_queue_mutex = nullptr;
 	Mutex* connection_mutex = nullptr;
-	std::vector<Ref<GRPacket>> send_queue; // Ref<GRPacket>
 	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
@@ -149,17 +147,6 @@ private:
 
 	Node* custom_input_scene = nullptr;
 	String custom_input_scene_tmp_pck_file = "user://custom_input_scene.pck";
-
-	template <class T>
-	T _find_queued_packet_by_type() {
-		for (int i = 0; i < send_queue.size(); i++) {
-			T o = send_queue[i];
-			if (o.is_valid()) {
-				return o;
-			}
-		}
-		return T();
-	}
 
 	void _force_update_stream_viewport_signals();
 	void _load_custom_input_scene(Ref<class GRPacketCustomInputScene> _data);
@@ -225,9 +212,9 @@ public:
 	String get_device_id();
 
 	ENUM_ARG(StreamState) get_stream_state();
-	void send_packet(Ref<GRPacket> packet);
 	bool is_stream_active();
 	bool is_connected_to_host();
+	Node* get_custom_input_scene();
 	String get_address();
 	bool set_address(String ip);
 	bool set_address_port(String ip, uint16_t _port);

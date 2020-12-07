@@ -60,14 +60,29 @@ private:
 	WorkingStatus working_status = WorkingStatus::Stopped;
 
 protected:
+	template <class T>
+	T _find_queued_packet_by_type() {
+		for (int i = 0; i < send_queue.size(); i++) {
+			T o = send_queue[i];
+			if (o.is_valid()) {
+				return o;
+			}
+		}
+		return T();
+	}
+
 	float avg_ping = 0;
 	float avg_fps = 0;
 	float avg_ping_smoothing = 0.5f;
 	float avg_fps_smoothing = 0.9f;
+	Mutex* send_queue_mutex = nullptr;
+	std::vector<Ref<GRPacket>> send_queue;
 
 	void set_status(WorkingStatus status);
 	void _update_avg_ping(uint64_t ping);
 	void _update_avg_fps(uint64_t frametime);
+	void _send_queue_resize(int new_size);
+	Ref<GRPacket> _send_queue_pop_front();
 
 	virtual void _reset_counters();
 	virtual void _internal_call_only_deffered_start() {};
@@ -91,6 +106,9 @@ public:
 	float get_avg_fps();
 	uint16_t get_port();
 	void set_port(uint16_t _port);
+
+	void send_packet(Ref<GRPacket> packet);
+	void send_user_data(Variant packet_id, Variant user_data, bool full_objects = false);
 
 	void start();
 	void stop();

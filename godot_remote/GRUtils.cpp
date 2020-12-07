@@ -7,6 +7,7 @@
 #include "core/io/compression.h"
 
 #else
+#include <ClassDB.hpp>
 
 using namespace godot;
 #endif
@@ -25,7 +26,7 @@ namespace GRUtils {
 		_grutils_data->current_loglevel = LogLevel::LL_Normal;
 
 		GR_PACKET_HEADER('G', 'R', 'H', 'D');
-		GR_VERSION(1, 0, 0);
+		GR_VERSION(1, 0, 1);
 
 		GET_PS_SET(_grutils_data->current_loglevel, GodotRemote::ps_general_loglevel_name);
 	}
@@ -215,10 +216,13 @@ namespace GRUtils {
 
 		TimeCount("Compress img");
 
+		release_pva_read(ri);
 		res.resize(size);
 		auto wr = res.write();
 		memcpy(wr.ptr(), rb.ptr(), size);
-
+		release_pva_read(rb);
+		release_pva_write(wr);
+		
 		TimeCount("Combine arrays");
 
 		_log("JPG size: " + str(res.size()), LogLevel::LL_Debug);
@@ -234,9 +238,12 @@ namespace GRUtils {
 
 		ERR_FAIL_COND_V_MSG(err, err, "Can't resize output array");
 
-		auto r = bytes.read();
-		auto w = res.write();
-		int size = Compression::compress(w.ptr(), r.ptr(), bytes.size(), (Compression::Mode)type);
+		int size = 0;
+		{
+			auto r = bytes.read();
+			auto w = res.write();
+			size = Compression::compress(w.ptr(), r.ptr(), bytes.size(), (Compression::Mode)type);
+		}
 
 		if (size) {
 			res.resize(size);
@@ -250,6 +257,7 @@ namespace GRUtils {
 		return err;
 #else
 		// TODO I don't found any ways to implement compression in GDNative
+		_log("Compression not supported in GDNative library", LogLevel::LL_Error);
 		res = bytes;
 		return Error::OK;
 #endif
@@ -260,10 +268,12 @@ namespace GRUtils {
 		Error err = res.resize(output_size);
 		ERR_FAIL_COND_V_MSG(err, err, "Can't resize output array");
 
-		auto r = bytes.read();
-		auto w = res.write();
-		int size = Compression::decompress(w.ptr(), output_size, r.ptr(), bytes.size(), (Compression::Mode)type);
-
+		int size = 0;
+		{
+			auto r = bytes.read();
+			auto w = res.write();
+			size = Compression::decompress(w.ptr(), output_size, r.ptr(), bytes.size(), (Compression::Mode)type);
+		}
 		if (output_size == -1) {
 			ERR_PRINT("Can't decompress bytes");
 			err = Error::FAILED;
@@ -277,6 +287,7 @@ namespace GRUtils {
 		return err;
 #else
 		// TODO I don't found any ways to implement compression in GDNative
+		_log("Compression not supported in GDNative library", LogLevel::LL_Error);
 		res = bytes;
 		return Error::OK;
 #endif
@@ -435,41 +446,53 @@ namespace GRUtils {
 	void set_gravity(const Vector3 & p_gravity) {
 #ifndef GDNATIVE_LIBRARY
 		auto* id = (InputDefault*)Input::get_singleton();
-#else
-		auto* id = Input::get_singleton();
-#endif
 		if (id)
 			id->set_gravity(p_gravity);
+#else
+		Input* id = Input::get_singleton();
+		if (ClassDB::get_singleton()->class_has_method(id->get_class(), "set_gravity")) {
+			id->call("set_gravity", p_gravity);
+		}
+#endif
 	}
 
 	void set_accelerometer(const Vector3 & p_accel) {
 #ifndef GDNATIVE_LIBRARY
 		auto* id = (InputDefault*)Input::get_singleton();
-#else
-		auto* id = Input::get_singleton();
-#endif
 		if (id)
 			id->set_accelerometer(p_accel);
+#else
+		Input* id = Input::get_singleton();
+		if (ClassDB::get_singleton()->class_has_method(id->get_class(), "set_accelerometer")) {
+			id->call("set_accelerometer", p_accel);
+		}
+#endif
 	}
 
 	void set_magnetometer(const Vector3 & p_magnetometer) {
 #ifndef GDNATIVE_LIBRARY
 		auto* id = (InputDefault*)Input::get_singleton();
-#else
-		auto* id = Input::get_singleton();
-#endif
 		if (id)
 			id->set_magnetometer(p_magnetometer);
+#else
+		Input* id = Input::get_singleton();
+		if (ClassDB::get_singleton()->class_has_method(id->get_class(), "set_magnetometer")) {
+			id->call("set_magnetometer", p_magnetometer);
+		}
+#endif
 	}
 
 	void set_gyroscope(const Vector3 & p_gyroscope) {
 #ifndef GDNATIVE_LIBRARY
-		auto* id = (InputDefault*)Input::get_singleton();
-#else
-		auto* id = Input::get_singleton();
-#endif
+		auto* id = (InputDefault*)Input::get_singleton();	
 		if (id)
 			id->set_gyroscope(p_gyroscope);
+#else
+		Input* id = Input::get_singleton();
+		if (ClassDB::get_singleton()->class_has_method(id->get_class(), "set_gyroscope")) {
+			id->call("set_gyroscope", p_gyroscope);
+		}
+#endif
 	}
 
 

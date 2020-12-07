@@ -323,6 +323,12 @@ port
 
 # --- Methods
 
+# Send user data to remote device
+# @packet_id: any data to identify your packet
+# @user_data: any data to send to remote device
+# @full_objects: flag for full serialization of objects, possibly with their executable code. For more info check Godot's PacketPeer.put_var() and PacketPeer.get_var()
+void send_user_data(packet_id: Variant, user_data: Variant, full_objects: bool = false)
+
 # Get average FPS
 # @return average FPS
 float get_avg_fps()
@@ -344,6 +350,9 @@ void stop()
 
 # Device status changed
 status_changed(status: WorkingStatus)
+
+# User data received from a remote device
+user_data_received(packet_id: Variant, user_data: Variant)
 
 # --- Enumerations
 
@@ -489,6 +498,10 @@ server_settings_syncing
 # Restore settings on server
 void disable_overriding_server_settings()
 
+# Get the current visible custom input scene
+# @return: Custom input scene
+Node get_custom_input_scene()
+
 # Get server address
 # @return server address
 String get_address()
@@ -500,10 +513,6 @@ bool is_connected_to_host()
 # Is stream active
 # @return true if stream active
 bool is_stream_active()
-
-# Send packet. GRPackets not exposed to GDScript at this moment
-# @packet: Packet to send
-void send_packet(packet: GRPacket)
 
 # Set server address to connect
 # @ip: IP of server
@@ -539,6 +548,12 @@ void set_custom_no_signal_vertical_texture(texture: Texture)
 void set_server_setting(setting: TypesOfServerSettings, value: Variant)
 
 # --- Signals
+
+# On custom input scene added and becomes visible
+custom_input_scene_added()
+
+# On custom input scene removed
+custom_input_scene_removed()
 
 # On connection state changed
 connection_state_changed(is_connected: bool)

@@ -60,6 +60,7 @@ enum class DeletingVarName {
 	CONTROL_TO_SHOW_STREAM,
 	TEXTURE_TO_SHOW_STREAM,
 	INPUT_COLLECTOR,
+	CUSTOM_INPUT_SCENE,
 };
 
 using namespace GRUtils;
@@ -75,8 +76,6 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_remove_custom_input_scene"), &GRClient::_remove_custom_input_scene);
 	ClassDB::bind_method(D_METHOD("_on_node_deleting", "var_name"), &GRClient::_on_node_deleting);
 
-	ClassDB::bind_method(D_METHOD("send_packet", "packet"), &GRClient::send_packet);
-
 	ClassDB::bind_method(D_METHOD("set_control_to_show_in", "control_node", "position_in_node"), &GRClient::set_control_to_show_in, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_texture", "texture"), &GRClient::set_custom_no_signal_texture);
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_vertical_texture", "texture"), &GRClient::set_custom_no_signal_vertical_texture);
@@ -86,9 +85,13 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_server_setting", "setting", "value"), &GRClient::set_server_setting);
 	ClassDB::bind_method(D_METHOD("disable_overriding_server_settings"), &GRClient::disable_overriding_server_settings);
 
+	ClassDB::bind_method(D_METHOD("get_custom_input_scene"), &GRClient::get_custom_input_scene);
 	ClassDB::bind_method(D_METHOD("get_address"), &GRClient::get_address);
 	ClassDB::bind_method(D_METHOD("is_stream_active"), &GRClient::is_stream_active);
 	ClassDB::bind_method(D_METHOD("is_connected_to_host"), &GRClient::is_connected_to_host);
+
+	ADD_SIGNAL(MethodInfo("custom_input_scene_added"));
+	ADD_SIGNAL(MethodInfo("custom_input_scene_removed"));
 
 	ADD_SIGNAL(MethodInfo("stream_state_changed", PropertyInfo(Variant::INT, "state", PROPERTY_HINT_ENUM)));
 	ADD_SIGNAL(MethodInfo("connection_state_changed", PropertyInfo(Variant::BOOL, "is_connected")));
@@ -188,8 +191,6 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, _remove_custom_input_scene);
 	METHOD_REG(GRClient, _on_node_deleting);
 
-	METHOD_REG(GRClient, send_packet);
-
 	METHOD_REG(GRClient, set_control_to_show_in);
 	METHOD_REG(GRClient, set_custom_no_signal_texture);
 	METHOD_REG(GRClient, set_custom_no_signal_vertical_texture);
@@ -199,9 +200,13 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, set_server_setting);
 	METHOD_REG(GRClient, disable_overriding_server_settings);
 
+	METHOD_REG(GRClient, get_custom_input_scene);
 	METHOD_REG(GRClient, get_address);
 	METHOD_REG(GRClient, is_stream_active);
 	METHOD_REG(GRClient, is_connected_to_host);
+
+	register_signal<GRClient>("custom_input_scene_added", Dictionary::make());
+	register_signal<GRClient>("custom_input_scene_removed", Dictionary::make());
 
 	register_signal<GRClient>("stream_state_changed", "state", GODOT_VARIANT_TYPE_INT);
 	register_signal<GRClient>("connection_state_changed", "is_connected", GODOT_VARIANT_TYPE_BOOL);
@@ -294,8 +299,6 @@ void GRClient::_init() {
 	memdelete(rng);
 #endif
 
-	//send_queue = Array();
-	send_queue_mutex = Mutex_create();
 	connection_mutex = Mutex_create();
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
@@ -322,8 +325,12 @@ void GRClient::_deinit() {
 		_internal_call_only_deffered_stop();
 	}
 	set_control_to_show_in(nullptr, 0);
-	memdelete(send_queue_mutex);
 	memdelete(connection_mutex);
+	connection_mutex = nullptr;
+
+	send_queue_mutex->unlock();
+	memdelete(send_queue_mutex);
+	send_queue_mutex = nullptr;
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 	no_signal_mat.unref();
@@ -372,7 +379,6 @@ void GRClient::_internal_call_only_deffered_stop() {
 	_log("Stopping GodotRemote client", LogLevel::LL_Debug);
 	set_status(WorkingStatus::Stopping);
 	_remove_custom_input_scene();
-	//set_control_to_show_in(nullptr, 0);
 
 	connection_mutex->lock();
 	if (thread_connection) {
@@ -383,7 +389,8 @@ void GRClient::_internal_call_only_deffered_stop() {
 		memdelete(thread_connection);
 		thread_connection = nullptr;
 	}
-	send_queue.resize(0);
+
+	_send_queue_resize(0);
 	send_queue_mutex->unlock();
 	connection_mutex->unlock();
 
@@ -456,6 +463,9 @@ void GRClient::_on_node_deleting(int var_name) {
 		break;
 	case DeletingVarName::INPUT_COLLECTOR:
 		input_collector = nullptr;
+		break;
+	case DeletingVarName::CUSTOM_INPUT_SCENE:
+		custom_input_scene = nullptr;
 		break;
 	default:
 		break;
@@ -560,14 +570,6 @@ bool GRClient::get_texture_filtering() {
 ENUM_ARG(StreamState)
 GRClient::get_stream_state() {
 	return signal_connection_state;
-}
-
-void GRClient::send_packet(Ref<GRPacket> packet) {
-	ERR_FAIL_COND(packet.is_null());
-
-	send_queue_mutex->lock();
-	send_queue.push_back(packet);
-	send_queue_mutex->unlock();
 }
 
 bool GRClient::is_stream_active() {
@@ -684,6 +686,10 @@ bool GRClient::is_connected_to_host() {
 	return false;
 }
 
+Node* GRClient::get_custom_input_scene() {
+	return custom_input_scene;
+}
+
 void GRClient::_force_update_stream_viewport_signals() {
 	is_vertical = ScreenOrientation::NONE;
 	if (!control_to_show_in || control_to_show_in->is_queued_for_deletion()) {
@@ -734,6 +740,7 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 #ifndef GDNATIVE_LIBRARY
 			auto r = scene_data.read();
 			file->store_buffer(r.ptr(), scene_data.size());
+			release_pva_read(r);
 #else
 			file->store_buffer(scene_data);
 #endif
@@ -745,7 +752,7 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 			}
 			else {
 				err = PackedData::get_singleton()->add_pack(custom_input_scene_tmp_pck_file, true, 0);
-			}
+		}
 #else
 			err = ProjectSettings::get_singleton()->load_resource_pack(custom_input_scene_tmp_pck_file, true, 0) ? Error::OK : Error::FAILED;
 #endif
@@ -773,11 +780,14 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 					else {
 
 						control_to_show_in->add_child(custom_input_scene);
+						custom_input_scene->connect("tree_exiting", this, "_on_node_deleting", vec_args({ (int)DeletingVarName::CUSTOM_INPUT_SCENE }));
+
+						emit_signal("custom_input_scene_added");
 					}
 				}
 			}
-		}
 	}
+}
 
 	if (file) {
 		memdelete(file);
@@ -789,6 +799,7 @@ void GRClient::_remove_custom_input_scene() {
 
 		custom_input_scene->queue_del();
 		custom_input_scene = nullptr;
+		emit_signal("custom_input_scene_removed");
 
 		Error err = Error::OK;
 #ifndef GDNATIVE_LIBRARY
@@ -820,37 +831,48 @@ void GRClient::_viewport_size_changed() {
 		return;
 	}
 
-	send_queue_mutex->lock();
-
 	if (_viewport_orientation_syncing) {
 		Vector2 size = control_to_show_in->get_size();
 		ScreenOrientation tmp_vert = size.x < size.y ? ScreenOrientation::VERTICAL : ScreenOrientation::HORIZONTAL;
 		if (tmp_vert != is_vertical) {
 			is_vertical = tmp_vert;
+			send_queue_mutex->lock();
 			Ref<GRPacketClientStreamOrientation> packet = _find_queued_packet_by_type<Ref<GRPacketClientStreamOrientation> >();
+			if (packet.is_valid()) {
+				packet->set_vertical(is_vertical == ScreenOrientation::VERTICAL);
+				send_queue_mutex->unlock();
+				goto ratio_sync;
+			}
+			send_queue_mutex->unlock();
 
 			if (packet.is_null()) {
 				packet.instance();
+				packet->set_vertical(is_vertical == ScreenOrientation::VERTICAL);
 				send_packet(packet);
 			}
-
-			packet->set_vertical(is_vertical == ScreenOrientation::VERTICAL);
 		}
 	}
 
+ratio_sync:
+
 	if (_viewport_aspect_ratio_syncing) {
+		Vector2 size = control_to_show_in->get_size();
+
+		send_queue_mutex->lock();
 		Ref<GRPacketClientStreamAspect> packet = _find_queued_packet_by_type<Ref<GRPacketClientStreamAspect> >();
+		if (packet.is_valid()) {
+			packet->set_aspect(size.x / size.y);
+			send_queue_mutex->unlock();
+			return;
+		}
+		send_queue_mutex->unlock();
 
 		if (packet.is_null()) {
 			packet.instance();
+			packet->set_aspect(size.x / size.y);
 			send_packet(packet);
 		}
-
-		Vector2 size = control_to_show_in->get_size();
-		packet->set_aspect(size.x / size.y);
 	}
-
-	send_queue_mutex->unlock();
 }
 
 void GRClient::_update_texture_from_iamge(Ref<Image> img) {
@@ -877,12 +899,12 @@ void GRClient::_update_texture_from_iamge(Ref<Image> img) {
 	}
 }
 
-void GRClient::_update_stream_texture_state(ENUM_ARG(StreamState) is_has_signal) {
+void GRClient::_update_stream_texture_state(ENUM_ARG(StreamState) _stream_state) {
 	if (is_deleting)
 		return;
 
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
-		switch (is_has_signal) {
+		switch (_stream_state) {
 		case StreamState::STREAM_NO_SIGNAL: {
 			tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
 
@@ -921,9 +943,9 @@ void GRClient::_update_stream_texture_state(ENUM_ARG(StreamState) is_has_signal)
 			break;
 		}
 
-		if (signal_connection_state != is_has_signal) {
-			call_deferred("emit_signal", "stream_state_changed", is_has_signal);
-			signal_connection_state = (StreamState)is_has_signal;
+		if (signal_connection_state != _stream_state) {
+			call_deferred("emit_signal", "stream_state_changed", _stream_state);
+			signal_connection_state = (StreamState)_stream_state;
 		}
 	}
 }
@@ -937,14 +959,18 @@ void GRClient::_reset_counters() {
 void GRClient::set_server_setting(ENUM_ARG(TypesOfServerSettings) param, Variant value) {
 	send_queue_mutex->lock();
 	Ref<GRPacketServerSettings> packet = _find_queued_packet_by_type<Ref<GRPacketServerSettings> >();
+	if (packet.is_valid()) {
+		packet->add_setting(param, value);
+		send_queue_mutex->unlock();
+		return;
+	}
+	send_queue_mutex->unlock();
 
 	if (packet.is_null()) {
 		packet.instance();
+		packet->add_setting(param, value);
 		send_packet(packet);
 	}
-
-	packet->add_setting(param, value);
-	send_queue_mutex->unlock();
 }
 
 void GRClient::disable_overriding_server_settings() {
@@ -976,6 +1002,8 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 			con->disconnect_from_host();
 		}
 
+		dev->_send_queue_resize(0);
+
 #ifndef GDNATIVE_LIBRARY
 		IP_Address adr;
 #else
@@ -988,7 +1016,7 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 #else
 			adr = "127.0.0.1";
 #endif
-		}
+	}
 		else {
 			if (dev->server_address.is_valid_ip_address()) {
 				adr = dev->server_address;
@@ -1132,7 +1160,7 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 		if (long_wait) {
 			os->delay_usec(888_ms);
 		}
-	}
+}
 
 	dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 	_log("Connection thread stopped", LogLevel::LL_Debug);
@@ -1189,6 +1217,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 
 		///////////////////////////////////////////////////////////////////
 		// SENDING
+		bool is_queued_send = false; // this placed here for android compiler
 
 		// INPUT
 		time64 = os->get_ticks_usec();
@@ -1233,10 +1262,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 		// SEND QUEUE
 		start_while_time = os->get_ticks_usec();
 		while (!dev->send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
-			dev->send_queue_mutex->lock();
-			Ref<GRPacket> packet = dev->send_queue.front();
-			dev->send_queue.erase(dev->send_queue.begin());
-			dev->send_queue_mutex->unlock();
+			is_queued_send = true;
+			Ref<GRPacket> packet = dev->_send_queue_pop_front();
 
 			if (packet.is_valid()) {
 				err = ppeer->put_var(packet->get_data());
@@ -1247,7 +1274,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 				}
 			}
 		}
-		TimeCount("Send queue");
+		if (is_queued_send)
+			TimeCount("Send queued data");
 	end_send:
 
 		if (!connection->is_connected_to_host()) {
@@ -1337,7 +1365,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 
 			Ref<GRPacket> pack = GRPacket::create(buf);
 			if (pack.is_null()) {
-				_log("GRPacket is null", LogLevel::LL_Error);
+				_log("Incorrect GRPacket", LogLevel::LL_Error);
 				continue;
 			}
 
@@ -1347,7 +1375,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 			case PacketType::SyncTime: {
 				Ref<GRPacketSyncTime> data = pack;
 				if (data.is_null()) {
-					_log("GRPacketSyncTime is null", LogLevel::LL_Error);
+					_log("Incorrect GRPacketSyncTime", LogLevel::LL_Error);
 					continue;
 				}
 
@@ -1359,7 +1387,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 			case PacketType::ImageData: {
 				Ref<GRPacketImageData> data = pack;
 				if (data.is_null()) {
-					_log("GRPacketImageData is null", LogLevel::LL_Error);
+					_log("Incorrect GRPacketImageData", LogLevel::LL_Error);
 					continue;
 				}
 
@@ -1373,7 +1401,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 
 				Ref<GRPacketServerSettings> data = pack;
 				if (data.is_null()) {
-					_log("GRPacketServerSettings is null", LogLevel::LL_Error);
+					_log("Incorrect GRPacketServerSettings", LogLevel::LL_Error);
 					continue;
 				}
 
@@ -1383,7 +1411,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 			case PacketType::MouseModeSync: {
 				Ref<GRPacketMouseModeSync> data = pack;
 				if (data.is_null()) {
-					_log("GRPacketMouseModeSync is null", LogLevel::LL_Error);
+					_log("Incorrect GRPacketMouseModeSync", LogLevel::LL_Error);
 					continue;
 				}
 
@@ -1393,11 +1421,20 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 			case PacketType::CustomInputScene: {
 				Ref<GRPacketCustomInputScene> data = pack;
 				if (data.is_null()) {
-					_log("GRPacketCustomInputScene is null", LogLevel::LL_Error);
+					_log("Incorrect GRPacketCustomInputScene", LogLevel::LL_Error);
 					continue;
 				}
 
 				dev->call_deferred("_load_custom_input_scene", data);
+				break;
+			}
+			case PacketType::CustomUserData: {
+				Ref<GRPacketCustomUserData> data = pack;
+				if (data.is_null()) {
+					_log("Incorrect GRPacketCustomUserData", LogLevel::LL_Error);
+					break;
+				}
+				dev->call_deferred("emit_signal", "user_data_received", data->get_packet_id(), data->get_user_data());
 				break;
 			}
 			case PacketType::Ping: {
@@ -1435,9 +1472,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 		prev_cycle_time = os->get_ticks_usec() - cycle_start_time;
 	}
 
-	dev->send_queue_mutex->lock();
-	dev->send_queue.clear();
-	dev->send_queue_mutex->unlock();
+	dev->_send_queue_resize(0);
 
 	dev->connection_mutex->unlock();
 	stream_queue.clear();
@@ -1500,7 +1535,7 @@ void GRClient::_thread_image_decoder(THREAD_DATA p_userdata) {
 	default:
 		_log("Not implemented image decoder type: " + str((int)type), LogLevel::LL_Error);
 		break;
-	}
+}
 
 	if (!(int)err) { // is OK
 		TimeCount("Create Image Time");
@@ -1849,6 +1884,7 @@ void GRInputCollector::_notification(int p_notification) {
 		w[1] = Input::get_singleton()->get_gravity();
 		w[2] = Input::get_singleton()->get_gyroscope();
 		w[3] = Input::get_singleton()->get_magnetometer();
+		release_pva_write(w);
 		_TS_UNLOCK_;
 		break;
 	}

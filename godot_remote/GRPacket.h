@@ -30,6 +30,7 @@ enum PacketType : int {
 	CustomInputScene = 6,
 	ClientStreamOrientation = 7,
 	ClientStreamAspect = 8,
+	CustomUserData = 9,
 
 	// Requests
 	Ping = 128,
@@ -279,6 +280,33 @@ public:
 
 	float get_aspect();
 	void set_aspect(float val);
+};
+
+//////////////////////////////////////////////////////////////////////////
+// CUSTOM USER DATA
+class GRPacketCustomUserData : public GRPacket {
+	GD_S_CLASS(GRPacketCustomUserData, GRPacket);
+	friend GRPacket;
+
+	Variant packet_id;
+	bool full_objects = false;
+	Variant user_data;
+
+protected:
+	GDNATIVE_BASIC_REGISTER;
+
+	virtual Ref<StreamPeerBuffer> _get_data() override;
+	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+
+public:
+	virtual PacketType get_type() override { return PacketType::CustomUserData; };
+
+	Variant get_packet_id();
+	void set_packet_id(Variant val);
+	bool get_send_full_objects();
+	void set_send_full_objects(bool val);
+	Variant get_user_data();
+	void set_user_data(Variant val);
 };
 
 //////////////////////////////////////////////////////////////////////////

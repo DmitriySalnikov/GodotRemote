@@ -34,6 +34,7 @@ class GodotRemote : public Node {
 
 	friend class GRDevice;
 	static GodotRemote* singleton;
+	static bool is_init_completed;
 
 public:
 	enum DeviceType : int {
@@ -42,26 +43,33 @@ public:
 		DEVICE_CLIENT = 2,
 	};
 
-	static const char* ps_general_autoload_name;
-	static const char* ps_general_port_name;
-	static const char* ps_general_loglevel_name;
+#ifndef GDNATIVE_LIBRARY
+#define GR_PS_NAME_TYPE String
+#else
+#define GR_PS_NAME_TYPE const char*
+#endif
 
-	static const char* ps_notifications_enabled_name;
-	static const char* ps_noticications_position_name;
-	static const char* ps_notifications_duration_name;
+	static GR_PS_NAME_TYPE ps_general_autoload_name;
+	static GR_PS_NAME_TYPE ps_general_port_name;
+	static GR_PS_NAME_TYPE ps_general_loglevel_name;
 
-	static const char* ps_server_config_adb_name;
-	static const char* ps_server_custom_input_scene_name;
-	static const char* ps_server_custom_input_scene_compressed_name;
-	static const char* ps_server_custom_input_scene_compression_type_name;
-	static const char* ps_server_stream_skip_frames_name;
-	static const char* ps_server_stream_enabled_name;
-	static const char* ps_server_compression_type_name;
-	static const char* ps_server_jpg_buffer_mb_size_name;
-	static const char* ps_server_jpg_quality_name;
-	static const char* ps_server_scale_of_sending_stream_name;
-	static const char* ps_server_auto_adjust_scale_name;
-	static const char* ps_server_password_name;
+	static GR_PS_NAME_TYPE ps_notifications_enabled_name;
+	static GR_PS_NAME_TYPE ps_noticications_position_name;
+	static GR_PS_NAME_TYPE ps_notifications_duration_name;
+
+	static GR_PS_NAME_TYPE ps_server_config_adb_name;
+	static GR_PS_NAME_TYPE ps_server_stream_skip_frames_name;
+	static GR_PS_NAME_TYPE ps_server_stream_enabled_name;
+	static GR_PS_NAME_TYPE ps_server_compression_type_name;
+	static GR_PS_NAME_TYPE ps_server_jpg_quality_name;
+	static GR_PS_NAME_TYPE ps_server_jpg_buffer_mb_size_name;
+	static GR_PS_NAME_TYPE ps_server_auto_adjust_scale_name;
+	static GR_PS_NAME_TYPE ps_server_scale_of_sending_stream_name;
+	static GR_PS_NAME_TYPE ps_server_password_name;
+
+	static GR_PS_NAME_TYPE ps_server_custom_input_scene_name;
+	static GR_PS_NAME_TYPE ps_server_custom_input_scene_compressed_name;
+	static GR_PS_NAME_TYPE ps_server_custom_input_scene_compression_type_name;
 
 private:
 	bool is_autostart = false;

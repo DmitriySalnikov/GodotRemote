@@ -49,6 +49,8 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray& bytes) {
 		CREATE(GRPacketClientStreamOrientation);
 	case PacketType::ClientStreamAspect:
 		CREATE(GRPacketClientStreamAspect);
+	case PacketType::CustomUserData:
+		CREATE(GRPacketCustomUserData);
 
 		// Requests
 	case PacketType::Ping:
@@ -381,4 +383,47 @@ float GRPacketClientStreamAspect::get_aspect() {
 
 void GRPacketClientStreamAspect::set_aspect(float val) {
 	stream_aspect = val;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// CUSTOM USER DATA
+
+Ref<StreamPeerBuffer> GRPacketCustomUserData::_get_data() {
+	auto buf = GRPacket::_get_data();
+	buf->put_string(packet_id);
+	buf->put_8(full_objects);
+	buf->put_var(user_data, full_objects);
+	return buf;
+}
+
+bool GRPacketCustomUserData::_create(Ref<StreamPeerBuffer> buf) {
+	GRPacket::_create(buf);
+	packet_id = buf->get_string();
+	full_objects = buf->get_8();
+	user_data = buf->get_var(full_objects);
+	return true;
+}
+
+Variant GRPacketCustomUserData::get_packet_id() {
+	return packet_id;
+}
+
+void GRPacketCustomUserData::set_packet_id(Variant val) {
+	packet_id = val;
+}
+
+bool GRPacketCustomUserData::get_send_full_objects() {
+	return full_objects;
+}
+
+void GRPacketCustomUserData::set_send_full_objects(bool val) {
+	full_objects = val;
+}
+
+Variant GRPacketCustomUserData::get_user_data() {
+	return user_data;
+}
+
+void GRPacketCustomUserData::set_user_data(Variant val) {
+	user_data = val;
 }

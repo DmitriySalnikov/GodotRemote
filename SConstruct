@@ -337,18 +337,18 @@ elif env['platform'] == 'android':
     arch_info_table = {
         "armv7" : {
             "march":"armv7-a", "target":"armv7a-linux-androideabi", "tool_path":"arm-linux-androideabi", "compiler_path":"armv7a-linux-androideabi",
-            "ccflags" : ['-mfpu=neon'], "target_platform": "arch-arm"
+            "ccflags" : ['-mfpu=neon']
             },
         "arm64v8" : {
             "march":"armv8-a", "target":"aarch64-linux-android", "tool_path":"aarch64-linux-android", "compiler_path":"aarch64-linux-android",
-            "ccflags" : [], "target_platform": "arch-arm64"
+            "ccflags" : []
             },
         "x86" : {
             "march":"i686", "target":"i686-linux-android", "tool_path":"i686-linux-android", "compiler_path":"i686-linux-android",
-            "ccflags" : ['-mstackrealign'], "target_platform": "arch-x86"
+            "ccflags" : ['-mstackrealign']
             },
         "x86_64" : {"march":"x86-64", "target":"x86_64-linux-android", "tool_path":"x86_64-linux-android", "compiler_path":"x86_64-linux-android",
-            "ccflags" : [], "target_platform": "arch-x86_64"
+            "ccflags" : []
         }
     }
     arch_info = arch_info_table[env['android_arch']]
@@ -357,19 +357,9 @@ elif env['platform'] == 'android':
     env['CC'] = toolchain + "/bin/clang"
     env['CXX'] = toolchain + "/bin/clang++"
     env['AR'] = toolchain + "/bin/" + arch_info['tool_path'] + "-ar"
-    env["AS"] = toolchain + "/bin/" + arch_info['tool_path'] + "-as"
-    env["LD"] = toolchain + "/bin/" + arch_info['tool_path'] + "-ld"
-    env["STRIP"] = toolchain + "/bin/" + arch_info['tool_path'] + "-strip"
-    env["RANLIB"] = toolchain + "/bin/" + arch_info['tool_path'] + "-ranlib"
-    env['OBJCOPY'] = toolchain + "/bin/" + arch_info['tool_path'] + "-objcopy"
-    env['LINK'] = toolchain + "/bin/clang++"
-    target_platform = env['ANDROID_NDK_ROOT'] + ("/platforms/android-%s" % api_level) + ('/%s/usr/lib' % arch_info['target_platform'])
-    env['SHLINKFLAGS'] = ["-Wl", "-shared", "--sysroot=%s" % target_platform, "-Wl", "-z", "noexecstack"]
-    env.Append(CPPDEFINES = "ANDROID")
-    
+
     env.Append(CCFLAGS=['--target=' + arch_info['target'] + env['android_api_level'], '-march=' + arch_info['march'], '-fPIC'])#, '-fPIE', '-fno-addrsig', '-Oz'])
-    env.Append(CCFLAGS=arch_info['ccflags'] + ['-std=c++14']) # '-stdlib=libc++', '-static-libstdc++' is the most important part of this script :D
-    env.Append(LINKFLAGS=['-v'])
+    env.Append(CCFLAGS=arch_info['ccflags'])
     
 # fix for godot-cpp
 #    env.Append(CCFLAGS=arch_info['ccflags'] + ['-std=c++14', '-stdlib=libc++', '-static-libstdc++']) # -stdlib=libc++ is the most important part of this script :D

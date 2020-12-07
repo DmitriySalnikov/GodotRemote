@@ -141,7 +141,7 @@ func _setup_constants():
 		GRDevice_InputEventWithModifiers = ClassDB.class_get_integer_constant("GRDevice", "InputEventWithModifiers")
 		GRDevice_InputEventMAX = ClassDB.class_get_integer_constant("GRDevice", "InputEventMAX")
 		
-		GRClient_CONNECTION_ADB = ClassDB.class_get_integer_constant("GRClient.", "CONNECTION_ADB")
+		GRClient_CONNECTION_ADB = ClassDB.class_get_integer_constant("GRClient", "CONNECTION_ADB")
 		GRClient_CONNECTION_WiFi = ClassDB.class_get_integer_constant("GRClient", "CONNECTION_WiFi")
 		
 		GRClient_STRETCH_KEEP_ASPECT = ClassDB.class_get_integer_constant("GRClient", "STRETCH_KEEP_ASPECT")

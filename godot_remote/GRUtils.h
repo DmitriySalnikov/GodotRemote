@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <map>
+#include <algorithm>
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/image.h"
@@ -54,6 +55,8 @@ using namespace godot;
 #define queue_del queue_delete
 #define img_is_empty(img) img->empty()
 #define is_valid_ip is_valid
+#define release_pva_read(pva) pva.release()
+#define release_pva_write(pva) pva.release()
 
 #define dict_get_key_at_index(dict, i) dict.get_key_at_index(i)
 #define dict_get_value_at_index(dict, i) dict.get_value_at_index(i)
@@ -181,6 +184,8 @@ register_property<cl, int>(name, &cl::set_constant, &cl::CONST_FUNC_CAT(cl, en, 
 #define queue_del queue_free
 #define is_valid_ip is_valid_ip_address
 #define img_is_empty(img) img->is_empty()
+#define release_pva_read(pva)
+#define release_pva_write(pva)
 
 #define dict_get_key_at_index(dict, i) _gdn_dictionary_get_key_at_index(dict, i)
 #define dict_get_value_at_index(dict, i) _gdn_dictionary_get_value_at_index(dict, i)
@@ -245,6 +250,7 @@ if (Engine::get_singleton()->is_editor_hint()) \
 #define max(x, y) (x > y ? x : y)
 #define min(x, y) (x < y ? x : y)
 #define _log(val, ll) __log(val, ll, __FILE__, __LINE__)
+#define is_vector_contains(vec, val) (std::find(vec.begin(), vec.end(), val) != vec.end())
 
 #define GR_VERSION(x, y, z)             \
 	if (_grutils_data->internal_VERSION.size() == 0) { \
@@ -364,7 +370,7 @@ namespace GRUtils {
 	template <class T>
 	extern String str_arr(const std::vector<T> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ") {
 		String res = "[ ";
-		int s = arr.size();
+		int s = (int)arr.size();
 		bool is_long = false;
 		if (s > max_shown_items && !force_full) {
 			s = max_shown_items;
@@ -388,7 +394,7 @@ namespace GRUtils {
 	template <class K, class V>
 	extern String str_arr(const std::map<K, V> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ") {
 		String res = "{ ";
-		int s = arr.size();
+		int s = (int)arr.size();
 		bool is_long = false;
 		if (s > max_shown_items && !force_full) {
 			s = max_shown_items;
@@ -430,7 +436,7 @@ namespace GRUtils {
 				res += separator;
 			}
 		}
-		r.release();
+		release_pva_read(r);
 
 		if (is_long) {
 			res += str(int64_t(arr.size()) - s) + " more items...";
@@ -457,6 +463,7 @@ namespace GRUtils {
 				res += separator;                                                                                             \
 			}                                                                                                                 \
 		}                                                                                                                     \
+        release_pva_read(r);                                                                                                  \
                                                                                                                               \
 		if (is_long) {                                                                                                        \
 			res += str(int64_t(arr.size()) - s) + " more items...";                                                           \

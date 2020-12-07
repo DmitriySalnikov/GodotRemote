@@ -98,6 +98,7 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void* handle) {
 	register_class<GRPacketMouseModeSync>();
 	register_class<GRPacketServerSettings>();
 	register_class<GRPacketSyncTime>();
+	register_class<GRPacketCustomUserData>();
 
 	register_class<GRPacketPing>();
 	register_class<GRPacketPong>();

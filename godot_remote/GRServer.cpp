@@ -66,7 +66,7 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_custom_input_scene"), &GRServer::get_custom_input_scene);
 	ClassDB::bind_method(D_METHOD("is_custom_input_scene_compressed"), &GRServer::is_custom_input_scene_compressed);
 	ClassDB::bind_method(D_METHOD("get_custom_input_scene_compression_type"), &GRServer::get_custom_input_scene_compression_type);
-	
+
 	//ADD_PROPERTY(PropertyInfo(Variant::BOOL, "video_stream_enabled"), "set_video_stream_enabled", "is_video_stream_enabled");
 	//ADD_PROPERTY(PropertyInfo(Variant::INT, "skip_frames"), "set_skip_frames", "get_skip_frames");
 	////ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "is_auto_adjust_scale");
@@ -324,6 +324,12 @@ void GRServer::_deinit() {
 	}
 	connection_mutex->unlock();
 	memdelete(connection_mutex);
+	connection_mutex = nullptr;
+
+	send_queue_mutex->unlock();
+	memdelete(send_queue_mutex);
+	send_queue_mutex = nullptr;
+
 	custom_input_scene_regex_resource_finder.unref();
 	deinit_server_utils();
 }
@@ -385,6 +391,10 @@ void GRServer::_internal_call_only_deffered_stop() {
 		resize_viewport->set_process(false);
 	call_deferred("_remove_resize_viewport", resize_viewport);
 	resize_viewport = nullptr;
+
+	_send_queue_resize(0);
+	send_queue_mutex->unlock();
+
 	set_status(WorkingStatus::Stopped);
 
 	GRNotifications::add_notification("Godot Remote Server Status", "Server stopped", NotificationIcon::Fail, true, 1.f);
@@ -734,6 +744,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 	Ref<PacketPeerStream> ppeer = thread_info->ppeer;
 	GRServer* dev = thread_info->dev;
 	dev->_reset_counters();
+	dev->_send_queue_resize(0);
 
 	GodotRemote* gr = GodotRemote::get_singleton();
 	OS* os = OS::get_singleton();
@@ -779,6 +790,8 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 
 		///////////////////////////////////////////////////////////////////
 		// SENDING
+		bool is_queued_send = false; // this placed here for android compiler
+		uint64_t start_while_time = os->get_ticks_usec();
 
 		// TIME SYNC
 		//time = os->get_ticks_usec();
@@ -918,6 +931,24 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 			}
 			TimeCount("Custom input");
 		}
+
+		// SEND QUEUE
+		while (!dev->send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
+			is_queued_send = true;
+			Ref<GRPacket> packet = dev->_send_queue_pop_front();
+
+			if (packet.is_valid()) {
+				err = ppeer->put_var(packet->get_data());
+
+				if ((int)err) {
+					_log("Put data from queue failed with code: " + str((int)err), LogLevel::LL_Error);
+					goto end_send;
+				}
+			}
+		}
+		if (is_queued_send)
+			TimeCount("Send queued data");
+
 	end_send:
 
 		if (!connection->is_connected_to_host()) {
@@ -1045,6 +1076,15 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 				dev->call_deferred("emit_signal", "client_viewport_aspect_ratio_changed", data->get_aspect());
 				break;
 			}
+			case PacketType::CustomUserData: {
+				Ref<GRPacketCustomUserData> data = pack;
+				if (data.is_null()) {
+					_log("Incorrect GRPacketCustomUserData", LogLevel::LL_Error);
+					break;
+				}
+				dev->call_deferred("emit_signal", "user_data_received", data->get_packet_id(), data->get_user_data());
+				break;
+			}
 			case PacketType::Ping: {
 				Ref<GRPacketPong> pack(memnew(GRPacketPong));
 				err = ppeer->put_var(pack->get_data());
@@ -1097,6 +1137,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 	thread_info->ppeer.unref();
 	thread_info->break_connection = true;
 	dev->client_connected--;
+	dev->_send_queue_resize(0);
 
 	dev->call_deferred("_load_settings");
 	dev->call_deferred("emit_signal", "client_disconnected", thread_info->device_id);
@@ -1217,8 +1258,12 @@ timeout:
 
 Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_path, bool compress, ENUM_ARG(Compression::Mode) compression_type) {
 	Ref<GRPacketCustomInputScene> pack = memnew(GRPacketCustomInputScene);
-	Array files;
+	std::vector<String> files;
 	_scan_resource_for_dependencies_recursive(_scene_path, files);
+#ifndef GDNATIVE_LIBRARY
+#else
+	compress = false;
+#endif
 
 	if (files.size()) {
 		String pck_file = _scene_path.get_base_dir() + "tmp.pck";
@@ -1275,7 +1320,7 @@ Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_
 #ifndef GDNATIVE_LIBRARY
 								auto w = arr.write();
 								int res = file->get_buffer(w.ptr(), arr.size());
-								w.release();
+								release_pva_write(w);
 								if (res != arr.size()) {
 #else
 								arr = file->get_buffer(file->get_len());
@@ -1331,16 +1376,15 @@ Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_
 		}
 	}
 	else {
-		_log("Files to pack not found!", LogLevel::LL_Error);
+		_log("Files to pack not found! Scene path: " + _scene_path, LogLevel::LL_Error);
 	}
 
 	files.clear();
 	return pack;
 }
 
-void GRServer::_scan_resource_for_dependencies_recursive(String _d, Array & _arr) {
-	//if (  _arr.find(_d, 0) == -1) {
-	if (_arr.has(_d)) {
+void GRServer::_scan_resource_for_dependencies_recursive(String _d, std::vector<String>&_arr) {
+	if (!is_vector_contains(_arr, _d)) {
 		_arr.push_back(_d);
 	}
 	else {
@@ -1348,8 +1392,6 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, Array & _arr
 	}
 
 	Error err = Error::OK;
-
-
 
 	String text = file_get_as_string(_d, &err);
 
@@ -1363,7 +1405,7 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, Array & _arr
 			_log(".import file not found for " + imp, LogLevel::LL_Debug);
 		}
 		else {
-			if (_arr.has(imp)) {
+			if (is_vector_contains(_arr, imp)) {
 				_arr.push_back(imp);
 			}
 		}

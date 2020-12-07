@@ -16,6 +16,8 @@ func _ready():
 	TIM.InputPopup = $CustomPopupTextInput
 	
 	GodotRemote.get_device().set_control_to_show_in($Stream)
+	GodotRemote.get_device().connect("custom_input_scene_added", self, "_custom_input_scene_added")
+	GodotRemote.get_device().connect("custom_input_scene_removed", self, "_custom_input_scene_removed")
 	GodotRemote.get_device().connect("stream_state_changed", self, "_stream_state_changed")
 	GodotRemote.get_device().connect("mouse_mode_changed", self, "_mouse_mode_changed")
 	GodotRemote.connect("device_removed", self, "_device_removed")
@@ -36,6 +38,12 @@ func _mouse_mode_changed(_mode):
 	if not $GRSettings.visible:
 		Input.set_mouse_mode(mouse_mode)
 
+func _custom_input_scene_added():
+	$BackgroundTouchHint/Panel/TextureRect.visible = false
+
+func _custom_input_scene_removed():
+	$BackgroundTouchHint/Panel/TextureRect.visible = true
+
 func _stream_state_changed(_is_connected):
 	match _is_connected:
 		C.GRClient_STREAM_NO_SIGNAL:
@@ -51,6 +59,7 @@ func _stream_state_changed(_is_connected):
 		C.GRClient_STREAM_NO_IMAGE:
 			$Stats.visible = not $GRSettings.visible
 			$BackgroundTouchHint.visible = true
+			$BackgroundTouchHint/Panel/TextureRect.visible = GodotRemote.get_device().get_custom_input_scene() == null
 
 func _device_removed():
 	$Stats.visible = false
