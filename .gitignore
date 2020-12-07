@@ -28,6 +28,7 @@ __pycache__
 *.out
 api.json
 .import/
+.mono/
 obj/
 libs/
 

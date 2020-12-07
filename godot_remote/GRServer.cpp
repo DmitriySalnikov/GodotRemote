@@ -1321,11 +1321,15 @@ Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_
 								auto w = arr.write();
 								int res = file->get_buffer(w.ptr(), arr.size());
 								release_pva_write(w);
+								file->close();
+
 								if (res != arr.size()) {
 #else
 								arr = file->get_buffer(file->get_len());
+								int file_length = file->get_len();
+								file->close();
 
-								if (file->get_len() != arr.size()) {
+								if (file_length != arr.size()) {
 									int res = (int)Error::ERR_FILE_CANT_READ;
 #endif
 
