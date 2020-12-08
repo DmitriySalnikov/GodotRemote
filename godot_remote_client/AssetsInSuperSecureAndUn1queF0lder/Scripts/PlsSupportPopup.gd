@@ -11,14 +11,14 @@ func _enter_tree():
 func _ready():
 	if not has_billings and not shown:
 		shown = true
-		if G.AppRuns == 4:
-			popup_centered()
+		if G.AppRuns != 0 && G.AppRuns % 5 == 0:
+			call_deferred("popup_centered")
 
 func _billings_ready():
 	if G.Billings.get_purchased_points() == 0 and not shown:
 		shown = true
-		if G.AppRuns != 0 && G.AppRuns % 4 == 0:
-			popup_centered()
+		if G.AppRuns != 0 && G.AppRuns % 5 == 0:
+			call_deferred("popup_centered")
 
 func _on_Button2_pressed():
 	hide()
@@ -28,4 +28,4 @@ func _on_Button_pressed():
 	if has_billings:
 		get_parent().show_support_window()
 	else:
-		OS.shell_open("https://github.com/DmitriySalnikov/GodotRemote")
+		OS.shell_open("https://github.com/DmitriySalnikov/GodotRemote#godot-remote")

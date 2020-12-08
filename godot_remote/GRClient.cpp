@@ -1442,7 +1442,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 				err = ppeer->put_var(pack->get_data());
 				if ((int)err) {
 					_log("Send pong failed with code: " + str((int)err), LogLevel::LL_Normal);
-					goto end_send;
+					break;
 				}
 				break;
 			}

@@ -1,5 +1,11 @@
 extends Node
 
+enum RateState{
+	NotNow,
+	No,
+	Yes,
+}
+
 signal show_stats_changed(state)
 
 const SAVE_FILE := "user://settings.json"
@@ -9,6 +15,7 @@ var Billings : Node = null
 var VersionChanged : bool = false
 var AppRuns : int = 0
 var TotalAppRuns : int = 0
+var UserRateState : int = RateState.NotNow setget set_user_rate_state
 
 var device_id : String = "" setget set_device_id
 var connection_type : int = 0 setget set_con_type
@@ -134,6 +141,7 @@ func _save_settings():
 	d["m_version"] = GodotRemote.get_version()
 	d["app_runs"] = AppRuns
 	d["total_app_runs"] = TotalAppRuns
+	d["user_rate_state"] = UserRateState
 	d["device_id"] = device_id
 	d["con_type"] = connection_type
 	d["ip"] = ip
@@ -189,6 +197,7 @@ func _load_settings():
 				AppRuns = _safe_get_from_dict(d, "app_runs", AppRuns)
 			
 			TotalAppRuns = _safe_get_from_dict(d, "total_app_runs", TotalAppRuns)
+			UserRateState = _safe_get_from_dict(d, "user_rate_state", UserRateState)
 			
 			device_id = _safe_get_from_dict(d, "device_id", device_id)
 			connection_type = _safe_get_from_dict(d, "con_type", connection_type)
@@ -216,6 +225,10 @@ func _safe_get_from_dict(dict:Dictionary, val, def):
 	if dict.has(val):
 		return dict[val]
 	return def
+
+func set_user_rate_state(val : int):
+	UserRateState = val
+	_save_settings()
 
 func set_device_id(val : String):
 	device_id = val

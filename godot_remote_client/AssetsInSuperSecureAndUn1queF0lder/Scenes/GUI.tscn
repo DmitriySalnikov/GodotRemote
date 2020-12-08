@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=2]
+[gd_scene load_steps=12 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/GodotRemoteClient.gd" type="Script" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalLight.tres" type="DynamicFont" id=2]
@@ -7,6 +7,7 @@
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Textures/tap_screen.png" type="Texture" id=5]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scenes/GRSettings.tscn" type="PackedScene" id=6]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scenes/CustomPopupTextInput.tscn" type="PackedScene" id=7]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/PlsRatePopup.gd" type="Script" id=8]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/PlsSupportPopup.gd" type="Script" id=9]
 
 [sub_resource type="StyleBoxFlat" id=1]
@@ -102,10 +103,10 @@ visible = false
 
 [node name="PlsSupportPopup" type="WindowDialog" parent="."]
 visible = true
-margin_left = -840.0
-margin_top = 260.0
-margin_right = -140.0
-margin_bottom = 395.0
+margin_left = -841.335
+margin_top = 348.099
+margin_right = -141.335
+margin_bottom = 483.099
 rect_min_size = Vector2( 500, 135 )
 window_title = "Do you like this app?"
 script = ExtResource( 9 )
@@ -156,14 +157,80 @@ margin_left = 336.0
 margin_right = 668.0
 margin_bottom = 46.0
 size_flags_horizontal = 3
+text = "Not now"
+
+[node name="PlsRatePopup" type="WindowDialog" parent="."]
+visible = true
+margin_left = -836.661
+margin_top = 36.1039
+margin_right = -138.661
+margin_bottom = 298.104
+rect_min_size = Vector2( 500, 135 )
+popup_exclusive = true
+window_title = "Rate This App"
+script = ExtResource( 8 )
+__meta__ = {
+"_edit_lock_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="HBoxContainer" type="VBoxContainer" parent="PlsRatePopup"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 16.0
+margin_top = 16.0
+margin_right = -16.0
+margin_bottom = -16.0
+__meta__ = {
+"_edit_lock_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="PlsRatePopup/HBoxContainer"]
+margin_top = 65.0
+margin_right = 666.0
+margin_bottom = 111.0
+size_flags_vertical = 6
+text = "Do you want ot rate this app?"
+align = 1
+valign = 1
+
+[node name="Control" type="Control" parent="PlsRatePopup/HBoxContainer"]
+margin_top = 180.0
+margin_right = 666.0
+margin_bottom = 180.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PlsRatePopup/HBoxContainer"]
+margin_top = 184.0
+margin_right = 666.0
+margin_bottom = 230.0
+
+[node name="yes" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
+margin_right = 219.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "Yes"
+
+[node name="no" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
+margin_left = 223.0
+margin_right = 442.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
 text = "No, thanks"
+
+[node name="later" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
+margin_left = 446.0
+margin_right = 666.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "Not now"
 
 [node name="FirstLaunchHint" type="WindowDialog" parent="."]
 visible = true
-margin_left = -846.0
-margin_top = 487.0
-margin_right = -246.0
-margin_bottom = 758.0
+margin_left = -843.33
+margin_top = 537.724
+margin_right = -243.33
+margin_bottom = 808.724
 rect_min_size = Vector2( 500, 135 )
 window_title = "Hint"
 __meta__ = {
@@ -186,3 +253,6 @@ __meta__ = {
 
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button2" to="PlsSupportPopup" method="_on_Button2_pressed"]
+[connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/yes" to="PlsRatePopup" method="_on_yes_pressed"]
+[connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/no" to="PlsRatePopup" method="_on_no_pressed"]
+[connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/later" to="PlsRatePopup" method="_on_later_pressed"]
