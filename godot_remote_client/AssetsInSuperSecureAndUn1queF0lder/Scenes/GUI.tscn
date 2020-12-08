@@ -103,10 +103,10 @@ visible = false
 
 [node name="PlsSupportPopup" type="WindowDialog" parent="."]
 visible = true
-margin_left = -841.335
-margin_top = 348.099
-margin_right = -141.335
-margin_bottom = 483.099
+margin_left = -838.665
+margin_top = 424.185
+margin_right = -138.665
+margin_bottom = 559.185
 rect_min_size = Vector2( 500, 135 )
 window_title = "Do you like this app?"
 script = ExtResource( 9 )
@@ -161,10 +161,10 @@ text = "Not now"
 
 [node name="PlsRatePopup" type="WindowDialog" parent="."]
 visible = true
-margin_left = -836.661
-margin_top = 36.1039
-margin_right = -138.661
-margin_bottom = 298.104
+margin_left = -839.331
+margin_top = 100.887
+margin_right = -141.331
+margin_bottom = 362.887
 rect_min_size = Vector2( 500, 135 )
 popup_exclusive = true
 window_title = "Rate This App"
@@ -227,10 +227,10 @@ text = "Not now"
 
 [node name="FirstLaunchHint" type="WindowDialog" parent="."]
 visible = true
-margin_left = -843.33
-margin_top = 537.724
-margin_right = -243.33
-margin_bottom = 808.724
+margin_left = -840.66
+margin_top = 609.805
+margin_right = -240.66
+margin_bottom = 880.805
 rect_min_size = Vector2( 500, 135 )
 window_title = "Hint"
 __meta__ = {
@@ -250,7 +250,6 @@ autowrap = true
 __meta__ = {
 "_edit_use_anchors_": false
 }
-
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button2" to="PlsSupportPopup" method="_on_Button2_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/yes" to="PlsRatePopup" method="_on_yes_pressed"]
