@@ -751,7 +751,11 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 				err = Error::FAILED;
 			}
 			else {
+#if VERSION_PATCH >= 4
 				err = PackedData::get_singleton()->add_pack(custom_input_scene_tmp_pck_file, true, 0);
+#else
+				err = PackedData::get_singleton()->add_pack(custom_input_scene_tmp_pck_file, true);
+#endif
 		}
 #else
 			err = ProjectSettings::get_singleton()->load_resource_pack(custom_input_scene_tmp_pck_file, true, 0) ? Error::OK : Error::FAILED;

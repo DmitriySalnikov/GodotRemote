@@ -14,6 +14,7 @@
 #include "core/project_settings.h"
 #include "core/variant.h"
 #include "main/input_default.h"
+#include "core/version_generated.gen.h"
 
 #else
 
