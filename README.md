@@ -6,6 +6,8 @@ If you are developing on a non-touch device, this module is the best way to quic
 
 [Video Demonstration](https://youtu.be/LbFcQnS3z3E)
 
+[Custom Packets Demo](https://youtu.be/RmhppDWZZk8)
+
 ## Donations
 
 [Paypal](https://paypal.me/dmitriysalnikov)
