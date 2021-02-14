@@ -40,9 +40,8 @@ GDNative has limitations so here ```GodotRemote``` is not a singleton and you ne
 
 Enum constants in this version changed too (see [API Reference] )
 
-**To work correctly, this [pull request](https://github.com/godotengine/godot-cpp/pull/469) must be accepted, otherwise the module will not work at all. And without this [pull request](https://github.com/godotengine/godot/pull/43227) compilation will just fail.
-But even with this fix GDNative is completely broken at the moment especially with arrays and dictionaries.
-Therefore, when working with GDNative, unexpected errors and memory leaks may occur that do not exist in a normal module.**
+**Currently, the GDNative version does not support the assignment of sensor data, so the editor will not support accelerometer, gyroscope, etc.
+Also, this version may crash at a random moment.**
 
 If GDNative becomes more stable, I will add the necessary code to easily integrate this module into any project, but now it just works.. sometimes.
 
@@ -112,7 +111,7 @@ Main class of module.
 notifications_layer
 
 # Notifications position on screen
-# type NotificationsPosition, default TC
+# type GRNotifications.NotificationsPosition, default TC
 notifications_position
 
 # Is notifications enabled
@@ -137,14 +136,14 @@ notifications_style
 # @notification_icon: Notification icon from enum NotificationIcon
 # @update_existing: Updates existing notification
 # @duration_multiplier: Multiply base notifications duration
-void add_notification(title: String, text: String, notification_icon: NotificationIcon = 0, update_existing: bool = true, duration_multiplier: float = 1.0)
+void add_notification(title: String, text: String, notification_icon: GRNotifications.NotificationIcon = 0, update_existing: bool = true, duration_multiplier: float = 1.0)
 
 # Adds new notification or append text to existing notification
 # @title: Notification title
 # @text: Text of notification
 # @icon: Notification icon from enum NotificationIcon
 # @add_to_new_line: Adds text to new line or adds to current line
-void add_notification_or_append_string(title: String, text: String, icon: NotificationIcon, add_to_new_line: bool = true, duration_multiplier: float = 1.0)
+void add_notification_or_append_string(title: String, text: String, icon: GRNotifications.NotificationIcon, add_to_new_line: bool = true, duration_multiplier: float = 1.0)
 
 # Adds notification or update one line of notification text
 # @title: Notification title
@@ -152,7 +151,7 @@ void add_notification_or_append_string(title: String, text: String, icon: Notifi
 # @text: Text of notification
 # @icon: Notification icon from enum NotificationIcon
 # @duration_multiplier: Multiply base notifications duration
-void add_notification_or_update_line(title: String, id: String, text: String, icon: NotificationIcon, duration_multiplier: float = 1.0)
+void add_notification_or_update_line(title: String, id: String, text: String, icon: GRNotifications.NotificationIcon, duration_multiplier: float = 1.0)
 
 # Clear all notifications
 void clear_notifications()
@@ -185,7 +184,7 @@ void remove_notification_exact(notification: Node)
 # Create device: client or server
 # @device_type: Type of device
 # @return true if device created successful
-bool create_remote_device(device_type: DeviceType = 0)
+bool create_remote_device(device_type: GodotRemote.DeviceType = 0)
 
 # Start device
 # @return true if device valid
@@ -193,7 +192,7 @@ bool start_remote_device()
 
 # Create and start device
 # @device_type: Type of device
-void create_and_start_device(device_type: DeviceType = 0)
+void create_and_start_device(device_type: GodotRemote.DeviceType = 0)
 
 # Remove and delete currently working device
 # @return true if succeed
@@ -235,40 +234,50 @@ DeviceType:
     DEVICE_SERVER = 1
     DEVICE_CLIENT = 2
 
-ImageCompressionType:
-    IMAGE_COMPRESSION_UNCOMPRESSED = 0
-    IMAGE_COMPRESSION_JPG = 1
-    IMAGE_COMPRESSION_PNG = 2
-
 LogLevel:
     LL_NONE = 4
     LL_DEBUG = 0
     LL_NORMAL = 1
     LL_WARNING = 2
     LL_ERROR = 3
+```
+
+### GRNotifications
+
+Container for all notifications
+
+```python
+
+# --- Signals
+
+# Called when a single notification is added
+notification_added(title: String, text: String)
+
+# Called when a single notification is removed
+notification_removed(title: String, is_cleared: bool)
+
+# Called when all notifications are cleared
+notifications_cleared()
+
+# Called when notifications are enabled or disabled
+notifications_toggled(is_enabled: bool)
+
+# --- Enumerations
 
 NotificationIcon:
-    NOTIFICATION_ICON_NONE = 0
-    NOTIFICATION_ICON_ERROR = 1
-    NOTIFICATION_ICON_WARNING = 2
-    NOTIFICATION_ICON_SUCCESS = 3
-    NOTIFICATION_ICON_FAIL = 4
+    ICON_NONE = 0
+    ICON_ERROR = 1
+    ICON_WARNING = 2
+    ICON_SUCCESS = 3
+    ICON_FAIL = 4
 
 NotificationsPosition:
-    NOTIFICATIONS_POSITION_TL = 0
-    NOTIFICATIONS_POSITION_TC = 1
-    NOTIFICATIONS_POSITION_TR = 2
-    NOTIFICATIONS_POSITION_BL = 3
-    NOTIFICATIONS_POSITION_BC = 4
-    NOTIFICATIONS_POSITION_BR = 5
-
-TypesOfServerSettings:
-    USE_INTERNAL_SERVER_SETTINGS = 0
-    SERVER_PARAM_VIDEO_STREAM_ENABLED = 1
-    SERVER_PARAM_COMPRESSION_TYPE = 2
-    SERVER_PARAM_JPG_QUALITY = 3
-    SERVER_PARAM_SKIP_FRAMES = 4
-    SERVER_PARAM_RENDER_SCALE = 5
+    TOP_LEFT = 0
+    TOP_CENTER = 1
+    TOP_RIGHT = 2
+    BOTTOM_LEFT = 3
+    BOTTOM_CENTER = 4
+    BOTTOM_RIGHT = 5
 ```
 
 ### GRNotificationStyle
@@ -303,13 +312,63 @@ text_font
 # Get notification icon from this style
 # @notification_icon: Notfication icon id
 # @return icon texture of null
-Texture get_notification_icon(notification_icon: NotificationIcon)
+Texture get_notification_icon(notification_icon: GRNotifications.NotificationIcon)
 
 # Set notification icon in this style
 # @notification_icon: Notfication icon id
 # @icon_texture: Icon texture
-void set_notification_icon(notification_icon: NotificationIcon, icon_texture: Texture)
+void set_notification_icon(notification_icon: GRNotifications.NotificationIcon, icon_texture: Texture)
 
+```
+
+### GRInputData
+
+Container for all InputEvents
+
+```python
+# --- Enumerations
+
+InputType:
+    _NoneIT = 0
+    _InputDeviceSensors = 1
+    _InputEvent = 64
+    _InputEventAction = 65
+    _InputEventGesture = 66
+    _InputEventJoypadButton = 67
+    _InputEventJoypadMotion = 68
+    _InputEventKey = 69
+    _InputEventMagnifyGesture = 70
+    _InputEventMIDI = 71
+    _InputEventMouse = 72
+    _InputEventMouseButton = 73
+    _InputEventMouseMotion = 74
+    _InputEventPanGesture = 75
+    _InputEventScreenDrag = 76
+    _InputEventScreenTouch = 77
+    _InputEventWithModifiers = 78
+    _InputEventMAX = 79
+```
+
+### GRPacket
+
+The basic data type used to exchange information between the client and the server
+
+```python
+# --- Enumerations
+
+PacketType:
+    NonePacket = 0
+    SyncTime = 1
+    ImageData = 2
+    InputData = 3
+    ServerSettings = 4
+    MouseModeSync = 5
+    CustomInputScene = 6
+    ClientStreamOrientation = 7
+    ClientStreamAspect = 8
+    CustomUserData = 9
+    Ping = 128
+    Pong = 192
 ```
 
 ### GRDevice
@@ -351,12 +410,31 @@ void stop()
 # --- Signals
 
 # Device status changed
-status_changed(status: WorkingStatus)
+status_changed(status: GRDevice.WorkingStatus)
 
 # User data received from a remote device
 user_data_received(packet_id: Variant, user_data: Variant)
 
 # --- Enumerations
+
+ImageCompressionType:
+    COMPRESSION_UNCOMPRESSED = 0
+    COMPRESSION_JPG = 1
+    COMPRESSION_PNG = 2
+
+Subsampling:
+    SUBSAMPLING_Y_ONLY = 0
+    SUBSAMPLING_H1V1 = 1
+    SUBSAMPLING_H2V1 = 2
+    SUBSAMPLING_H2V2 = 3
+
+TypesOfServerSettings:
+    SERVER_SETTINGS_USE_INTERNAL = 0
+    SERVER_SETTINGS_VIDEO_STREAM_ENABLED = 1
+    SERVER_SETTINGS_COMPRESSION_TYPE = 2
+    SERVER_SETTINGS_JPG_QUALITY = 3
+    SERVER_SETTINGS_SKIP_FRAMES = 4
+    SERVER_SETTINGS_RENDER_SCALE = 5
 
 WorkingStatus:
     STATUS_STARTING = 3
@@ -460,7 +538,7 @@ capture_pointer
 capture_input
 
 # Type of connection
-# type ConnectionType, default CONNECTION_WiFi
+# type GRClient.ConnectionType, default CONNECTION_WiFi
 connection_type
 
 # Frequency of sending data to the server
@@ -468,7 +546,7 @@ connection_type
 target_send_fps
 
 # Stretch mode of stream image
-# type StretchMode, default STRETCH_KEEP_ASPECT
+# type GRClient.StretchMode, default STRETCH_KEEP_ASPECT
 stretch_mode
 
 # Use texture filtering of stream image
@@ -547,7 +625,7 @@ void set_custom_no_signal_vertical_texture(texture: Texture)
 # Override setting on server
 # @setting: Which setting need to change
 # @value: Value of setting
-void set_server_setting(setting: TypesOfServerSettings, value: Variant)
+void set_server_setting(setting: GRdevice.TypesOfServerSettings, value: Variant)
 
 # --- Signals
 
@@ -561,7 +639,7 @@ custom_input_scene_removed()
 connection_state_changed(is_connected: bool)
 
 # On stream state changed
-stream_state_changed(state: StreamState)
+stream_state_changed(state: GRClient.StreamState)
 
 # On mouse mode changed on server
 mouse_mode_changed(mouse_mode: Input.MouseMode)

@@ -345,7 +345,7 @@ void GRServer::_internal_call_only_deffered_start() {
 	}
 
 	set_status(WorkingStatus::STATUS_STARTING);
-	_log("Starting GodotRemote server", LogLevel::LL_NORMAL);
+	_log("Starting GodotRemote server. Version: " + str(GodotRemote::get_singleton()->get_version()), LogLevel::LL_NORMAL);
 
 	if (server_thread_listen) {
 		server_thread_listen->close_thread();
