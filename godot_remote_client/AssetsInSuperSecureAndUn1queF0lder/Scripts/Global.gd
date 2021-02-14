@@ -96,10 +96,10 @@ func _setup_notifications_style():
 	s.text_font = load("res://AssetsInSuperSecureAndUn1queF0lder/Styles/NotificationPanelTextStyle.tres")
 	
 	s.close_button_icon = load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Close_icon.png")
-	s.set_notification_icon(GodotRemote.GRNotifications_ICON_SUCCESS, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Connected_icon.png"))
-	s.set_notification_icon(GodotRemote.GRNotifications_ICON_FAIL, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Disconnected_icon.png"))
-	s.set_notification_icon(GodotRemote.GRNotifications_ICON_ERROR, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Error_icon.png"))
-	s.set_notification_icon(GodotRemote.GRNotifications_ICON_WARNING, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Warning_icon.png"))
+	s.set_notification_icon(C.GRNotifications_NOTIFICATION_ICON_SUCCESS, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Connected_icon.png"))
+	s.set_notification_icon(C.GRNotifications_NOTIFICATION_ICON_FAIL, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Disconnected_icon.png"))
+	s.set_notification_icon(C.GRNotifications_NOTIFICATION_ICON_ERROR, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Error_icon.png"))
+	s.set_notification_icon(C.GRNotifications_NOTIFICATION_ICON_WARNING, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Warning_icon.png"))
 	
 	GodotRemote.notifications_style = s
 

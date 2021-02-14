@@ -180,4 +180,4 @@ func get_enum_constant(_class : String, _enum : String, _value : String) -> int:
 	if GodotRemote.is_gdnative():
 		return int(GodotRemote.call("_get_%s_%s_%s"%[_class, _enum, _value]))
 	else:
-		return ClassDB.class_get_integer_constant("GRDevice", "InputEventMAX")
+		return ClassDB.class_get_integer_constant(_class, _value)

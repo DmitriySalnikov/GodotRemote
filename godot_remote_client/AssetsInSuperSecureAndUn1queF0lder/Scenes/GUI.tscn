@@ -164,7 +164,7 @@ text = "Not now"
 visible = true
 margin_left = -1562.0
 margin_top = 101.0
-margin_right = -862.0
+margin_right = -873.0
 margin_bottom = 641.0
 rect_min_size = Vector2( 500, 540 )
 popup_exclusive = true
@@ -188,12 +188,12 @@ __meta__ = {
 }
 
 [node name="Control" type="ScrollContainer" parent="Changelog/HBoxContainer"]
-margin_right = 668.0
+margin_right = 657.0
 margin_bottom = 458.0
 size_flags_vertical = 3
 
 [node name="ListOfChanges" type="Label" parent="Changelog/HBoxContainer/Control"]
-margin_right = 668.0
+margin_right = 657.0
 margin_bottom = 46.0
 size_flags_horizontal = 3
 size_flags_vertical = 1
@@ -203,14 +203,21 @@ autowrap = true
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Changelog/HBoxContainer"]
 margin_top = 462.0
-margin_right = 668.0
+margin_right = 657.0
 margin_bottom = 508.0
 
 [node name="Button" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
-margin_right = 668.0
+margin_right = 240.0
 margin_bottom = 46.0
 size_flags_horizontal = 3
 text = "Okay, I get it!"
+
+[node name="Button2" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
+margin_left = 244.0
+margin_right = 657.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "How do I update the server?"
 
 [node name="PlsRatePopup" type="WindowDialog" parent="."]
 visible = true
@@ -307,6 +314,7 @@ __meta__ = {
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button2" to="PlsSupportPopup" method="_on_Button2_pressed"]
 [connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button" to="Changelog" method="_on_Button_pressed"]
+[connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button2" to="Changelog" method="_on_Button2_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/yes" to="PlsRatePopup" method="_on_yes_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/no" to="PlsRatePopup" method="_on_no_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/later" to="PlsRatePopup" method="_on_later_pressed"]
