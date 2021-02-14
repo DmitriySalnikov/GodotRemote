@@ -1,9 +1,11 @@
 extends WindowDialog
 
+func _is_ready_to_show() -> bool:
+	return (G.Billings and ((G.AppRuns == 7 or (G.AppRuns > 9 and G.AppRuns % 9 == 0)) and G.UserRateState == G.RateState.NotNow)) and !G.VersionChanged
+
 func _ready():
-	if G.Billings:
-		if (G.AppRuns == 7 or (G.AppRuns > 9 and G.AppRuns % 9 == 0)) and G.UserRateState == G.RateState.NotNow:
-			call_deferred("popup_centered")
+	if _is_ready_to_show():
+		call_deferred("popup_centered")
 
 func _on_yes_pressed() -> void:
 	hide()

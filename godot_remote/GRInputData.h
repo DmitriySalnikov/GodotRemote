@@ -7,22 +7,16 @@
 #include "core/os/input_event.h"
 #include "core/reference.h"
 #else
-#include <Godot.hpp>
 #include <Array.hpp>
-#include <PoolArrays.hpp>
-#include <Reference.hpp>
-#include <Ref.hpp>
-#include <String.hpp>
-#include <StreamPeer.hpp>
-#include <StreamPeerBuffer.hpp>
+#include <Godot.hpp>
 #include <InputEvent.hpp>
 #include <InputEventAction.hpp>
 #include <InputEventGesture.hpp>
 #include <InputEventJoypadButton.hpp>
 #include <InputEventJoypadMotion.hpp>
 #include <InputEventKey.hpp>
-#include <InputEventMagnifyGesture.hpp>
 #include <InputEventMIDI.hpp>
+#include <InputEventMagnifyGesture.hpp>
 #include <InputEventMouse.hpp>
 #include <InputEventMouseButton.hpp>
 #include <InputEventMouseMotion.hpp>
@@ -30,33 +24,14 @@
 #include <InputEventScreenDrag.hpp>
 #include <InputEventScreenTouch.hpp>
 #include <InputEventWithModifiers.hpp>
+#include <PoolArrays.hpp>
+#include <Ref.hpp>
+#include <Reference.hpp>
+#include <StreamPeer.hpp>
+#include <StreamPeerBuffer.hpp>
+#include <String.hpp>
 using namespace godot;
 #endif
-
-
-enum InputType : int {
-	_NoneIT = 0,
-	// Custom Input Data
-	_InputDeviceSensors = 1,
-
-	// Input Events
-	_InputEvent = 64,
-	_InputEventAction = 65,
-	_InputEventGesture = 66,
-	_InputEventJoypadButton = 67,
-	_InputEventJoypadMotion = 68,
-	_InputEventKey = 69,
-	_InputEventMagnifyGesture = 70,
-	_InputEventMIDI = 71,
-	_InputEventMouse = 72,
-	_InputEventMouseButton = 73,
-	_InputEventMouseMotion = 74,
-	_InputEventPanGesture = 75,
-	_InputEventScreenDrag = 76,
-	_InputEventScreenTouch = 77,
-	_InputEventWithModifiers = 78,
-	_InputEventMAX,
-};
 
 //////////////////////////////////////////////////////////////////////////
 // BASE CLASS
@@ -66,8 +41,60 @@ class GRInputData : public Reference {
 	GD_CLASS(GRInputData, Reference);
 	friend class GRInputDeviceSensorsData;
 
+public:
+	enum InputType : int {
+		_NoneIT = 0,
+		// Custom Input Data
+		_InputDeviceSensors = 1,
+
+		// Input Events
+		_InputEvent = 64,
+		_InputEventAction = 65,
+		_InputEventGesture = 66,
+		_InputEventJoypadButton = 67,
+		_InputEventJoypadMotion = 68,
+		_InputEventKey = 69,
+		_InputEventMagnifyGesture = 70,
+		_InputEventMIDI = 71,
+		_InputEventMouse = 72,
+		_InputEventMouseButton = 73,
+		_InputEventMouseMotion = 74,
+		_InputEventPanGesture = 75,
+		_InputEventScreenDrag = 76,
+		_InputEventScreenTouch = 77,
+		_InputEventWithModifiers = 78,
+		_InputEventMAX,
+	};
+
 protected:
-	GDNATIVE_BASIC_REGISTER;
+#ifndef GDNATIVE_LIBRARY
+	static void _bind_methods() {
+		BIND_ENUM_CONSTANT(_NoneIT);
+		BIND_ENUM_CONSTANT(_InputDeviceSensors);
+
+		BIND_ENUM_CONSTANT(_InputEvent);
+		BIND_ENUM_CONSTANT(_InputEventAction);
+		BIND_ENUM_CONSTANT(_InputEventGesture);
+		BIND_ENUM_CONSTANT(_InputEventJoypadButton);
+		BIND_ENUM_CONSTANT(_InputEventJoypadMotion);
+		BIND_ENUM_CONSTANT(_InputEventKey);
+		BIND_ENUM_CONSTANT(_InputEventMagnifyGesture);
+		BIND_ENUM_CONSTANT(_InputEventMIDI);
+		BIND_ENUM_CONSTANT(_InputEventMouse);
+		BIND_ENUM_CONSTANT(_InputEventMouseButton);
+		BIND_ENUM_CONSTANT(_InputEventMouseMotion);
+		BIND_ENUM_CONSTANT(_InputEventPanGesture);
+		BIND_ENUM_CONSTANT(_InputEventScreenDrag);
+		BIND_ENUM_CONSTANT(_InputEventScreenTouch);
+		BIND_ENUM_CONSTANT(_InputEventWithModifiers);
+		BIND_ENUM_CONSTANT(_InputEventMAX);
+	}
+#else
+public:
+	void _init(){};
+	static void _register_methods(){};
+protected:
+#endif
 
 	Ref<StreamPeerBuffer> data;
 	virtual InputType _get_type() { return InputType::_NoneIT; };
@@ -84,19 +111,18 @@ public:
 	PoolByteArray get_data() {
 		return data->get_data_array();
 	}
-	void set_data(PoolByteArray& _data) {
+	void set_data(PoolByteArray &_data) {
 		data->set_data_array(_data);
 	}
 	virtual InputType get_type() {
 		if (data->get_size()) {
 			data->seek(0);
 			return (InputType)data->get_8();
-		}
-		else {
+		} else {
 			return _get_type();
 		}
 	};
-	static Ref<GRInputData> create(const PoolByteArray& buf);
+	static Ref<GRInputData> create(const PoolByteArray &buf);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -130,13 +156,13 @@ class GRInputDataEvent : public GRInputData {
 protected:
 	GDNATIVE_BASIC_REGISTER;
 
-	virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2& rect) {
+	virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2 &rect) {
 		data->seek(0);
 		data->get_8();
 		ev->set_device(data->get_32());
 		return data;
 	};
-	virtual void _parse_event(const Ref<InputEvent>& ev, const Rect2& rect) {
+	virtual void _parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) {
 		data->resize(0);
 		data->put_8((uint8_t)get_type());
 		data->put_32(ev->get_device());
@@ -144,8 +170,8 @@ protected:
 	virtual InputType _get_type() override { return InputType::_NoneIT; };
 
 public:
-	Ref<InputEvent> construct_event(const Rect2& rect = Rect2());
-	static Ref<GRInputDataEvent> parse_event(const Ref<InputEvent>& ev, const Rect2& rect);
+	Ref<InputEvent> construct_event(const Rect2 &rect = Rect2());
+	static Ref<GRInputDataEvent> parse_event(const Ref<InputEvent> &ev, const Rect2 &rect);
 };
 
 #define INPUT_EVENT_DATA(__class, _parent, _type)                                                 \
@@ -183,5 +209,5 @@ INPUT_EVENT_DATA(GRIEDataMIDI, GRInputDataEvent, InputType::_InputEventMIDI);
 #undef INPUT_EVENT_DATA
 
 #ifndef GDNATIVE_LIBRARY
-VARIANT_ENUM_CAST(InputType)
+VARIANT_ENUM_CAST(GRInputData::InputType)
 #endif

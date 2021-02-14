@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=2]
+[gd_scene load_steps=13 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/GodotRemoteClient.gd" type="Script" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalLight.tres" type="DynamicFont" id=2]
@@ -9,6 +9,7 @@
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scenes/CustomPopupTextInput.tscn" type="PackedScene" id=7]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/PlsRatePopup.gd" type="Script" id=8]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/PlsSupportPopup.gd" type="Script" id=9]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/Changelog.gd" type="Script" id=10]
 
 [sub_resource type="StyleBoxFlat" id=1]
 bg_color = Color( 0.133333, 0.164706, 0.188235, 0.815686 )
@@ -159,6 +160,58 @@ margin_bottom = 46.0
 size_flags_horizontal = 3
 text = "Not now"
 
+[node name="Changelog" type="WindowDialog" parent="."]
+visible = true
+margin_left = -1562.0
+margin_top = 101.0
+margin_right = -862.0
+margin_bottom = 641.0
+rect_min_size = Vector2( 500, 540 )
+popup_exclusive = true
+window_title = "Godot Remote Module Updated"
+script = ExtResource( 10 )
+__meta__ = {
+"_edit_lock_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="HBoxContainer" type="VBoxContainer" parent="Changelog"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 16.0
+margin_top = 16.0
+margin_right = -16.0
+margin_bottom = -16.0
+__meta__ = {
+"_edit_lock_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Control" type="ScrollContainer" parent="Changelog/HBoxContainer"]
+margin_right = 668.0
+margin_bottom = 458.0
+size_flags_vertical = 3
+
+[node name="ListOfChanges" type="Label" parent="Changelog/HBoxContainer/Control"]
+margin_right = 668.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 2 )
+text = "         don't forget to write a changelog..."
+autowrap = true
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Changelog/HBoxContainer"]
+margin_top = 462.0
+margin_right = 668.0
+margin_bottom = 508.0
+
+[node name="Button" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
+margin_right = 668.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "Okay, I get it!"
+
 [node name="PlsRatePopup" type="WindowDialog" parent="."]
 visible = true
 margin_left = -839.331
@@ -250,8 +303,10 @@ autowrap = true
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button2" to="PlsSupportPopup" method="_on_Button2_pressed"]
+[connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button" to="Changelog" method="_on_Button_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/yes" to="PlsRatePopup" method="_on_yes_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/no" to="PlsRatePopup" method="_on_no_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/later" to="PlsRatePopup" method="_on_later_pressed"]

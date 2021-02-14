@@ -8,16 +8,19 @@ func _enter_tree():
 		has_billings = true
 		G.Billings.connect("billings_ready", self, "_billings_ready")
 
+func _is_ready_to_show() -> bool:
+	return (G.AppRuns != 0 and G.AppRuns % 5 == 0) and !G.VersionChanged
+
 func _ready():
 	if not has_billings and not shown:
 		shown = true
-		if G.AppRuns != 0 && G.AppRuns % 5 == 0:
+		if _is_ready_to_show():
 			call_deferred("popup_centered")
 
 func _billings_ready():
 	if G.Billings.get_purchased_points() == 0 and not shown:
 		shown = true
-		if G.AppRuns != 0 && G.AppRuns % 5 == 0:
+		if _is_ready_to_show():
 			call_deferred("popup_centered")
 
 func _on_Button2_pressed():

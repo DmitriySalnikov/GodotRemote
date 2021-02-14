@@ -1,8 +1,8 @@
 /* GRPacket.h */
 #pragma once
 
-#include "GRUtils.h"
 #include "GRInputData.h"
+#include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
 
@@ -10,40 +10,61 @@
 #include "core/reference.h"
 #else
 
+#include <Array.hpp>
+#include <Godot.hpp>
+#include <PoolArrays.hpp>
+#include <Ref.hpp>
+#include <Reference.hpp>
 #include <StreamPeer.hpp>
 #include <StreamPeerBuffer.hpp>
-#include <Godot.hpp>
-#include <Array.hpp>
-#include <PoolArrays.hpp>
-#include <Reference.hpp>
-#include <Ref.hpp>
 #include <String.hpp>
 #endif
-
-enum PacketType : int {
-	NonePacket = 0,
-	SyncTime = 1,
-	ImageData = 2,
-	InputData = 3,
-	ServerSettings = 4,
-	MouseModeSync = 5,
-	CustomInputScene = 6,
-	ClientStreamOrientation = 7,
-	ClientStreamAspect = 8,
-	CustomUserData = 9,
-
-	// Requests
-	Ping = 128,
-
-	// Responses
-	Pong = 192,
-};
 
 class GRPacket : public Reference {
 	GD_CLASS(GRPacket, Reference);
 
+public:
+	enum PacketType : int {
+		NonePacket = 0,
+		SyncTime = 1,
+		ImageData = 2,
+		InputData = 3,
+		ServerSettings = 4,
+		MouseModeSync = 5,
+		CustomInputScene = 6,
+		ClientStreamOrientation = 7,
+		ClientStreamAspect = 8,
+		CustomUserData = 9,
+
+		// Requests
+		Ping = 128,
+
+		// Responses
+		Pong = 192,
+	};
+
 protected:
-	GDNATIVE_BASIC_REGISTER;
+#ifndef GDNATIVE_LIBRARY
+	static void _bind_methods() {
+		BIND_ENUM_CONSTANT(NonePacket);
+		BIND_ENUM_CONSTANT(SyncTime);
+		BIND_ENUM_CONSTANT(ImageData);
+		BIND_ENUM_CONSTANT(InputData);
+		BIND_ENUM_CONSTANT(ServerSettings);
+		BIND_ENUM_CONSTANT(MouseModeSync);
+		BIND_ENUM_CONSTANT(CustomInputScene);
+		BIND_ENUM_CONSTANT(ClientStreamOrientation);
+		BIND_ENUM_CONSTANT(ClientStreamAspect);
+		BIND_ENUM_CONSTANT(CustomUserData);
+		BIND_ENUM_CONSTANT(Ping);
+		BIND_ENUM_CONSTANT(Pong);
+	}
+#else
+public:
+	void _init(){};
+	static void _register_methods(){};
+protected:
+#endif
 
 	virtual Ref<StreamPeerBuffer> _get_data() {
 		Ref<StreamPeerBuffer> buf(memnew(StreamPeerBuffer));
@@ -57,7 +78,7 @@ protected:
 
 public:
 	virtual PacketType get_type() { return PacketType::NonePacket; };
-	static Ref<GRPacket> create(const PoolByteArray& bytes);
+	static Ref<GRPacket> create(const PoolByteArray &bytes);
 	PoolByteArray get_data() {
 		return _get_data()->get_data_array();
 	};
@@ -78,7 +99,6 @@ protected:
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
 public:
-
 	virtual PacketType get_type() override { return PacketType::SyncTime; };
 
 	uint64_t get_time();
@@ -90,12 +110,12 @@ class GRPacketImageData : public GRPacket {
 	GD_S_CLASS(GRPacketImageData, GRPacket);
 	friend GRPacket;
 
-	ImageCompressionType compression = ImageCompressionType::Uncompressed;
+	/*GRDevice::ImageCompressionType*/int compression = 1 /*GRDevice::ImageCompressionType::JPG*/;
 	Size2 size;
 	int format = 0;
 	PoolByteArray img_data;
 	uint64_t start_time = 0;
-	uint32_t frametime = 0;
+	uint64_t frametime = 0;
 	bool is_empty = false;
 
 protected:
@@ -115,7 +135,7 @@ public:
 	uint64_t get_frametime();
 	bool get_is_empty();
 
-	void set_image_data(PoolByteArray& buf);
+	void set_image_data(PoolByteArray &buf);
 	void set_compression_type(int type);
 	void set_size(Size2 _size);
 	void set_format(int _format);
@@ -134,7 +154,7 @@ class GRPacketInputData : public GRPacket {
 	GD_S_CLASS(GRPacketInputData, GRPacket);
 	friend GRPacket;
 
-	std::vector<Ref<GRInputData>> inputs;
+	std::vector<Ref<GRInputData> > inputs;
 
 protected:
 	GDNATIVE_BASIC_REGISTER;
@@ -148,8 +168,8 @@ public:
 	int get_inputs_count();
 	Ref<class GRInputData> get_input_data(int idx);
 	void remove_input_data(int idx);
-	void add_input_data(Ref<GRInputData>& input);
-	void set_input_data(std::vector<Ref<GRInputData>>& _inputs); // Ref<GRInputData>
+	void add_input_data(Ref<GRInputData> &input);
+	void set_input_data(std::vector<Ref<GRInputData> > &_inputs); // Ref<GRInputData>
 
 	~GRPacketInputData() {
 		//inputs.clear();
@@ -174,7 +194,7 @@ public:
 	virtual PacketType get_type() override { return PacketType::ServerSettings; };
 
 	std::map<int, Variant> get_settings();
-	void set_settings(std::map<int, Variant>& _settings);
+	void set_settings(std::map<int, Variant> &_settings);
 	void add_setting(int _setting, Variant value);
 
 	~GRPacketServerSettings() {
@@ -334,5 +354,5 @@ BASIC_PACKET(GRPacketPong, PacketType::Pong);
 #undef BASIC_PACKET
 
 #ifndef GDNATIVE_LIBRARY
-VARIANT_ENUM_CAST(PacketType)
+VARIANT_ENUM_CAST(GRPacket::PacketType)
 #endif

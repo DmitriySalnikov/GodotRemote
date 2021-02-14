@@ -28,7 +28,7 @@ PoolVector3Array GRInputDeviceSensorsData::get_sensors() {
 	return data->get_var();
 }
 
-Ref<GRInputData> GRInputData::create(const PoolByteArray& buf) {
+Ref<GRInputData> GRInputData::create(const PoolByteArray &buf) {
 #define CREATE(_d)                     \
 	{                                  \
 		Ref<_d> id(memnew(_d));        \
@@ -38,42 +38,42 @@ Ref<GRInputData> GRInputData::create(const PoolByteArray& buf) {
 
 	InputType type = (InputType)((PoolByteArray)buf)[0];
 	switch (type) {
-	case InputType::_NoneIT:
-		ERR_PRINT("Can't create GRInputData with type 'None'!");
-		break;
-		// ADDITIONAL CLASSES
-	case InputType::_InputDeviceSensors:
-		CREATE(GRInputDeviceSensorsData);
+		case InputType::_NoneIT:
+			ERR_PRINT("Can't create GRInputData with type 'None'!");
+			break;
+			// ADDITIONAL CLASSES
+		case InputType::_InputDeviceSensors:
+			CREATE(GRInputDeviceSensorsData);
 
-		// INPUT EVENTS
-	case InputType::_InputEvent:
-	case InputType::_InputEventWithModifiers:
-	case InputType::_InputEventMouse:
-	case InputType::_InputEventGesture:
-		ERR_PRINT("Can't create GRInputData for abstract InputEvent! Type index: " + str((int)type));
-		break;
-	case InputType::_InputEventAction:
-		CREATE(GRIEDataAction);
-	case InputType::_InputEventJoypadButton:
-		CREATE(GRIEDataJoypadButton);
-	case InputType::_InputEventJoypadMotion:
-		CREATE(GRIEDataJoypadMotion);
-	case InputType::_InputEventKey:
-		CREATE(GRIEDataKey);
-	case InputType::_InputEventMagnifyGesture:
-		CREATE(GRIEDataMagnifyGesture);
-	case InputType::_InputEventMIDI:
-		CREATE(GRIEDataMIDI);
-	case InputType::_InputEventMouseButton:
-		CREATE(GRIEDataMouseButton);
-	case InputType::_InputEventMouseMotion:
-		CREATE(GRIEDataMouseMotion);
-	case InputType::_InputEventPanGesture:
-		CREATE(GRIEDataPanGesture);
-	case InputType::_InputEventScreenDrag:
-		CREATE(GRIEDataScreenDrag);
-	case InputType::_InputEventScreenTouch:
-		CREATE(GRIEDataScreenTouch);
+			// INPUT EVENTS
+		case InputType::_InputEvent:
+		case InputType::_InputEventWithModifiers:
+		case InputType::_InputEventMouse:
+		case InputType::_InputEventGesture:
+			ERR_PRINT("Can't create GRInputData for abstract InputEvent! Type index: " + str((int)type));
+			break;
+		case InputType::_InputEventAction:
+			CREATE(GRIEDataAction);
+		case InputType::_InputEventJoypadButton:
+			CREATE(GRIEDataJoypadButton);
+		case InputType::_InputEventJoypadMotion:
+			CREATE(GRIEDataJoypadMotion);
+		case InputType::_InputEventKey:
+			CREATE(GRIEDataKey);
+		case InputType::_InputEventMagnifyGesture:
+			CREATE(GRIEDataMagnifyGesture);
+		case InputType::_InputEventMIDI:
+			CREATE(GRIEDataMIDI);
+		case InputType::_InputEventMouseButton:
+			CREATE(GRIEDataMouseButton);
+		case InputType::_InputEventMouseMotion:
+			CREATE(GRIEDataMouseMotion);
+		case InputType::_InputEventPanGesture:
+			CREATE(GRIEDataPanGesture);
+		case InputType::_InputEventScreenDrag:
+			CREATE(GRIEDataScreenDrag);
+		case InputType::_InputEventScreenTouch:
+			CREATE(GRIEDataScreenTouch);
 	}
 #undef CREATE
 
@@ -81,7 +81,7 @@ Ref<GRInputData> GRInputData::create(const PoolByteArray& buf) {
 	return Ref<GRInputData>();
 }
 
-Ref<GRInputDataEvent> GRInputDataEvent::parse_event(const Ref<InputEvent>& ev, const Rect2& rect) {
+Ref<GRInputDataEvent> GRInputDataEvent::parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) {
 	if (ev.is_null())
 		ERR_FAIL_COND_V(ev.is_null(), Ref<GRInputDataEvent>());
 
@@ -113,7 +113,7 @@ Ref<GRInputDataEvent> GRInputDataEvent::parse_event(const Ref<InputEvent>& ev, c
 	return Ref<GRInputDataEvent>();
 }
 
-Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2& rect) {
+Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 	ERR_FAIL_COND_V(!data->get_size(), Ref<InputEvent>());
 
 #define CONSTRUCT(_i)                         \
@@ -127,7 +127,7 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2& rect) {
 
 	Rect2 vp_size = rect;
 	if (vp_size.size.x == 0 && vp_size.size.y == 0 &&
-		vp_size.position.x == 0 && vp_size.position.y == 0) {
+			vp_size.position.x == 0 && vp_size.position.y == 0) {
 		if (ST() && ST()->get_root()) {
 			//vp_size = SceneTree::get_singleton()->get_root()->get_visible_rect();
 			vp_size = Rect2(OS::get_singleton()->get_window_size(), ST()->get_root()->get_size());
@@ -135,37 +135,37 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2& rect) {
 	}
 
 	switch (type) {
-	case InputType::_NoneIT:
-		ERR_PRINT("Can't create GRInputDataEvent with type 'None'!");
-		break;
-	case InputType::_InputEvent:
-	case InputType::_InputEventWithModifiers:
-	case InputType::_InputEventMouse:
-	case InputType::_InputEventGesture:
-		ERR_PRINT("Can't create GRInputDataEvent for abstract InputEvent! Type index: " + str((int)type));
-		break;
-	case InputType::_InputEventAction:
-		CONSTRUCT(InputEventAction);
-	case InputType::_InputEventJoypadButton:
-		CONSTRUCT(InputEventJoypadButton);
-	case InputType::_InputEventJoypadMotion:
-		CONSTRUCT(InputEventJoypadMotion);
-	case InputType::_InputEventKey:
-		CONSTRUCT(InputEventKey);
-	case InputType::_InputEventMagnifyGesture:
-		CONSTRUCT(InputEventMagnifyGesture);
-	case InputType::_InputEventMIDI:
-		CONSTRUCT(InputEventMIDI);
-	case InputType::_InputEventMouseButton:
-		CONSTRUCT(InputEventMouseButton);
-	case InputType::_InputEventMouseMotion:
-		CONSTRUCT(InputEventMouseMotion);
-	case InputType::_InputEventPanGesture:
-		CONSTRUCT(InputEventPanGesture);
-	case InputType::_InputEventScreenDrag:
-		CONSTRUCT(InputEventScreenDrag);
-	case InputType::_InputEventScreenTouch:
-		CONSTRUCT(InputEventScreenTouch);
+		case InputType::_NoneIT:
+			ERR_PRINT("Can't create GRInputDataEvent with type 'None'!");
+			break;
+		case InputType::_InputEvent:
+		case InputType::_InputEventWithModifiers:
+		case InputType::_InputEventMouse:
+		case InputType::_InputEventGesture:
+			ERR_PRINT("Can't create GRInputDataEvent for abstract InputEvent! Type index: " + str((int)type));
+			break;
+		case InputType::_InputEventAction:
+			CONSTRUCT(InputEventAction);
+		case InputType::_InputEventJoypadButton:
+			CONSTRUCT(InputEventJoypadButton);
+		case InputType::_InputEventJoypadMotion:
+			CONSTRUCT(InputEventJoypadMotion);
+		case InputType::_InputEventKey:
+			CONSTRUCT(InputEventKey);
+		case InputType::_InputEventMagnifyGesture:
+			CONSTRUCT(InputEventMagnifyGesture);
+		case InputType::_InputEventMIDI:
+			CONSTRUCT(InputEventMIDI);
+		case InputType::_InputEventMouseButton:
+			CONSTRUCT(InputEventMouseButton);
+		case InputType::_InputEventMouseMotion:
+			CONSTRUCT(InputEventMouseMotion);
+		case InputType::_InputEventPanGesture:
+			CONSTRUCT(InputEventPanGesture);
+		case InputType::_InputEventScreenDrag:
+			CONSTRUCT(InputEventScreenDrag);
+		case InputType::_InputEventScreenTouch:
+			CONSTRUCT(InputEventScreenTouch);
 	}
 
 #undef CONSTRUCT
@@ -200,7 +200,7 @@ PARSE(GRIEDataWithModifiers) {
 	GRInputDataEvent::_parse_event(ev, rect);
 	Ref<InputEventWithModifiers> iewm = ev;
 	data->put_8((uint8_t)iewm->get_alt() | (uint8_t)iewm->get_shift() << 1 | (uint8_t)iewm->get_control() << 2 |
-		(uint8_t)iewm->get_metakey() << 3 | (uint8_t)iewm->get_command() << 4);
+				(uint8_t)iewm->get_metakey() << 3 | (uint8_t)iewm->get_command() << 4);
 }
 
 //////////////////////////////////////////////////////////////////////////

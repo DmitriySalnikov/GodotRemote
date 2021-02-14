@@ -2,44 +2,21 @@
 #pragma once
 
 #include "GRInputData.h"
-#include "GRUtils.h"
 #include "GRPacket.h"
+#include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
 #include "scene/main/node.h"
 #else
-#include <Node.hpp>
-#include <Godot.hpp>
 #include <Array.hpp>
+#include <Godot.hpp>
+#include <Node.hpp>
 #include <PoolArrays.hpp>
-#include <Reference.hpp>
 #include <Ref.hpp>
+#include <Reference.hpp>
 #include <String.hpp>
 using namespace godot;
 #endif
-
-enum WorkingStatus : int {
-	Stopped,
-	Working,
-	Stopping,
-	Starting,
-};
-
-enum ConnectionType : int {
-	CONNECTION_WiFi = 0,
-	CONNECTION_ADB = 1,
-};
-
-enum StretchMode : int {
-	STRETCH_KEEP_ASPECT = 0,
-	STRETCH_FILL = 1,
-};
-
-enum StreamState : int {
-	STREAM_NO_SIGNAL = 0,
-	STREAM_ACTIVE = 1,
-	STREAM_NO_IMAGE = 2,
-};
 
 class GRDevice : public Node {
 	GD_CLASS(GRDevice, Node);
@@ -56,8 +33,37 @@ public:
 		PasswordRequired = 7,
 	};
 
+	enum WorkingStatus : int {
+		STATUS_STOPPED = 0,
+		STATUS_WORKING = 1,
+		STATUS_STOPPING = 2,
+		STATUS_STARTING = 3,
+	};
+
+	enum TypesOfServerSettings : int {
+		SERVER_SETTINGS_USE_INTERNAL = 0,
+		SERVER_SETTINGS_VIDEO_STREAM_ENABLED = 1,
+		SERVER_SETTINGS_COMPRESSION_TYPE = 2,
+		SERVER_SETTINGS_JPG_QUALITY = 3,
+		SERVER_SETTINGS_SKIP_FRAMES = 4,
+		SERVER_SETTINGS_RENDER_SCALE = 5,
+	};
+
+	enum Subsampling : int {
+		SUBSAMPLING_Y_ONLY = 0,
+		SUBSAMPLING_H1V1 = 1,
+		SUBSAMPLING_H2V1 = 2,
+		SUBSAMPLING_H2V2 = 3
+	};
+
+	enum ImageCompressionType : int {
+		COMPRESSION_UNCOMPRESSED = 0,
+		COMPRESSION_JPG = 1,
+		COMPRESSION_PNG = 2,
+	};
+
 private:
-	WorkingStatus working_status = WorkingStatus::Stopped;
+	WorkingStatus working_status = WorkingStatus::STATUS_STOPPED;
 
 protected:
 	template <class T>
@@ -75,8 +81,8 @@ protected:
 	float avg_fps = 0;
 	float avg_ping_smoothing = 0.5f;
 	float avg_fps_smoothing = 0.9f;
-	Mutex* send_queue_mutex = nullptr;
-	std::vector<Ref<GRPacket>> send_queue;
+	Mutex *send_queue_mutex = nullptr;
+	std::vector<Ref<GRPacket> > send_queue;
 
 	void set_status(WorkingStatus status);
 	void _update_avg_ping(uint64_t ping);
@@ -85,8 +91,8 @@ protected:
 	Ref<GRPacket> _send_queue_pop_front();
 
 	virtual void _reset_counters();
-	virtual void _internal_call_only_deffered_start() {};
-	virtual void _internal_call_only_deffered_stop() {};
+	virtual void _internal_call_only_deffered_start(){};
+	virtual void _internal_call_only_deffered_stop(){};
 
 #ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
@@ -122,5 +128,8 @@ public:
 };
 
 #ifndef GDNATIVE_LIBRARY
-VARIANT_ENUM_CAST(WorkingStatus)
+VARIANT_ENUM_CAST(GRDevice::WorkingStatus)
+VARIANT_ENUM_CAST(GRDevice::Subsampling)
+VARIANT_ENUM_CAST(GRDevice::ImageCompressionType)
+VARIANT_ENUM_CAST(GRDevice::TypesOfServerSettings)
 #endif

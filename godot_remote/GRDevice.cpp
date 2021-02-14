@@ -36,29 +36,26 @@ void GRDevice::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "port"), "set_port", "get_port");
 
-	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Starting, "STATUS_STARTING");
-	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Stopping, "STATUS_STOPPING");
-	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Working, "STATUS_WORKING");
-	BIND_ENUM_CONSTANT_CUSTOM(WorkingStatus::Stopped, "STATUS_STOPPED");
+	BIND_ENUM_CONSTANT(STATUS_STARTING);
+	BIND_ENUM_CONSTANT(STATUS_STOPPING);
+	BIND_ENUM_CONSTANT(STATUS_WORKING);
+	BIND_ENUM_CONSTANT(STATUS_STOPPED);
 
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_NoneIT, "InputTypeNone");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputDeviceSensors, "InputDeviceSensors");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEvent, "InputEvent");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventAction, "InputEventAction");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventGesture, "InputEventGesture");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventJoypadButton, "InputEventJoypadButton");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventJoypadMotion, "InputEventJoypadMotion");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventKey, "InputEventKey");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMagnifyGesture, "InputEventMagnifyGesture");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMIDI, "InputEventMIDI");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMouse, "InputEventMouse");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMouseButton, "InputEventMouseButton");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMouseMotion, "InputEventMouseMotion");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventPanGesture, "InputEventPanGesture");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventScreenDrag, "InputEventScreenDrag");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventScreenTouch, "InputEventScreenTouch");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventWithModifiers, "InputEventWithModifiers");
-	BIND_ENUM_CONSTANT_CUSTOM(InputType::_InputEventMAX, "InputEventMAX");
+	BIND_ENUM_CONSTANT(SERVER_SETTINGS_USE_INTERNAL);
+	BIND_ENUM_CONSTANT(SERVER_SETTINGS_VIDEO_STREAM_ENABLED);
+	BIND_ENUM_CONSTANT(SERVER_SETTINGS_COMPRESSION_TYPE);
+	BIND_ENUM_CONSTANT(SERVER_SETTINGS_JPG_QUALITY);
+	BIND_ENUM_CONSTANT(SERVER_SETTINGS_SKIP_FRAMES);
+	BIND_ENUM_CONSTANT(SERVER_SETTINGS_RENDER_SCALE);
+
+	BIND_ENUM_CONSTANT(SUBSAMPLING_Y_ONLY);
+	BIND_ENUM_CONSTANT(SUBSAMPLING_H1V1);
+	BIND_ENUM_CONSTANT(SUBSAMPLING_H2V1);
+	BIND_ENUM_CONSTANT(SUBSAMPLING_H2V2);
+
+	BIND_ENUM_CONSTANT(COMPRESSION_UNCOMPRESSED);
+	BIND_ENUM_CONSTANT(COMPRESSION_JPG);
+	BIND_ENUM_CONSTANT(COMPRESSION_PNG);
 }
 
 #else
@@ -94,14 +91,14 @@ void GRDevice::_register_methods() {
 
 void GRDevice::_notification(int p_notification) {
 	switch (p_notification) {
-	case NOTIFICATION_POSTINITIALIZE:
+		case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-		_init();
+			_init();
 #endif
-		break;
-	case NOTIFICATION_PREDELETE:
-		_deinit();
-		break;
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
 	}
 }
 
@@ -201,13 +198,13 @@ void GRDevice::restart() {
 }
 
 void GRDevice::_internal_call_only_deffered_restart() {
-	if (get_status() == (int)WorkingStatus::Working) {
+	if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
 		_internal_call_only_deffered_stop();
 		_internal_call_only_deffered_start();
 	}
 }
 
-WorkingStatus GRDevice::get_status() {
+GRDevice::WorkingStatus GRDevice::get_status() {
 	return working_status;
 }
 

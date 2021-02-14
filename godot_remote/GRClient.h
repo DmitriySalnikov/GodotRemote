@@ -13,13 +13,13 @@
 
 #else
 
-#include <TextureRect.hpp>
 #include <Node.hpp>
-#include <Thread.hpp>
 #include <PacketPeerStream.hpp>
-#include <StreamPeerTCP.hpp>
 #include <Shader.hpp>
 #include <ShaderMaterial.hpp>
+#include <StreamPeerTCP.hpp>
+#include <TextureRect.hpp>
+#include <Thread.hpp>
 using namespace godot;
 #endif
 
@@ -34,6 +34,23 @@ class GRClient : public GRDevice {
 		HORIZONTAL = 2,
 	};
 
+public:
+	enum ConnectionType : int {
+		CONNECTION_WiFi = 0,
+		CONNECTION_ADB = 1,
+	};
+
+	enum StretchMode : int {
+		STRETCH_KEEP_ASPECT = 0,
+		STRETCH_FILL = 1,
+	};
+
+	enum StreamState : int {
+		STREAM_NO_SIGNAL = 0,
+		STREAM_ACTIVE = 1,
+		STREAM_NO_IMAGE = 2,
+	};
+
 #ifndef GDNATIVE_LIBRARY
 private:
 #else
@@ -44,15 +61,15 @@ public:
 		GD_CLASS(ImgProcessingStorageClient, Object);
 
 	public:
-		GRClient* dev = nullptr;
+		GRClient *dev = nullptr;
 		PoolByteArray tex_data;
 		uint64_t framerate = 0;
 		int format = 0;
-		ImageCompressionType compression_type = ImageCompressionType::Uncompressed;
+		ImageCompressionType compression_type = ImageCompressionType::COMPRESSION_UNCOMPRESSED;
 		Size2 size;
-		bool* _is_processing_img = nullptr;
+		bool *_is_processing_img = nullptr;
 
-		static void _register_methods() {};
+		static void _register_methods(){};
 		void _init() {
 			LEAVE_IF_EDITOR();
 			tex_data = PoolByteArray();
@@ -68,12 +85,12 @@ public:
 		GD_CLASS(ConnectionThreadParamsClient, Object);
 
 	public:
-		GRClient* dev = nullptr;
+		GRClient *dev = nullptr;
 		Ref<StreamPeerTCP> peer;
 		Ref<PacketPeerStream> ppeer;
 
 #ifndef GDNATIVE_LIBRARY
-		class Thread* thread_ref = nullptr;
+		class Thread *thread_ref = nullptr;
 #else
 		Ref<Thread> thread_ref;
 #endif
@@ -88,8 +105,8 @@ public:
 			Thread_close(thread_ref);
 		}
 
-		static void _register_methods() {};
-		void _init() {};
+		static void _register_methods(){};
+		void _init(){};
 
 		~ConnectionThreadParamsClient() {
 			LEAVE_IF_EDITOR();
@@ -102,15 +119,15 @@ public:
 			}
 		};
 	};
-private:
 
+private:
 	bool is_deleting = false;
 	bool is_connection_working = false;
-	Node* settings_menu_node = nullptr;
-	class Control* control_to_show_in = nullptr;
-	class GRTextureRect* tex_shows_stream = nullptr;
-	class GRInputCollector* input_collector = nullptr;
-	ConnectionThreadParamsClient* thread_connection = nullptr;
+	Node *settings_menu_node = nullptr;
+	class Control *control_to_show_in = nullptr;
+	class GRTextureRect *tex_shows_stream = nullptr;
+	class GRInputCollector *input_collector = nullptr;
+	ConnectionThreadParamsClient *thread_connection = nullptr;
 	ScreenOrientation is_vertical = ScreenOrientation::NONE;
 
 	String device_id = "UNKNOWN";
@@ -123,7 +140,7 @@ private:
 	bool _server_settings_syncing = false;
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
-	Mutex* connection_mutex = nullptr;
+	Mutex *connection_mutex = nullptr;
 	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
@@ -145,7 +162,7 @@ private:
 	Ref<class ShaderMaterial> no_signal_mat;
 #endif
 
-	Node* custom_input_scene = nullptr;
+	Node *custom_input_scene = nullptr;
 	String custom_input_scene_tmp_pck_file = "user://custom_input_scene.pck";
 
 	void _force_update_stream_viewport_signals();
@@ -154,15 +171,15 @@ private:
 	void _viewport_size_changed();
 	void _on_node_deleting(int var_name);
 
-	void _update_texture_from_iamge(Ref<Image> img);
+	void _update_texture_from_image(Ref<Image> img);
 	void _update_stream_texture_state(ENUM_ARG(StreamState) _stream_state);
 	virtual void _reset_counters() override;
 
 	THREAD_FUNC void _thread_connection(THREAD_DATA p_userdata);
 	THREAD_FUNC void _thread_image_decoder(THREAD_DATA p_userdata);
 
-	static void _connection_loop(ConnectionThreadParamsClient* con_thread);
-	static GRDevice::AuthResult _auth_on_server(GRClient* dev, Ref<PacketPeerStream>& con);
+	static void _connection_loop(ConnectionThreadParamsClient *con_thread);
+	static GRDevice::AuthResult _auth_on_server(GRClient *dev, Ref<PacketPeerStream> &con);
 
 protected:
 	virtual void _internal_call_only_deffered_start() override;
@@ -173,13 +190,14 @@ protected:
 #else
 public:
 	static void _register_methods();
+
 protected:
 #endif
 
 	void _notification(int p_notification);
 
 public:
-	void set_control_to_show_in(class Control* ctrl, int position_in_node DEF_ARG(= 0));
+	void set_control_to_show_in(class Control *ctrl, int position_in_node DEF_ARG(= 0));
 	void set_custom_no_signal_texture(Ref<Texture> custom_tex);
 	void set_custom_no_signal_vertical_texture(Ref<Texture> custom_tex);
 	void set_custom_no_signal_material(Ref<Material> custom_mat);
@@ -193,11 +211,13 @@ public:
 	bool is_capture_input();
 	void set_capture_input(bool value);
 	void set_connection_type(ENUM_ARG(ConnectionType) type);
-	ENUM_ARG(ConnectionType) get_connection_type();
+	ENUM_ARG(ConnectionType)
+	get_connection_type();
 	void set_target_send_fps(int fps);
 	int get_target_send_fps();
 	void set_stretch_mode(ENUM_ARG(StretchMode) stretch);
-	ENUM_ARG(StretchMode) get_stretch_mode();
+	ENUM_ARG(StretchMode)
+	get_stretch_mode();
 	void set_texture_filtering(bool is_filtering);
 	bool get_texture_filtering();
 	void set_viewport_orientation_syncing(bool is_syncing);
@@ -211,10 +231,11 @@ public:
 	void set_device_id(String _id);
 	String get_device_id();
 
-	ENUM_ARG(StreamState) get_stream_state();
+	ENUM_ARG(StreamState)
+	get_stream_state();
 	bool is_stream_active();
 	bool is_connected_to_host();
-	Node* get_custom_input_scene();
+	Node *get_custom_input_scene();
 	String get_address();
 	bool set_address(String ip);
 	bool set_address_port(String ip, uint16_t _port);
@@ -234,13 +255,13 @@ class GRInputCollector : public Node {
 	_TS_CLASS_;
 
 private:
-	GRClient* dev = nullptr;
-	GRInputCollector** this_in_client = nullptr; //somebody help
+	GRClient *dev = nullptr;
+	GRInputCollector **this_in_client = nullptr; //somebody help
 
-	class TextureRect* texture_rect = nullptr;
+	class TextureRect *texture_rect = nullptr;
 	//Array collected_input_data; // Ref<GRInputData>
-	std::vector<Ref<GRInputData>> collected_input_data;
-	class Control* parent;
+	std::vector<Ref<GRInputData> > collected_input_data;
+	class Control *parent;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
 	bool dont_capture_pointer = false;
@@ -261,6 +282,7 @@ protected:
 #else
 public:
 	static void _register_methods();
+
 protected:
 #endif
 
@@ -277,7 +299,7 @@ public:
 	bool is_capture_input();
 	void set_capture_input(bool value);
 
-	void set_tex_rect(class TextureRect* tr);
+	void set_tex_rect(class TextureRect *tr);
 
 	Ref<class GRPacketInputData> get_collected_input_data();
 
@@ -289,8 +311,8 @@ class GRTextureRect : public TextureRect {
 	GD_CLASS(GRTextureRect, TextureRect);
 	friend GRClient;
 
-	GRClient* dev = nullptr;
-	GRTextureRect** this_in_client = nullptr;
+	GRClient *dev = nullptr;
+	GRTextureRect **this_in_client = nullptr;
 	void _tex_size_changed();
 
 protected:
@@ -299,6 +321,7 @@ protected:
 #else
 public:
 	static void _register_methods();
+
 protected:
 #endif
 
@@ -310,9 +333,9 @@ public:
 };
 
 #ifndef GDNATIVE_LIBRARY
-VARIANT_ENUM_CAST(ConnectionType)
-VARIANT_ENUM_CAST(StretchMode)
-VARIANT_ENUM_CAST(StreamState)
+VARIANT_ENUM_CAST(GRClient::ConnectionType)
+VARIANT_ENUM_CAST(GRClient::StretchMode)
+VARIANT_ENUM_CAST(GRClient::StreamState)
 #endif
 
 #endif // !NO_GODOTREMOTE_CLIENT

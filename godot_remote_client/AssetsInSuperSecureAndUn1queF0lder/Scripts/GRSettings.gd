@@ -162,11 +162,11 @@ func update_values():
 func _set_all_server_settings():
 	var d = GodotRemote.get_device()
 	if G.override_server_settings and d.is_connected_to_host():
-		d.set_server_setting(C.GodotRemote_SERVER_PARAM_JPG_QUALITY, jpg_quality.value)
-		d.set_server_setting(C.GodotRemote_SERVER_PARAM_RENDER_SCALE, render_scale.value)
-		d.set_server_setting(C.GodotRemote_SERVER_PARAM_SKIP_FRAMES, skip_frames.value)
-		d.set_server_setting(C.GodotRemote_SERVER_PARAM_COMPRESSION_TYPE, compression.selected)
-		d.set_server_setting(C.GodotRemote_SERVER_PARAM_VIDEO_STREAM_ENABLED, video_stream.pressed)
+		d.set_server_setting(C.GRDevice_SERVER_PARAM_JPG_QUALITY, jpg_quality.value)
+		d.set_server_setting(C.GRDevice_SERVER_PARAM_RENDER_SCALE, render_scale.value)
+		d.set_server_setting(C.GRDevice_SERVER_PARAM_SKIP_FRAMES, skip_frames.value)
+		d.set_server_setting(C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE, compression.selected)
+		d.set_server_setting(C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED, video_stream.pressed)
 
 func _status_changed(_status : int):
 	if timer.is_stopped():
@@ -186,11 +186,11 @@ func _server_settings_received(_settings : Dictionary):
 	for kk in k:
 		var v = _settings[kk]
 		match kk:
-			C.GodotRemote_SERVER_PARAM_JPG_QUALITY: jpg_quality.value = v
-			C.GodotRemote_SERVER_PARAM_RENDER_SCALE: render_scale.value = v 
-			C.GodotRemote_SERVER_PARAM_SKIP_FRAMES: skip_frames.value = v
-			C.GodotRemote_SERVER_PARAM_COMPRESSION_TYPE: compression.selected = v
-			C.GodotRemote_SERVER_PARAM_VIDEO_STREAM_ENABLED: video_stream.pressed = v
+			C.GRDevice_SERVER_PARAM_JPG_QUALITY: jpg_quality.value = v
+			C.GRDevice_SERVER_PARAM_RENDER_SCALE: render_scale.value = v 
+			C.GRDevice_SERVER_PARAM_SKIP_FRAMES: skip_frames.value = v
+			C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE: compression.selected = v
+			C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED: video_stream.pressed = v
 	
 	updated_by_code = false
 
@@ -338,29 +338,29 @@ func _on_SyncServerSettings_toggled(button_pressed):
 func _on_server_Quality_value_changed(value):
 	if not updated_by_code:
 		if G.override_server_settings:
-			GodotRemote.get_device().set_server_setting(C.GodotRemote_SERVER_PARAM_JPG_QUALITY, value)
+			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_JPG_QUALITY, value)
 	G.server_jpg_quality = value
 
 func _on_server_render_Scale_value_changed(value):
 	if not updated_by_code:
 		if G.override_server_settings:
-			GodotRemote.get_device().set_server_setting(C.GodotRemote_SERVER_PARAM_RENDER_SCALE, value)
+			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_RENDER_SCALE, value)
 	G.server_render_scale = value
 
 func _on_server_send_FPS_value_changed(value):
 	if not updated_by_code:
 		if G.override_server_settings:
-			GodotRemote.get_device().set_server_setting(C.GodotRemote_SERVER_PARAM_SKIP_FRAMES, value)
+			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_SKIP_FRAMES, value)
 	G.server_skip_fps = value
 
 func _on_compression_type_item_selected(index):
 	if not updated_by_code:
 		if G.override_server_settings:
-			GodotRemote.get_device().set_server_setting(C.GodotRemote_SERVER_PARAM_COMPRESSION_TYPE, index)
+			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE, index)
 	G.server_compression_type = index
 
 func _on_video_stream_Enabled_toggled(button_pressed):
 	if not updated_by_code:
 		if G.override_server_settings:
-			GodotRemote.get_device().set_server_setting(C.GodotRemote_SERVER_PARAM_VIDEO_STREAM_ENABLED, button_pressed)
+			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED, button_pressed)
 	G.server_video_stream = button_pressed

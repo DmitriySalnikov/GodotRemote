@@ -2,6 +2,7 @@
 
 #ifndef NO_GODOTREMOTE_CLIENT
 
+#include "GodotRemote.h"
 #include "GRClient.h"
 #include "GRNotifications.h"
 #include "GRPacket.h"
@@ -68,7 +69,7 @@ using namespace GRUtils;
 #ifndef GDNATIVE_LIBRARY
 void GRClient::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("_update_texture_from_iamge", "image"), &GRClient::_update_texture_from_iamge);
+	ClassDB::bind_method(D_METHOD("_update_texture_from_image", "image"), &GRClient::_update_texture_from_image);
 	ClassDB::bind_method(D_METHOD("_update_stream_texture_state", "state"), &GRClient::_update_stream_texture_state);
 	ClassDB::bind_method(D_METHOD("_force_update_stream_viewport_signals"), &GRClient::_force_update_stream_viewport_signals);
 	ClassDB::bind_method(D_METHOD("_viewport_size_changed"), &GRClient::_viewport_size_changed);
@@ -183,7 +184,7 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, _thread_connection);
 	METHOD_REG(GRClient, _thread_image_decoder);
 
-	METHOD_REG(GRClient, _update_texture_from_iamge);
+	METHOD_REG(GRClient, _update_texture_from_image);
 	METHOD_REG(GRClient, _update_stream_texture_state);
 	METHOD_REG(GRClient, _force_update_stream_viewport_signals);
 	METHOD_REG(GRClient, _viewport_size_changed);
@@ -261,22 +262,22 @@ void GRClient::_register_methods() {
 
 void GRClient::_notification(int p_notification) {
 	switch (p_notification) {
-	case NOTIFICATION_POSTINITIALIZE:
+		case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-		_init();
+			_init();
 #endif
-		break;
-	case NOTIFICATION_PREDELETE: {
-		_deinit();
-		GRDevice::_deinit();
-		break;
-	case NOTIFICATION_EXIT_TREE:
-		is_deleting = true;
-		if (get_status() == (int)WorkingStatus::Working) {
-			_internal_call_only_deffered_stop();
+			break;
+		case NOTIFICATION_PREDELETE: {
+			_deinit();
+			GRDevice::_deinit();
+			break;
+			case NOTIFICATION_EXIT_TREE:
+				is_deleting = true;
+				if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
+					_internal_call_only_deffered_stop();
+				}
+				break;
 		}
-		break;
-	}
 	}
 }
 
@@ -293,7 +294,7 @@ void GRClient::_init() {
 	Math::randomize();
 	device_id = str(Math::randd() * Math::rand()).md5_text().substr(0, 6);
 #else
-	RandomNumberGenerator* rng = memnew(RandomNumberGenerator);
+	RandomNumberGenerator *rng = memnew(RandomNumberGenerator);
 	rng->randomize();
 	device_id = str(rng->randf() * rng->randf()).md5_text().substr(0, 6);
 	memdelete(rng);
@@ -321,7 +322,7 @@ void GRClient::_deinit() {
 	LEAVE_IF_EDITOR();
 
 	is_deleting = true;
-	if (get_status() == (int)WorkingStatus::Working) {
+	if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
 		_internal_call_only_deffered_stop();
 	}
 	set_control_to_show_in(nullptr, 0);
@@ -341,16 +342,16 @@ void GRClient::_deinit() {
 
 void GRClient::_internal_call_only_deffered_start() {
 	switch ((WorkingStatus)get_status()) {
-	case WorkingStatus::Working:
-		ERR_FAIL_MSG("Can't start already working GodotRemote Client");
-	case WorkingStatus::Starting:
-		ERR_FAIL_MSG("Can't start already starting GodotRemote Client");
-	case WorkingStatus::Stopping:
-		ERR_FAIL_MSG("Can't start stopping GodotRemote Client");
+		case WorkingStatus::STATUS_WORKING:
+			ERR_FAIL_MSG("Can't start already working GodotRemote Client");
+		case WorkingStatus::STATUS_STARTING:
+			ERR_FAIL_MSG("Can't start already starting GodotRemote Client");
+		case WorkingStatus::STATUS_STOPPING:
+			ERR_FAIL_MSG("Can't start stopping GodotRemote Client");
 	}
 
-	_log("Starting GodotRemote client", LogLevel::LL_Debug);
-	set_status(WorkingStatus::Starting);
+	_log("Starting GodotRemote client", LogLevel::LL_DEBUG);
+	set_status(WorkingStatus::STATUS_STARTING);
 
 	if (thread_connection) {
 		thread_connection->close_thread();
@@ -363,21 +364,21 @@ void GRClient::_internal_call_only_deffered_start() {
 	thread_connection->thread_ref = Thread_create(GRClient, _thread_connection, thread_connection, this);
 
 	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
-	set_status(WorkingStatus::Working);
+	set_status(WorkingStatus::STATUS_WORKING);
 }
 
 void GRClient::_internal_call_only_deffered_stop() {
 	switch ((WorkingStatus)get_status()) {
-	case WorkingStatus::Stopped:
-		ERR_FAIL_MSG("Can't stop already stopped GodotRemote Client");
-	case WorkingStatus::Stopping:
-		ERR_FAIL_MSG("Can't stop already stopping GodotRemote Client");
-	case WorkingStatus::Starting:
-		ERR_FAIL_MSG("Can't stop starting GodotRemote Client");
+		case WorkingStatus::STATUS_STOPPED:
+			ERR_FAIL_MSG("Can't stop already stopped GodotRemote Client");
+		case WorkingStatus::STATUS_STOPPING:
+			ERR_FAIL_MSG("Can't stop already stopping GodotRemote Client");
+		case WorkingStatus::STATUS_STARTING:
+			ERR_FAIL_MSG("Can't stop starting GodotRemote Client");
 	}
 
-	_log("Stopping GodotRemote client", LogLevel::LL_Debug);
-	set_status(WorkingStatus::Stopping);
+	_log("Stopping GodotRemote client", LogLevel::LL_DEBUG);
+	set_status(WorkingStatus::STATUS_STOPPING);
 	_remove_custom_input_scene();
 
 	connection_mutex->lock();
@@ -395,10 +396,10 @@ void GRClient::_internal_call_only_deffered_stop() {
 	connection_mutex->unlock();
 
 	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
-	set_status(WorkingStatus::Stopped);
+	set_status(WorkingStatus::STATUS_STOPPED);
 }
 
-void GRClient::set_control_to_show_in(Control* ctrl, int position_in_node) {
+void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		tex_shows_stream->dev = nullptr;
 		tex_shows_stream->queue_del();
@@ -410,7 +411,7 @@ void GRClient::set_control_to_show_in(Control* ctrl, int position_in_node) {
 		input_collector = nullptr;
 	}
 	if (control_to_show_in && !control_to_show_in->is_queued_for_deletion() &&
-		control_to_show_in->is_connected("resized", this, "_viewport_size_changed")) {
+			control_to_show_in->is_connected("resized", this, "_viewport_size_changed")) {
 		control_to_show_in->disconnect("resized", this, "_viewport_size_changed");
 		control_to_show_in->disconnect("tree_exiting", this, "_on_node_deleting");
 	}
@@ -454,21 +455,21 @@ void GRClient::set_control_to_show_in(Control* ctrl, int position_in_node) {
 
 void GRClient::_on_node_deleting(int var_name) {
 	switch ((DeletingVarName)var_name) {
-	case DeletingVarName::CONTROL_TO_SHOW_STREAM:
-		control_to_show_in = nullptr;
-		set_control_to_show_in(nullptr, 0);
-		break;
-	case DeletingVarName::TEXTURE_TO_SHOW_STREAM:
-		tex_shows_stream = nullptr;
-		break;
-	case DeletingVarName::INPUT_COLLECTOR:
-		input_collector = nullptr;
-		break;
-	case DeletingVarName::CUSTOM_INPUT_SCENE:
-		custom_input_scene = nullptr;
-		break;
-	default:
-		break;
+		case DeletingVarName::CONTROL_TO_SHOW_STREAM:
+			control_to_show_in = nullptr;
+			set_control_to_show_in(nullptr, 0);
+			break;
+		case DeletingVarName::TEXTURE_TO_SHOW_STREAM:
+			tex_shows_stream = nullptr;
+			break;
+		case DeletingVarName::INPUT_COLLECTOR:
+			input_collector = nullptr;
+			break;
+		case DeletingVarName::CUSTOM_INPUT_SCENE:
+			custom_input_scene = nullptr;
+			break;
+		default:
+			break;
 	}
 }
 
@@ -535,7 +536,7 @@ void GRClient::set_connection_type(ENUM_ARG(ConnectionType) type) {
 	con_type = (ConnectionType)type;
 }
 
-ENUM_ARG(ConnectionType)
+ENUM_ARG(GRClient::ConnectionType)
 GRClient::get_connection_type() {
 	return con_type;
 }
@@ -554,7 +555,7 @@ void GRClient::set_stretch_mode(ENUM_ARG(StretchMode) stretch) {
 	call_deferred("_update_stream_texture_state", signal_connection_state);
 }
 
-ENUM_ARG(StretchMode)
+ENUM_ARG(GRClient::StretchMode)
 GRClient::get_stretch_mode() {
 	return stretch_mode;
 }
@@ -567,7 +568,7 @@ bool GRClient::get_texture_filtering() {
 	return is_filtering_enabled;
 }
 
-ENUM_ARG(StreamState)
+ENUM_ARG(GRClient::StreamState)
 GRClient::get_stream_state() {
 	return signal_connection_state;
 }
@@ -600,24 +601,21 @@ bool GRClient::set_address_port(String ip, uint16_t _port) {
 			port = _port;
 			restart();
 			all_ok = true;
+		} else {
+			_log("Address is invalid: " + ip, LogLevel::LL_ERROR);
+			GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + ip, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 		}
-		else {
-			_log("Address is invalid: " + ip, LogLevel::LL_Error);
-			GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + ip, NotificationIcon::_Error, true, 1.f);
-		}
-	}
-	else {
+	} else {
 		adr = IP::get_singleton()->resolve_hostname(adr);
 		if (adr.is_valid_ip()) {
-			_log("Resolved address for " + ip + "\n" + adr, LogLevel::LL_Debug);
+			_log("Resolved address for " + ip + "\n" + adr, LogLevel::LL_DEBUG);
 			server_address = ip;
 			port = _port;
 			restart();
 			all_ok = true;
-		}
-		else {
-			_log("Can't resolve address for " + ip, LogLevel::LL_Error);
-			GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + ip, NotificationIcon::_Error, true, 1.f);
+		} else {
+			_log("Can't resolve address for " + ip, LogLevel::LL_ERROR);
+			GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + ip, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 		}
 	}
 
@@ -686,7 +684,7 @@ bool GRClient::is_connected_to_host() {
 	return false;
 }
 
-Node* GRClient::get_custom_input_scene() {
+Node *GRClient::get_custom_input_scene() {
 	return custom_input_scene;
 }
 
@@ -703,39 +701,36 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 	_remove_custom_input_scene();
 
 	if (_data->get_scene_path().empty() || _data->get_scene_data().size() == 0) {
-		_log("Scene not specified or data is empty. Removing custom input scene", LogLevel::LL_Debug);
+		_log("Scene not specified or data is empty. Removing custom input scene", LogLevel::LL_DEBUG);
 		return;
 	}
 
 	if (!control_to_show_in) {
-		_log("Not specified control to show", LogLevel::LL_Error);
+		_log("Not specified control to show", LogLevel::LL_ERROR);
 		return;
 	}
 
 	Error err = Error::OK;
 #ifndef GDNATIVE_LIBRARY
-	FileAccess* file = FileAccess::open(custom_input_scene_tmp_pck_file, FileAccess::ModeFlags::WRITE, &err);
+	FileAccess *file = FileAccess::open(custom_input_scene_tmp_pck_file, FileAccess::ModeFlags::WRITE, &err);
 #else
-	File* file = memnew(File);
+	File *file = memnew(File);
 	err = file->open(custom_input_scene_tmp_pck_file, File::ModeFlags::WRITE);
 #endif
 	if ((int)err) {
-		_log("Can't open temp file to store custom input scene: " + custom_input_scene_tmp_pck_file + ", code: " + str((int)err), LogLevel::LL_Error);
-	}
-	else {
+		_log("Can't open temp file to store custom input scene: " + custom_input_scene_tmp_pck_file + ", code: " + str((int)err), LogLevel::LL_ERROR);
+	} else {
 
 		PoolByteArray scene_data;
 		if (_data->is_compressed()) {
 			err = decompress_bytes(_data->get_scene_data(), _data->get_original_size(), scene_data, _data->get_compression_type());
-		}
-		else {
+		} else {
 			scene_data = _data->get_scene_data();
 		}
 
 		if ((int)err) {
-			_log("Can't decompress or set scene_data: Code: " + str((int)err), LogLevel::LL_Error);
-		}
-		else {
+			_log("Can't decompress or set scene_data: Code: " + str((int)err), LogLevel::LL_ERROR);
+		} else {
 
 #ifndef GDNATIVE_LIBRARY
 			auto r = scene_data.read();
@@ -749,22 +744,20 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 #ifndef GDNATIVE_LIBRARY
 			if (PackedData::get_singleton()->is_disabled()) {
 				err = Error::FAILED;
-			}
-			else {
+			} else {
 #if VERSION_PATCH >= 4
 				err = PackedData::get_singleton()->add_pack(custom_input_scene_tmp_pck_file, true, 0);
 #else
 				err = PackedData::get_singleton()->add_pack(custom_input_scene_tmp_pck_file, true);
 #endif
-		}
+			}
 #else
 			err = ProjectSettings::get_singleton()->load_resource_pack(custom_input_scene_tmp_pck_file, true, 0) ? Error::OK : Error::FAILED;
 #endif
 
 			if ((int)err) {
-				_log("Can't load PCK file: " + custom_input_scene_tmp_pck_file, LogLevel::LL_Error);
-			}
-			else {
+				_log("Can't load PCK file: " + custom_input_scene_tmp_pck_file, LogLevel::LL_ERROR);
+			} else {
 
 #ifndef GDNATIVE_LIBRARY
 				Ref<PackedScene> pck = ResourceLoader::load(_data->get_scene_path(), "", false, &err);
@@ -773,15 +766,13 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 				err = pck->can_instance() ? Error::OK : Error::FAILED;
 #endif
 				if ((int)err) {
-					_log("Can't load scene file: " + _data->get_scene_path() + ", code: " + str((int)err), LogLevel::LL_Error);
-				}
-				else {
+					_log("Can't load scene file: " + _data->get_scene_path() + ", code: " + str((int)err), LogLevel::LL_ERROR);
+				} else {
 
 					custom_input_scene = pck->instance();
 					if (!custom_input_scene) {
-						_log("Can't instance scene from PCK file: " + custom_input_scene_tmp_pck_file + ", scene: " + _data->get_scene_path(), LogLevel::LL_Error);
-					}
-					else {
+						_log("Can't instance scene from PCK file: " + custom_input_scene_tmp_pck_file + ", scene: " + _data->get_scene_path(), LogLevel::LL_ERROR);
+					} else {
 
 						control_to_show_in->add_child(custom_input_scene);
 						custom_input_scene->connect("tree_exiting", this, "_on_node_deleting", vec_args({ (int)DeletingVarName::CUSTOM_INPUT_SCENE }));
@@ -790,8 +781,8 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 					}
 				}
 			}
+		}
 	}
-}
 
 	if (file) {
 		memdelete(file);
@@ -807,19 +798,18 @@ void GRClient::_remove_custom_input_scene() {
 
 		Error err = Error::OK;
 #ifndef GDNATIVE_LIBRARY
-		DirAccess* dir = DirAccess::open(custom_input_scene_tmp_pck_file.get_base_dir(), &err);
+		DirAccess *dir = DirAccess::open(custom_input_scene_tmp_pck_file.get_base_dir(), &err);
 #else
-		Directory* dir = memnew(Directory);
+		Directory *dir = memnew(Directory);
 		dir->open(custom_input_scene_tmp_pck_file.get_base_dir());
 #endif
 		if ((int)err) {
-			_log("Can't open folder: " + custom_input_scene_tmp_pck_file.get_base_dir(), LogLevel::LL_Error);
-		}
-		else {
+			_log("Can't open folder: " + custom_input_scene_tmp_pck_file.get_base_dir(), LogLevel::LL_ERROR);
+		} else {
 			if (dir && dir->file_exists(custom_input_scene_tmp_pck_file)) {
 				err = dir->remove(custom_input_scene_tmp_pck_file);
 				if ((int)err) {
-					_log("Can't delete file: " + custom_input_scene_tmp_pck_file + ". Code: " + str((int)err), LogLevel::LL_Error);
+					_log("Can't delete file: " + custom_input_scene_tmp_pck_file + ". Code: " + str((int)err), LogLevel::LL_ERROR);
 				}
 			}
 		}
@@ -879,14 +869,13 @@ ratio_sync:
 	}
 }
 
-void GRClient::_update_texture_from_iamge(Ref<Image> img) {
+void GRClient::_update_texture_from_image(Ref<Image> img) {
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		if (img.is_valid()) {
 			Ref<ImageTexture> tex = tex_shows_stream->get_texture();
 			if (tex.is_valid()) {
 				tex->create_from_image(img);
-			}
-			else {
+			} else {
 				tex.instance();
 				tex->create_from_image(img);
 				tex_shows_stream->set_texture(tex);
@@ -896,8 +885,7 @@ void GRClient::_update_texture_from_iamge(Ref<Image> img) {
 			if (tex->get_flags() != new_flags) {
 				tex->set_flags(new_flags);
 			}
-		}
-		else {
+		} else {
 			tex_shows_stream->set_texture(nullptr);
 		}
 	}
@@ -909,42 +897,42 @@ void GRClient::_update_stream_texture_state(ENUM_ARG(StreamState) _stream_state)
 
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		switch (_stream_state) {
-		case StreamState::STREAM_NO_SIGNAL: {
-			tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
+			case StreamState::STREAM_NO_SIGNAL: {
+				tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_KEEP_ASPECT_CENTERED);
 
-			if (custom_no_signal_texture.is_valid() || custom_no_signal_vertical_texture.is_valid()) {
-				tex_shows_stream->set_texture(no_signal_is_vertical ?
-					(custom_no_signal_vertical_texture.is_valid() ? custom_no_signal_vertical_texture : custom_no_signal_texture) :
-					(custom_no_signal_texture.is_valid() ? custom_no_signal_texture : custom_no_signal_vertical_texture));
-			}
+				if (custom_no_signal_texture.is_valid() || custom_no_signal_vertical_texture.is_valid()) {
+					tex_shows_stream->set_texture(no_signal_is_vertical ?
+														  (custom_no_signal_vertical_texture.is_valid() ? custom_no_signal_vertical_texture : custom_no_signal_texture) :
+														  (custom_no_signal_texture.is_valid() ? custom_no_signal_texture : custom_no_signal_vertical_texture));
+				}
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
-			else {
-				_update_texture_from_iamge(no_signal_is_vertical ? no_signal_vertical_image : no_signal_image);
-			}
+				else {
+					_update_texture_from_image(no_signal_is_vertical ? no_signal_vertical_image : no_signal_image);
+				}
 #endif
-			if (custom_no_signal_material.is_valid()) {
-				tex_shows_stream->set_material(custom_no_signal_material);
-			}
+				if (custom_no_signal_material.is_valid()) {
+					tex_shows_stream->set_material(custom_no_signal_material);
+				}
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
-			else {
-				tex_shows_stream->set_material(no_signal_mat);
-			}
+				else {
+					tex_shows_stream->set_material(no_signal_mat);
+				}
 #endif
-			break;
-		}
-		case StreamState::STREAM_ACTIVE: {
-			tex_shows_stream->set_stretch_mode(stretch_mode == StretchMode::STRETCH_KEEP_ASPECT ? TextureRect::STRETCH_KEEP_ASPECT_CENTERED : TextureRect::STRETCH_SCALE);
-			tex_shows_stream->set_material(nullptr);
-			break;
-		}
-		case StreamState::STREAM_NO_IMAGE:
-			tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_SCALE);
-			tex_shows_stream->set_material(nullptr);
-			tex_shows_stream->set_texture(nullptr);
-			break;
-		default:
-			_log("Wrong stream state!", LogLevel::LL_Error);
-			break;
+				break;
+			}
+			case StreamState::STREAM_ACTIVE: {
+				tex_shows_stream->set_stretch_mode(stretch_mode == StretchMode::STRETCH_KEEP_ASPECT ? TextureRect::STRETCH_KEEP_ASPECT_CENTERED : TextureRect::STRETCH_SCALE);
+				tex_shows_stream->set_material(nullptr);
+				break;
+			}
+			case StreamState::STREAM_NO_IMAGE:
+				tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_SCALE);
+				tex_shows_stream->set_material(nullptr);
+				tex_shows_stream->set_texture(nullptr);
+				break;
+			default:
+				_log("Wrong stream state!", LogLevel::LL_ERROR);
+				break;
 		}
 
 		if (signal_connection_state != _stream_state) {
@@ -978,7 +966,7 @@ void GRClient::set_server_setting(ENUM_ARG(TypesOfServerSettings) param, Variant
 }
 
 void GRClient::disable_overriding_server_settings() {
-	set_server_setting(TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS, true);
+	set_server_setting(TypesOfServerSettings::SERVER_SETTINGS_USE_INTERNAL, true);
 }
 
 //////////////////////////////////////////////
@@ -986,11 +974,11 @@ void GRClient::disable_overriding_server_settings() {
 //////////////////////////////////////////////
 
 void GRClient::_thread_connection(THREAD_DATA p_userdata) {
-	ConnectionThreadParamsClient* con_thread = (ConnectionThreadParamsClient*)p_userdata;
-	GRClient* dev = con_thread->dev;
+	ConnectionThreadParamsClient *con_thread = (ConnectionThreadParamsClient *)p_userdata;
+	GRClient *dev = con_thread->dev;
 	Ref<StreamPeerTCP> con = con_thread->peer;
 
-	OS* os = OS::get_singleton();
+	OS *os = OS::get_singleton();
 	Thread_set_name("GRemote_connection");
 	GRDevice::AuthResult prev_auth_error = GRDevice::AuthResult::OK;
 
@@ -1020,28 +1008,24 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 #else
 			adr = "127.0.0.1";
 #endif
-	}
-		else {
+		} else {
 			if (dev->server_address.is_valid_ip_address()) {
 				adr = dev->server_address;
 				if (adr.is_valid_ip()) {
-				}
-				else {
-					_log("Address is invalid: " + dev->server_address, LogLevel::LL_Error);
+				} else {
+					_log("Address is invalid: " + dev->server_address, LogLevel::LL_ERROR);
 					if (prev_auth_error != GRDevice::AuthResult::Error)
-						GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + dev->server_address, NotificationIcon::_Error, true, 1.f);
+						GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + dev->server_address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 					prev_auth_error = GRDevice::AuthResult::Error;
 				}
-			}
-			else {
+			} else {
 				adr = IP::get_singleton()->resolve_hostname(adr);
 				if (adr.is_valid_ip()) {
-					_log("Resolved address for " + dev->server_address + "\n" + adr, LogLevel::LL_Debug);
-				}
-				else {
-					_log("Can't resolve address for " + dev->server_address, LogLevel::LL_Error);
+					_log("Resolved address for " + dev->server_address + "\n" + adr, LogLevel::LL_DEBUG);
+				} else {
+					_log("Can't resolve address for " + dev->server_address, LogLevel::LL_ERROR);
 					if (prev_auth_error != GRDevice::AuthResult::Error)
-						GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + dev->server_address, NotificationIcon::_Error, true, 1.f);
+						GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + dev->server_address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 					prev_auth_error = GRDevice::AuthResult::Error;
 				}
 			}
@@ -1050,21 +1034,21 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 		String address = (String)adr + ":" + str(dev->port);
 		Error err = con->connect_to_host(adr, dev->port);
 
-		_log("Connecting to " + address, LogLevel::LL_Debug);
+		_log("Connecting to " + address, LogLevel::LL_DEBUG);
 		if ((int)err) {
 			switch (err) {
-			case Error::FAILED:
-				_log("Failed to open socket or can't connect to host", LogLevel::LL_Error);
-				break;
-			case Error::ERR_UNAVAILABLE:
-				_log("Socket is unavailable", LogLevel::LL_Error);
-				break;
-			case Error::ERR_INVALID_PARAMETER:
-				_log("Host address is invalid", LogLevel::LL_Error);
-				break;
-			case Error::ERR_ALREADY_EXISTS:
-				_log("Socket already in use", LogLevel::LL_Error);
-				break;
+				case Error::FAILED:
+					_log("Failed to open socket or can't connect to host", LogLevel::LL_ERROR);
+					break;
+				case Error::ERR_UNAVAILABLE:
+					_log("Socket is unavailable", LogLevel::LL_ERROR);
+					break;
+				case Error::ERR_INVALID_PARAMETER:
+					_log("Host address is invalid", LogLevel::LL_ERROR);
+					break;
+				case Error::ERR_ALREADY_EXISTS:
+					_log("Socket already in use", LogLevel::LL_ERROR);
+					break;
 			}
 			os->delay_usec(250_ms);
 			continue;
@@ -1075,9 +1059,9 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 		}
 
 		if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
-			_log("Connection timed out with " + address, LogLevel::LL_Debug);
+			_log("Connection timed out with " + address, LogLevel::LL_DEBUG);
 			if (prev_auth_error != GRDevice::AuthResult::Timeout) {
-				GRNotifications::add_notification(con_error_title, "Connection timed out: " + address, NotificationIcon::Warning, true, 1.f);
+				GRNotifications::add_notification(con_error_title, "Connection timed out: " + address, GRNotifications::NotificationIcon::ICON_WARNING, true, 1.f);
 				prev_auth_error = GRDevice::AuthResult::Timeout;
 			}
 			os->delay_usec(200_ms);
@@ -1094,61 +1078,61 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 
 		GRDevice::AuthResult res = _auth_on_server(dev, ppeer);
 		switch (res) {
-		case GRDevice::AuthResult::OK: {
-			_log("Successful connected to " + address, LogLevel::LL_Normal);
+			case GRDevice::AuthResult::OK: {
+				_log("Successful connected to " + address, LogLevel::LL_NORMAL);
 
-			dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
+				dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
 
-			con_thread->break_connection = false;
-			con_thread->peer = con;
-			con_thread->ppeer = ppeer;
+				con_thread->break_connection = false;
+				con_thread->peer = con;
+				con_thread->ppeer = ppeer;
 
-			dev->is_connection_working = true;
-			dev->call_deferred("emit_signal", "connection_state_changed", true);
-			dev->call_deferred("_force_update_stream_viewport_signals"); // force update screen aspect ratio and orientation
-			GRNotifications::add_notification("Connected", "Connected to " + address, NotificationIcon::Success, true, 1.f);
+				dev->is_connection_working = true;
+				dev->call_deferred("emit_signal", "connection_state_changed", true);
+				dev->call_deferred("_force_update_stream_viewport_signals"); // force update screen aspect ratio and orientation
+				GRNotifications::add_notification("Connected", "Connected to " + address, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 
-			_connection_loop(con_thread);
+				_connection_loop(con_thread);
 
-			con_thread->peer.unref();
-			con_thread->ppeer.unref();
+				con_thread->peer.unref();
+				con_thread->ppeer.unref();
 
-			dev->is_connection_working = false;
-			dev->call_deferred("emit_signal", "connection_state_changed", false);
-			dev->call_deferred("emit_signal", "mouse_mode_changed", Input::MouseMode::MOUSE_MODE_VISIBLE);
-			break;
-		}
-		case GRDevice::AuthResult::Error:
-			if (res != prev_auth_error)
-				GRNotifications::add_notification(con_error_title, "Can't connect to " + address, NotificationIcon::_Error, true, 1.f);
-			long_wait = true;
-			break;
-		case GRDevice::AuthResult::Timeout:
-			if (res != prev_auth_error)
-				GRNotifications::add_notification(con_error_title, "Timeout\n" + address, NotificationIcon::_Error, true, 1.f);
-			long_wait = true;
-			break;
-		case GRDevice::AuthResult::RefuseConnection:
-			if (res != prev_auth_error)
-				GRNotifications::add_notification(con_error_title, "Connection refused\n" + address, NotificationIcon::_Error, true, 1.f);
-			long_wait = true;
-			break;
-		case GRDevice::AuthResult::VersionMismatch:
-			GRNotifications::add_notification(con_error_title, "Version mismatch\n" + address, NotificationIcon::_Error, true, 1.f);
-			long_wait = true;
-			break;
-		case GRDevice::AuthResult::IncorrectPassword:
-			GRNotifications::add_notification(con_error_title, "Incorrect password\n" + address, NotificationIcon::_Error, true, 1.f);
-			long_wait = true;
-			break;
-		case GRDevice::AuthResult::PasswordRequired:
-			GRNotifications::add_notification(con_error_title, "Required password but it's not implemented.... " + address, NotificationIcon::_Error, true, 1.f);
-			break;
-		default:
-			if (res != prev_auth_error)
-				GRNotifications::add_notification(con_error_title, "Unknown error code: " + str((int)res) + "\n" + address, NotificationIcon::_Error, true, 1.f);
-			_log("Unknown error code: " + str((int)res) + ". Disconnecting. " + address, LogLevel::LL_Normal);
-			break;
+				dev->is_connection_working = false;
+				dev->call_deferred("emit_signal", "connection_state_changed", false);
+				dev->call_deferred("emit_signal", "mouse_mode_changed", Input::MouseMode::MOUSE_MODE_VISIBLE);
+				break;
+			}
+			case GRDevice::AuthResult::Error:
+				if (res != prev_auth_error)
+					GRNotifications::add_notification(con_error_title, "Can't connect to " + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+				long_wait = true;
+				break;
+			case GRDevice::AuthResult::Timeout:
+				if (res != prev_auth_error)
+					GRNotifications::add_notification(con_error_title, "Timeout\n" + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+				long_wait = true;
+				break;
+			case GRDevice::AuthResult::RefuseConnection:
+				if (res != prev_auth_error)
+					GRNotifications::add_notification(con_error_title, "Connection refused\n" + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+				long_wait = true;
+				break;
+			case GRDevice::AuthResult::VersionMismatch:
+				GRNotifications::add_notification(con_error_title, "Version mismatch\n" + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+				long_wait = true;
+				break;
+			case GRDevice::AuthResult::IncorrectPassword:
+				GRNotifications::add_notification(con_error_title, "Incorrect password\n" + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+				long_wait = true;
+				break;
+			case GRDevice::AuthResult::PasswordRequired:
+				GRNotifications::add_notification(con_error_title, "Required password but it's not implemented.... " + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+				break;
+			default:
+				if (res != prev_auth_error)
+					GRNotifications::add_notification(con_error_title, "Unknown error code: " + str((int)res) + "\n" + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+				_log("Unknown error code: " + str((int)res) + ". Disconnecting. " + address, LogLevel::LL_NORMAL);
+				break;
 		}
 
 		((Ref<StreamPeerTCP>)ppeer->get_stream_peer())->disconnect_from_host();
@@ -1164,27 +1148,27 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 		if (long_wait) {
 			os->delay_usec(888_ms);
 		}
-}
+	}
 
 	dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
-	_log("Connection thread stopped", LogLevel::LL_Debug);
+	_log("Connection thread stopped", LogLevel::LL_DEBUG);
 	con_thread->finished = true;
 }
 
-void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
-	GRClient* dev = con_thread->dev;
+void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
+	GRClient *dev = con_thread->dev;
 	Ref<StreamPeerTCP> connection = con_thread->peer;
 	Ref<PacketPeerStream> ppeer = con_thread->ppeer;
 
 #ifndef GDNATIVE_LIBRARY
-	Thread* _img_thread = nullptr;
+	Thread *_img_thread = nullptr;
 #else
 	Ref<Thread> _img_thread;
 #endif
 
 	bool _is_processing_img = false;
 
-	OS* os = OS::get_singleton();
+	OS *os = OS::get_singleton();
 	Error err = Error::OK;
 	String address = CON_ADDRESS(connection);
 
@@ -1235,12 +1219,11 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 				if (pack.is_valid()) {
 					err = ppeer->put_var(pack->get_data());
 					if ((int)err) {
-						_log("Put input data failed with code: " + str((int)err), LogLevel::LL_Error);
+						_log("Put input data failed with code: " + str((int)err), LogLevel::LL_ERROR);
 						goto end_send;
 					}
-				}
-				else {
-					_log("Can't get input data from input collector", LogLevel::LL_Error);
+				} else {
+					_log("Can't get input data from input collector", LogLevel::LL_ERROR);
 				}
 				TimeCount("Input send");
 			}
@@ -1257,7 +1240,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 			prev_ping_sending_time = time64;
 
 			if ((int)err) {
-				_log("Send ping failed with code: " + str((int)err), LogLevel::LL_Error);
+				_log("Send ping failed with code: " + str((int)err), LogLevel::LL_ERROR);
 				goto end_send;
 			}
 			TimeCount("Ping send");
@@ -1273,7 +1256,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 				err = ppeer->put_var(packet->get_data());
 
 				if ((int)err) {
-					_log("Put data from queue failed with code: " + str((int)err), LogLevel::LL_Error);
+					_log("Put data from queue failed with code: " + str((int)err), LogLevel::LL_ERROR);
 					goto end_send;
 				}
 			}
@@ -1283,8 +1266,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 	end_send:
 
 		if (!connection->is_connected_to_host()) {
-			_log("Lost connection after sending!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after sending data!", NotificationIcon::_Error, true, 1.f);
+			_log("Lost connection after sending!", LogLevel::LL_ERROR);
+			GRNotifications::add_notification("Error", "Lost connection after sending data!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 			continue;
 		}
 
@@ -1300,7 +1283,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 			stream_queue.erase(stream_queue.begin());
 
 			if (pack.is_null()) {
-				_log("Queued image data is null", LogLevel::LL_Error);
+				_log("Queued image data is null", LogLevel::LL_ERROR);
 				goto end_img_process;
 			}
 
@@ -1312,16 +1295,15 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 
 			Thread_close(_img_thread);
 
-			ImgProcessingStorageClient* ipsc = memnew(ImgProcessingStorageClient);
+			ImgProcessingStorageClient *ipsc = memnew(ImgProcessingStorageClient);
 			ipsc->dev = dev;
 
 			if (pack->get_is_empty()) {
 				dev->_update_avg_fps(0);
-				dev->call_deferred("_update_texture_from_iamge", Ref<Image>());
+				dev->call_deferred("_update_texture_from_image", Ref<Image>());
 				dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
 				memdelete(ipsc);
-			}
-			else {
+			} else {
 				ipsc->tex_data = pack->get_image_data();
 				ipsc->compression_type = (ImageCompressionType)pack->get_compression_type();
 				ipsc->size = pack->get_size();
@@ -1337,7 +1319,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 
 		// check if image displayed less then few seconds ago. if not then remove texture
 		const double image_loss_time = 1.5;
-		if (os->get_ticks_usec() > prev_display_image_time + uint64_t(1000_ms * image_loss_time)) {
+		if (os->get_ticks_usec() > int64_t(prev_display_image_time + uint64_t(1000_ms * image_loss_time))) {
 			if (dev->signal_connection_state != StreamState::STREAM_NO_IMAGE) {
 				dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
 				dev->_reset_counters();
@@ -1369,95 +1351,95 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 
 			Ref<GRPacket> pack = GRPacket::create(buf);
 			if (pack.is_null()) {
-				_log("Incorrect GRPacket", LogLevel::LL_Error);
+				_log("Incorrect GRPacket", LogLevel::LL_ERROR);
 				continue;
 			}
 
-			PacketType type = pack->get_type();
+			GRPacket::PacketType type = pack->get_type();
 
 			switch (type) {
-			case PacketType::SyncTime: {
-				Ref<GRPacketSyncTime> data = pack;
-				if (data.is_null()) {
-					_log("Incorrect GRPacketSyncTime", LogLevel::LL_Error);
-					continue;
-				}
+				case GRPacket::PacketType::SyncTime: {
+					Ref<GRPacketSyncTime> data = pack;
+					if (data.is_null()) {
+						_log("Incorrect GRPacketSyncTime", LogLevel::LL_ERROR);
+						continue;
+					}
 
-				dev->sync_time_client = os->get_ticks_usec();
-				dev->sync_time_server = data->get_time();
+					dev->sync_time_client = os->get_ticks_usec();
+					dev->sync_time_server = data->get_time();
 
-				break;
-			}
-			case PacketType::ImageData: {
-				Ref<GRPacketImageData> data = pack;
-				if (data.is_null()) {
-					_log("Incorrect GRPacketImageData", LogLevel::LL_Error);
-					continue;
-				}
-
-				stream_queue.push_back(data);
-				break;
-			}
-			case PacketType::ServerSettings: {
-				if (!dev->_server_settings_syncing) {
-					continue;
-				}
-
-				Ref<GRPacketServerSettings> data = pack;
-				if (data.is_null()) {
-					_log("Incorrect GRPacketServerSettings", LogLevel::LL_Error);
-					continue;
-				}
-
-				dev->call_deferred("emit_signal", "server_settings_received", map_to_dict(data->get_settings()));
-				break;
-			}
-			case PacketType::MouseModeSync: {
-				Ref<GRPacketMouseModeSync> data = pack;
-				if (data.is_null()) {
-					_log("Incorrect GRPacketMouseModeSync", LogLevel::LL_Error);
-					continue;
-				}
-
-				dev->call_deferred("emit_signal", "mouse_mode_changed", data->get_mouse_mode());
-				break;
-			}
-			case PacketType::CustomInputScene: {
-				Ref<GRPacketCustomInputScene> data = pack;
-				if (data.is_null()) {
-					_log("Incorrect GRPacketCustomInputScene", LogLevel::LL_Error);
-					continue;
-				}
-
-				dev->call_deferred("_load_custom_input_scene", data);
-				break;
-			}
-			case PacketType::CustomUserData: {
-				Ref<GRPacketCustomUserData> data = pack;
-				if (data.is_null()) {
-					_log("Incorrect GRPacketCustomUserData", LogLevel::LL_Error);
 					break;
 				}
-				dev->call_deferred("emit_signal", "user_data_received", data->get_packet_id(), data->get_user_data());
-				break;
-			}
-			case PacketType::Ping: {
-				Ref<GRPacketPong> pack(memnew(GRPacketPong));
-				err = ppeer->put_var(pack->get_data());
-				if ((int)err) {
-					_log("Send pong failed with code: " + str((int)err), LogLevel::LL_Normal);
+				case GRPacket::PacketType::ImageData: {
+					Ref<GRPacketImageData> data = pack;
+					if (data.is_null()) {
+						_log("Incorrect GRPacketImageData", LogLevel::LL_ERROR);
+						continue;
+					}
+
+					stream_queue.push_back(data);
 					break;
 				}
-				break;
-			}
-			case PacketType::Pong: {
-				dev->_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
-				ping_sended = false;
-				break;
-			}
-			default:
-				_log("Not supported packet type! " + str((int)type), LogLevel::LL_Warning);
-				break;
+				case GRPacket::PacketType::ServerSettings: {
+					if (!dev->_server_settings_syncing) {
+						continue;
+					}
+
+					Ref<GRPacketServerSettings> data = pack;
+					if (data.is_null()) {
+						_log("Incorrect GRPacketServerSettings", LogLevel::LL_ERROR);
+						continue;
+					}
+
+					dev->call_deferred("emit_signal", "server_settings_received", map_to_dict(data->get_settings()));
+					break;
+				}
+				case GRPacket::PacketType::MouseModeSync: {
+					Ref<GRPacketMouseModeSync> data = pack;
+					if (data.is_null()) {
+						_log("Incorrect GRPacketMouseModeSync", LogLevel::LL_ERROR);
+						continue;
+					}
+
+					dev->call_deferred("emit_signal", "mouse_mode_changed", data->get_mouse_mode());
+					break;
+				}
+				case GRPacket::PacketType::CustomInputScene: {
+					Ref<GRPacketCustomInputScene> data = pack;
+					if (data.is_null()) {
+						_log("Incorrect GRPacketCustomInputScene", LogLevel::LL_ERROR);
+						continue;
+					}
+
+					dev->call_deferred("_load_custom_input_scene", data);
+					break;
+				}
+				case GRPacket::PacketType::CustomUserData: {
+					Ref<GRPacketCustomUserData> data = pack;
+					if (data.is_null()) {
+						_log("Incorrect GRPacketCustomUserData", LogLevel::LL_ERROR);
+						break;
+					}
+					dev->call_deferred("emit_signal", "user_data_received", data->get_packet_id(), data->get_user_data());
+					break;
+				}
+				case GRPacket::PacketType::Ping: {
+					Ref<GRPacketPong> pack(memnew(GRPacketPong));
+					err = ppeer->put_var(pack->get_data());
+					if ((int)err) {
+						_log("Send pong failed with code: " + str((int)err), LogLevel::LL_NORMAL);
+						break;
+					}
+					break;
+				}
+				case GRPacket::PacketType::Pong: {
+					dev->_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
+					ping_sended = false;
+					break;
+				}
+				default:
+					_log("Not supported packet type! " + str((int)type), LogLevel::LL_WARNING);
+					break;
 			}
 		}
 		TimeCount("End receiving");
@@ -1465,8 +1447,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 		dev->connection_mutex->unlock();
 
 		if (!connection->is_connected_to_host()) {
-			_log("Lost connection after receiving!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after receiving data!", NotificationIcon::_Error, true, 1.f);
+			_log("Lost connection after receiving!", LogLevel::LL_ERROR);
+			GRNotifications::add_notification("Error", "Lost connection after receiving data!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 			continue;
 		}
 
@@ -1482,68 +1464,67 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient* con_thread) {
 	stream_queue.clear();
 
 	if (connection->is_connected_to_host()) {
-		_log("Lost connection to " + address, LogLevel::LL_Error);
-		GRNotifications::add_notification("Disconnected", "Closing connection to " + address, NotificationIcon::Fail, true, 1.f);
-	}
-	else {
-		_log("Closing connection to " + address, LogLevel::LL_Error);
-		GRNotifications::add_notification("Disconnected", "Lost connection to " + address, NotificationIcon::Fail, true, 1.f);
+		_log("Lost connection to " + address, LogLevel::LL_ERROR);
+		GRNotifications::add_notification("Disconnected", "Closing connection to " + address, GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
+	} else {
+		_log("Closing connection to " + address, LogLevel::LL_ERROR);
+		GRNotifications::add_notification("Disconnected", "Lost connection to " + address, GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
 	}
 
 	Thread_close(_img_thread);
 
-	_log("Closing connection", LogLevel::LL_Normal);
+	_log("Closing connection", LogLevel::LL_NORMAL);
 	con_thread->break_connection = true;
 }
 
 void GRClient::_thread_image_decoder(THREAD_DATA p_userdata) {
-	ImgProcessingStorageClient* ipsc = (ImgProcessingStorageClient*)p_userdata;
+	ImgProcessingStorageClient *ipsc = (ImgProcessingStorageClient *)p_userdata;
 	*ipsc->_is_processing_img = true;
 
 	Error err = Error::OK;
-	GRClient* dev = ipsc->dev;
+	GRClient *dev = ipsc->dev;
 	Ref<Image> img(memnew(Image));
 	ImageCompressionType type = ipsc->compression_type;
 
 	TimeCountInit();
 	switch (type) {
-	case ImageCompressionType::Uncompressed: {
+		case ImageCompressionType::COMPRESSION_UNCOMPRESSED: {
 #ifndef GDNATIVE_LIBRARY
-		img->create(ipsc->size.x, ipsc->size.y, false, (Image::Format)ipsc->format, ipsc->tex_data);
+			img->create(ipsc->size.x, ipsc->size.y, false, (Image::Format)ipsc->format, ipsc->tex_data);
 #else
-		img->create_from_data(ipsc->size.x, ipsc->size.y, false, (Image::Format)ipsc->format, ipsc->tex_data);
+			img->create_from_data((int)ipsc->size.x, (int)ipsc->size.y, false, (Image::Format)ipsc->format, ipsc->tex_data);
 #endif
-		if (img_is_empty(img)) { // is NOT OK
-			err = Error::FAILED;
-			_log("Incorrect uncompressed image data.", LogLevel::LL_Error);
-			GRNotifications::add_notification("Stream Error", "Incorrect uncompressed image data.", NotificationIcon::_Error, true, 1.f);
+			if (img_is_empty(img)) { // is NOT OK
+				err = Error::FAILED;
+				_log("Incorrect uncompressed image data.", LogLevel::LL_ERROR);
+				GRNotifications::add_notification("Stream Error", "Incorrect uncompressed image data.", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+			}
+			break;
 		}
-		break;
-	}
-	case ImageCompressionType::JPG: {
-		err = img->load_jpg_from_buffer(ipsc->tex_data);
-		if ((int)err || img_is_empty(img)) { // is NOT OK
-			_log("Can't decode JPG image.", LogLevel::LL_Error);
-			GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str((int)err), NotificationIcon::_Error, true, 1.f);
+		case ImageCompressionType::COMPRESSION_JPG: {
+			err = img->load_jpg_from_buffer(ipsc->tex_data);
+			if ((int)err || img_is_empty(img)) { // is NOT OK
+				_log("Can't decode JPG image.", LogLevel::LL_ERROR);
+				GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+			}
+			break;
 		}
-		break;
-	}
-	case ImageCompressionType::PNG: {
-		err = img->load_png_from_buffer(ipsc->tex_data);
-		if ((int)err || img_is_empty(img)) { // is NOT OK
-			_log("Can't decode PNG image.", LogLevel::LL_Error);
-			GRNotifications::add_notification("Stream Error", "Can't decode PNG image. Code: " + str((int)err), NotificationIcon::_Error, true, 1.f);
+		case ImageCompressionType::COMPRESSION_PNG: {
+			err = img->load_png_from_buffer(ipsc->tex_data);
+			if ((int)err || img_is_empty(img)) { // is NOT OK
+				_log("Can't decode PNG image.", LogLevel::LL_ERROR);
+				GRNotifications::add_notification("Stream Error", "Can't decode PNG image. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+			}
+			break;
 		}
-		break;
+		default:
+			_log("Not implemented image decoder type: " + str((int)type), LogLevel::LL_ERROR);
+			break;
 	}
-	default:
-		_log("Not implemented image decoder type: " + str((int)type), LogLevel::LL_Error);
-		break;
-}
 
 	if (!(int)err) { // is OK
 		TimeCount("Create Image Time");
-		dev->call_deferred("_update_texture_from_iamge", img);
+		dev->call_deferred("_update_texture_from_image", img);
 
 		if (dev->signal_connection_state != StreamState::STREAM_ACTIVE) {
 			dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_ACTIVE);
@@ -1554,12 +1535,12 @@ void GRClient::_thread_image_decoder(THREAD_DATA p_userdata) {
 	memdelete(ipsc);
 }
 
-GRDevice::AuthResult GRClient::_auth_on_server(GRClient* dev, Ref<PacketPeerStream>& ppeer) {
+GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<PacketPeerStream> &ppeer) {
 #define wait_packet(_n)                                                                        \
-	time = OS::get_singleton()->get_ticks_msec();                                              \
+	time = (uint32_t)OS::get_singleton()->get_ticks_msec();                                    \
 	while (ppeer->get_available_packet_count() == 0) {                                         \
 		if (OS::get_singleton()->get_ticks_msec() - time > 150) {                              \
-			_log("Connection timeout. Disconnecting. Waited: " + str(_n), LogLevel::LL_Debug); \
+			_log("Connection timeout. Disconnecting. Waited: " + str(_n), LogLevel::LL_DEBUG); \
 			goto timeout;                                                                      \
 		}                                                                                      \
 		if (!con->is_connected_to_host()) {                                                    \
@@ -1569,7 +1550,7 @@ GRDevice::AuthResult GRClient::_auth_on_server(GRClient* dev, Ref<PacketPeerStre
 	}
 #define packet_error_check(_t)              \
 	if ((int)err) {                         \
-		_log(_t, LogLevel::LL_Debug);       \
+		_log(_t, LogLevel::LL_DEBUG);       \
 		return GRDevice::AuthResult::Error; \
 	}
 
@@ -1590,7 +1571,7 @@ GRDevice::AuthResult GRClient::_auth_on_server(GRClient* dev, Ref<PacketPeerStre
 #endif
 
 	if ((int)ret == (int)GRDevice::AuthResult::RefuseConnection) {
-		_log("Connection refused", LogLevel::LL_Error);
+		_log("Connection refused", LogLevel::LL_ERROR);
 		return GRDevice::AuthResult::RefuseConnection;
 	}
 	if ((int)ret == (int)GRDevice::AuthResult::TryToConnect) {
@@ -1615,19 +1596,18 @@ GRDevice::AuthResult GRClient::_auth_on_server(GRClient* dev, Ref<PacketPeerStre
 
 		if ((int)ret == (int)GRDevice::AuthResult::OK) {
 			return GRDevice::AuthResult::OK;
-		}
-		else {
+		} else {
 			GRDevice::AuthResult r = (GRDevice::AuthResult)(int)ret;
 			switch (r) {
-			case GRDevice::AuthResult::Error:
-				_log("Can't connect to server", LogLevel::LL_Error);
-				return r;
-			case GRDevice::AuthResult::VersionMismatch:
-				_log("Version mismatch", LogLevel::LL_Error);
-				return r;
-			case GRDevice::AuthResult::IncorrectPassword:
-				_log("Incorrect password", LogLevel::LL_Error);
-				return r;
+				case GRDevice::AuthResult::Error:
+					_log("Can't connect to server", LogLevel::LL_ERROR);
+					return r;
+				case GRDevice::AuthResult::VersionMismatch:
+					_log("Version mismatch", LogLevel::LL_ERROR);
+					return r;
+				case GRDevice::AuthResult::IncorrectPassword:
+					_log("Incorrect password", LogLevel::LL_ERROR);
+					return r;
 			}
 		}
 	}
@@ -1636,7 +1616,7 @@ GRDevice::AuthResult GRClient::_auth_on_server(GRClient* dev, Ref<PacketPeerStre
 
 timeout:
 	con->disconnect_from_host();
-	_log("Connection timeout. Disconnecting", LogLevel::LL_Normal);
+	_log("Connection timeout. Disconnecting", LogLevel::LL_NORMAL);
 	return GRDevice::AuthResult::Timeout;
 
 #undef wait_packet
@@ -1648,39 +1628,38 @@ timeout:
 //////////////////////////////////////////////
 
 void GRInputCollector::_update_stream_rect() {
-	if (!dev || dev->get_status() != WorkingStatus::Working)
+	if (!dev || dev->get_status() != GRDevice::WorkingStatus::STATUS_WORKING)
 		return;
 
 	if (texture_rect && !texture_rect->is_queued_for_deletion()) {
 		switch (dev->get_stretch_mode()) {
-		case StretchMode::STRETCH_KEEP_ASPECT: {
-			Ref<Texture> tex = texture_rect->get_texture();
-			if (tex.is_null())
-				goto fill;
+			case GRClient::StretchMode::STRETCH_KEEP_ASPECT: {
+				Ref<Texture> tex = texture_rect->get_texture();
+				if (tex.is_null())
+					goto fill;
 
-			Vector2 pos = texture_rect->get_global_position();
-			Vector2 outer_size = texture_rect->get_size();
-			Vector2 inner_size = tex->get_size();
-			float asp_rec = outer_size.x / outer_size.y;
-			float asp_tex = inner_size.x / inner_size.y;
+				Vector2 pos = texture_rect->get_global_position();
+				Vector2 outer_size = texture_rect->get_size();
+				Vector2 inner_size = tex->get_size();
+				float asp_rec = outer_size.x / outer_size.y;
+				float asp_tex = inner_size.x / inner_size.y;
 
-			if (asp_rec > asp_tex) {
-				float width = outer_size.y * asp_tex;
-				stream_rect = Rect2(Vector2(pos.x + (outer_size.x - width) / 2, pos.y), Vector2(width, outer_size.y));
-				return;
+				if (asp_rec > asp_tex) {
+					float width = outer_size.y * asp_tex;
+					stream_rect = Rect2(Vector2(pos.x + (outer_size.x - width) / 2, pos.y), Vector2(width, outer_size.y));
+					return;
+				} else {
+					float height = outer_size.x / asp_tex;
+					stream_rect = Rect2(Vector2(pos.x, pos.y + (outer_size.y - height) / 2), Vector2(outer_size.x, height));
+					return;
+				}
+				break;
 			}
-			else {
-				float height = outer_size.x / asp_tex;
-				stream_rect = Rect2(Vector2(pos.x, pos.y + (outer_size.y - height) / 2), Vector2(outer_size.x, height));
+			case GRClient::StretchMode::STRETCH_FILL:
+			default:
+			fill:
+				stream_rect = Rect2(texture_rect->get_global_position(), texture_rect->get_size());
 				return;
-			}
-			break;
-		}
-		case StretchMode::STRETCH_FILL:
-		default:
-		fill:
-			stream_rect = Rect2(texture_rect->get_global_position(), texture_rect->get_size());
-			return;
 		}
 	}
 	if (parent && !parent->is_queued_for_deletion()) {
@@ -1768,8 +1747,8 @@ void GRInputCollector::_register_methods() {
 
 void GRInputCollector::_input(Ref<InputEvent> ie) {
 	if (!parent || (capture_only_when_control_in_focus && !parent->has_focus()) ||
-		(dev && dev->get_status() != WorkingStatus::Working) ||
-		!dev->is_stream_active() || !is_inside_tree()) {
+			(dev && dev->get_status() != GRDevice::WorkingStatus::STATUS_WORKING) ||
+			!dev->is_stream_active() || !is_inside_tree()) {
 		return;
 	}
 
@@ -1783,21 +1762,20 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	_update_stream_rect();
 
 	if (ie.is_null()) {
-		_log("InputEvent is null", LogLevel::LL_Error);
+		_log("InputEvent is null", LogLevel::LL_ERROR);
 		return;
 	}
 
 	{
 		Ref<InputEventMouseButton> iemb = ie;
 		if (iemb.is_valid()) {
-			int idx = iemb->get_button_index();
+			int idx = (int)iemb->get_button_index();
 
 			if ((!stream_rect.has_point(iemb->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer) {
 				if (idx == BUTTON_WHEEL_UP || idx == BUTTON_WHEEL_DOWN ||
-					idx == BUTTON_WHEEL_LEFT || idx == BUTTON_WHEEL_RIGHT) {
+						idx == BUTTON_WHEEL_LEFT || idx == BUTTON_WHEEL_RIGHT) {
 					return;
-				}
-				else {
+				} else {
 					if (iemb->is_pressed() || !((bool)mouse_buttons[idx]))
 						return;
 				}
@@ -1820,7 +1798,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventScreenTouch> iest = ie;
 		if (iest.is_valid()) {
-			int idx = iest->get_index();
+			int idx = (int)iest->get_index();
 			if ((!stream_rect.has_point(iest->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer) {
 				if (iest->is_pressed() || !((bool)screen_touches[idx]))
 					return;
@@ -1865,33 +1843,33 @@ end:
 
 void GRInputCollector::_notification(int p_notification) {
 	switch (p_notification) {
-	case NOTIFICATION_POSTINITIALIZE:
+		case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-		_init();
+			_init();
 #endif
-		break;
-	case NOTIFICATION_PREDELETE:
-		_deinit();
-		break;
-	case NOTIFICATION_ENTER_TREE: {
-		parent = cast_to<Control>(get_parent());
-		break;
-	}
-	case NOTIFICATION_EXIT_TREE: {
-		parent = nullptr;
-		break;
-	}
-	case NOTIFICATION_PROCESS: {
-		_TS_LOCK_;
-		auto w = sensors.write();
-		w[0] = Input::get_singleton()->get_accelerometer();
-		w[1] = Input::get_singleton()->get_gravity();
-		w[2] = Input::get_singleton()->get_gyroscope();
-		w[3] = Input::get_singleton()->get_magnetometer();
-		release_pva_write(w);
-		_TS_UNLOCK_;
-		break;
-	}
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
+		case NOTIFICATION_ENTER_TREE: {
+			parent = cast_to<Control>(get_parent());
+			break;
+		}
+		case NOTIFICATION_EXIT_TREE: {
+			parent = nullptr;
+			break;
+		}
+		case NOTIFICATION_PROCESS: {
+			_TS_LOCK_;
+			auto w = sensors.write();
+			w[0] = Input::get_singleton()->get_accelerometer();
+			w[1] = Input::get_singleton()->get_gravity();
+			w[2] = Input::get_singleton()->get_gyroscope();
+			w[3] = Input::get_singleton()->get_magnetometer();
+			release_pva_write(w);
+			_TS_UNLOCK_;
+			break;
+		}
 	}
 }
 
@@ -1930,7 +1908,7 @@ void GRInputCollector::set_capture_input(bool value) {
 	set_process_input(value);
 }
 
-void GRInputCollector::set_tex_rect(TextureRect* tr) {
+void GRInputCollector::set_tex_rect(TextureRect *tr) {
 	texture_rect = tr;
 }
 
@@ -2004,14 +1982,14 @@ void GRTextureRect::_register_methods() {
 
 void GRTextureRect::_notification(int p_notification) {
 	switch (p_notification) {
-	case NOTIFICATION_POSTINITIALIZE:
+		case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-		_init();
+			_init();
 #endif
-		break;
-	case NOTIFICATION_PREDELETE:
-		_deinit();
-		break;
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
 	}
 }
 

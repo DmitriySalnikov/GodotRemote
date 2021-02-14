@@ -22,14 +22,14 @@
 
 #else
 
-#include <InputMap.hpp>
-#include <PCKPacker.hpp>
-#include <ResourceLoader.hpp>
 #include <Directory.hpp>
 #include <File.hpp>
-#include <InputEvent.hpp>
 #include <Input.hpp>
+#include <InputEvent.hpp>
+#include <InputMap.hpp>
 #include <Node.hpp>
+#include <PCKPacker.hpp>
+#include <ResourceLoader.hpp>
 #include <SceneTree.hpp>
 
 using namespace godot;
@@ -163,21 +163,21 @@ void GRServer::_register_methods() {
 
 void GRServer::_notification(int p_notification) {
 	switch (p_notification) {
-	case NOTIFICATION_POSTINITIALIZE:
+		case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-		_init();
+			_init();
 #endif
-		break;
-	case NOTIFICATION_PREDELETE: {
-		_deinit();
-		GRDevice::_deinit();
-		break;
-	case NOTIFICATION_EXIT_TREE:
-		if (get_status() == (int)WorkingStatus::Working) {
-			_internal_call_only_deffered_stop();
+			break;
+		case NOTIFICATION_PREDELETE: {
+			_deinit();
+			GRDevice::_deinit();
+			break;
+			case NOTIFICATION_EXIT_TREE:
+				if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
+					_internal_call_only_deffered_stop();
+				}
+				break;
 		}
-		break;
-	}
 	}
 }
 
@@ -191,7 +191,7 @@ bool GRServer::is_auto_adjust_scale() {
 
 bool GRServer::set_video_stream_enabled(bool val) {
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion() &&
-		resize_viewport->is_video_stream_enabled() != val) {
+			resize_viewport->is_video_stream_enabled() != val) {
 		resize_viewport->set_video_stream_enabled(val);
 		return true;
 	}
@@ -206,22 +206,22 @@ bool GRServer::is_video_stream_enabled() {
 
 bool GRServer::set_compression_type(ImageCompressionType _type) {
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion() &&
-		resize_viewport->get_compression_type() != _type) {
+			resize_viewport->get_compression_type() != _type) {
 		resize_viewport->set_compression_type(_type);
 		return true;
 	}
 	return false;
 }
 
-ImageCompressionType GRServer::get_compression_type() {
+GRDevice::ImageCompressionType GRServer::get_compression_type() {
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion())
 		return resize_viewport->get_compression_type();
-	return ImageCompressionType::Uncompressed;
+	return ImageCompressionType::COMPRESSION_UNCOMPRESSED;
 }
 
 bool GRServer::set_render_scale(float _scale) {
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion() &&
-		resize_viewport->get_rendering_scale() != _scale) {
+			resize_viewport->get_rendering_scale() != _scale) {
 		resize_viewport->set_rendering_scale(_scale);
 		return true;
 	}
@@ -236,7 +236,7 @@ float GRServer::get_render_scale() {
 
 bool GRServer::set_skip_frames(int fps) {
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion() &&
-		resize_viewport->get_skip_frames() != fps) {
+			resize_viewport->get_skip_frames() != fps) {
 		resize_viewport->set_skip_frames(fps);
 		return true;
 	}
@@ -252,7 +252,7 @@ int GRServer::get_skip_frames() {
 bool GRServer::set_jpg_quality(int quality) {
 	ERR_FAIL_COND_V(quality < 0 || quality > 100, false);
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion() &&
-		resize_viewport->get_jpg_quality() != quality) {
+			resize_viewport->get_jpg_quality() != quality) {
 		resize_viewport->set_jpg_quality(quality);
 		return true;
 	}
@@ -293,7 +293,7 @@ bool GRServer::is_custom_input_scene_compressed() {
 }
 
 void GRServer::set_custom_input_scene_compression_type(int _type) {
-	custom_input_pck_compression_type = ENUM_CONV(Compression::Mode)_type;
+	custom_input_pck_compression_type = ENUM_CONV(Compression::Mode) _type;
 }
 
 int GRServer::get_custom_input_scene_compression_type() {
@@ -319,7 +319,7 @@ void GRServer::_init() {
 
 void GRServer::_deinit() {
 	LEAVE_IF_EDITOR();
-	if (get_status() == (int)WorkingStatus::Working) {
+	if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
 		_internal_call_only_deffered_stop();
 	}
 	connection_mutex->unlock();
@@ -336,16 +336,16 @@ void GRServer::_deinit() {
 
 void GRServer::_internal_call_only_deffered_start() {
 	switch ((WorkingStatus)get_status()) {
-	case WorkingStatus::Working:
-		ERR_FAIL_MSG("Can't start already working GodotRemote Server");
-	case WorkingStatus::Starting:
-		ERR_FAIL_MSG("Can't start already starting GodotRemote Server");
-	case WorkingStatus::Stopping:
-		ERR_FAIL_MSG("Can't start stopping GodotRemote Server");
+		case WorkingStatus::STATUS_WORKING:
+			ERR_FAIL_MSG("Can't start already working GodotRemote Server");
+		case WorkingStatus::STATUS_STARTING:
+			ERR_FAIL_MSG("Can't start already starting GodotRemote Server");
+		case WorkingStatus::STATUS_STOPPING:
+			ERR_FAIL_MSG("Can't start stopping GodotRemote Server");
 	}
 
-	set_status(WorkingStatus::Starting);
-	_log("Starting GodotRemote server", LogLevel::LL_Normal);
+	set_status(WorkingStatus::STATUS_STARTING);
+	_log("Starting GodotRemote server", LogLevel::LL_NORMAL);
 
 	if (server_thread_listen) {
 		server_thread_listen->close_thread();
@@ -362,24 +362,24 @@ void GRServer::_internal_call_only_deffered_start() {
 	server_thread_listen->dev = this;
 	server_thread_listen->thread_ref = Thread_create(GRServer, _thread_listen, server_thread_listen, this);
 
-	set_status(WorkingStatus::Working);
+	set_status(WorkingStatus::STATUS_WORKING);
 	call_deferred("_load_settings");
 
-	GRNotifications::add_notification("Godot Remote Server Status", "Server started", NotificationIcon::Success, true, 1.f);
+	GRNotifications::add_notification("Godot Remote Server Status", "Server started", GRNotifications::GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 }
 
 void GRServer::_internal_call_only_deffered_stop() {
 	switch ((WorkingStatus)get_status()) {
-	case WorkingStatus::Stopped:
-		ERR_FAIL_MSG("Can't stop already stopped GodotRemote Server");
-	case WorkingStatus::Stopping:
-		ERR_FAIL_MSG("Can't stop already stopping GodotRemote Server");
-	case WorkingStatus::Starting:
-		ERR_FAIL_MSG("Can't stop starting GodotRemote Server");
+		case WorkingStatus::STATUS_STOPPED:
+			ERR_FAIL_MSG("Can't stop already stopped GodotRemote Server");
+		case WorkingStatus::STATUS_STOPPING:
+			ERR_FAIL_MSG("Can't stop already stopping GodotRemote Server");
+		case WorkingStatus::STATUS_STARTING:
+			ERR_FAIL_MSG("Can't stop starting GodotRemote Server");
 	}
 
-	set_status(WorkingStatus::Stopping);
-	_log("Stopping GodotRemote server", LogLevel::LL_Normal);
+	set_status(WorkingStatus::STATUS_STOPPING);
+	_log("Stopping GodotRemote server", LogLevel::LL_NORMAL);
 
 	if (server_thread_listen) {
 		server_thread_listen->close_thread();
@@ -395,13 +395,13 @@ void GRServer::_internal_call_only_deffered_stop() {
 	_send_queue_resize(0);
 	send_queue_mutex->unlock();
 
-	set_status(WorkingStatus::Stopped);
+	set_status(WorkingStatus::STATUS_STOPPED);
 
-	GRNotifications::add_notification("Godot Remote Server Status", "Server stopped", NotificationIcon::Fail, true, 1.f);
+	GRNotifications::add_notification("Godot Remote Server Status", "Server stopped", GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
 }
 
-void GRServer::_remove_resize_viewport(Node* node) {
-	GRSViewport* vp = cast_to<GRSViewport>(node);
+void GRServer::_remove_resize_viewport(Node *node) {
+	GRSViewport *vp = cast_to<GRSViewport>(node);
 	if (vp && !vp->is_queued_for_deletion()) {
 		remove_child(vp);
 		memdelete(vp);
@@ -412,7 +412,7 @@ void GRServer::_on_grviewport_deleting() {
 	resize_viewport = nullptr;
 }
 
-GRSViewport* GRServer::get_gr_viewport() {
+GRSViewport *GRServer::get_gr_viewport() {
 	return resize_viewport;
 }
 
@@ -437,16 +437,14 @@ void GRServer::_adjust_viewport_scale() {
 
 	if (prev_avg_fps == 0) {
 		prev_avg_fps = avg_fps;
-	}
-	else {
+	} else {
 		prev_avg_fps = (prev_avg_fps * smooth) + (avg_fps * (1.f - smooth));
 	}
-	_log(prev_avg_fps, LogLevel::LL_Normal);
+	_log(prev_avg_fps, LogLevel::LL_NORMAL);
 
 	if (prev_avg_fps < resize_viewport->get_skip_frames() - 4) {
 		scale -= 0.001f;
-	}
-	else if (prev_avg_fps > resize_viewport->get_skip_frames() - 1) {
+	} else if (prev_avg_fps > resize_viewport->get_skip_frames() - 1) {
 		scale += 0.0012f;
 	}
 
@@ -465,26 +463,26 @@ void GRServer::_load_settings() {
 	using_client_settings = false;
 
 	const String title = "Server settings updated";
-	GRNotifications::add_notification_or_update_line(title, "title", "Loaded default server settings", NotificationIcon::None, 1.f);
+	GRNotifications::add_notification_or_update_line(title, "title", "Loaded default server settings", GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 
 	// only updated by server itself
 	password = GET_PS(GodotRemote::ps_server_password_name);
 	set_custom_input_scene(GET_PS(GodotRemote::ps_server_custom_input_scene_name));
 #ifndef GDNATIVE_LIBRARY
 	set_custom_input_scene_compressed(GET_PS(GodotRemote::ps_server_custom_input_scene_compressed_name));
-	set_custom_input_scene_compression_type(ENUM_CONV(Compression::Mode)(int)GET_PS(GodotRemote::ps_server_custom_input_scene_compression_type_name));
+	set_custom_input_scene_compression_type(ENUM_CONV(Compression::Mode)(int) GET_PS(GodotRemote::ps_server_custom_input_scene_compression_type_name));
 #endif
 
-	GRNotifications::add_notification_or_update_line(title, "cis", "Custom input scene: " + str(get_custom_input_scene()), NotificationIcon::None, 1.f);
+	GRNotifications::add_notification_or_update_line(title, "cis", "Custom input scene: " + str(get_custom_input_scene()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 	if (!get_custom_input_scene().empty()) {
-		GRNotifications::add_notification_or_update_line(title, "cisc", "Scene compressed: " + str(is_custom_input_scene_compressed()), NotificationIcon::None, 1.f);
-		GRNotifications::add_notification_or_update_line(title, "cisct", "Scene compression type: " + str(get_custom_input_scene_compression_type()), NotificationIcon::None, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "cisc", "Scene compressed: " + str(is_custom_input_scene_compressed()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "cisct", "Scene compression type: " + str(get_custom_input_scene_compression_type()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 	}
 
 	// can be updated by client
 	auto_adjust_scale = GET_PS(GodotRemote::ps_server_auto_adjust_scale_name); // TODO move to viewport
 
-	GRNotifications::add_notification_or_update_line(title, "auto_scale", "Auto adjust scale: " + str(auto_adjust_scale), NotificationIcon::None, 1.f); // TODO not completed
+	GRNotifications::add_notification_or_update_line(title, "auto_scale", "Auto adjust scale: " + str(auto_adjust_scale), GRNotifications::NotificationIcon::ICON_NONE, 1.f); // TODO not completed
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
 		set_video_stream_enabled((bool)GET_PS(GodotRemote::ps_server_stream_enabled_name));
 		set_compression_type((ImageCompressionType)(int)GET_PS(GodotRemote::ps_server_compression_type_name));
@@ -492,19 +490,18 @@ void GRServer::_load_settings() {
 		set_render_scale(GET_PS(GodotRemote::ps_server_scale_of_sending_stream_name));
 		set_skip_frames(GET_PS(GodotRemote::ps_server_stream_skip_frames_name));
 
-		GRNotifications::add_notification_or_update_line(title, "stream", "Stream enabled: " + str(is_video_stream_enabled()), NotificationIcon::None, 1.f);
-		GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str(get_render_scale()), NotificationIcon::None, 1.f);
-		GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(get_jpg_quality()), NotificationIcon::None, 1.f);
-		GRNotifications::add_notification_or_update_line(title, "skip", "Skip Frames: " + str(get_skip_frames()), NotificationIcon::None, 1.f);
-		GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(get_render_scale()), NotificationIcon::None, 1.f);
-	}
-	else {
-		_log("Resize viewport not found!", LogLevel::LL_Error);
-		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", NotificationIcon::_Error, true, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "stream", "Stream enabled: " + str(is_video_stream_enabled()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str(get_render_scale()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(get_jpg_quality()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "skip", "Skip Frames: " + str(get_skip_frames()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(get_render_scale()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+	} else {
+		_log("Resize viewport not found!", LogLevel::LL_ERROR);
+		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 	}
 
 	// notification
-	GRNotificationPanelUpdatable* np = cast_to<GRNotificationPanelUpdatable>(GRNotifications::get_notification(title));
+	GRNotificationPanelUpdatable *np = cast_to<GRNotificationPanelUpdatable>(GRNotifications::get_notification(title));
 	if (np) {
 		np->clear_lines();
 	}
@@ -513,66 +510,66 @@ void GRServer::_load_settings() {
 void GRServer::_update_settings_from_client(const std::map<int, Variant> settings) {
 #define SET_BODY(_func, _id, _text, _type)                                                                                     \
 	if (_func(value)) {                                                                                                        \
-		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value)), NotificationIcon::None, 1.f); \
+		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value)), GRNotifications::NotificationIcon::ICON_NONE, 1.f); \
 		using_client_settings = true;                                                                                          \
 		using_client_settings_recently_updated = true;                                                                         \
 	}
 #define SET_BODY_CONVERT(_func, _conv, _id, _text, _type)                                                                      \
 	if (_func(_conv(value))) {                                                                                                 \
-		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value)), NotificationIcon::None, 1.f); \
+		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value)), GRNotifications::NotificationIcon::ICON_NONE, 1.f); \
 		using_client_settings = true;                                                                                          \
 		using_client_settings_recently_updated = true;                                                                         \
 	}
 
 	const String title = "Server settings updated";
 
-	GRNotificationPanelUpdatable* np = cast_to<GRNotificationPanelUpdatable>(GRNotifications::get_notification(title));
+	GRNotificationPanelUpdatable *np = cast_to<GRNotificationPanelUpdatable>(GRNotifications::get_notification(title));
 	if (np) {
 		np->remove_updatable_line("title");
 	}
 
 	if (!resize_viewport || resize_viewport->is_queued_for_deletion()) {
-		_log("Resize viewport not found!", LogLevel::LL_Error);
-		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", NotificationIcon::_Error, true, 1.f);
+		_log("Resize viewport not found!", LogLevel::LL_ERROR);
+		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 	}
 
 	for (auto p : settings) {
 		Variant key = p.first;
 		Variant value = p.second;
-		_log("Trying to set server setting from client with key: " + str((int)key) + " and value: " + str(value), LogLevel::LL_Debug);
+		_log("Trying to set server setting from client with key: " + str((int)key) + " and value: " + str(value), LogLevel::LL_DEBUG);
 
 		if (key.get_type() == Variant::INT) {
 			TypesOfServerSettings k = (TypesOfServerSettings)(int)key;
 			switch (k) {
-			case TypesOfServerSettings::USE_INTERNAL_SERVER_SETTINGS:
-				if ((bool)value) {
-					call_deferred("_load_settings");
-					return;
+				case TypesOfServerSettings::SERVER_SETTINGS_USE_INTERNAL:
+					if ((bool)value) {
+						call_deferred("_load_settings");
+						return;
+					}
+					break;
+				case TypesOfServerSettings::SERVER_SETTINGS_VIDEO_STREAM_ENABLED: {
+					SET_BODY(set_video_stream_enabled, "stream", "Stream enabled: ", (bool));
+					break;
 				}
-				break;
-			case TypesOfServerSettings::VIDEO_STREAM_ENABLED: {
-				SET_BODY(set_video_stream_enabled, "stream", "Stream enabled: ", (bool));
-				break;
-			}
-			case TypesOfServerSettings::COMPRESSION_TYPE: {
-				SET_BODY_CONVERT(set_compression_type, (ImageCompressionType)(int), "compression", "Compression type: ", (int));
-				break;
-			}
-			case TypesOfServerSettings::JPG_QUALITY: {
-				SET_BODY(set_jpg_quality, "quality", "JPG Quality: ", (int));
-				break;
-			}
-			case TypesOfServerSettings::SKIP_FRAMES: {
-				SET_BODY(set_skip_frames, "skip", "Skip Frames: ", (int));
-				break;
-			}
-			case TypesOfServerSettings::RENDER_SCALE: {
-				SET_BODY(set_render_scale, "scale", "Scale of stream: ", (float));
-				break;
-			}
-			default:
-				_log("Unknown server setting with code: " + str((int)k), LogLevel::LL_Normal);
-				break;
+				case TypesOfServerSettings::SERVER_SETTINGS_COMPRESSION_TYPE: {
+					SET_BODY_CONVERT(set_compression_type, (ImageCompressionType)(int), "compression", "Compression type: ", (int));
+					break;
+				}
+				case TypesOfServerSettings::SERVER_SETTINGS_JPG_QUALITY: {
+					SET_BODY(set_jpg_quality, "quality", "JPG Quality: ", (int));
+					break;
+				}
+				case TypesOfServerSettings::SERVER_SETTINGS_SKIP_FRAMES: {
+					SET_BODY(set_skip_frames, "skip", "Skip Frames: ", (int));
+					break;
+				}
+				case TypesOfServerSettings::SERVER_SETTINGS_RENDER_SCALE: {
+					SET_BODY(set_render_scale, "scale", "Scale of stream: ", (float));
+					break;
+				}
+				default:
+					_log("Unknown server setting with code: " + str((int)k), LogLevel::LL_NORMAL);
+					break;
 			}
 		}
 	}
@@ -592,11 +589,11 @@ void GRServer::_reset_counters() {
 
 void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 	Thread_set_name("GR_listen_thread");
-	ListenerThreadParamsServer* this_thread_info = (ListenerThreadParamsServer*)p_userdata;
-	GRServer* dev = this_thread_info->dev;
+	ListenerThreadParamsServer *this_thread_info = (ListenerThreadParamsServer *)p_userdata;
+	GRServer *dev = this_thread_info->dev;
 	Ref<TCP_Server> srv = dev->tcp_server;
-	OS* os = OS::get_singleton();
-	ConnectionThreadParamsServer* connection_thread_info = nullptr;
+	OS *os = OS::get_singleton();
+	ConnectionThreadParamsServer *connection_thread_info = nullptr;
 	Error err = Error::OK;
 	bool listening_error_notification_shown = false;
 
@@ -606,50 +603,49 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 
 			if (err != Error::OK) {
 				switch (err) {
-				case Error::ERR_UNAVAILABLE: {
-					String txt = "Socket listening unavailable";
-					_log(txt, LogLevel::LL_Error);
-					if (!listening_error_notification_shown)
-						GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::_Error, true, 1.25f);
-					break;
-				}
-				case Error::ERR_ALREADY_IN_USE: {
-					String txt = "Socket already in use";
-					_log(txt, LogLevel::LL_Error);
-					if (!listening_error_notification_shown)
-						GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::_Error, true, 1.25f);
-					break;
-				}
-				case Error::ERR_INVALID_PARAMETER: {
-					String txt = "Invalid listening address";
-					_log(txt, LogLevel::LL_Error);
-					if (!listening_error_notification_shown)
-						GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::_Error, true, 1.25f);
-					break;
-				}
-				case Error::ERR_CANT_CREATE: {
-					String txt = "Can't bind listener";
-					_log(txt, LogLevel::LL_Error);
-					if (!listening_error_notification_shown)
-						GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::_Error, true, 1.25f);
-					break;
-				}
-				case Error::FAILED: {
-					String txt = "Failed to start listening";
-					_log(txt, LogLevel::LL_Error);
-					if (!listening_error_notification_shown)
-						GRNotifications::add_notification("Can't start listening", txt, NotificationIcon::_Error, true, 1.25f);
-					break;
-				}
+					case Error::ERR_UNAVAILABLE: {
+						String txt = "Socket listening unavailable";
+						_log(txt, LogLevel::LL_ERROR);
+						if (!listening_error_notification_shown)
+							GRNotifications::add_notification("Can't start listening", txt, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.25f);
+						break;
+					}
+					case Error::ERR_ALREADY_IN_USE: {
+						String txt = "Socket already in use";
+						_log(txt, LogLevel::LL_ERROR);
+						if (!listening_error_notification_shown)
+							GRNotifications::add_notification("Can't start listening", txt, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.25f);
+						break;
+					}
+					case Error::ERR_INVALID_PARAMETER: {
+						String txt = "Invalid listening address";
+						_log(txt, LogLevel::LL_ERROR);
+						if (!listening_error_notification_shown)
+							GRNotifications::add_notification("Can't start listening", txt, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.25f);
+						break;
+					}
+					case Error::ERR_CANT_CREATE: {
+						String txt = "Can't bind listener";
+						_log(txt, LogLevel::LL_ERROR);
+						if (!listening_error_notification_shown)
+							GRNotifications::add_notification("Can't start listening", txt, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.25f);
+						break;
+					}
+					case Error::FAILED: {
+						String txt = "Failed to start listening";
+						_log(txt, LogLevel::LL_ERROR);
+						if (!listening_error_notification_shown)
+							GRNotifications::add_notification("Can't start listening", txt, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.25f);
+						break;
+					}
 				}
 
 				listening_error_notification_shown = true;
 				os->delay_usec(1000_ms);
 				continue;
-			}
-			else {
-				_log("Start listening port " + str(dev->port), LogLevel::LL_Normal);
-				GRNotifications::add_notification("Start listening", "Start listening on port: " + str(dev->port), NotificationIcon::Success, true, 1.f);
+			} else {
+				_log("Start listening port " + str(dev->port), LogLevel::LL_NORMAL);
+				GRNotifications::add_notification("Start listening", "Start listening on port: " + str(dev->port), GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 			}
 		}
 		listening_error_notification_shown = false;
@@ -660,7 +656,7 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 			}
 
 			if (connection_thread_info->finished || connection_thread_info->break_connection) {
-				_log("Waiting connection thread...", LogLevel::LL_Debug);
+				_log("Waiting connection thread...", LogLevel::LL_DEBUG);
 				connection_thread_info->close_thread();
 				memdelete(connection_thread_info);
 				connection_thread_info = nullptr;
@@ -686,48 +682,46 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 				}
 
 				switch (res) {
-				case GRDevice::AuthResult::OK:
-					connection_thread_info = memnew(ConnectionThreadParamsServer);
-					connection_thread_info->device_id = dev_id;
+					case GRDevice::AuthResult::OK:
+						connection_thread_info = memnew(ConnectionThreadParamsServer);
+						connection_thread_info->device_id = dev_id;
 
-					connection_thread_info->dev = dev;
-					connection_thread_info->ppeer = ppeer;
+						connection_thread_info->dev = dev;
+						connection_thread_info->ppeer = ppeer;
 
-					dev->custom_input_scene_was_updated = false;
-					dev->client_connected++;
+						dev->custom_input_scene_was_updated = false;
+						dev->client_connected++;
 
-					connection_thread_info->thread_ref = Thread_create(GRServer, _thread_connection, connection_thread_info, dev);
-					_log("New connection from " + address, LogLevel::LL_Normal);
+						connection_thread_info->thread_ref = Thread_create(GRServer, _thread_connection, connection_thread_info, dev);
+						_log("New connection from " + address, LogLevel::LL_NORMAL);
 
-					dev->call_deferred("emit_signal", "client_connected", dev_id);
-					GRNotifications::add_notification("Connected", "Client connected: " + address + "\nDevice ID: " + connection_thread_info->device_id, NotificationIcon::Success, true, 1.f);
-					break;
+						dev->call_deferred("emit_signal", "client_connected", dev_id);
+						GRNotifications::add_notification("Connected", "Client connected: " + address + "\nDevice ID: " + connection_thread_info->device_id, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
+						break;
 
-				case GRDevice::AuthResult::VersionMismatch:
-				case GRDevice::AuthResult::IncorrectPassword:
-				case GRDevice::AuthResult::Error:
-				case GRDevice::AuthResult::RefuseConnection:
-				case GRDevice::AuthResult::Timeout:
-					continue;
-				default:
-					_log("Unknown error code. Disconnecting. " + address, LogLevel::LL_Normal);
-					continue;
+					case GRDevice::AuthResult::VersionMismatch:
+					case GRDevice::AuthResult::IncorrectPassword:
+					case GRDevice::AuthResult::Error:
+					case GRDevice::AuthResult::RefuseConnection:
+					case GRDevice::AuthResult::Timeout:
+						continue;
+					default:
+						_log("Unknown error code. Disconnecting. " + address, LogLevel::LL_NORMAL);
+						continue;
 				}
 
-			}
-			else {
+			} else {
 				Dictionary ret_data;
 				GRDevice::AuthResult res = _auth_client(dev, ppeer, ret_data, true);
 			}
-		}
-		else {
-			_log("Waiting...", LogLevel::LL_Debug);
+		} else {
+			_log("Waiting...", LogLevel::LL_DEBUG);
 			os->delay_usec(33_ms);
 		}
 	}
 
 	if (connection_thread_info) {
-		_log("Closing connection thread...", LogLevel::LL_Debug);
+		_log("Closing connection thread...", LogLevel::LL_DEBUG);
 		connection_thread_info->break_connection = true;
 		connection_thread_info->close_thread();
 		memdelete(connection_thread_info);
@@ -739,16 +733,16 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 }
 
 void GRServer::_thread_connection(THREAD_DATA p_userdata) {
-	ConnectionThreadParamsServer* thread_info = (ConnectionThreadParamsServer*)p_userdata;
+	ConnectionThreadParamsServer *thread_info = (ConnectionThreadParamsServer *)p_userdata;
 	Ref<StreamPeerTCP> connection = thread_info->ppeer->get_stream_peer();
 	Ref<PacketPeerStream> ppeer = thread_info->ppeer;
-	GRServer* dev = thread_info->dev;
+	GRServer *dev = thread_info->dev;
 	dev->_reset_counters();
 	dev->_send_queue_resize(0);
 
-	GodotRemote* gr = GodotRemote::get_singleton();
-	OS* os = OS::get_singleton();
-	Input* input = Input::get_singleton();
+	GodotRemote *gr = GodotRemote::get_singleton();
+	OS *os = OS::get_singleton();
+	Input *input = Input::get_singleton();
 	Error err = Error::OK;
 
 	Input::MouseMode mouse_mode = Input::MOUSE_MODE_VISIBLE;
@@ -767,7 +761,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 
 	TimeCountInit();
 	while (!thread_info->break_connection && connection.is_valid() &&
-		!connection->is_queued_for_deletion() && connection->is_connected_to_host()) {
+			!connection->is_queued_for_deletion() && connection->is_connected_to_host()) {
 
 		bool nothing_happens = true;
 		float fps = Engine::get_singleton()->get_frames_per_second();
@@ -785,7 +779,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 			}
 		}
 
-		uint64_t send_data_time_us = (1000000 / fps);
+		uint64_t send_data_time_us = uint64_t(1000000.0 / fps);
 		TimeCount("Cycle start");
 
 		///////////////////////////////////////////////////////////////////
@@ -803,7 +797,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 			Ref<GRPacketSyncTime> pack(memnew(GRPacketSyncTime));
 			err = ppeer->put_var(pack->get_data());
 			if ((int)err) {
-				_log("Can't send sync time data! Code: " + str((int)err), LogLevel::LL_Error);
+				_log("Can't send sync time data! Code: " + str((int)err), LogLevel::LL_ERROR);
 				goto end_send;
 			}
 			TimeCount("Sync Time Send");
@@ -813,7 +807,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 		time64 = os->get_ticks_usec();
 		// if image compressed and data is ready
 		if (dev->resize_viewport && !dev->resize_viewport->is_queued_for_deletion() &&
-			dev->resize_viewport->has_compressed_image_data()) {
+				dev->resize_viewport->has_compressed_image_data()) {
 			nothing_happens = false;
 
 			Ref<GRPacketImageData> pack(memnew(GRPacketImageData));
@@ -823,7 +817,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 			if (!(ips->ret_data.size() == 0) || ips->is_empty) { // if not broken image or force empty image :)
 				pack->set_is_empty(ips->is_empty);
 				pack->set_compression_type((int)ips->compression_type);
-				pack->set_size(Size2(ips->width, ips->height));
+				pack->set_size(Size2((float)ips->width, (float)ips->height));
 				pack->set_format(ips->format);
 				pack->set_image_data(ips->ret_data);
 				pack->set_start_time(os->get_ticks_usec());
@@ -837,7 +831,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 				prev_send_image_time = time64;
 
 				if ((int)err) {
-					_log("Can't send image data! Code: " + str((int)err), LogLevel::LL_Error);
+					_log("Can't send image data! Code: " + str((int)err), LogLevel::LL_ERROR);
 					memdelete(ips);
 					ips = nullptr;
 					goto end_send;
@@ -845,8 +839,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 			}
 			memdelete(ips);
 			ips = nullptr;
-		}
-		else {
+		} else {
 			if (!dev->is_video_stream_enabled()) {
 				dev->_update_avg_fps(0);
 			}
@@ -858,20 +851,19 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 			prev_send_settings_time = time64;
 			if (dev->using_client_settings_recently_updated) {
 				dev->using_client_settings_recently_updated = false;
-			}
-			else {
+			} else {
 				nothing_happens = false;
 
 				Ref<GRPacketServerSettings> pack(memnew(GRPacketServerSettings));
-				pack->add_setting((int)TypesOfServerSettings::VIDEO_STREAM_ENABLED, dev->is_video_stream_enabled());
-				pack->add_setting((int)TypesOfServerSettings::COMPRESSION_TYPE, dev->get_compression_type());
-				pack->add_setting((int)TypesOfServerSettings::JPG_QUALITY, dev->get_jpg_quality());
-				pack->add_setting((int)TypesOfServerSettings::RENDER_SCALE, dev->get_render_scale());
-				pack->add_setting((int)TypesOfServerSettings::SKIP_FRAMES, dev->get_skip_frames());
+				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_VIDEO_STREAM_ENABLED, dev->is_video_stream_enabled());
+				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_COMPRESSION_TYPE, dev->get_compression_type());
+				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_JPG_QUALITY, dev->get_jpg_quality());
+				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_RENDER_SCALE, dev->get_render_scale());
+				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_SKIP_FRAMES, dev->get_skip_frames());
 
 				err = ppeer->put_var(pack->get_data());
 				if ((int)err) {
-					_log("Send server settings failed with code: " + str((int)err), LogLevel::LL_Error);
+					_log("Send server settings failed with code: " + str((int)err), LogLevel::LL_ERROR);
 					goto end_send;
 				}
 				TimeCount("Send server settings");
@@ -888,7 +880,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 
 			err = ppeer->put_var(pack->get_data());
 			if ((int)err) {
-				_log("Send mouse mode sync failed with code: " + str((int)err), LogLevel::LL_Error);
+				_log("Send mouse mode sync failed with code: " + str((int)err), LogLevel::LL_ERROR);
 				goto end_send;
 			}
 			TimeCount("Send image data");
@@ -905,7 +897,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 
 			prev_ping_sending_time = time64;
 			if ((int)err) {
-				_log("Send ping failed with code: " + str((int)err), LogLevel::LL_Error);
+				_log("Send ping failed with code: " + str((int)err), LogLevel::LL_ERROR);
 				goto end_send;
 			}
 			TimeCount("Ping");
@@ -918,15 +910,14 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 			Ref<GRPacketCustomInputScene> pack;
 			if (!dev->custom_input_scene.empty()) {
 				pack = dev->_create_custom_input_pack(dev->custom_input_scene, dev->custom_input_pck_compressed, dev->custom_input_pck_compression_type);
-			}
-			else {
+			} else {
 				pack.instance();
 			}
 
 			err = ppeer->put_var(pack->get_data());
 
 			if ((int)err) {
-				_log("Send custom input failed with code: " + str((int)err), LogLevel::LL_Error);
+				_log("Send custom input failed with code: " + str((int)err), LogLevel::LL_ERROR);
 				goto end_send;
 			}
 			TimeCount("Custom input");
@@ -941,7 +932,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 				err = ppeer->put_var(packet->get_data());
 
 				if ((int)err) {
-					_log("Put data from queue failed with code: " + str((int)err), LogLevel::LL_Error);
+					_log("Put data from queue failed with code: " + str((int)err), LogLevel::LL_ERROR);
 					goto end_send;
 				}
 			}
@@ -952,8 +943,8 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 	end_send:
 
 		if (!connection->is_connected_to_host()) {
-			_log("Lost connection after sending!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after sending data!", NotificationIcon::_Error, true, 1.f);
+			_log("Lost connection after sending!", LogLevel::LL_ERROR);
+			GRNotifications::add_notification("Error", "Lost connection after sending data!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 			continue;
 		}
 
@@ -961,7 +952,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 		// RECEIVING
 		uint64_t recv_start_time = os->get_ticks_usec();
 		while (connection->is_connected_to_host() && ppeer->get_available_packet_count() > 0 &&
-			(os->get_ticks_usec() - recv_start_time) < send_data_time_us / 2) {
+				(os->get_ticks_usec() - recv_start_time) < send_data_time_us / 2) {
 			nothing_happens = false;
 			Variant res;
 #ifndef GDNATIVE_LIBRARY
@@ -972,146 +963,145 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 #endif
 
 			if ((int)err) {
-				_log("Can't receive packet!", LogLevel::LL_Error);
+				_log("Can't receive packet!", LogLevel::LL_ERROR);
 				continue;
 			}
 
 			//_log(str_arr((PoolByteArray)res, true));
 			Ref<GRPacket> pack = GRPacket::create(res);
 			if (pack.is_null()) {
-				_log("Received packet was NULL", LogLevel::LL_Error);
+				_log("Received packet was NULL", LogLevel::LL_ERROR);
 				continue;
 			}
 
-			PacketType type = pack->get_type();
+			GRPacket::PacketType type = pack->get_type();
 			//_log((int)type);
 
 			switch (type) {
-			case PacketType::SyncTime: {
-				ERR_PRINT("NOT IMPLEMENTED");
-				break;
-			}
-			case PacketType::ImageData: {
-				ERR_PRINT("NOT IMPLEMENTED");
-				break;
-			}
-			case PacketType::InputData: {
-				Ref<GRPacketInputData> data = pack;
-				if (data.is_null()) {
-					_log("Incorrect GRPacketInputData", LogLevel::LL_Error);
+				case GRPacket::PacketType::SyncTime: {
+					ERR_PRINT("NOT IMPLEMENTED");
 					break;
 				}
-
-				for (int i = 0; i < data->get_inputs_count(); i++) {
-					Ref<GRInputData> id = data->get_input_data(i);
-					InputType ev_type = id->get_type();
-
-					if (ev_type >= InputType::_InputEvent) {
-						Ref<GRInputDataEvent> ied = id;
-						if (ied.is_null()) {
-							_log("GRInputDataEvent is null", LogLevel::LL_Error);
-							continue;
-						}
-
-						Ref<InputEvent> ev = ied->construct_event();
-						if (ev.is_valid()) {
-							Input::get_singleton()->call_deferred("parse_input_event", ev);
-						}
+				case GRPacket::PacketType::ImageData: {
+					ERR_PRINT("NOT IMPLEMENTED");
+					break;
+				}
+				case GRPacket::PacketType::InputData: {
+					Ref<GRPacketInputData> data = pack;
+					if (data.is_null()) {
+						_log("Incorrect GRPacketInputData", LogLevel::LL_ERROR);
+						break;
 					}
-					else {
-						switch (ev_type) {
-						case InputType::_NoneIT: {
-							_log("Not valid input type! 0", LogLevel::LL_Normal);
-							break;
-						}
-						case InputType::_InputDeviceSensors: {
-							Ref<GRInputDeviceSensorsData> sd = id;
-							if (sd.is_null()) {
-								_log("GRInputDeviceSensorsData is null", LogLevel::LL_Error);
+
+					for (int i = 0; i < data->get_inputs_count(); i++) {
+						Ref<GRInputData> id = data->get_input_data(i);
+						GRInputData::InputType ev_type = id->get_type();
+
+						if (ev_type >= GRInputData::InputType::_InputEvent) {
+							Ref<GRInputDataEvent> ied = id;
+							if (ied.is_null()) {
+								_log("GRInputDataEvent is null", LogLevel::LL_ERROR);
 								continue;
 							}
 
-							auto s = sd->get_sensors();
-							set_accelerometer(s[0]);
-							set_gravity(s[1]);
-							set_gyroscope(s[2]);
-							set_magnetometer(s[3]);
+							Ref<InputEvent> ev = ied->construct_event();
+							if (ev.is_valid()) {
+								Input::get_singleton()->call_deferred("parse_input_event", ev);
+							}
+						} else {
+							switch (ev_type) {
+								case GRInputData::InputType::_NoneIT: {
+									_log("Not valid input type! 0", LogLevel::LL_NORMAL);
+									break;
+								}
+								case GRInputData::InputType::_InputDeviceSensors: {
+									Ref<GRInputDeviceSensorsData> sd = id;
+									if (sd.is_null()) {
+										_log("GRInputDeviceSensorsData is null", LogLevel::LL_ERROR);
+										continue;
+									}
 
-							break;
-						}
-						default: {
-							_log("Not supported input type! " + str((int)ev_type), LogLevel::LL_Error);
-							continue;
-							break;
-						}
+									auto s = sd->get_sensors();
+									set_accelerometer(s[0]);
+									set_gravity(s[1]);
+									set_gyroscope(s[2]);
+									set_magnetometer(s[3]);
+
+									break;
+								}
+								default: {
+									_log("Not supported input type! " + str((int)ev_type), LogLevel::LL_ERROR);
+									continue;
+									break;
+								}
+							}
 						}
 					}
-				}
-				break;
-			}
-			case PacketType::ServerSettings: {
-				Ref<GRPacketServerSettings> data = pack;
-				if (data.is_null()) {
-					_log("Incorrect GRPacketServerSettings", LogLevel::LL_Error);
 					break;
 				}
-				dev->_update_settings_from_client(data->get_settings());
-				break;
-			}
-			case PacketType::ClientStreamOrientation: {
-				Ref<GRPacketClientStreamOrientation> data = pack;
-				if (data.is_null()) {
-					_log("Incorrect GRPacketClientStreamOrientation", LogLevel::LL_Error);
+				case GRPacket::PacketType::ServerSettings: {
+					Ref<GRPacketServerSettings> data = pack;
+					if (data.is_null()) {
+						_log("Incorrect GRPacketServerSettings", LogLevel::LL_ERROR);
+						break;
+					}
+					dev->_update_settings_from_client(data->get_settings());
 					break;
 				}
-				dev->call_deferred("emit_signal", "client_viewport_orientation_changed", data->is_vertical());
-				break;
-			}
-			case PacketType::ClientStreamAspect: {
-				Ref<GRPacketClientStreamAspect> data = pack;
-				if (data.is_null()) {
-					_log("Incorrect GRPacketClientStreamAspect", LogLevel::LL_Error);
+				case GRPacket::PacketType::ClientStreamOrientation: {
+					Ref<GRPacketClientStreamOrientation> data = pack;
+					if (data.is_null()) {
+						_log("Incorrect GRPacketClientStreamOrientation", LogLevel::LL_ERROR);
+						break;
+					}
+					dev->call_deferred("emit_signal", "client_viewport_orientation_changed", data->is_vertical());
 					break;
 				}
-				dev->call_deferred("emit_signal", "client_viewport_aspect_ratio_changed", data->get_aspect());
-				break;
-			}
-			case PacketType::CustomUserData: {
-				Ref<GRPacketCustomUserData> data = pack;
-				if (data.is_null()) {
-					_log("Incorrect GRPacketCustomUserData", LogLevel::LL_Error);
+				case GRPacket::PacketType::ClientStreamAspect: {
+					Ref<GRPacketClientStreamAspect> data = pack;
+					if (data.is_null()) {
+						_log("Incorrect GRPacketClientStreamAspect", LogLevel::LL_ERROR);
+						break;
+					}
+					dev->call_deferred("emit_signal", "client_viewport_aspect_ratio_changed", data->get_aspect());
 					break;
 				}
-				dev->call_deferred("emit_signal", "user_data_received", data->get_packet_id(), data->get_user_data());
-				break;
-			}
-			case PacketType::Ping: {
-				Ref<GRPacketPong> pack(memnew(GRPacketPong));
-				err = ppeer->put_var(pack->get_data());
+				case GRPacket::PacketType::CustomUserData: {
+					Ref<GRPacketCustomUserData> data = pack;
+					if (data.is_null()) {
+						_log("Incorrect GRPacketCustomUserData", LogLevel::LL_ERROR);
+						break;
+					}
+					dev->call_deferred("emit_signal", "user_data_received", data->get_packet_id(), data->get_user_data());
+					break;
+				}
+				case GRPacket::PacketType::Ping: {
+					Ref<GRPacketPong> pack(memnew(GRPacketPong));
+					err = ppeer->put_var(pack->get_data());
 
-				if ((int)err) {
-					_log("Send pong failed with code: " + str((int)err), LogLevel::LL_Error);
-					goto end_recv;
+					if ((int)err) {
+						_log("Send pong failed with code: " + str((int)err), LogLevel::LL_ERROR);
+						goto end_recv;
+					}
+					break;
 				}
-				break;
-			}
-			case PacketType::Pong: {
-				dev->_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
-				ping_sended = false;
-				break;
-			}
-			default: {
-				_log("Not supported packet type! " + str((int)type), LogLevel::LL_Warning);
-				break;
-			}
+				case GRPacket::PacketType::Pong: {
+					dev->_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
+					ping_sended = false;
+					break;
+				}
+				default: {
+					_log("Not supported packet type! " + str((int)type), LogLevel::LL_WARNING);
+					break;
+				}
 			}
 		}
 		TimeCount("End receiving");
 	end_recv:
 
 		if (!connection->is_connected_to_host()) {
-			_log("Lost connection after receiving!", LogLevel::LL_Error);
-			GRNotifications::add_notification("Error", "Lost connection after receiving data!", NotificationIcon::_Error, true, 1.f);
+			_log("Lost connection after receiving!", LogLevel::LL_ERROR);
+			GRNotifications::add_notification("Error", "Lost connection after receiving data!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 			continue;
 		}
 
@@ -1119,16 +1109,15 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 			os->delay_usec(1_ms);
 	}
 
-	_log("Closing connection thread with address: " + address, LogLevel::LL_Debug);
+	_log("Closing connection thread with address: " + address, LogLevel::LL_DEBUG);
 
 	if (dev->resize_viewport)
 		dev->resize_viewport->set_process(false);
 
 	if (connection->is_connected_to_host()) {
-		GRNotifications::add_notification("Disconnected", "Closing connection with " + address, NotificationIcon::Fail, false, 1.f);
-	}
-	else {
-		GRNotifications::add_notification("Disconnected", "Client disconnected: " + address, NotificationIcon::Fail, false, 1.f);
+		GRNotifications::add_notification("Disconnected", "Closing connection with " + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
+	} else {
+		GRNotifications::add_notification("Disconnected", "Client disconnected: " + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
 	}
 
 	if (ppeer.is_valid()) {
@@ -1145,11 +1134,11 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 	thread_info->finished = true;
 }
 
-GRServer::AuthResult GRServer::_auth_client(GRServer* dev, Ref<PacketPeerStream>& ppeer, Dictionary& ret_data, bool refuse_connection) {
+GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection) {
 	// _v - variable definition, _n - dict key, _c - fail condition, _e - error message, _r - return value on fail condition
 #define packet_error_check(_t)              \
 	if ((int)err) {                         \
-		_log(_t, LogLevel::LL_Debug);       \
+		_log(_t, LogLevel::LL_DEBUG);       \
 		con->disconnect_from_host();        \
 		return GRDevice::AuthResult::Error; \
 	}
@@ -1161,15 +1150,15 @@ GRServer::AuthResult GRServer::_auth_client(GRServer* dev, Ref<PacketPeerStream>
 		goto error_dict;                 \
 	if (_c) {                            \
 		ppeer->put_var((int)_r);         \
-		_log(_e, LogLevel::LL_Debug);    \
+		_log(_e, LogLevel::LL_DEBUG);    \
 		con->disconnect_from_host();     \
 		return _r;                       \
 	}
 #define wait_packet(_n)                                                                                   \
-	time = OS::get_singleton()->get_ticks_msec();                                                         \
+	time = (uint32_t)OS::get_singleton()->get_ticks_msec();                                                         \
 	while (ppeer->get_available_packet_count() == 0) {                                                    \
 		if (OS::get_singleton()->get_ticks_msec() - time > 150) {                                         \
-			_log("Connection timeout. Refusing " + address + ". Waited: " + str(_n), LogLevel::LL_Debug); \
+			_log("Connection timeout. Refusing " + address + ". Waited: " + str(_n), LogLevel::LL_DEBUG); \
 			goto timeout;                                                                                 \
 		}                                                                                                 \
 		if (!con->is_connected_to_host()) {                                                               \
@@ -1203,27 +1192,26 @@ GRServer::AuthResult GRServer::_auth_client(GRServer* dev, Ref<PacketPeerStream>
 		Dictionary dict = res;
 		if (dict.empty()) {
 			goto error_dict;
-		}
-		else {
+		} else {
 			dict_get(String, id, "id",
-				id.empty(), "Device ID field is empty or does not exists. " + address,
-				GRDevice::AuthResult::VersionMismatch);
+					id.empty(), "Device ID field is empty or does not exists. " + address,
+					GRDevice::AuthResult::VersionMismatch);
 
 			ret_data["id"] = id;
 
 			dict_get(PoolByteArray, ver, "version",
-				ver.size() == 0, "Version field is empty or does not exists. " + address,
-				GRDevice::AuthResult::VersionMismatch);
+					ver.size() == 0, "Version field is empty or does not exists. " + address,
+					GRDevice::AuthResult::VersionMismatch);
 
 			if (!validate_version(ver)) {
-				_log("Version mismatch", LogLevel::LL_Error);
+				_log("Version mismatch", LogLevel::LL_ERROR);
 				return GRDevice::AuthResult::VersionMismatch;
 			}
 
 			if (!dev->password.empty()) {
 				dict_get(String, password, "password",
-					password != dev->password, "Incorrect password. " + address,
-					GRDevice::AuthResult::IncorrectPassword);
+						password != dev->password, "Incorrect password. " + address,
+						GRDevice::AuthResult::IncorrectPassword);
 			}
 		}
 
@@ -1234,14 +1222,13 @@ GRServer::AuthResult GRServer::_auth_client(GRServer* dev, Ref<PacketPeerStream>
 		return GRDevice::AuthResult::OK;
 
 	error_dict:
-		_log("Got invalid authorization data from client. " + address, LogLevel::LL_Normal);
+		_log("Got invalid authorization data from client. " + address, LogLevel::LL_NORMAL);
 		err = ppeer->put_var((int)GRDevice::AuthResult::Error);
 		packet_error_check("Can't send error code to client " + address + ". Code: " + str((int)err));
 		con->disconnect_from_host();
 		return GRDevice::AuthResult::Error;
 
-	}
-	else {
+	} else {
 		// PUT refuse connection
 		Error err = ppeer->put_var((int)GRDevice::AuthResult::RefuseConnection);
 		con->disconnect_from_host();
@@ -1271,15 +1258,14 @@ Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_
 		Error err = pck->pck_start(pck_file);
 
 		if ((int)err) {
-			_log("Can't create PCK file. Code: " + str((int)err), LogLevel::LL_Error);
-		}
-		else {
+			_log("Can't create PCK file. Code: " + str((int)err), LogLevel::LL_ERROR);
+		} else {
 
 			Error add_err = Error::OK;
 			for (int i = 0; i < files.size(); i++) {
 				add_err = pck->add_file(files[i], files[i]);
 				if ((int)add_err) {
-					_log("Can't add file to PCK. Code: " + str((int)add_err), LogLevel::LL_Error);
+					_log("Can't add file to PCK. Code: " + str((int)add_err), LogLevel::LL_ERROR);
 					break;
 				}
 			}
@@ -1288,110 +1274,103 @@ Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_
 				err = pck->flush();
 
 				if ((int)err) {
-					_log("Can't flush PCK file. Code: " + str((int)err), LogLevel::LL_Error);
-				}
-				else {
+					_log("Can't flush PCK file. Code: " + str((int)err), LogLevel::LL_ERROR);
+				} else {
 
 					// if OK show which files added
-					_log("Files added to custom input PCK:\n" + str_arr(files, true, 0, ",\n"), LogLevel::LL_Normal);
+					_log("Files added to custom input PCK:\n" + str_arr(files, true, 0, ",\n"), LogLevel::LL_NORMAL);
 
 #ifndef GDNATIVE_LIBRARY
-					FileAccess* file = FileAccess::open(pck_file, FileAccess::ModeFlags::READ, &err);
+					FileAccess *file = FileAccess::open(pck_file, FileAccess::ModeFlags::READ, &err);
 #else
-					File* file = memnew(File);
+					File *file = memnew(File);
 					err = file->open(pck_file, File::ModeFlags::READ);
 #endif
 
 					if ((int)err) {
-						_log("Can't open PCK file for reading. Code: " + str((int)err), LogLevel::LL_Error);
-					}
-					else {
+						_log("Can't open PCK file for reading. Code: " + str((int)err), LogLevel::LL_ERROR);
+					} else {
 						PoolByteArray arr;
 #ifndef GDNATIVE_LIBRARY
 						err = arr.resize(file->get_len());
 						if ((int)err) {
-							_log("Can't resize temp buffer array. Code: " + str((int)err), LogLevel::LL_Error);
-						}
-						else {
+							_log("Can't resize temp buffer array. Code: " + str((int)err), LogLevel::LL_ERROR);
+						} else {
 #else
-							{
+						{
 #endif
 
 #ifndef GDNATIVE_LIBRARY
-								auto w = arr.write();
-								int res = file->get_buffer(w.ptr(), arr.size());
-								release_pva_write(w);
-								file->close();
+							auto w = arr.write();
+							int res = file->get_buffer(w.ptr(), arr.size());
+							release_pva_write(w);
+							file->close();
 
-								if (res != arr.size()) {
+							if (res != arr.size()) {
 #else
-								arr = file->get_buffer(file->get_len());
-								int file_length = file->get_len();
-								file->close();
+							arr = file->get_buffer(file->get_len());
+							int file_length = (int)file->get_len();
+							file->close();
 
-								if (file_length != arr.size()) {
-									int res = (int)Error::ERR_FILE_CANT_READ;
+							if (file_length != arr.size()) {
+								int res = (int)Error::ERR_FILE_CANT_READ;
 #endif
 
-									_log("PCK was not fully read. " + str(res) + " of " + str(arr.size()), LogLevel::LL_Error);
+								_log("PCK was not fully read. " + str(res) + " of " + str(arr.size()), LogLevel::LL_ERROR);
+							} else {
+
+								if (compress) {
+									PoolByteArray com;
+									err = compress_bytes(arr, com, compression_type);
+									if ((int)err) {
+										_log("Can't compress PCK data. Code: " + str((int)err), LogLevel::LL_ERROR);
+									}
+
+									pack->set_scene_path(_scene_path);
+									pack->set_scene_data(com);
+									pack->set_compressed(true);
+									pack->set_compression_type(compression_type);
+									pack->set_original_size(arr.size());
+								} else {
+									pack->set_scene_path(_scene_path);
+									pack->set_scene_data(arr);
+									pack->set_compressed(false);
+									pack->set_compression_type(0);
 								}
-								else {
-
-									if (compress) {
-										PoolByteArray com;
-										err = compress_bytes(arr, com, compression_type);
-										if ((int)err) {
-											_log("Can't compress PCK data. Code: " + str((int)err), LogLevel::LL_Error);
-										}
-
-										pack->set_scene_path(_scene_path);
-										pack->set_scene_data(com);
-										pack->set_compressed(true);
-										pack->set_compression_type(compression_type);
-										pack->set_original_size(arr.size());
-									}
-									else {
-										pack->set_scene_path(_scene_path);
-										pack->set_scene_data(arr);
-										pack->set_compressed(false);
-										pack->set_compression_type(0);
-									}
 
 #ifndef GDNATIVE_LIBRARY
-									DirAccess* dir = DirAccess::open(_scene_path.get_base_dir());
-									if (dir) {
-										dir->remove(pck_file);
-										memdelete(dir);
-									}
-#else
-									Directory* dir = memnew(Directory);
-									if (dir) {
-										dir->open(_scene_path.get_base_dir());
-										dir->remove(pck_file);
-										memdelete(dir);
-									}
-#endif
+								DirAccess *dir = DirAccess::open(_scene_path.get_base_dir());
+								if (dir) {
+									dir->remove(pck_file);
+									memdelete(dir);
 								}
+#else
+								Directory *dir = memnew(Directory);
+								if (dir) {
+									dir->open(_scene_path.get_base_dir());
+									dir->remove(pck_file);
+									memdelete(dir);
+								}
+#endif
+							}
 						}
 					}
 					memdelete(file);
 				}
 			}
 		}
-	}
-	else {
-		_log("Files to pack not found! Scene path: " + _scene_path, LogLevel::LL_Error);
+	} else {
+		_log("Files to pack not found! Scene path: " + _scene_path, LogLevel::LL_ERROR);
 	}
 
 	files.clear();
 	return pack;
 }
 
-void GRServer::_scan_resource_for_dependencies_recursive(String _d, std::vector<String>&_arr) {
+void GRServer::_scan_resource_for_dependencies_recursive(String _d, std::vector<String> &_arr) {
 	if (!is_vector_contains(_arr, _d)) {
 		_arr.push_back(_d);
-	}
-	else {
+	} else {
 		return;
 	}
 
@@ -1400,15 +1379,13 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, std::vector<
 	String text = file_get_as_string(_d, &err);
 
 	if ((int)err) {
-		_log("Can't read file as text: " + _d, LogLevel::LL_Error);
-	}
-	else {
+		_log("Can't read file as text: " + _d, LogLevel::LL_ERROR);
+	} else {
 		String imp = _d + ".import";
 		text += file_get_as_string(imp, &err);
 		if ((int)err) {
-			_log(".import file not found for " + imp, LogLevel::LL_Debug);
-		}
-		else {
+			_log(".import file not found for " + imp, LogLevel::LL_DEBUG);
+		} else {
 			if (is_vector_contains(_arr, imp)) {
 				_arr.push_back(imp);
 			}
@@ -1431,28 +1408,28 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, std::vector<
 //////////////////////////////////////////////
 
 void GRSViewport::_processing_thread(THREAD_DATA p_user) {
-	GRSViewport* vp = (GRSViewport*)p_user;
-	ImgProcessingStorageViewport* ips = memnew(ImgProcessingStorageViewport);
+	GRSViewport *vp = (GRSViewport *)p_user;
+	ImgProcessingStorageViewport *ips = memnew(ImgProcessingStorageViewport);
 
 #ifndef GDNATIVE_LIBRARY
 	vp->
 #endif
-		_TS_LOCK_;
+			_TS_LOCK_;
 
 	Ref<Image> img = vp->last_image;
 
 #ifndef GDNATIVE_LIBRARY
 	vp->
 #endif
-		_TS_UNLOCK_;
+			_TS_UNLOCK_;
 
 	TimeCountInit();
 	if (!ips) {
 		goto end;
 	}
 
-	ips->width = img->get_width();
-	ips->height = img->get_height();
+	ips->width = (int)img->get_width();
+	ips->height = (int)img->get_height();
 	ips->compression_type = vp->compression_type;
 	ips->jpg_quality = vp->jpg_quality;
 
@@ -1462,8 +1439,8 @@ void GRSViewport::_processing_thread(THREAD_DATA p_user) {
 		ips->format = img->get_format();
 
 		if (ips->format != Image::FORMAT_RGB8) {
-			_log("Can't convert stream image to RGB8.", LogLevel::LL_Error);
-			GRNotifications::add_notification("Stream Error", "Can't convert stream image to RGB8.", NotificationIcon::_Error, true, 1.f);
+			_log("Can't convert stream image to RGB8.", LogLevel::LL_ERROR);
+			GRNotifications::add_notification("Stream Error", "Can't convert stream image to RGB8.", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 			goto end;
 		}
 
@@ -1475,34 +1452,34 @@ void GRSViewport::_processing_thread(THREAD_DATA p_user) {
 		goto end;
 
 	switch (ips->compression_type) {
-	case ImageCompressionType::Uncompressed: {
-		ips->ret_data = img->get_data();
-		TimeCount("Image Uncompressed");
-		break;
-	}
-	case ImageCompressionType::JPG: {
-		if (!img_is_empty(img)) {
-			Error err = compress_jpg(ips->ret_data, img->get_data(), ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, Subsampling::SUBSAMPLING_H2V2);
-			if ((int)err) {
-				_log("Can't compress stream image JPG. Code: " + str((int)err), LogLevel::LL_Error);
-				GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str((int)err), NotificationIcon::_Error, true, 1.f);
+		case GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED: {
+			ips->ret_data = img->get_data();
+			TimeCount("Image Uncompressed");
+			break;
+		}
+		case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
+			if (!img_is_empty(img)) {
+				Error err = compress_jpg(ips->ret_data, img->get_data(), ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRServer::Subsampling::SUBSAMPLING_H2V2);
+				if ((int)err) {
+					_log("Can't compress stream image JPG. Code: " + str((int)err), LogLevel::LL_ERROR);
+					GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+				}
 			}
+			TimeCount("Image JPG");
+			break;
 		}
-		TimeCount("Image JPG");
-		break;
-	}
-	case ImageCompressionType::PNG: {
-		ips->ret_data = img->save_png_to_buffer();
-		if (ips->ret_data.size() == 0) {
-			_log("Can't compress stream image to PNG.", LogLevel::LL_Error);
-			GRNotifications::add_notification("Stream Error", "Can't compress stream image to PNG.", NotificationIcon::_Error, true, 1.f);
+		case GRDevice::ImageCompressionType::COMPRESSION_PNG: {
+			ips->ret_data = img->save_png_to_buffer();
+			if (ips->ret_data.size() == 0) {
+				_log("Can't compress stream image to PNG.", LogLevel::LL_ERROR);
+				GRNotifications::add_notification("Stream Error", "Can't compress stream image to PNG.", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+			}
+			TimeCount("Image PNG");
+			break;
 		}
-		TimeCount("Image PNG");
-		break;
-	}
-	default:
-		_log("Not implemented compression type: " + str((int)ips->compression_type), LogLevel::LL_Error);
-		break;
+		default:
+			_log("Not implemented compression type: " + str((int)ips->compression_type), LogLevel::LL_ERROR);
+			break;
 	}
 end:
 	vp->_set_img_data(ips);
@@ -1535,7 +1512,7 @@ void GRSViewport::_register_methods() {
 
 #endif
 
-void GRSViewport::_set_img_data(ImgProcessingStorageViewport * _data) {
+void GRSViewport::_set_img_data(ImgProcessingStorageViewport *_data) {
 	_TS_LOCK_;
 	if (last_image_data)
 		memdelete(last_image_data);
@@ -1551,80 +1528,79 @@ void GRSViewport::_on_renderer_deleting() {
 void GRSViewport::_notification(int p_notification) {
 	TimeCountInit();
 	switch (p_notification) {
-	case NOTIFICATION_POSTINITIALIZE:
+		case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-		_init();
+			_init();
 #endif
-		break;
-	case NOTIFICATION_PREDELETE:
-		_deinit();
-		break;
-	case NOTIFICATION_PROCESS: {
-		_close_thread();
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
+		case NOTIFICATION_PROCESS: {
+			_close_thread();
 
-		if (!video_stream_enabled) {
-			if (!is_empty_image_sended) {
-				is_empty_image_sended = true;
-				ImgProcessingStorageViewport* ipsv = memnew(ImgProcessingStorageViewport);
-				ipsv->width = 0;
-				ipsv->height = 0;
-				ipsv->format = Image::Format::FORMAT_RGB8;
-				ipsv->bytes_in_color = 3;
-				ipsv->jpg_quality = 1;
-				ipsv->is_empty = true;
-				_set_img_data(ipsv);
+			if (!video_stream_enabled) {
+				if (!is_empty_image_sended) {
+					is_empty_image_sended = true;
+					ImgProcessingStorageViewport *ipsv = memnew(ImgProcessingStorageViewport);
+					ipsv->width = 0;
+					ipsv->height = 0;
+					ipsv->format = Image::Format::FORMAT_RGB8;
+					ipsv->bytes_in_color = 3;
+					ipsv->jpg_quality = 1;
+					ipsv->is_empty = true;
+					_set_img_data(ipsv);
+				}
+
+				return;
 			}
 
-			return;
-		}
+			is_empty_image_sended = false;
 
-		is_empty_image_sended = false;
+			frames_from_prev_image++;
+			if (frames_from_prev_image > skip_frames) {
+				frames_from_prev_image = 0;
 
-		frames_from_prev_image++;
-		if (frames_from_prev_image > skip_frames) {
-			frames_from_prev_image = 0;
+				if (get_texture().is_null())
+					break;
 
-			if (get_texture().is_null())
-				break;
+				_TS_LOCK_;
+				last_image = get_texture()->get_data(); // extremely slow
+				TimeCount("Get image data from VisualServer");
 
-			_TS_LOCK_;
-			last_image = get_texture()->get_data(); // extremely slow
-			TimeCount("Get image data from VisualServer");
-
-			if (!img_is_empty(last_image)) {
-				_thread_process = Thread_create(GRSViewport, _processing_thread, this, this);
+				if (!img_is_empty(last_image)) {
+					_thread_process = Thread_create(GRSViewport, _processing_thread, this, this);
+				} else {
+					_log("Can't copy viewport image data", LogLevel::LL_ERROR);
+				}
+				_TS_UNLOCK_;
 			}
-			else {
-				_log("Can't copy viewport image data", LogLevel::LL_Error);
+			break;
+		}
+		case NOTIFICATION_ENTER_TREE: {
+			main_vp = ST()->get_root();
+			main_vp->connect("size_changed", this, "_update_size");
+			_update_size();
+
+			renderer = memnew(GRSViewportRenderer);
+			renderer->tex = main_vp->get_texture();
+			renderer->connect("tree_exiting", this, "_on_renderer_deleting");
+			add_child(renderer);
+
+			break;
+		}
+		case NOTIFICATION_EXIT_TREE: {
+			if (renderer) {
+				remove_child(renderer);
+				//renderer->queue_delete();
+				memdelete(renderer);
 			}
-			_TS_UNLOCK_;
+			main_vp->disconnect("size_changed", this, "_update_size");
+			main_vp = nullptr;
+			break;
 		}
-		break;
-	}
-	case NOTIFICATION_ENTER_TREE: {
-		main_vp = ST()->get_root();
-		main_vp->connect("size_changed", this, "_update_size");
-		_update_size();
-
-		renderer = memnew(GRSViewportRenderer);
-		renderer->tex = main_vp->get_texture();
-		renderer->connect("tree_exiting", this, "_on_renderer_deleting");
-		add_child(renderer);
-
-		break;
-	}
-	case NOTIFICATION_EXIT_TREE: {
-		if (renderer) {
-			remove_child(renderer);
-			//renderer->queue_delete();
-			memdelete(renderer);
-		}
-		main_vp->disconnect("size_changed", this, "_update_size");
-		main_vp = nullptr;
-		break;
-	}
-	default:
-		break;
+		default:
+			break;
 	}
 }
 
@@ -1652,7 +1628,7 @@ void GRSViewport::_update_size() {
 	}
 }
 
-GRSViewport::ImgProcessingStorageViewport* GRSViewport::get_last_compressed_image_data() {
+GRSViewport::ImgProcessingStorageViewport *GRSViewport::get_last_compressed_image_data() {
 	_TS_LOCK_;
 	auto res = last_image_data;
 	last_image_data = nullptr;
@@ -1686,11 +1662,11 @@ float GRSViewport::get_rendering_scale() {
 	return rendering_scale;
 }
 
-void GRSViewport::set_compression_type(ImageCompressionType val) {
+void GRSViewport::set_compression_type(GRDevice::ImageCompressionType val) {
 	compression_type = val;
 }
 
-ImageCompressionType GRSViewport::get_compression_type() {
+GRDevice::ImageCompressionType GRSViewport::get_compression_type() {
 	return compression_type;
 }
 
@@ -1761,33 +1737,33 @@ void GRSViewportRenderer::_register_methods() {
 
 void GRSViewportRenderer::_notification(int p_notification) {
 	switch (p_notification) {
-	case NOTIFICATION_POSTINITIALIZE:
+		case NOTIFICATION_POSTINITIALIZE:
 #ifndef GDNATIVE_LIBRARY
-		_init();
+			_init();
 #endif
-		break;
-	case NOTIFICATION_PREDELETE:
-		_deinit();
-		break;
-	case NOTIFICATION_ENTER_TREE: {
-		vp = get_viewport();
-		break;
-	}
-	case NOTIFICATION_EXIT_TREE: {
-		vp = nullptr;
-		tex.unref();
-		break;
-	}
-	case NOTIFICATION_PROCESS: {
-		update();
-		break;
-	}
-	case NOTIFICATION_DRAW: {
-		draw_texture_rect(tex, Rect2(Vector2(), vp->get_size()), false);
-		break;
-	}
-	default:
-		break;
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
+		case NOTIFICATION_ENTER_TREE: {
+			vp = get_viewport();
+			break;
+		}
+		case NOTIFICATION_EXIT_TREE: {
+			vp = nullptr;
+			tex.unref();
+			break;
+		}
+		case NOTIFICATION_PROCESS: {
+			update();
+			break;
+		}
+		case NOTIFICATION_DRAW: {
+			draw_texture_rect(tex, Rect2(Vector2(), vp->get_size()), false);
+			break;
+		}
+		default:
+			break;
 	}
 }
 

@@ -13,6 +13,7 @@ const SAVE_FILE := "user://settings.json"
 var IsMobile : bool = false
 var Billings : Node = null
 var VersionChanged : bool = false
+var PreviousVersion : String = ""
 var AppRuns : int = 0
 var TotalAppRuns : int = 0
 var UserRateState : int = RateState.NotNow setget set_user_rate_state
@@ -95,10 +96,10 @@ func _setup_notifications_style():
 	s.text_font = load("res://AssetsInSuperSecureAndUn1queF0lder/Styles/NotificationPanelTextStyle.tres")
 	
 	s.close_button_icon = load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Close_icon.png")
-	s.set_notification_icon(GodotRemote.NOTIFICATION_ICON_SUCCESS, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Connected_icon.png"))
-	s.set_notification_icon(GodotRemote.NOTIFICATION_ICON_FAIL, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Disconnected_icon.png"))
-	s.set_notification_icon(GodotRemote.NOTIFICATION_ICON_ERROR, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Error_icon.png"))
-	s.set_notification_icon(GodotRemote.NOTIFICATION_ICON_WARNING, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Warning_icon.png"))
+	s.set_notification_icon(GodotRemote.GRNotifications_ICON_SUCCESS, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Connected_icon.png"))
+	s.set_notification_icon(GodotRemote.GRNotifications_ICON_FAIL, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Disconnected_icon.png"))
+	s.set_notification_icon(GodotRemote.GRNotifications_ICON_ERROR, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Error_icon.png"))
+	s.set_notification_icon(GodotRemote.GRNotifications_ICON_WARNING, load("res://AssetsInSuperSecureAndUn1queF0lder/Textures/Notifications/Warning_icon.png"))
 	
 	GodotRemote.notifications_style = s
 
@@ -126,11 +127,11 @@ func _set_all_values():
 	OS.keep_screen_on = keepscreenon
 	
 	if override_server_settings:
-		dev.set_server_setting(C.GodotRemote_SERVER_PARAM_VIDEO_STREAM_ENABLED, server_video_stream)
-		dev.set_server_setting(C.GodotRemote_SERVER_PARAM_COMPRESSION_TYPE, server_compression_type)
-		dev.set_server_setting(C.GodotRemote_SERVER_PARAM_JPG_QUALITY, server_jpg_quality)
-		dev.set_server_setting(C.GodotRemote_SERVER_PARAM_RENDER_SCALE, server_render_scale)
-		dev.set_server_setting(C.GodotRemote_SERVER_PARAM_SKIP_FRAMES, server_skip_fps)
+		dev.set_server_setting(C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED, server_video_stream)
+		dev.set_server_setting(C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE, server_compression_type)
+		dev.set_server_setting(C.GRDevice_SERVER_PARAM_JPG_QUALITY, server_jpg_quality)
+		dev.set_server_setting(C.GRDevice_SERVER_PARAM_RENDER_SCALE, server_render_scale)
+		dev.set_server_setting(C.GRDevice_SERVER_PARAM_SKIP_FRAMES, server_skip_fps)
 	
 	if i_w:
 		dev.start()
@@ -190,7 +191,8 @@ func _load_settings():
 			f.close()
 			var d = parse_json(txt)
 			
-			VersionChanged = _safe_get_from_dict(d, "m_version", GodotRemote.get_version()) != GodotRemote.get_version()
+			PreviousVersion = _safe_get_from_dict(d, "m_version", GodotRemote.get_version()) 
+			VersionChanged = PreviousVersion != GodotRemote.get_version()
 			if VersionChanged:
 				AppRuns = 0
 			else:

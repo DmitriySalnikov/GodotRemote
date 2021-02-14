@@ -43,8 +43,41 @@ void register_godot_remote_types() {
 	ClassDB::register_class<GRTextureRect>();
 #endif
 
-
+	// Packets
 	ClassDB::register_virtual_class<GRPacket>();
+	ClassDB::register_class<GRPacketClientStreamAspect>();
+	ClassDB::register_class<GRPacketClientStreamOrientation>();
+	ClassDB::register_class<GRPacketCustomInputScene>();
+	ClassDB::register_class<GRPacketImageData>();
+	ClassDB::register_class<GRPacketInputData>();
+	ClassDB::register_class<GRPacketMouseModeSync>();
+	ClassDB::register_class<GRPacketServerSettings>();
+	ClassDB::register_class<GRPacketSyncTime>();
+	ClassDB::register_class<GRPacketCustomUserData>();
+
+	ClassDB::register_class<GRPacketPing>();
+	ClassDB::register_class<GRPacketPong>();
+
+	// Input Data
+	ClassDB::register_virtual_class<GRInputData>();
+	ClassDB::register_class<GRInputDeviceSensorsData>();
+	ClassDB::register_class<GRInputDataEvent>();
+
+	ClassDB::register_class<GRIEDataWithModifiers>();
+	ClassDB::register_class<GRIEDataMouse>();
+	ClassDB::register_class<GRIEDataGesture>();
+
+	ClassDB::register_class<GRIEDataAction>();
+	ClassDB::register_class<GRIEDataJoypadButton>();
+	ClassDB::register_class<GRIEDataJoypadMotion>();
+	ClassDB::register_class<GRIEDataKey>();
+	ClassDB::register_class<GRIEDataMagnifyGesture>();
+	ClassDB::register_class<GRIEDataMIDI>();
+	ClassDB::register_class<GRIEDataMouseButton>();
+	ClassDB::register_class<GRIEDataMouseMotion>();
+	ClassDB::register_class<GRIEDataPanGesture>();
+	ClassDB::register_class<GRIEDataScreenDrag>();
+	ClassDB::register_class<GRIEDataScreenTouch>();
 }
 
 void unregister_godot_remote_types() {

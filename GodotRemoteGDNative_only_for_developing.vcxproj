@@ -199,6 +199,7 @@
     <ClInclude Include="godot_remote\GRResources.h" />
     <ClInclude Include="godot_remote\GRServer.h" />
     <ClInclude Include="godot_remote\GRUtils.h" />
+    <ClInclude Include="godot_remote\GRVersion.h" />
     <ClInclude Include="godot_remote\jpge.h" />
     <ClInclude Include="godot_remote\register_types.h" />
   </ItemGroup>
