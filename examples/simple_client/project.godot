@@ -14,10 +14,6 @@ config/name="Example Client"
 run/main_scene="res://UniqueL0ngNameThatINeverOverrideFromServer/ControlToShowStream.tscn"
 config/icon="res://UniqueL0ngNameThatINeverOverrideFromServer/icon.png"
 
-[autoload]
-
-GodotRemote="*res://addons/godot_remote/GodotRemote.tscn"
-
 [debug]
 
 settings/stdout/verbose_stdout=true
@@ -25,7 +21,7 @@ godot_remote/general/autostart=false
 
 [editor_plugins]
 
-enabled=PoolStringArray( "godot_remote" )
+enabled=PoolStringArray(  )
 
 [network]
 

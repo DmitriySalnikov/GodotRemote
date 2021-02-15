@@ -5,7 +5,7 @@ extends Control
 # and change the Network/Limits/Connect Timeout Seconds to 1 otherwise app will be closing very long time
 func _ready():
 	# create client
-	GodotRemote.create_remote_device(GodotRemote.DEVICE_Standalone)
+	GodotRemote.create_remote_device(GodotRemote.DEVICE_CLIENT)
 	
 	# get device and convert it to client class
 	var d : GRClient = GodotRemote.get_device()
