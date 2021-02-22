@@ -89,11 +89,7 @@ public:
 		Ref<StreamPeerTCP> peer;
 		Ref<PacketPeerStream> ppeer;
 
-#ifndef GDNATIVE_LIBRARY
-		class Thread *thread_ref = nullptr;
-#else
-		Ref<Thread> thread_ref;
-#endif
+		Thread_define(thread_ref);
 
 		bool break_connection = false;
 		bool stop_thread = false;
@@ -140,7 +136,7 @@ private:
 	bool _server_settings_syncing = false;
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
-	Mutex *connection_mutex = nullptr;
+	Mutex_define(connection_mutex);
 	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;

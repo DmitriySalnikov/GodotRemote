@@ -40,11 +40,8 @@ public:
 
 	public:
 		GRServer *dev = nullptr;
-#ifndef GDNATIVE_LIBRARY
-		class Thread *thread_ref = nullptr;
-#else
-		Ref<Thread> thread_ref;
-#endif
+		Thread_define(thread_ref);
+
 		bool stop_thread = false;
 		bool finished = false;
 
@@ -70,11 +67,7 @@ public:
 		GRServer *dev = nullptr;
 		Ref<PacketPeerStream> ppeer;
 
-#ifndef GDNATIVE_LIBRARY
-		class Thread *thread_ref = nullptr;
-#else
-		Ref<Thread> thread_ref;
-#endif
+		Thread_define(thread_ref);
 
 		bool break_connection = false;
 		bool finished = false;
@@ -97,7 +90,7 @@ public:
 	};
 
 private:
-	Mutex *connection_mutex = nullptr;
+	Mutex_define(connection_mutex);
 	ListenerThreadParamsServer *server_thread_listen = nullptr;
 	Ref<TCP_Server> tcp_server;
 	class GRSViewport *resize_viewport = nullptr;
@@ -212,11 +205,7 @@ public:
 	};
 
 private:
-#ifndef GDNATIVE_LIBRARY
-	Thread *_thread_process = nullptr;
-#else
-	Ref<Thread> _thread_process;
-#endif
+	Thread_define(_thread_process);
 
 	Ref<Image> last_image;
 	ImgProcessingStorageViewport *last_image_data = nullptr;

@@ -81,7 +81,7 @@ protected:
 	float avg_fps = 0;
 	float avg_ping_smoothing = 0.5f;
 	float avg_fps_smoothing = 0.9f;
-	Mutex *send_queue_mutex = nullptr;
+	Mutex_define(send_queue_mutex);
 	std::vector<Ref<GRPacket> > send_queue;
 
 	void set_status(WorkingStatus status);

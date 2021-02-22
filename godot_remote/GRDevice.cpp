@@ -124,7 +124,7 @@ void GRDevice::_update_avg_fps(uint64_t frametime) {
 }
 
 void GRDevice::send_user_data(Variant packet_id, Variant user_data, bool full_objects) {
-	send_queue_mutex->lock();
+	Mutex_lock(send_queue_mutex);
 	Ref<GRPacketCustomUserData> packet = newref(GRPacketCustomUserData);
 	send_packet(packet);
 
@@ -132,23 +132,23 @@ void GRDevice::send_user_data(Variant packet_id, Variant user_data, bool full_ob
 	packet->set_send_full_objects(full_objects);
 	packet->set_user_data(user_data);
 
-	send_queue_mutex->unlock();
+	Mutex_unlock(send_queue_mutex);
 }
 
 void GRDevice::_send_queue_resize(int new_size) {
-	send_queue_mutex->lock();
+	Mutex_lock(send_queue_mutex);
 	send_queue.resize(new_size);
-	send_queue_mutex->unlock();
+	Mutex_unlock(send_queue_mutex);
 }
 
 Ref<GRPacket> GRDevice::_send_queue_pop_front() {
-	send_queue_mutex->lock();
+	Mutex_lock(send_queue_mutex);
 	Ref<GRPacket> packet;
 	if (send_queue.size() > 0) {
 		packet = send_queue.front();
 		send_queue.erase(send_queue.begin());
 	}
-	send_queue_mutex->unlock();
+	Mutex_unlock(send_queue_mutex);
 	return packet;
 }
 
@@ -177,12 +177,12 @@ void GRDevice::set_port(uint16_t _port) {
 void GRDevice::send_packet(Ref<GRPacket> packet) {
 	ERR_FAIL_COND(packet.is_null());
 
-	send_queue_mutex->lock();
+	Mutex_lock(send_queue_mutex);
 	if (send_queue.size() > 10000)
 		send_queue.resize(0);
 
 	send_queue.push_back(packet);
-	send_queue_mutex->unlock();
+	Mutex_unlock(send_queue_mutex);
 }
 
 void GRDevice::start() {
@@ -212,9 +212,8 @@ void GRDevice::_init() {
 	LEAVE_IF_EDITOR();
 	port = GET_PS(GodotRemote::ps_general_port_name);
 
-	if (send_queue_mutex)
-		memdelete(send_queue_mutex);
-	send_queue_mutex = Mutex_create();
+	Mutex_delete(send_queue_mutex);
+	Mutex_create(send_queue_mutex);
 }
 
 void GRDevice::_deinit() {

@@ -15,6 +15,8 @@
 #include "core/variant.h"
 #include "core/version_generated.gen.h"
 #include "main/input_default.h"
+//#define VERSION_MINOR 2
+//#define VERSION_PATCH 3
 
 #else
 
@@ -67,20 +69,46 @@ using namespace godot;
 
 #define THREAD_FUNC static
 #define THREAD_DATA void *
-#define t_wait_to_finish(thread) Thread::wait_to_finish(thread)
 #define _TS_CLASS_ _THREAD_SAFE_CLASS_
 #define _TS_METHOD_ _THREAD_SAFE_METHOD_
 #define _TS_LOCK_ _THREAD_SAFE_LOCK_
 #define _TS_UNLOCK_ _THREAD_SAFE_UNLOCK_
-#define Mutex_create() Mutex::create()
-#define Thread_create(_class, function, data_to_send, inst) Thread::create(&_class::function, data_to_send)
 #define Thread_set_name(_name) Thread::set_name(_name)
+
+#if VERSION_MINOR >= 2 && VERSION_PATCH >= 4
+#define Mutex_define(_var) Mutex _var
+#define Mutex_create(_var)
+#define Mutex_delete(_var)
+#define Mutex_lock(_var) _var.lock()
+#define Mutex_unlock(_var) _var.unlock()
+
+#define t_wait_to_finish(thread) thread.wait_to_finish()
+#define Thread_define(_var) class Thread _var
+#define Thread_start(_var, _class, function, data_to_send, inst) _var.start(&_class::function, data_to_send)
+#define Thread_close(_name) \
+	t_wait_to_finish(_name);
+#else
+#define Mutex_define(_var) Mutex* _var = nullptr
+#define Mutex_create(_var) _var = Mutex::create()
+#define Mutex_delete(_var) \
+	if (_var) {            \
+		memdelete(_var);   \
+		_var = nullptr;    \
+	}
+
+#define Mutex_lock(_var) _var->lock()
+#define Mutex_unlock(_var) _var->unlock()
+
+#define t_wait_to_finish(thread) Thread::wait_to_finish(thread)
+#define Thread_define(_var) class Thread *_var = nullptr
+#define Thread_start(_var, _class, function, data_to_send, inst) _var = Thread::create(&_class::function, data_to_send)
 #define Thread_close(_name)      \
 	if (_name) {                 \
 		t_wait_to_finish(_name); \
 		memdelete(_name);        \
 		_name = nullptr;         \
 	}
+#endif
 
 #else
 
@@ -137,13 +165,24 @@ public:
 
 #define THREAD_FUNC
 #define THREAD_DATA Variant
-#define t_wait_to_finish(thread) thread->wait_to_finish()
 #define _TS_CLASS_ ThreadSafe __thread__safe__
 #define _TS_METHOD_ ThreadSafeMethod __thread_safe_method__(&__thread__safe__)
 #define _TS_LOCK_ __thread__safe__.lock()
 #define _TS_UNLOCK_ __thread__safe__.unlock()
-#define Mutex_create() Mutex::_new()
-#define Thread_create(_class, function, data_to_send, inst) _gdn_thread_create(inst, #function, data_to_send)
+
+#define Mutex_define(_var) Ref<Mutex> _var
+#define Mutex_create(_var) _var = newref(Mutex)
+#define Mutex_lock(_var) _var->lock()
+#define Mutex_unlock(_var) _var->unlock()
+#define Mutex_delete(_var)   \
+	if (_var.is_valid()) {   \
+		_var.unref();        \
+		_var = Ref<Mutex>(); \
+	}
+
+#define Thread_define(_var) Ref<Thread> _var
+#define t_wait_to_finish(thread) thread->wait_to_finish()
+#define Thread_start(_var, _class, function, data_to_send, inst) _var = _gdn_thread_create(inst, #function, data_to_send)
 #define Thread_set_name(_name)
 #define Thread_close(_name)      \
 	if (_name.is_valid()) {      \
@@ -233,7 +272,7 @@ protected:
 #define TimeCountInit() int simple_time_counter = (int)OS::get_singleton()->get_ticks_usec()
 #define TimeCountReset() simple_time_counter = (int)OS::get_singleton()->get_ticks_usec()
 // Shows delta between this and previous counter. Need to call TimeCountInit before
-#define TimeCount(str)                                                                                                                                                   \
+#define TimeCount(str)                                                                                                                                                        \
 	GRUtils::_log(str + String(": ") + String::num(((int)OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0, 3) + " ms", GodotRemote::LogLevel::LL_DEBUG); \
 	simple_time_counter = (int)OS::get_singleton()->get_ticks_usec()
 #else
@@ -316,7 +355,7 @@ extern void deinit();
 #ifndef NO_GODOTREMOTE_SERVER
 extern void init_server_utils();
 extern void deinit_server_utils();
-extern Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width, int height, int bytes_for_color = 4, int quality = 75, int subsampling = 3/*Subsampling ::SUBSAMPLING_H2V2*/);
+extern Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width, int height, int bytes_for_color = 4, int quality = 75, int subsampling = 3 /*Subsampling ::SUBSAMPLING_H2V2*/);
 #endif
 
 extern Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type);

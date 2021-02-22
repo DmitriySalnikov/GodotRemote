@@ -300,7 +300,7 @@ void GRClient::_init() {
 	memdelete(rng);
 #endif
 
-	connection_mutex = Mutex_create();
+	Mutex_create(connection_mutex);
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 	no_signal_image.instance();
@@ -326,12 +326,10 @@ void GRClient::_deinit() {
 		_internal_call_only_deffered_stop();
 	}
 	set_control_to_show_in(nullptr, 0);
-	memdelete(connection_mutex);
-	connection_mutex = nullptr;
+	Mutex_delete(connection_mutex);
 
-	send_queue_mutex->unlock();
-	memdelete(send_queue_mutex);
-	send_queue_mutex = nullptr;
+	Mutex_unlock(send_queue_mutex);
+	Mutex_delete(send_queue_mutex);
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 	no_signal_mat.unref();
@@ -361,7 +359,7 @@ void GRClient::_internal_call_only_deffered_start() {
 	thread_connection = memnew(ConnectionThreadParamsClient);
 	thread_connection->dev = this;
 	thread_connection->peer.instance();
-	thread_connection->thread_ref = Thread_create(GRClient, _thread_connection, thread_connection, this);
+	Thread_start(thread_connection->thread_ref, GRClient, _thread_connection, thread_connection, this);
 
 	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 	set_status(WorkingStatus::STATUS_WORKING);
@@ -381,19 +379,19 @@ void GRClient::_internal_call_only_deffered_stop() {
 	set_status(WorkingStatus::STATUS_STOPPING);
 	_remove_custom_input_scene();
 
-	connection_mutex->lock();
+	Mutex_lock(connection_mutex);
 	if (thread_connection) {
 		thread_connection->break_connection = true;
 		thread_connection->stop_thread = true;
-		connection_mutex->unlock();
+		Mutex_unlock(connection_mutex);
 		thread_connection->close_thread();
 		memdelete(thread_connection);
 		thread_connection = nullptr;
 	}
 
 	_send_queue_resize(0);
-	send_queue_mutex->unlock();
-	connection_mutex->unlock();
+	Mutex_unlock(send_queue_mutex);
+	Mutex_unlock(connection_mutex);
 
 	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 	set_status(WorkingStatus::STATUS_STOPPED);
@@ -745,7 +743,7 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 			if (PackedData::get_singleton()->is_disabled()) {
 				err = Error::FAILED;
 			} else {
-#if VERSION_PATCH >= 4
+#if VERSION_MINOR >= 2 && VERSION_PATCH >= 4
 				err = PackedData::get_singleton()->add_pack(custom_input_scene_tmp_pck_file, true, 0);
 #else
 				err = PackedData::get_singleton()->add_pack(custom_input_scene_tmp_pck_file, true);
@@ -830,14 +828,14 @@ void GRClient::_viewport_size_changed() {
 		ScreenOrientation tmp_vert = size.x < size.y ? ScreenOrientation::VERTICAL : ScreenOrientation::HORIZONTAL;
 		if (tmp_vert != is_vertical) {
 			is_vertical = tmp_vert;
-			send_queue_mutex->lock();
+			Mutex_lock(send_queue_mutex);
 			Ref<GRPacketClientStreamOrientation> packet = _find_queued_packet_by_type<Ref<GRPacketClientStreamOrientation> >();
 			if (packet.is_valid()) {
 				packet->set_vertical(is_vertical == ScreenOrientation::VERTICAL);
-				send_queue_mutex->unlock();
+				Mutex_unlock(send_queue_mutex);
 				goto ratio_sync;
 			}
-			send_queue_mutex->unlock();
+			Mutex_unlock(send_queue_mutex);
 
 			if (packet.is_null()) {
 				packet.instance();
@@ -852,14 +850,14 @@ ratio_sync:
 	if (_viewport_aspect_ratio_syncing) {
 		Vector2 size = control_to_show_in->get_size();
 
-		send_queue_mutex->lock();
+		Mutex_lock(send_queue_mutex);
 		Ref<GRPacketClientStreamAspect> packet = _find_queued_packet_by_type<Ref<GRPacketClientStreamAspect> >();
 		if (packet.is_valid()) {
 			packet->set_aspect(size.x / size.y);
-			send_queue_mutex->unlock();
+			Mutex_unlock(send_queue_mutex);
 			return;
 		}
-		send_queue_mutex->unlock();
+		Mutex_unlock(send_queue_mutex);
 
 		if (packet.is_null()) {
 			packet.instance();
@@ -949,14 +947,14 @@ void GRClient::_reset_counters() {
 }
 
 void GRClient::set_server_setting(ENUM_ARG(TypesOfServerSettings) param, Variant value) {
-	send_queue_mutex->lock();
+	Mutex_lock(send_queue_mutex);
 	Ref<GRPacketServerSettings> packet = _find_queued_packet_by_type<Ref<GRPacketServerSettings> >();
 	if (packet.is_valid()) {
 		packet->add_setting(param, value);
-		send_queue_mutex->unlock();
+		Mutex_unlock(send_queue_mutex);
 		return;
 	}
-	send_queue_mutex->unlock();
+	Mutex_unlock(send_queue_mutex);
 
 	if (packet.is_null()) {
 		packet.instance();
@@ -1160,11 +1158,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	Ref<StreamPeerTCP> connection = con_thread->peer;
 	Ref<PacketPeerStream> ppeer = con_thread->ppeer;
 
-#ifndef GDNATIVE_LIBRARY
-	Thread *_img_thread = nullptr;
-#else
-	Ref<Thread> _img_thread;
-#endif
+	Thread_define(_img_thread);
 
 	bool _is_processing_img = false;
 
@@ -1188,7 +1182,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 	TimeCountInit();
 	while (!con_thread->break_connection && connection->is_connected_to_host()) {
-		dev->connection_mutex->lock();
+		Mutex_lock(dev->connection_mutex);
 		if (con_thread->break_connection || !connection->is_connected_to_host())
 			break;
 		TimeCount("Cycle start");
@@ -1309,7 +1303,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 				ipsc->size = pack->get_size();
 				ipsc->format = pack->get_format();
 				ipsc->_is_processing_img = &_is_processing_img;
-				_img_thread = Thread_create(GRClient, _thread_image_decoder, ipsc, dev);
+				Thread_start(_img_thread, GRClient, _thread_image_decoder, ipsc, dev);
 			}
 
 			pack.unref();
@@ -1444,7 +1438,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 		}
 		TimeCount("End receiving");
 	end_recv:
-		dev->connection_mutex->unlock();
+		Mutex_unlock(dev->connection_mutex);
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after receiving!", LogLevel::LL_ERROR);
@@ -1460,7 +1454,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 	dev->_send_queue_resize(0);
 
-	dev->connection_mutex->unlock();
+	Mutex_unlock(dev->connection_mutex);
 	stream_queue.clear();
 
 	if (connection->is_connected_to_host()) {

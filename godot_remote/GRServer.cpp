@@ -311,7 +311,8 @@ void GRServer::_init() {
 	GRDevice::_init();
 #endif
 
-	connection_mutex = Mutex_create();
+	Mutex_create(connection_mutex);
+
 	custom_input_scene_regex_resource_finder.instance();
 	custom_input_scene_regex_resource_finder->compile(custom_input_scene_regex_resource_finder_pattern);
 	init_server_utils();
@@ -322,13 +323,11 @@ void GRServer::_deinit() {
 	if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
 		_internal_call_only_deffered_stop();
 	}
-	connection_mutex->unlock();
-	memdelete(connection_mutex);
-	connection_mutex = nullptr;
+	Mutex_unlock(connection_mutex);
+	Mutex_delete(connection_mutex);
 
-	send_queue_mutex->unlock();
-	memdelete(send_queue_mutex);
-	send_queue_mutex = nullptr;
+	Mutex_unlock(send_queue_mutex);
+	Mutex_delete(send_queue_mutex);
 
 	custom_input_scene_regex_resource_finder.unref();
 	deinit_server_utils();
@@ -360,7 +359,7 @@ void GRServer::_internal_call_only_deffered_start() {
 
 	server_thread_listen = memnew(ListenerThreadParamsServer);
 	server_thread_listen->dev = this;
-	server_thread_listen->thread_ref = Thread_create(GRServer, _thread_listen, server_thread_listen, this);
+	Thread_start(server_thread_listen->thread_ref, GRServer, _thread_listen, server_thread_listen, this);
 
 	set_status(WorkingStatus::STATUS_WORKING);
 	call_deferred("_load_settings");
@@ -393,7 +392,7 @@ void GRServer::_internal_call_only_deffered_stop() {
 	resize_viewport = nullptr;
 
 	_send_queue_resize(0);
-	send_queue_mutex->unlock();
+	Mutex_unlock(send_queue_mutex);
 
 	set_status(WorkingStatus::STATUS_STOPPED);
 
@@ -692,7 +691,7 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 						dev->custom_input_scene_was_updated = false;
 						dev->client_connected++;
 
-						connection_thread_info->thread_ref = Thread_create(GRServer, _thread_connection, connection_thread_info, dev);
+						Thread_start(connection_thread_info->thread_ref, GRServer, _thread_connection, connection_thread_info, dev);
 						_log("New connection from " + address, LogLevel::LL_NORMAL);
 
 						dev->call_deferred("emit_signal", "client_connected", dev_id);
@@ -1569,7 +1568,7 @@ void GRSViewport::_notification(int p_notification) {
 				TimeCount("Get image data from VisualServer");
 
 				if (!img_is_empty(last_image)) {
-					_thread_process = Thread_create(GRSViewport, _processing_thread, this, this);
+					Thread_start(_thread_process, GRSViewport, _processing_thread, this, this);
 				} else {
 					_log("Can't copy viewport image data", LogLevel::LL_ERROR);
 				}
