@@ -292,8 +292,8 @@ bool GRPacketCustomInputScene::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
 	scene_path = buf->get_string();
 	compressed = buf->get_8();
-	compression_type = buf->get_8();
-	original_data_size = buf->get_32();
+	compression_type = (uint8_t)buf->get_8();
+	original_data_size = (int)buf->get_32();
 	scene_data = buf->get_var();
 	return true;
 }

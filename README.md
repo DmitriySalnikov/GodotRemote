@@ -394,9 +394,25 @@ void send_user_data(packet_id: Variant, user_data: Variant, full_objects: bool =
 # @return average FPS
 float get_avg_fps()
 
+# Get minimum FPS
+# @return minimum FPS
+float get_min_fps()
+
+# Get maximum FPS
+# @return maximum FPS
+float get_max_fps()
+
 # Get average ping
 # @return average ping
 float get_avg_ping()
+
+# Get minimum ping
+# @return minimum ping
+float get_min_ping()
+
+# Get maximum ping
+# @return maximum ping
+float get_max_ping()
 
 # Get device status
 WorkingStatus get_status()

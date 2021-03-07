@@ -164,7 +164,7 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void* handle) {
 	register_class<GRServer>();
 	register_class<GRServer::ListenerThreadParamsServer>();
 	register_class<GRServer::ConnectionThreadParamsServer>();
-	register_class<GRSViewport::ImgProcessingStorageViewport>();
+	register_class<GRSViewport::ImgProcessingViewportStorage>();
 	register_class<GRSViewport>();
 	register_class<GRSViewportRenderer>();
 #endif

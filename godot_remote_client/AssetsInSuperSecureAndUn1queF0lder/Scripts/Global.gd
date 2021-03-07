@@ -1,9 +1,15 @@
 extends Node
 
 enum RateState{
-	NotNow,
-	No,
-	Yes,
+	NotNow = 0,
+	No = 1,
+	Yes = 2,
+}
+
+enum StatInfoState{
+	Hidden = 0,
+	Simple = 1,
+	Detailed = 2,
 }
 
 signal show_stats_changed(state)
@@ -31,7 +37,7 @@ var sync_viewport_aspect_ratio : bool = true setget set_sync_viewport_aspect_rat
 var keepscreenon : bool = false setget set_keep_screen_on
 var capture_input_when_custom_scene : bool = false setget set_capture_input_when_custom_scene
 
-var show_stats : bool = false setget set_show_stats
+var show_stats : int = StatInfoState.Hidden setget set_show_stats
 
 var override_server_settings : bool = false setget set_override_settings
 var sync_server_settings : bool = false setget set_sync_server_settings
@@ -252,7 +258,7 @@ func set_stretch_mode(val : int):
 	stretch_mode = val
 	_save_settings()
 
-func set_show_stats(val : bool):
+func set_show_stats(val : int):
 	show_stats = val
 	_save_settings()
 	emit_signal("show_stats_changed", val)

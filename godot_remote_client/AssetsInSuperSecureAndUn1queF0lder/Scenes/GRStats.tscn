@@ -21,8 +21,8 @@ bg_color = Color( 0, 0, 0, 0.34902 )
 corner_detail = 1
 
 [node name="GRStats" type="PanelContainer"]
-margin_right = 88.0
-margin_bottom = 48.0
+margin_right = 151.0
+margin_bottom = 44.0
 mouse_filter = 2
 theme = SubResource( 2 )
 custom_styles/panel = SubResource( 3 )
@@ -31,19 +31,56 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="HBoxContainer" type="VBoxContainer" parent="."]
+[node name="Grid" type="GridContainer" parent="."]
 margin_left = 2.0
-margin_right = 88.0
-margin_bottom = 48.0
+margin_right = 151.0
+margin_bottom = 44.0
 mouse_filter = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+custom_constants/vseparation = 0
+custom_constants/hseparation = 4
+columns = 3
 
-[node name="FPS" type="Label" parent="HBoxContainer"]
+[node name="FPS" type="Label" parent="Grid"]
 margin_right = 86.0
 margin_bottom = 22.0
+size_flags_vertical = 1
 text = "FPS:231"
 
-[node name="Ping" type="Label" parent="HBoxContainer"]
-margin_top = 26.0
+[node name="FPS_min" type="Label" parent="Grid"]
+margin_left = 90.0
+margin_right = 112.0
+margin_bottom = 22.0
+size_flags_vertical = 1
+text = "21"
+
+[node name="FPS_max" type="Label" parent="Grid"]
+margin_left = 116.0
+margin_right = 149.0
+margin_bottom = 22.0
+size_flags_vertical = 1
+text = "124"
+
+[node name="Ping" type="Label" parent="Grid"]
+margin_top = 22.0
 margin_right = 86.0
-margin_bottom = 48.0
+margin_bottom = 44.0
+size_flags_vertical = 1
 text = "PING:321"
+
+[node name="Ping_min" type="Label" parent="Grid"]
+margin_left = 90.0
+margin_top = 22.0
+margin_right = 112.0
+margin_bottom = 44.0
+size_flags_vertical = 1
+text = "12"
+
+[node name="Ping_max" type="Label" parent="Grid"]
+margin_left = 116.0
+margin_top = 22.0
+margin_right = 149.0
+margin_bottom = 44.0
+size_flags_vertical = 1
+text = "333"

@@ -13,7 +13,7 @@ if ARGUMENTS.get('godot_remote_disable_client', 'no') == 'yes':
 if env['platform'] == 'windows':
     module_env.add_source_files(env.modules_sources, '*.cpp')
 else:
-    module_env.Append(CXXFLAGS=['-std=c++11']) # Flags for C++ code only
+    module_env.Append(CXXFLAGS=['-std=c++14']) # Flags for C++ code only
     module_env.Append(CCFLAGS=['-O2']) # Flags for C and C++ code
     
     if ARGUMENTS.get('godot_remote_shared', 'no') == 'yes':

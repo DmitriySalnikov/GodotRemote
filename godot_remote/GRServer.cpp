@@ -323,11 +323,7 @@ void GRServer::_deinit() {
 	if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
 		_internal_call_only_deffered_stop();
 	}
-	Mutex_unlock(connection_mutex);
 	Mutex_delete(connection_mutex);
-
-	Mutex_unlock(send_queue_mutex);
-	Mutex_delete(send_queue_mutex);
 
 	custom_input_scene_regex_resource_finder.unref();
 	deinit_server_utils();
@@ -392,7 +388,6 @@ void GRServer::_internal_call_only_deffered_stop() {
 	resize_viewport = nullptr;
 
 	_send_queue_resize(0);
-	Mutex_unlock(send_queue_mutex);
 
 	set_status(WorkingStatus::STATUS_STOPPED);
 
@@ -507,17 +502,17 @@ void GRServer::_load_settings() {
 }
 
 void GRServer::_update_settings_from_client(const std::map<int, Variant> settings) {
-#define SET_BODY(_func, _id, _text, _type)                                                                                     \
-	if (_func(value)) {                                                                                                        \
+#define SET_BODY(_func, _id, _text, _type)                                                                                                           \
+	if (_func(value)) {                                                                                                                              \
 		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value)), GRNotifications::NotificationIcon::ICON_NONE, 1.f); \
-		using_client_settings = true;                                                                                          \
-		using_client_settings_recently_updated = true;                                                                         \
+		using_client_settings = true;                                                                                                                \
+		using_client_settings_recently_updated = true;                                                                                               \
 	}
-#define SET_BODY_CONVERT(_func, _conv, _id, _text, _type)                                                                      \
-	if (_func(_conv(value))) {                                                                                                 \
+#define SET_BODY_CONVERT(_func, _conv, _id, _text, _type)                                                                                            \
+	if (_func(_conv(value))) {                                                                                                                       \
 		GRNotifications::add_notification_or_update_line(title, _id, _text + str((_type value)), GRNotifications::NotificationIcon::ICON_NONE, 1.f); \
-		using_client_settings = true;                                                                                          \
-		using_client_settings_recently_updated = true;                                                                         \
+		using_client_settings = true;                                                                                                                \
+		using_client_settings_recently_updated = true;                                                                                               \
 	}
 
 	const String title = "Server settings updated";
@@ -640,7 +635,7 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 				}
 
 				listening_error_notification_shown = true;
-				os->delay_usec(1000_ms);
+				sleep_usec(1000_ms);
 				continue;
 			} else {
 				_log("Start listening port " + str(dev->port), LogLevel::LL_NORMAL);
@@ -665,7 +660,7 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 		if (srv->is_connection_available()) {
 			Ref<StreamPeerTCP> con = srv->take_connection();
 			con->set_no_delay(true);
-			String address = CON_ADDRESS(con);
+			String address = CONNECTION_ADDRESS(con);
 
 			Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
 			ppeer->set_stream_peer(con);
@@ -715,7 +710,7 @@ void GRServer::_thread_listen(THREAD_DATA p_userdata) {
 			}
 		} else {
 			_log("Waiting...", LogLevel::LL_DEBUG);
-			os->delay_usec(33_ms);
+			sleep_usec(33_ms);
 		}
 	}
 
@@ -745,7 +740,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 	Error err = Error::OK;
 
 	Input::MouseMode mouse_mode = Input::MOUSE_MODE_VISIBLE;
-	String address = CON_ADDRESS(connection);
+	String address = CONNECTION_ADDRESS(connection);
 	Thread_set_name("GR_connection " + address);
 
 	uint64_t time64 = os->get_ticks_usec();
@@ -803,6 +798,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 		}
 
 		// IMAGE
+		TimeCountReset();
 		time64 = os->get_ticks_usec();
 		// if image compressed and data is ready
 		if (dev->resize_viewport && !dev->resize_viewport->is_queued_for_deletion() &&
@@ -845,6 +841,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 		}
 
 		// SERVER SETTINGS
+		TimeCountReset();
 		time64 = os->get_ticks_usec();
 		if (time64 - prev_send_settings_time > 1000_ms && dev->using_client_settings) {
 			prev_send_settings_time = time64;
@@ -870,6 +867,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 		}
 
 		// MOUSE MODE
+		TimeCountReset();
 		if (input->get_mouse_mode() != mouse_mode) {
 			nothing_happens = false;
 			mouse_mode = input->get_mouse_mode();
@@ -886,6 +884,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 		}
 
 		// PING
+		TimeCountReset();
 		time64 = os->get_ticks_usec();
 		if ((time64 - prev_ping_sending_time) > 100_ms && !ping_sended) {
 			nothing_happens = false;
@@ -903,6 +902,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 		}
 
 		// CUSTOM INPUT SCENE
+		TimeCountReset();
 		if (!dev->custom_input_scene_was_updated) {
 			dev->custom_input_scene_was_updated = true;
 
@@ -923,6 +923,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 		}
 
 		// SEND QUEUE
+		TimeCountReset();
 		while (!dev->send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
 			is_queued_send = true;
 			Ref<GRPacket> packet = dev->_send_queue_pop_front();
@@ -936,8 +937,9 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 				}
 			}
 		}
-		if (is_queued_send)
+		if (is_queued_send) {
 			TimeCount("Send queued data");
+		}
 
 	end_send:
 
@@ -949,6 +951,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 
 		///////////////////////////////////////////////////////////////////
 		// RECEIVING
+		TimeCountReset();
 		uint64_t recv_start_time = os->get_ticks_usec();
 		while (connection->is_connected_to_host() && ppeer->get_available_packet_count() > 0 &&
 				(os->get_ticks_usec() - recv_start_time) < send_data_time_us / 2) {
@@ -1105,7 +1108,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 		}
 
 		if (nothing_happens) // for less cpu using
-			os->delay_usec(1_ms);
+			sleep_usec(1_ms);
 	}
 
 	_log("Closing connection thread with address: " + address, LogLevel::LL_DEBUG);
@@ -1154,7 +1157,7 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream>
 		return _r;                       \
 	}
 #define wait_packet(_n)                                                                                   \
-	time = (uint32_t)OS::get_singleton()->get_ticks_msec();                                                         \
+	time = (uint32_t)OS::get_singleton()->get_ticks_msec();                                               \
 	while (ppeer->get_available_packet_count() == 0) {                                                    \
 		if (OS::get_singleton()->get_ticks_msec() - time > 150) {                                         \
 			_log("Connection timeout. Refusing " + address + ". Waited: " + str(_n), LogLevel::LL_DEBUG); \
@@ -1163,11 +1166,11 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream>
 		if (!con->is_connected_to_host()) {                                                               \
 			return GRDevice::AuthResult::Error;                                                           \
 		}                                                                                                 \
-		OS::get_singleton()->delay_usec(1_ms);                                                            \
+		sleep_usec(1_ms);                                                                                 \
 	}
 
 	Ref<StreamPeerTCP> con = ppeer->get_stream_peer();
-	String address = CON_ADDRESS(con);
+	String address = CONNECTION_ADDRESS(con);
 	uint32_t time = 0;
 
 	Error err = Error::OK;
@@ -1277,7 +1280,8 @@ Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_
 				} else {
 
 					// if OK show which files added
-					_log("Files added to custom input PCK:\n" + str_arr(files, true, 0, ",\n"), LogLevel::LL_NORMAL);
+					_log(str(files.size()) + " files added to custom input PCK", LogLevel::LL_NORMAL);
+					_log(str_arr(files, true, 0, ",\n"), LogLevel::LL_DEBUG);
 
 #ifndef GDNATIVE_LIBRARY
 					FileAccess *file = FileAccess::open(pck_file, FileAccess::ModeFlags::READ, &err);
@@ -1385,8 +1389,20 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, std::vector<
 		if ((int)err) {
 			_log(".import file not found for " + imp, LogLevel::LL_DEBUG);
 		} else {
-			if (is_vector_contains(_arr, imp)) {
+			if (!is_vector_contains(_arr, imp)) {
 				_arr.push_back(imp);
+			}
+		}
+		// Check for .md5 files in .import folder
+		String imp_folder = "res://.import/"; // workaround for GDNative
+		if (_d.begins_with(imp_folder)) {
+			String md5 = _d.get_basename() + ".md5";
+			text += file_get_as_string(md5, &err);
+			// Not error == OK
+			if (!(int)err) {
+				if (!is_vector_contains(_arr, md5)) {
+					_arr.push_back(md5);
+				}
 			}
 		}
 
@@ -1408,80 +1424,84 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, std::vector<
 
 void GRSViewport::_processing_thread(THREAD_DATA p_user) {
 	GRSViewport *vp = (GRSViewport *)p_user;
-	ImgProcessingStorageViewport *ips = memnew(ImgProcessingStorageViewport);
 
-#ifndef GDNATIVE_LIBRARY
-	vp->
-#endif
-			_TS_LOCK_;
+	while (vp->is_thread_active) {
+		TimeCountInit();
+		vp->_TS_LOCK_;
 
-	Ref<Image> img = vp->last_image;
+		if (img_is_empty(vp->last_image)) {
+			vp->_TS_UNLOCK_;
+			sleep_usec(1_ms);
+			continue;
+		}
 
-#ifndef GDNATIVE_LIBRARY
-	vp->
-#endif
-			_TS_UNLOCK_;
+		ImgProcessingViewportStorage *ips = memnew(ImgProcessingViewportStorage);
+		Ref<Image> img = vp->last_image;
+		vp->last_image = newref(Image);
 
-	TimeCountInit();
-	if (!ips) {
-		goto end;
-	}
+		vp->_TS_UNLOCK_;
 
-	ips->width = (int)img->get_width();
-	ips->height = (int)img->get_height();
-	ips->compression_type = vp->compression_type;
-	ips->jpg_quality = vp->jpg_quality;
-
-	ips->format = img->get_format();
-	if (!(ips->format == Image::FORMAT_RGBA8 || ips->format == Image::FORMAT_RGB8)) {
-		img->convert(Image::FORMAT_RGB8);
-		ips->format = img->get_format();
-
-		if (ips->format != Image::FORMAT_RGB8) {
-			_log("Can't convert stream image to RGB8.", LogLevel::LL_ERROR);
-			GRNotifications::add_notification("Stream Error", "Can't convert stream image to RGB8.", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+		if (!ips) {
 			goto end;
 		}
 
-		TimeCount("Image Convert");
-	}
-	ips->bytes_in_color = img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
+		ips->width = (int)img->get_width();
+		ips->height = (int)img->get_height();
+		ips->compression_type = vp->compression_type;
+		ips->jpg_quality = vp->jpg_quality;
 
-	if (img->get_data().size() == 0)
-		goto end;
+		ips->format = img->get_format();
+		if (!(ips->format == Image::FORMAT_RGBA8 || ips->format == Image::FORMAT_RGB8)) {
+			img->convert(Image::FORMAT_RGB8);
+			ips->format = img->get_format();
 
-	switch (ips->compression_type) {
-		case GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED: {
-			ips->ret_data = img->get_data();
-			TimeCount("Image Uncompressed");
-			break;
+			if (ips->format != Image::FORMAT_RGB8) {
+				_log("Can't convert stream image to RGB8.", LogLevel::LL_ERROR);
+				GRNotifications::add_notification("Stream Error", "Can't convert stream image to RGB8.", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+				goto end;
+			}
+
+			TimeCount("Image Convert");
 		}
-		case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
-			if (!img_is_empty(img)) {
-				Error err = compress_jpg(ips->ret_data, img->get_data(), ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRServer::Subsampling::SUBSAMPLING_H2V2);
-				if ((int)err) {
-					_log("Can't compress stream image JPG. Code: " + str((int)err), LogLevel::LL_ERROR);
-					GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+		ips->bytes_in_color = img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
+
+		if (img->get_data().size() == 0)
+			goto end;
+
+		switch (ips->compression_type) {
+			case GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED: {
+				ips->ret_data = img->get_data();
+				TimeCount("Image Uncompressed");
+				break;
+			}
+			case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
+				if (!img_is_empty(img)) {
+					Error err = compress_jpg(ips->ret_data, img->get_data(), ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRServer::Subsampling::SUBSAMPLING_H2V2);
+					if ((int)err) {
+						_log("Can't compress stream image JPG. Code: " + str((int)err), LogLevel::LL_ERROR);
+						GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+					}
 				}
+				TimeCount("Image JPG");
+				break;
 			}
-			TimeCount("Image JPG");
-			break;
-		}
-		case GRDevice::ImageCompressionType::COMPRESSION_PNG: {
-			ips->ret_data = img->save_png_to_buffer();
-			if (ips->ret_data.size() == 0) {
-				_log("Can't compress stream image to PNG.", LogLevel::LL_ERROR);
-				GRNotifications::add_notification("Stream Error", "Can't compress stream image to PNG.", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+			case GRDevice::ImageCompressionType::COMPRESSION_PNG: {
+				ips->ret_data = img->save_png_to_buffer();
+				if (ips->ret_data.size() == 0) {
+					_log("Can't compress stream image to PNG.", LogLevel::LL_ERROR);
+					GRNotifications::add_notification("Stream Error", "Can't compress stream image to PNG.", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+				}
+				TimeCount("Image PNG");
+				break;
 			}
-			TimeCount("Image PNG");
-			break;
+			default:
+				_log("Not implemented compression type: " + str((int)ips->compression_type), LogLevel::LL_ERROR);
+				break;
 		}
-		default:
-			_log("Not implemented compression type: " + str((int)ips->compression_type), LogLevel::LL_ERROR);
-			break;
+	end:
+		if (vp->video_stream_enabled)
+			vp->_set_img_data(ips);
 	}
-end:
-	vp->_set_img_data(ips);
 }
 
 #ifndef GDNATIVE_LIBRARY
@@ -1511,7 +1531,7 @@ void GRSViewport::_register_methods() {
 
 #endif
 
-void GRSViewport::_set_img_data(ImgProcessingStorageViewport *_data) {
+void GRSViewport::_set_img_data(ImgProcessingViewportStorage *_data) {
 	_TS_LOCK_;
 	if (last_image_data)
 		memdelete(last_image_data);
@@ -1536,12 +1556,31 @@ void GRSViewport::_notification(int p_notification) {
 			_deinit();
 			break;
 		case NOTIFICATION_PROCESS: {
-			_close_thread();
+			frames_from_prev_image++;
 
-			if (!video_stream_enabled) {
+			if (video_stream_enabled) {
+				is_empty_image_sended = false;
+
+				if (frames_from_prev_image > skip_frames && img_is_empty(last_image)) {
+					frames_from_prev_image = 0;
+
+					if (get_texture().is_null())
+						break;
+
+					_TS_LOCK_;
+
+					last_image = get_texture()->get_data(); // extremely slow
+					TimeCount("Get image data from VisualServer");
+
+					if (img_is_empty(last_image))
+						_log("Can't copy viewport image data", LogLevel::LL_ERROR);
+
+					_TS_UNLOCK_;
+				}
+			} else {
 				if (!is_empty_image_sended) {
 					is_empty_image_sended = true;
-					ImgProcessingStorageViewport *ipsv = memnew(ImgProcessingStorageViewport);
+					ImgProcessingViewportStorage *ipsv = memnew(ImgProcessingViewportStorage);
 					ipsv->width = 0;
 					ipsv->height = 0;
 					ipsv->format = Image::Format::FORMAT_RGB8;
@@ -1550,29 +1589,6 @@ void GRSViewport::_notification(int p_notification) {
 					ipsv->is_empty = true;
 					_set_img_data(ipsv);
 				}
-
-				return;
-			}
-
-			is_empty_image_sended = false;
-
-			frames_from_prev_image++;
-			if (frames_from_prev_image > skip_frames) {
-				frames_from_prev_image = 0;
-
-				if (get_texture().is_null())
-					break;
-
-				_TS_LOCK_;
-				last_image = get_texture()->get_data(); // extremely slow
-				TimeCount("Get image data from VisualServer");
-
-				if (!img_is_empty(last_image)) {
-					Thread_start(_thread_process, GRSViewport, _processing_thread, this, this);
-				} else {
-					_log("Can't copy viewport image data", LogLevel::LL_ERROR);
-				}
-				_TS_UNLOCK_;
 			}
 			break;
 		}
@@ -1627,7 +1643,7 @@ void GRSViewport::_update_size() {
 	}
 }
 
-GRSViewport::ImgProcessingStorageViewport *GRSViewport::get_last_compressed_image_data() {
+GRSViewport::ImgProcessingViewportStorage *GRSViewport::get_last_compressed_image_data() {
 	_TS_LOCK_;
 	auto res = last_image_data;
 	last_image_data = nullptr;
@@ -1704,10 +1720,18 @@ void GRSViewport::_init() {
 	set_shadow_atlas_quadrant_subdiv(1, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
 	set_shadow_atlas_quadrant_subdiv(2, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
 	set_shadow_atlas_quadrant_subdiv(3, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
+
+	_TS_LOCK_;
+	last_image = newref(Image);
+	_TS_UNLOCK_;
+	is_thread_active = true;
+	Thread_start(_thread_process, GRSViewport, _processing_thread, this, this);
 }
 
 void GRSViewport::_deinit() {
 	LEAVE_IF_EDITOR();
+
+	is_thread_active = false;
 	_close_thread();
 
 	_TS_LOCK_;

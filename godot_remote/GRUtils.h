@@ -3,7 +3,9 @@
 #define GRUTILS_H
 
 #include <algorithm>
+#include <deque>
 #include <map>
+#include <queue>
 #include <vector>
 
 #ifndef GDNATIVE_LIBRARY
@@ -37,6 +39,9 @@
 #include <Variant.hpp>
 using namespace godot;
 #endif
+
+// =================================================================
+// CONDITIONAL DEFINES
 
 #ifndef GDNATIVE_LIBRARY
 #define ENUM_ARG(en) en
@@ -86,9 +91,10 @@ using namespace godot;
 #define Thread_define(_var) class Thread _var
 #define Thread_start(_var, _class, function, data_to_send, inst) _var.start(&_class::function, data_to_send)
 #define Thread_close(_name) \
-	t_wait_to_finish(_name);
+	if (_name.is_started()) \
+		t_wait_to_finish(_name);
 #else
-#define Mutex_define(_var) Mutex* _var = nullptr
+#define Mutex_define(_var) Mutex *_var = nullptr
 #define Mutex_create(_var) _var = Mutex::create()
 #define Mutex_delete(_var) \
 	if (_var) {            \
@@ -267,14 +273,17 @@ protected:
 
 #endif
 
+// =================================================================
+// DEBUG DEFINES
+
 #ifdef DEBUG_ENABLED
 
-#define TimeCountInit() int simple_time_counter = (int)OS::get_singleton()->get_ticks_usec()
-#define TimeCountReset() simple_time_counter = (int)OS::get_singleton()->get_ticks_usec()
+#define TimeCountInit() uint64_t simple_time_counter = OS::get_singleton()->get_ticks_usec()
+#define TimeCountReset() simple_time_counter = OS::get_singleton()->get_ticks_usec()
 // Shows delta between this and previous counter. Need to call TimeCountInit before
-#define TimeCount(str)                                                                                                                                                        \
-	GRUtils::_log(str + String(": ") + String::num(((int)OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0, 3) + " ms", GodotRemote::LogLevel::LL_DEBUG); \
-	simple_time_counter = (int)OS::get_singleton()->get_ticks_usec()
+#define TimeCount(str)                                                                                                                                                   \
+	GRUtils::_log(str + String(": ") + String::num((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0, 3) + " ms", GodotRemote::LogLevel::LL_DEBUG); \
+	simple_time_counter = OS::get_singleton()->get_ticks_usec()
 #else
 
 #define TimeCountInit()
@@ -282,6 +291,11 @@ protected:
 #define TimeCount(str)
 
 #endif // DEBUG_ENABLED
+
+// =================================================================
+// GLOBAL DEFINES
+
+#define sleep_usec(usec) OS::get_singleton()->delay_usec(usec)
 
 #define LEAVE_IF_EDITOR()                          \
 	if (Engine::get_singleton()->is_editor_hint()) \
@@ -308,7 +322,7 @@ protected:
 		_grutils_data->internal_PACKET_HEADER.append(d);     \
 	}
 
-#define CON_ADDRESS(con) str(con->get_connected_host()) + ":" + str(con->get_connected_port())
+#define CONNECTION_ADDRESS(con) str(con->get_connected_host()) + ":" + str(con->get_connected_port())
 
 // Get Project Setting
 #define GET_PS(setting_name) \
@@ -327,6 +341,27 @@ enum LogLevel : int {
 
 namespace GRUtils {
 // DEFINES
+
+template <typename T, typename Container = std::deque<T> >
+class iterable_queue : public std::queue<T, Container> {
+public:
+	typedef typename Container::iterator iterator;
+	typedef typename Container::const_iterator const_iterator;
+
+	iterator begin() { return this->c.begin(); }
+	iterator end() { return this->c.end(); }
+	const_iterator begin() const { return this->c.begin(); }
+	const_iterator end() const { return this->c.end(); }
+	void add_value_limited(T value, uint32_t limit) {
+		if (value > 100000)
+			this->push(100000);
+		else
+			this->push(value);
+		while (this->size() > limit) {
+			this->pop();
+		}
+	}
+};
 
 class GRUtilsData : public Object {
 	GD_CLASS(GRUtilsData, Object);
@@ -513,6 +548,30 @@ static PoolByteArray get_gr_version() {
 
 static void set_log_level(int lvl) {
 	_grutils_data->current_loglevel = lvl;
+}
+
+template <typename T>
+inline void calculate_avg_min_max_values(const iterable_queue<T> &v, float *avg_val, float *min_val, float *max_val, float(modifier)(double)) {
+	if (v.size() > 0) {
+		double sum = 0;
+		*min_val = (float)v.back();
+		*max_val = (float)v.back();
+
+		for (T i : v) {
+			sum += i;
+			if (i < *min_val)
+				*min_val = (float)i;
+			else if (i > *max_val)
+				*max_val = (float)i;
+		}
+		*avg_val = modifier(sum / v.size());
+		*min_val = modifier(*min_val);
+		*max_val = modifier(*max_val);
+	} else {
+		*avg_val = 0;
+		*min_val = 0;
+		*max_val = 0;
+	}
 }
 
 template <class T>

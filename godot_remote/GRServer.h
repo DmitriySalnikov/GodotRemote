@@ -178,12 +178,12 @@ public:
 class GRSViewport : public Viewport {
 	GD_CLASS(GRSViewport, Viewport);
 	friend GRServer;
-	friend class ImgProcessingStorageViewport;
+	friend class ImgProcessingViewportStorage;
 	_TS_CLASS_;
 
 public:
-	class ImgProcessingStorageViewport : public Object {
-		GD_CLASS(ImgProcessingStorageViewport, Object);
+	class ImgProcessingViewportStorage : public Object {
+		GD_CLASS(ImgProcessingViewportStorage, Object);
 
 	public:
 		PoolByteArray ret_data;
@@ -198,7 +198,7 @@ public:
 			ret_data = PoolByteArray();
 		};
 
-		~ImgProcessingStorageViewport() {
+		~ImgProcessingViewportStorage() {
 			LEAVE_IF_EDITOR();
 			ret_data.resize(0);
 		}
@@ -208,10 +208,10 @@ private:
 	Thread_define(_thread_process);
 
 	Ref<Image> last_image;
-	ImgProcessingStorageViewport *last_image_data = nullptr;
+	ImgProcessingViewportStorage *last_image_data = nullptr;
 
 	void _close_thread() { Thread_close(_thread_process); }
-	void _set_img_data(ImgProcessingStorageViewport *_data);
+	void _set_img_data(ImgProcessingViewportStorage *_data);
 	void _on_renderer_deleting();
 
 	THREAD_FUNC void _processing_thread(THREAD_DATA p_user);
@@ -228,6 +228,7 @@ protected:
 
 	uint16_t frames_from_prev_image = 0;
 	bool is_empty_image_sended = false;
+	bool is_thread_active = false;
 
 #ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
@@ -242,7 +243,7 @@ protected:
 	void _update_size();
 
 public:
-	ImgProcessingStorageViewport *get_last_compressed_image_data();
+	ImgProcessingViewportStorage *get_last_compressed_image_data();
 	bool has_compressed_image_data();
 	void force_get_image();
 

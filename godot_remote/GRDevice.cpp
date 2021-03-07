@@ -19,7 +19,11 @@ void GRDevice::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_restart"), &GRDevice::_internal_call_only_deffered_restart);
 
 	ClassDB::bind_method(D_METHOD("get_avg_ping"), &GRDevice::get_avg_ping);
+	ClassDB::bind_method(D_METHOD("get_min_ping"), &GRDevice::get_min_ping);
+	ClassDB::bind_method(D_METHOD("get_max_ping"), &GRDevice::get_max_ping);
 	ClassDB::bind_method(D_METHOD("get_avg_fps"), &GRDevice::get_avg_fps);
+	ClassDB::bind_method(D_METHOD("get_min_fps"), &GRDevice::get_min_fps);
+	ClassDB::bind_method(D_METHOD("get_max_fps"), &GRDevice::get_max_fps);
 
 	ClassDB::bind_method(D_METHOD("get_port"), &GRDevice::get_port);
 	ClassDB::bind_method(D_METHOD("set_port", "port"), &GRDevice::set_port, DEFVAL(52341));
@@ -69,7 +73,11 @@ void GRDevice::_register_methods() {
 	METHOD_REG(GRDevice, _internal_call_only_deffered_restart);
 
 	METHOD_REG(GRDevice, get_avg_ping);
+	METHOD_REG(GRDevice, get_min_ping);
+	METHOD_REG(GRDevice, get_max_ping);
 	METHOD_REG(GRDevice, get_avg_fps);
+	METHOD_REG(GRDevice, get_min_fps);
+	METHOD_REG(GRDevice, get_max_fps);
 
 	METHOD_REG(GRDevice, get_port);
 	METHOD_REG(GRDevice, set_port);
@@ -103,24 +111,30 @@ void GRDevice::_notification(int p_notification) {
 }
 
 void GRDevice::_reset_counters() {
-	avg_fps = 0;
-	avg_ping = 0;
+	avg_fps = min_fps = max_fps = 0;
+	avg_ping = min_ping = max_ping = 0;
+	fps_queue = ping_queue = iterable_queue<uint64_t>();
 }
 
 void GRDevice::_update_avg_ping(uint64_t ping) {
-	if (!ping) {
-		avg_ping = 0;
-		return;
-	}
-	avg_ping = (avg_ping * avg_ping_smoothing) + ((float)(ping / 1000.f) * (1.f - avg_ping_smoothing));
+	ping_queue.add_value_limited(ping, avg_ping_max_count);
+	calculate_avg_min_max_values(ping_queue, &avg_ping, &min_ping, &max_ping, &GRDevice::_ping_calc_modifier);
 }
 
 void GRDevice::_update_avg_fps(uint64_t frametime) {
-	if (!frametime) {
-		avg_fps = 0;
-		return;
-	}
-	avg_fps = (avg_fps * avg_fps_smoothing) + ((float)(1000000.f / frametime) * (1.f - avg_fps_smoothing));
+	fps_queue.add_value_limited(frametime, (int)round(Engine::get_singleton()->get_frames_per_second()));
+	calculate_avg_min_max_values(fps_queue, &avg_fps, &min_fps, &max_fps, &GRDevice::_fps_calc_modifier);
+}
+
+float GRDevice::_ping_calc_modifier(double i) {
+	return float(i * 0.001);
+}
+
+float GRDevice::_fps_calc_modifier(double i) {
+	if (i > 0)
+		return float(1000000.0 / i);
+	else
+		return 0;
 }
 
 void GRDevice::send_user_data(Variant packet_id, Variant user_data, bool full_objects) {
@@ -161,8 +175,24 @@ float GRDevice::get_avg_ping() {
 	return avg_ping;
 }
 
+float GRDevice::get_min_ping() {
+	return min_ping;
+}
+
+float GRDevice::get_max_ping() {
+	return max_ping;
+}
+
 float GRDevice::get_avg_fps() {
 	return avg_fps;
+}
+
+float GRDevice::get_min_fps() {
+	return min_fps;
+}
+
+float GRDevice::get_max_fps() {
+	return max_fps;
 }
 
 uint16_t GRDevice::get_port() {
@@ -218,6 +248,7 @@ void GRDevice::_init() {
 
 void GRDevice::_deinit() {
 	LEAVE_IF_EDITOR();
+	Mutex_delete(send_queue_mutex);
 	if (GodotRemote::get_singleton()) {
 		GodotRemote::get_singleton()->device = nullptr;
 	}

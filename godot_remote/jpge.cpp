@@ -934,6 +934,7 @@ namespace jpge {
 	}
 
 	// Higher level wrappers/examples (optional).
+	/*
 #include <stdio.h>
 
 	class cfile_stream : public output_stream
@@ -1012,6 +1013,7 @@ namespace jpge {
 
 		return dst_stream.close();
 	}
+	*/
 
 	class memory_stream : public output_stream
 	{

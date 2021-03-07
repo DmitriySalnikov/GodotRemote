@@ -77,16 +77,20 @@ protected:
 		return T();
 	}
 
-	float avg_ping = 0;
-	float avg_fps = 0;
-	float avg_ping_smoothing = 0.5f;
-	float avg_fps_smoothing = 0.9f;
+	GRUtils::iterable_queue<uint64_t> fps_queue;
+	GRUtils::iterable_queue<uint64_t> ping_queue;
+	float avg_ping = 0, min_ping = 0, max_ping = 0;
+	float avg_fps = 0, min_fps = 0, max_fps = 0;
+	uint32_t avg_ping_max_count = 100;
+
 	Mutex_define(send_queue_mutex);
 	std::vector<Ref<GRPacket> > send_queue;
 
 	void set_status(WorkingStatus status);
 	void _update_avg_ping(uint64_t ping);
 	void _update_avg_fps(uint64_t frametime);
+	static float _ping_calc_modifier(double i);
+	static float _fps_calc_modifier(double i);
 	void _send_queue_resize(int new_size);
 	Ref<GRPacket> _send_queue_pop_front();
 
@@ -109,7 +113,11 @@ public:
 	uint16_t port = 52341;
 
 	float get_avg_ping();
+	float get_min_ping();
+	float get_max_ping();
 	float get_avg_fps();
+	float get_min_fps();
+	float get_max_fps();
 	uint16_t get_port();
 	void set_port(uint16_t _port);
 

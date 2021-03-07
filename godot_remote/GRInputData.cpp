@@ -187,7 +187,7 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 CONSTRUCT(GRIEDataWithModifiers) {
 	GRInputDataEvent::_construct_event(ev, rect);
 	Ref<InputEventWithModifiers> iewm = ev;
-	uint8_t flags = data->get_8();
+	uint8_t flags = (uint8_t)data->get_8();
 	iewm->set_alt(flags & (1 << 0));
 	iewm->set_shift(flags & (1 << 1));
 	iewm->set_control(flags & (1 << 2));
@@ -242,7 +242,7 @@ PARSE(GRIEDataGesture) {
 CONSTRUCT(GRIEDataKey) {
 	GRIEDataWithModifiers::_construct_event(ev, rect);
 	Ref<InputEventKey> iek = ev;
-	uint8_t flags = data->get_8();
+	uint8_t flags = (uint8_t)data->get_8();
 	iek->set_pressed(flags & 1);
 	iek->set_echo((flags >> 1) & 1);
 	iek->set_scancode(data->get_32());
@@ -265,7 +265,7 @@ CONSTRUCT(GRIEDataMouseButton) {
 	Ref<InputEventMouseButton> iemb = ev;
 	iemb->set_factor(data->get_float());
 	iemb->set_button_index(data->get_16());
-	uint8_t flags = data->get_8();
+	uint8_t flags = (uint8_t)data->get_8();
 	iemb->set_pressed(flags & 1);
 	iemb->set_doubleclick((flags >> 1) & 1);
 	return iemb;

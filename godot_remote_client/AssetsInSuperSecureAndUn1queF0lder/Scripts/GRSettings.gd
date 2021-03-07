@@ -24,7 +24,7 @@ onready var fps = $Scroll/H/Grid/OutFps/FPS
 onready var password = $Scroll/H/Grid/PassRow/Pass
 onready var filtering = $Scroll/H/Grid/Filtering
 onready var stretch_mode = $Scroll/H/Grid/StretchMode/Type
-onready var stats = $Scroll/H/Grid/ShowStats
+onready var stats = $Scroll/H/Grid/ShowStats/Type
 onready var sync_orient = $Scroll/H/Grid/SyncOrientation
 onready var sync_aspect = $Scroll/H/Grid/SyncAspect
 onready var keepscreen = $Scroll/H/Grid/KeepScreen
@@ -138,7 +138,7 @@ func update_values():
 	wifi_ip_line.text = d.get_address()
 	stretch_mode.selected = d.stretch_mode
 	fps.value = d.target_send_fps
-	stats.pressed = G.show_stats
+	stats.selected = G.show_stats
 	filtering.pressed = G.texture_filtering
 	password.text = G.password
 	sync_orient.pressed = G.sync_viewport_orientation
@@ -193,6 +193,9 @@ func _server_settings_received(_settings : Dictionary):
 			C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED: video_stream.pressed = v
 	
 	updated_by_code = false
+
+func _on_LogLevelPopupMenu_id_pressed(id: int) -> void:
+	GodotRemote.set_log_level(id)
 
 func _on_button_disable_Timer_timeout():
 	var _status = GodotRemote.get_device().get_status()
@@ -290,8 +293,8 @@ func _on_stretch_Type_item_selected(index):
 	GodotRemote.get_device().stretch_mode = index
 	G.stretch_mode = index
 
-func _on_stats_State_toggled(button_pressed):
-	G.show_stats = button_pressed
+func _on_stats_State_selected_id(id : int):
+	G.show_stats = id
 
 func _on_FPS_value_changed(value):
 	GodotRemote.get_device().target_send_fps = value
