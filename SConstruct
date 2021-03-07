@@ -58,6 +58,8 @@ def add_sources(sources, dir, extension):
 # This is used if no `platform` argument is passed
 if sys.platform.startswith('linux'):
     host_platform = 'linux'
+elif sys.platform.startswith('freebsd'):
+    host_platform = 'freebsd'
 elif sys.platform == 'darwin':
     host_platform = 'osx'
 elif sys.platform == 'win32' or sys.platform == 'msys':
@@ -84,7 +86,7 @@ opts.Add(EnumVariable(
     'platform',
     'Target platform',
     host_platform,
-    allowed_values=('linux', 'osx', 'windows', 'android', 'ios'),
+    allowed_values=('linux', 'freebsd', 'osx', 'windows', 'android', 'ios'),
     ignorecase=2
 ))
 opts.Add(EnumVariable(
@@ -95,7 +97,7 @@ opts.Add(EnumVariable(
 ))
 opts.Add(BoolVariable(
     'use_llvm',
-    'Use the LLVM compiler - only effective when targeting Linux',
+    'Use the LLVM compiler - only effective when targeting Linux or FreeBSD',
     False
 ))
 opts.Add(BoolVariable(
@@ -111,17 +113,46 @@ opts.Add(EnumVariable(
     allowed_values=('debug', 'release'),
     ignorecase=2
 ))
+opts.Add(PathVariable(
+    'headers_dir',
+    'Path to the directory containing Godot headers',
+    'godot-cpp/godot-headers',
+    PathVariable.PathIsDir
+))
+opts.Add(PathVariable(
+    'custom_api_file',
+    'Path to a custom JSON API file',
+    None,
+    PathVariable.PathIsFile
+))
+opts.Add(EnumVariable(
+    'generate_bindings',
+    'Generate GDNative API bindings',
+    'auto',
+    allowed_values = ['yes', 'no', 'auto', 'true'],
+    ignorecase = 2
+))
 opts.Add(EnumVariable(
     'android_arch',
     'Target Android architecture',
     'armv7',
     ['armv7','arm64v8','x86','x86_64']
 ))
+opts.Add(
+    'macos_deployment_target',
+    'macOS deployment target',
+    'default'
+)
 opts.Add(EnumVariable(
     'ios_arch',
     'Target iOS architecture',
     'arm64',
     ['armv7', 'arm64', 'x86_64']
+))
+opts.Add(BoolVariable(
+    'ios_simulator',
+    'Target iOS Simulator',
+    False
 ))
 opts.Add(
     'IPHONEPATH',
@@ -138,6 +169,11 @@ opts.Add(
     'Path to your Android NDK installation. By default, uses ANDROID_NDK_ROOT from your defined environment variables.',
     os.environ.get("ANDROID_NDK_ROOT", None)
 )
+opts.Add(BoolVariable(
+	'generate_template_get_node',
+	"Generate a template version of the Node class's get_node.",
+	True
+))
 
 # GODOT REMOTE CUSTOM OPTIONS
 
@@ -159,10 +195,8 @@ opts.Add(BoolVariable(
 
 # END
 
-# CREATE HELP
 opts.Update(env)
 Help(opts.GenerateHelpText(env))
-# END
 
 # This makes sure to keep the session environment variables on Windows.
 # This way, you can run SCons in a Visual Studio 2017 prompt and it will find
@@ -175,9 +209,8 @@ if host_platform == 'windows' and env['platform'] != 'android':
 
     opts.Update(env)
 
-if env['platform'] == 'linux':
+if env['platform'] == 'linux' or env['platform'] == 'freebsd':
     env['SHLIBSUFFIX'] = '.so'
-    
     if env['use_llvm']:
         env['CXX'] = 'clang++'
 
@@ -200,13 +233,16 @@ elif env['platform'] == 'osx':
     # Use Clang on macOS by default
     env['CXX'] = 'clang++'
     env['SHLIBSUFFIX'] = '.dylib'
-
     if env['bits'] == '32':
         raise ValueError(
             'Only 64-bit builds are supported for the macOS target.'
         )
 
     env.Append(CCFLAGS=['-std=c++14', '-arch', 'x86_64'])
+
+    if env['macos_deployment_target'] != 'default':
+        env.Append(CCFLAGS=['-mmacosx-version-min=' + env['macos_deployment_target']])
+
     env.Append(LINKFLAGS=[
         '-arch',
         'x86_64',
@@ -222,10 +258,10 @@ elif env['platform'] == 'osx':
 
 elif env['platform'] == 'ios':
     env['SHLIBSUFFIX'] = '.dylib'
-
-    if env['ios_arch'] == 'x86_64':
+    if env['ios_simulator']:
         sdk_name = 'iphonesimulator'
         env.Append(CCFLAGS=['-mios-simulator-version-min=10.0'])
+        env['LIBSUFFIX'] = ".simulator" + env['LIBSUFFIX']
     else:
         sdk_name = 'iphoneos'
         env.Append(CCFLAGS=['-miphoneos-version-min=10.0'])
@@ -261,7 +297,6 @@ elif env['platform'] == 'ios':
 
 elif env['platform'] == 'windows':
     env['SHLIBSUFFIX'] = '.dll'
-    
     if host_platform == 'windows' and not env['use_mingw']:
         # MSVC
         env.Append(LINKFLAGS=['/WX'])
@@ -270,7 +305,7 @@ elif env['platform'] == 'windows':
         elif env['target'] == 'release':
             env.Append(CCFLAGS=['/O2', '/EHsc', '/DNDEBUG', '/MD'])
 
-    elif host_platform == 'linux' or host_platform == 'osx':
+    elif host_platform == 'linux' or host_platform == 'freebsd' or host_platform == 'osx':
         # Cross-compilation using MinGW
         if env['bits'] == '64':
             env['CXX'] = 'x86_64-w64-mingw32-g++'
@@ -282,12 +317,17 @@ elif env['platform'] == 'windows':
             env['AR'] = "i686-w64-mingw32-ar"
             env['RANLIB'] = "i686-w64-mingw32-ranlib"
             env['LINK'] = "i686-w64-mingw32-g++"
+    
     elif host_platform == 'windows' and env['use_mingw']:
-        env = env.Clone(tools=['mingw'])
+        # Don't Clone the environment. Because otherwise, SCons will pick up msvc stuff.
+        env = Environment(ENV = os.environ, tools=["mingw"])
+        opts.Update(env)
+        #env = env.Clone(tools=['mingw'])
+
         env["SPAWN"] = mySpawn
 
     # Native or cross-compilation using MinGW
-    if host_platform == 'linux' or host_platform == 'osx' or env['use_mingw']:
+    if host_platform == 'linux' or host_platform == 'freebsd' or host_platform == 'osx' or env['use_mingw']:
         # These options are for a release build even using target=debug
         env.Append(CCFLAGS=['-O3', '-std=c++14', '-Wwrite-strings'])
         env.Append(LINKFLAGS=[
@@ -306,7 +346,11 @@ elif env['platform'] == 'android':
         env.Append(CCFLAGS=['-O3'])
     
     if host_platform == 'windows':
-        env = env.Clone(tools=['mingw'])
+        # Don't Clone the environment. Because otherwise, SCons will pick up msvc stuff.
+        env = Environment(ENV = os.environ, tools=["mingw"])
+        opts.Update(env)
+        #env = env.Clone(tools=['mingw'])
+
         env["SPAWN"] = mySpawn
 
     # Verify NDK root
@@ -360,33 +404,44 @@ elif env['platform'] == 'android':
 
     env.Append(CCFLAGS=['--target=' + arch_info['target'] + env['android_api_level'], '-march=' + arch_info['march'], '-fPIC'])#, '-fPIE', '-fno-addrsig', '-Oz'])
     env.Append(CCFLAGS=arch_info['ccflags'])
-    
-# fix for godot-cpp
-#    env.Append(CCFLAGS=arch_info['ccflags'] + ['-std=c++14', '-stdlib=libc++', '-static-libstdc++']) # -stdlib=libc++ is the most important part of this script :D
-    
+
 arch_suffix = env['bits']
 if env['platform'] == 'android':
     arch_suffix = env['android_arch']
 if env['platform'] == 'ios':
     arch_suffix = env['ios_arch']
 
-lib_arch_dir = ""
-if env["android_arch"] == "armv7":
-    lib_arch_dir = "armeabi-v7a"
-elif env["android_arch"] == "arm64v8":
-    lib_arch_dir = "arm64-v8a"
-elif env["android_arch"] == "x86":
-    lib_arch_dir = "x86"
-elif env["android_arch"] == "x86_64":
-    lib_arch_dir = "x86_64"
-else:
-    print("WARN: Architecture not suitable for embedding into APK; keeping .so at \\bin")
+env.Append(CPPPATH=[
+    '.',
+    env['headers_dir'],
+    'godot_remote',
+    'godot-cpp/include',
+    'godot-cpp/include/gen',
+    'godot-cpp/include/core',
+])
 
-if env['target'] == 'debug':
-    env.Append(CPPDEFINES=['DEBUG_ENABLED'])
-elif env['target'] == 'release':
-    pass
-    #env.Append(CPPDEFINES=[''])
+env.Append(LIBPATH=['godot-cpp/bin/'])
+env.Append(LIBS=[
+        'libgodot-cpp.{}.{}.{}{}'.format( # godot-cpp lib
+        env['platform'],
+        env['target'],
+        arch_suffix,
+        env['LIBSUFFIX']),
+])
+
+# Generate bindings?
+json_api_file = ''
+
+if 'custom_api_file' in env:
+    json_api_file = env['custom_api_file']
+else:
+    json_api_file = os.path.join(os.getcwd(), env['headers_dir'], 'api.json')
+
+if env['generate_bindings'] == 'auto':
+    # Check if generated files exist
+    should_generate_bindings = not os.path.isfile(os.path.join(os.getcwd(), 'src', 'gen', 'Object.cpp'))
+else:
+    should_generate_bindings = env['generate_bindings'] in ['yes', 'true']
 
 env.Append(CPPDEFINES=['GDNATIVE_LIBRARY'])
 
@@ -399,28 +454,10 @@ if env['godot_remote_disable_server'] == True:
 if env['godot_remote_disable_client'] == True:
     env.Append(CPPDEFINES=['NO_GODOTREMOTE_CLIENT'])
 
-env.Append(CPPPATH=[
-    '.',
-    'godot-cpp/godot_headers',
-    'godot_remote',
-    'godot-cpp/include',
-    'godot-cpp/include/gen',
-    'godot-cpp/include/core',
-])
-env.Append(LIBPATH=['godot-cpp/bin/'])
-env.Append(LIBS=[
-        'libgodot-cpp.{}.{}.{}{}'.format( # godot-cpp lib
-        env['platform'],
-        env['target'],
-        arch_suffix,
-        env['LIBSUFFIX']),
-])
-
 # Sources to compile
 sources = []
 add_sources(sources, 'godot_remote', 'cpp')
 
-#library = env.StaticLibrary(
 library = env.SharedLibrary(
     target='bin/' + 'godot_remote.{}.{}.{}{}'.format(
         env['platform'],

@@ -31,6 +31,7 @@ api.json
 .mono/
 obj/
 libs/
+bin/
 
 # exist only for testing
 test.gd
