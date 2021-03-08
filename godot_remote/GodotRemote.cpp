@@ -226,7 +226,7 @@ void GodotRemote::_register_methods() {
 	CONST_REG(GodotRemote, DeviceType, DEVICE_AUTO);
 	CONST_REG(GodotRemote, DeviceType, DEVICE_SERVER);
 	CONST_REG(GodotRemote, DeviceType, DEVICE_CLIENT);
-	
+
 	CONST_REG(GodotRemote, LogLevel, LL_NONE);
 	CONST_REG(GodotRemote, LogLevel, LL_DEBUG);
 	CONST_REG(GodotRemote, LogLevel, LL_NORMAL);
@@ -266,7 +266,7 @@ void GodotRemote::_register_methods() {
 	CONST_REG(GRInputData, InputType, _InputEventScreenTouch);
 	CONST_REG(GRInputData, InputType, _InputEventWithModifiers);
 	CONST_REG(GRInputData, InputType, _InputEventMAX);
-	
+
 	// GRPacket
 	CONST_REG(GRPacket, PacketType, NonePacket);
 	CONST_REG(GRPacket, PacketType, SyncTime);
@@ -349,6 +349,7 @@ bool GodotRemote::is_gdnative() {
 }
 
 bool GodotRemote::create_remote_device(ENUM_ARG(DeviceType) type) {
+	if (!ST()) return false;
 	remove_remote_device();
 
 	GRDevice *d = nullptr;
@@ -482,7 +483,7 @@ void GodotRemote::register_and_load_settings() {
 
 	// client can change this settings
 	DEF_(ps_server_stream_enabled_name, true, Variant::BOOL, PROPERTY_HINT_NONE, "");
-	DEF_(ps_server_compression_type_name, 1/*GRServer::ImageCompressionType::JPG*/, Variant::INT, PROPERTY_HINT_ENUM, "Uncompressed,JPG,PNG");
+	DEF_(ps_server_compression_type_name, 1 /*GRServer::ImageCompressionType::JPG*/, Variant::INT, PROPERTY_HINT_ENUM, "Uncompressed,JPG,PNG");
 	DEF_(ps_server_stream_skip_frames_name, 0, Variant::INT, PROPERTY_HINT_RANGE, "0,1000");
 	DEF_(ps_server_scale_of_sending_stream_name, 0.3f, Variant::REAL, PROPERTY_HINT_RANGE, "0,1,0.01");
 	DEF_(ps_server_jpg_quality_name, 80, Variant::INT, PROPERTY_HINT_RANGE, "0,100");
@@ -494,9 +495,11 @@ void GodotRemote::register_and_load_settings() {
 }
 
 void GodotRemote::_create_notification_manager() {
-	GRNotifications *notif = memnew(GRNotifications);
-	ST()->get_root()->add_child(notif);
-	ST()->get_root()->move_child(notif, 0);
+	if (ST()) {
+		GRNotifications *notif = memnew(GRNotifications);
+		ST()->get_root()->add_child(notif);
+		ST()->get_root()->move_child(notif, 0);
+	}
 }
 
 void GodotRemote::_remove_notifications_manager() {
@@ -519,7 +522,7 @@ void GodotRemote::create_and_start_device(ENUM_ARG(DeviceType) type) {
 #include "editor/editor_settings.h"
 
 void GodotRemote::_prepare_editor() {
-	if (Engine::get_singleton()->is_editor_hint()) {
+	if (Engine::get_singleton() && Engine::get_singleton()->is_editor_hint()) {
 		if (EditorNode::get_singleton())
 			EditorNode::get_singleton()->connect("play_pressed", this, "_run_emitted");
 	}
@@ -567,7 +570,7 @@ void GodotRemote::_adb_start_timer_timeout() {
 	}
 
 	if (adb_start_timer && !adb_start_timer->is_queued_for_deletion() && adb_start_timer->is_inside_tree()) {
-		adb_start_timer->queue_delete();
+		adb_start_timer->queue_del();
 		adb_start_timer = nullptr;
 	}
 }

@@ -19,10 +19,12 @@ const SAVE_FILE := "user://settings.json"
 
 var IsMobile : bool = false
 var Billings : Node = null
+
 var VersionChanged : bool = false
 var PreviousVersion : String = ""
 var AppRuns : int = 0
 var TotalAppRuns : int = 0
+var TouchesToOpenSettings : int = 5 setget set_touches_to_open_settings
 var UserRateState : int = RateState.NotNow setget set_user_rate_state
 
 var device_id : String = "" setget set_device_id
@@ -149,6 +151,7 @@ func _save_settings():
 	d["m_version"] = get_version()
 	d["app_runs"] = AppRuns
 	d["total_app_runs"] = TotalAppRuns
+	d["touches_to_open_settings"] = TouchesToOpenSettings
 	d["user_rate_state"] = UserRateState
 	d["device_id"] = device_id
 	d["con_type"] = connection_type
@@ -206,6 +209,7 @@ func _load_settings():
 				AppRuns = _safe_get_from_dict(d, "app_runs", AppRuns)
 			
 			TotalAppRuns = _safe_get_from_dict(d, "total_app_runs", TotalAppRuns)
+			TouchesToOpenSettings = _safe_get_from_dict(d, "touches_to_open_settings", TouchesToOpenSettings)
 			UserRateState = _safe_get_from_dict(d, "user_rate_state", UserRateState)
 			
 			device_id = _safe_get_from_dict(d, "device_id", device_id)
@@ -237,6 +241,10 @@ func _safe_get_from_dict(dict:Dictionary, val, def):
 
 func get_version() -> String:
 	return "%s.%d" % [GodotRemote.get_version(), CLIENT_VERSION]
+
+func set_touches_to_open_settings(val : int):
+	TouchesToOpenSettings = val
+	_save_settings()
 
 func set_user_rate_state(val : int):
 	UserRateState = val

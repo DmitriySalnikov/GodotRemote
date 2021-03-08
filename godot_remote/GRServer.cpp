@@ -1607,7 +1607,7 @@ void GRSViewport::_notification(int p_notification) {
 		case NOTIFICATION_EXIT_TREE: {
 			if (renderer) {
 				remove_child(renderer);
-				//renderer->queue_delete();
+				//renderer->queue_del();
 				memdelete(renderer);
 			}
 			main_vp->disconnect("size_changed", this, "_update_size");

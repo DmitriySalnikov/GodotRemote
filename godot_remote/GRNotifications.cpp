@@ -422,7 +422,7 @@ void GRNotifications::_init() {
 
 	notif_list_node = memnew(VBoxContainer);
 	notif_list_node->set_name("NotificationList");
-	call_deferred("add_child", notif_list_node);
+	call_deferred("add_child", notif_list_node); // add new function to check ST() and then add_child to prevent leak when generation mono glue
 
 	notif_list_node->set_anchor_and_margin(MARGIN_LEFT, 0.f, 8.f);
 	notif_list_node->set_anchor_and_margin(MARGIN_RIGHT, 1.f, -8.f);

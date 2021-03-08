@@ -29,6 +29,7 @@ onready var sync_orient = $Scroll/H/Grid/SyncOrientation
 onready var sync_aspect = $Scroll/H/Grid/SyncAspect
 onready var keepscreen = $Scroll/H/Grid/KeepScreen
 onready var captureinput = $Scroll/H/Grid/CaptureInput
+onready var touches_to_open = $Scroll/H/Grid/TouchesToOpenSettings/Type
 
 onready var enabled_server_settings = $Scroll/H/Grid/OverrideServerSetting
 onready var sync_server_settings = $Scroll/H/Grid/SyncServerSettings
@@ -145,6 +146,7 @@ func update_values():
 	sync_aspect.pressed = G.sync_viewport_aspect_ratio
 	keepscreen.pressed = G.keepscreenon
 	captureinput.pressed = G.capture_input_when_custom_scene
+	touches_to_open.selected = G.TouchesToOpenSettings - 3
 	
 	enabled_server_settings.pressed = G.override_server_settings
 	sync_server_settings.pressed = G.sync_server_settings
@@ -232,7 +234,7 @@ func _on_Donations_pressed():
 	get_parent().show_support_window()
 
 func _on_Version_pressed():
-	OS.shell_open("https://github.com/DmitriySalnikov/GodotRemote")
+	get_parent().popup_welcome_screen()
 
 func _on_StartStop_pressed():
 	var d = GodotRemote.get_device()
@@ -325,6 +327,9 @@ func _on_CaptureInput_toggled(button_pressed: bool) -> void:
 	G.capture_input_when_custom_scene = button_pressed
 	if GodotRemote.get_device().get_custom_input_scene():
 		GodotRemote.get_device().capture_pointer = button_pressed
+
+func _on_touches_to_open_item_selected(index: int) -> void:
+	G.TouchesToOpenSettings = index + 3
 
 func _on_override_settings_State_toggled(button_pressed):
 	G.override_server_settings = button_pressed

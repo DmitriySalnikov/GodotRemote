@@ -4,6 +4,8 @@ var changelog : Dictionary = {
 "1.0.2.0" : 
 """Client:
 Added detailed ping and fps stats.
+Added the ability to change the number of touches to open the settings.
+Changed the 'Welcome' screen to be more clear. Now it can be reopened by clicking on 'Godot Remote' version in the settings.
 Module:
 Fixed multithreading issues.
 Improved fps and ping counters.

@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=2]
+[gd_scene load_steps=15 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/GodotRemoteClient.gd" type="Script" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalLight.tres" type="DynamicFont" id=2]
@@ -22,6 +22,20 @@ corner_detail = 1
 
 [sub_resource type="Theme" id=2]
 default_font = ExtResource( 2 )
+
+[sub_resource type="GDScript" id=3]
+script/source = "extends Button
+
+func _pressed() -> void:
+	OS.shell_open(\"https://github.com/DmitriySalnikov/GodotRemote#godot-remote\")
+"
+
+[sub_resource type="GDScript" id=4]
+script/source = "extends Button
+
+func _pressed() -> void:
+	get_parent().get_parent().hide()
+"
 
 [node name="GodotRemote" type="Control"]
 anchor_right = 1.0
@@ -285,31 +299,87 @@ margin_bottom = 46.0
 size_flags_horizontal = 3
 text = "Not now"
 
-[node name="FirstLaunchHint" type="WindowDialog" parent="."]
+[node name="FirstLaunchHint" type="PopupPanel" parent="."]
 visible = true
-margin_left = -840.66
-margin_top = 609.805
-margin_right = -240.66
-margin_bottom = 880.805
-rect_min_size = Vector2( 500, 135 )
-window_title = "Hint"
+margin_left = -1558.0
+margin_top = 699.0
+margin_right = -430.0
+margin_bottom = 1368.0
+rect_min_size = Vector2( 700, 503 )
+popup_exclusive = true
 __meta__ = {
-"_edit_lock_": true,
+"_edit_lock_": true
+}
+
+[node name="VBox" type="VBoxContainer" parent="FirstLaunchHint"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = -8.0
+margin_bottom = -8.0
+__meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Label" type="Label" parent="FirstLaunchHint"]
-anchor_right = 1.0
-anchor_bottom = 1.0
+[node name="Label" type="Label" parent="FirstLaunchHint/VBox"]
+margin_right = 1112.0
+margin_bottom = 46.0
 grow_horizontal = 0
 grow_vertical = 0
-text = "To open app settings touch the screen with %d fingers at once"
+text = "Welcome"
 align = 1
 valign = 1
 autowrap = true
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[node name="Label3" type="Label" parent="FirstLaunchHint/VBox"]
+margin_top = 110.0
+margin_right = 1112.0
+margin_bottom = 238.0
+grow_horizontal = 0
+grow_vertical = 0
+size_flags_vertical = 6
+text = "THIS IS NOT A GAME!
+Godot Remote gives you ability to control your Godot Engine projects remotely over WiFi or USB."
+align = 1
+valign = 1
+autowrap = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Button" type="Button" parent="FirstLaunchHint/VBox"]
+margin_top = 303.0
+margin_right = 1112.0
+margin_bottom = 349.0
+text = "Open the documentation page"
+script = SubResource( 3 )
+
+[node name="Label2" type="Label" parent="FirstLaunchHint/VBox"]
+margin_top = 434.0
+margin_right = 1112.0
+margin_bottom = 521.0
+grow_horizontal = 0
+grow_vertical = 0
+size_flags_vertical = 6
+text = "To reopen this screen, click on the 'Godot Remote' version in settings.
+To open app settings touch the screen with %d fingers at once."
+align = 1
+valign = 1
+autowrap = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Button2" type="Button" parent="FirstLaunchHint/VBox"]
+margin_top = 607.0
+margin_right = 1112.0
+margin_bottom = 653.0
+text = "Okay, I get it!"
+script = SubResource( 4 )
 
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button2" to="PlsSupportPopup" method="_on_Button2_pressed"]

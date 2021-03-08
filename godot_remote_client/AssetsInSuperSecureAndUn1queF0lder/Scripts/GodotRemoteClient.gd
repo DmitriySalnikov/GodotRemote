@@ -1,9 +1,9 @@
 extends Control
 
-export(int, 0, 10) var touchs_to_show_settings : int = 5
 var touches : Dictionary = {}
 var mouse_mode : = Input.MOUSE_MODE_VISIBLE
 var support : Control = null
+var orig_welcome_text : String = ""
 
 func _ready():
 	var d = Directory.new()
@@ -28,9 +28,18 @@ func _ready():
 	
 	GodotRemote.get_device().start()
 	
+	connect("item_rect_changed", self, "viewport_size_changed")
+	orig_welcome_text = $FirstLaunchHint/VBox/Label2.text
 	if G.TotalAppRuns == 1:
-		$FirstLaunchHint/Label.text = $FirstLaunchHint/Label.text % touchs_to_show_settings
-		$FirstLaunchHint.popup_centered_clamped()
+		popup_welcome_screen()
+
+func popup_welcome_screen():
+	$FirstLaunchHint/VBox/Label2.text = orig_welcome_text % G.TouchesToOpenSettings
+	$FirstLaunchHint.popup_centered(get_viewport_rect().size)
+
+func viewport_size_changed() -> void:
+	if $FirstLaunchHint.visible:
+		$FirstLaunchHint.rect_size = get_viewport_rect().size
 
 func _mouse_mode_changed(_mode):
 	mouse_mode = _mode
@@ -114,7 +123,7 @@ func _input(e):
 		touches[e.index] = e.pressed
 		if e.pressed:
 			var pressed_count = _count_pressed_touches()
-			if pressed_count >= touchs_to_show_settings:
+			if pressed_count >= G.TouchesToOpenSettings:
 				_show_settings()
 				_release_sceen_touches(pressed_count)
 
