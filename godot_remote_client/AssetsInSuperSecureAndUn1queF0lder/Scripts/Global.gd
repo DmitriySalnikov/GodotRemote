@@ -14,6 +14,7 @@ enum StatInfoState{
 
 signal show_stats_changed(state)
 
+const CLIENT_VERSION := 0
 const SAVE_FILE := "user://settings.json"
 
 var IsMobile : bool = false
@@ -145,7 +146,7 @@ func _set_all_values():
 func _save_settings():
 	var d = Dictionary()
 	
-	d["m_version"] = GodotRemote.get_version()
+	d["m_version"] = get_version()
 	d["app_runs"] = AppRuns
 	d["total_app_runs"] = TotalAppRuns
 	d["user_rate_state"] = UserRateState
@@ -197,8 +198,8 @@ func _load_settings():
 			f.close()
 			var d = parse_json(txt)
 			
-			PreviousVersion = _safe_get_from_dict(d, "m_version", GodotRemote.get_version()) 
-			VersionChanged = PreviousVersion != GodotRemote.get_version()
+			PreviousVersion = _safe_get_from_dict(d, "m_version", get_version()) 
+			VersionChanged = PreviousVersion != get_version()
 			if VersionChanged:
 				AppRuns = 0
 			else:
@@ -233,6 +234,9 @@ func _safe_get_from_dict(dict:Dictionary, val, def):
 	if dict.has(val):
 		return dict[val]
 	return def
+
+func get_version() -> String:
+	return "%s.%d" % [GodotRemote.get_version(), CLIENT_VERSION]
 
 func set_user_rate_state(val : int):
 	UserRateState = val

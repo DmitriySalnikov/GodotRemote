@@ -168,7 +168,7 @@ margin_right = -873.0
 margin_bottom = 641.0
 rect_min_size = Vector2( 500, 540 )
 popup_exclusive = true
-window_title = "Godot Remote Module Updated"
+window_title = "Godot Remote Updated"
 script = ExtResource( 10 )
 __meta__ = {
 "_edit_lock_": true,

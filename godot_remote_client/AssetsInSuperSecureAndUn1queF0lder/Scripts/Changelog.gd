@@ -1,39 +1,52 @@
 extends WindowDialog
 
 var changelog : Dictionary = {
-"1.0.2" : 
-"""Nothing has changed in the functionality.
-API:
+"1.0.2.0" : 
+"""Client:
+Added detailed ping and fps stats.
+Module:
+Fixed multithreading issues.
+Improved fps and ping counters.
 Most enums have been renamed and moved.
 Exposed all classes in GDScript, but did not expose their methods.
+Custom input scenes now adding '.md5' files from '.import' folder.
 """,
 }
 
 func _ready() -> void:
 	if G.VersionChanged:
-		var text = "Current version: %s\nPrevious version: %s\n\n" % [GodotRemote.get_version(), G.PreviousVersion]
+		var text = "Current version: %s\nPrevious version: %s\n\n" % [G.get_version(), G.PreviousVersion]
 		
 		var prev = _get_version_sum(G.PreviousVersion.split("."))
-		var curr = _get_version_sum(GodotRemote.get_version().split("."))
+		var curr = _get_version_sum(G.get_version().split("."))
 		
 		if curr < prev:
 			return
 		
+		var found_logs = false
 		for k in changelog.keys():
 			var v = _get_version_sum(k.split("."))
 			if v > prev and v <= curr:
 				text += "[%s]\n%s\n" % [k, changelog[k]]
+				found_logs = true
+		
+		if not found_logs:
+			text += "No changes were found between these versions."
 		
 		$HBoxContainer/Control/ListOfChanges.text = text
-		$HBoxContainer/HBoxContainer/Button2.visible = _check_need_update_server(G.PreviousVersion, GodotRemote.get_version())
+		$HBoxContainer/HBoxContainer/Button2.visible = _check_need_update_server(G.PreviousVersion, G.get_version())
 		call_deferred("popup_centered")
 
 func _get_version_sum(v : PoolStringArray) -> int:
-	var major = int(v[0]) << 16
-	var minor = int(v[1]) << 8
-	var patch = int(v[2])
+	var major = int(v[0]) << 32
+	var minor = int(v[1]) << 24
+	var patch = int(v[2]) << 16
+	# 16 bits for mobile versions will be enough
+	var mobile = 0
+	if(v.size() > 3):
+		mobile = int(v[3])
 	
-	return major + minor + patch
+	return major + minor + patch + mobile
 
 func _check_need_update_server(prev : String, current : String) -> bool:
 	var p = prev.split(".")
