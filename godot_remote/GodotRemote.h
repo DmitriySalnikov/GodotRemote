@@ -66,6 +66,7 @@ public:
 	static GR_PS_NAME_TYPE ps_noticications_position_name;
 	static GR_PS_NAME_TYPE ps_notifications_duration_name;
 
+	static GR_PS_NAME_TYPE ps_server_image_sequence_buffer_size_name;
 	static GR_PS_NAME_TYPE ps_server_config_adb_name;
 	static GR_PS_NAME_TYPE ps_server_stream_skip_frames_name;
 	static GR_PS_NAME_TYPE ps_server_stream_enabled_name;

@@ -24,7 +24,7 @@ using namespace godot;
 #endif
 
 class GRClient : public GRDevice {
-	GD_S_CLASS(GRClient, GRDevice);
+	GD_CLASS(GRClient, GRDevice);
 
 	friend class GRTextureRect;
 

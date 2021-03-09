@@ -156,30 +156,6 @@ void GRClient::_bind_methods() {
 #else
 
 void GRClient::_register_methods() {
-	///////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////
-	/*
-	METHOD_REG(GRClient::_internal_call_only_deffered_start);
-	METHOD_REG(GRClient::_internal_call_only_deffered_stop);
-
-	METHOD_REG(GRClient::_internal_call_only_deffered_restart);
-
-	METHOD_REG(GRClient::get_avg_ping);
-	METHOD_REG(GRClient::get_avg_fps);
-
-	METHOD_REG(GRClient::get_port);
-	METHOD_REG(GRClient::set_port);
-
-	METHOD_REG(GRClient::start);
-	METHOD_REG(GRClient::stop);
-	METHOD_REG(GRClient::get_status);
-
-	register_signal<GRClient>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
-	register_property<GRClient, uint16_t>("port", &GRClient::set_port, &GRClient::get_port, 52341);
-	*/
-	///////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////
-
 	METHOD_REG(GRClient, _notification);
 	METHOD_REG(GRClient, _thread_connection);
 	METHOD_REG(GRClient, _thread_image_decoder);

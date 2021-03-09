@@ -134,7 +134,7 @@ public:
 
 // Device Sensors
 class GRInputDeviceSensorsData : public GRInputData {
-	GD_S_CLASS(GRInputDeviceSensorsData, GRInputData);
+	GD_CLASS(GRInputDeviceSensorsData, GRInputData);
 
 protected:
 	GDNATIVE_BASIC_REGISTER;
@@ -151,7 +151,7 @@ public:
 
 // GodotRemoteInputEventData
 class GRInputDataEvent : public GRInputData {
-	GD_S_CLASS(GRInputDataEvent, GRInputData);
+	GD_CLASS(GRInputDataEvent, GRInputData);
 
 protected:
 	GDNATIVE_BASIC_REGISTER;
@@ -176,7 +176,7 @@ public:
 
 #define INPUT_EVENT_DATA(__class, _parent, _type)                                                 \
 	class __class : public _parent {                                                              \
-		GD_S_CLASS(__class, _parent);                                                             \
+		GD_CLASS(__class, _parent);                                                             \
 		friend GRInputDataEvent;                                                                  \
 		friend GRInputData;                                                                       \
                                                                                                   \

@@ -190,29 +190,29 @@ __meta__ = {
 [node name="HBoxContainer" type="VBoxContainer" parent="Changelog"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_left = 16.0
-margin_top = 16.0
-margin_right = -16.0
-margin_bottom = -16.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = -8.0
+margin_bottom = -8.0
 __meta__ = {
 "_edit_lock_": true,
 "_edit_use_anchors_": false
 }
 
 [node name="Label" type="Label" parent="Changelog/HBoxContainer"]
-margin_right = 657.0
+margin_right = 673.0
 margin_bottom = 46.0
 text = "Godot Remote Updated"
 align = 1
 
 [node name="Control" type="ScrollContainer" parent="Changelog/HBoxContainer"]
 margin_top = 50.0
-margin_right = 657.0
-margin_bottom = 458.0
+margin_right = 673.0
+margin_bottom = 474.0
 size_flags_vertical = 3
 
 [node name="ListOfChanges" type="Label" parent="Changelog/HBoxContainer/Control"]
-margin_right = 657.0
+margin_right = 673.0
 margin_bottom = 46.0
 size_flags_horizontal = 3
 size_flags_vertical = 1
@@ -221,19 +221,19 @@ text = "         don't forget to write a changelog..."
 autowrap = true
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Changelog/HBoxContainer"]
-margin_top = 462.0
-margin_right = 657.0
-margin_bottom = 508.0
+margin_top = 478.0
+margin_right = 673.0
+margin_bottom = 524.0
 
 [node name="Button" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
-margin_right = 240.0
+margin_right = 256.0
 margin_bottom = 46.0
 size_flags_horizontal = 3
 text = "Okay, I get it!"
 
 [node name="Button2" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
-margin_left = 244.0
-margin_right = 657.0
+margin_left = 260.0
+margin_right = 673.0
 margin_bottom = 46.0
 size_flags_horizontal = 3
 text = "How do I update the server?"
@@ -385,7 +385,6 @@ margin_right = 1112.0
 margin_bottom = 653.0
 text = "Okay, I get it!"
 script = SubResource( 4 )
-
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button2" to="PlsSupportPopup" method="_on_Button2_pressed"]
 [connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button" to="Changelog" method="_on_Button_pressed"]

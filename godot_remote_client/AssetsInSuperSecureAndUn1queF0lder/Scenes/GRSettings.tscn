@@ -812,7 +812,6 @@ script = SubResource( 3 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
-
 [connection signal="resized" from="." to="." method="_on_GRSettings_resized"]
 [connection signal="visibility_changed" from="." to="." method="_on_GRSettings_visibility_changed"]
 [connection signal="timeout" from="Timer" to="." method="_on_button_disable_Timer_timeout"]

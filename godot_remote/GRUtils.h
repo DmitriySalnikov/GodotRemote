@@ -52,7 +52,6 @@ using namespace godot;
 
 #define ST() SceneTree::get_singleton()
 #define GD_CLASS(c, p) GDCLASS(c, p)
-#define GD_S_CLASS(c, p) GDCLASS(c, p)
 #define V_CAST(var, type) ((type)var)
 
 // Bind constant with custom name
@@ -88,6 +87,7 @@ using namespace godot;
 #define Mutex_unlock(_var) _var.unlock()
 
 #define t_wait_to_finish(thread) thread.wait_to_finish()
+#define Thread_define_type class Thread
 #define Thread_define(_var) class Thread _var
 #define Thread_start(_var, _class, function, data_to_send, inst) _var.start(&_class::function, data_to_send)
 #define Thread_close(_name) \
@@ -106,6 +106,7 @@ using namespace godot;
 #define Mutex_unlock(_var) _var->unlock()
 
 #define t_wait_to_finish(thread) Thread::wait_to_finish(thread)
+#define Thread_define_type Thread*
 #define Thread_define(_var) class Thread *_var = nullptr
 #define Thread_start(_var, _class, function, data_to_send, inst) _var = Thread::create(&_class::function, data_to_send)
 #define Thread_close(_name)      \
@@ -186,6 +187,7 @@ public:
 		_var = Ref<Mutex>(); \
 	}
 
+#define Thread_define_type Ref<Thread>
 #define Thread_define(_var) Ref<Thread> _var
 #define t_wait_to_finish(thread) thread->wait_to_finish()
 #define Thread_start(_var, _class, function, data_to_send, inst) _var = _gdn_thread_create(inst, #function, data_to_send)
@@ -221,7 +223,6 @@ public:
 
 #define ST() ((SceneTree *)Engine::get_singleton()->get_main_loop())
 #define GD_CLASS(c, p) GODOT_CLASS(c, p)
-#define GD_S_CLASS(c, p) GODOT_SUBCLASS(c, p)
 #define V_CAST(var, type) (var.operator type())
 #define GLOBAL_DEF(m_var, m_value) _GLOBAL_DEF(m_var, m_value)
 #define GLOBAL_GET(m_var) ProjectSettings::get_singleton()->get(m_var)
@@ -282,7 +283,7 @@ protected:
 #define TimeCountReset() simple_time_counter = OS::get_singleton()->get_ticks_usec()
 // Shows delta between this and previous counter. Need to call TimeCountInit before
 #define TimeCount(str)                                                                                                                                                   \
-	GRUtils::_log(str + String(": ") + String::num((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0, 3) + " ms", GodotRemote::LogLevel::LL_DEBUG); \
+	GRUtils::_log(str + String(": ") + String::num((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0, 3) + " ms", LogLevel::LL_DEBUG); \
 	simple_time_counter = OS::get_singleton()->get_ticks_usec()
 #else
 

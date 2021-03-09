@@ -110,9 +110,6 @@ func _input(e):
 	if e is InputEventKey:
 		if e.pressed:
 			match e.scancode:
-				KEY_F2: GodotRemote.set_log_level(C.GodotRemote_LL_NONE)
-				KEY_F3: GodotRemote.set_log_level(C.GodotRemote_LL_NORMAL)
-				KEY_F4: GodotRemote.set_log_level(C.GodotRemote_LL_DEBUG)
 				KEY_ESCAPE: 
 					if TIM.IsVisible:
 						TIM.hide()

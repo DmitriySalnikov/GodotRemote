@@ -87,7 +87,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // SyncTime
 class GRPacketSyncTime : public GRPacket {
-	GD_S_CLASS(GRPacketSyncTime, GRPacket);
+	GD_CLASS(GRPacketSyncTime, GRPacket);
 	friend GRPacket;
 
 	uint64_t time = 0;
@@ -107,7 +107,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // IMAGE DATA
 class GRPacketImageData : public GRPacket {
-	GD_S_CLASS(GRPacketImageData, GRPacket);
+	GD_CLASS(GRPacketImageData, GRPacket);
 	friend GRPacket;
 
 	/*GRDevice::ImageCompressionType*/int compression = 1 /*GRDevice::ImageCompressionType::JPG*/;
@@ -151,7 +151,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // INPUT DATA
 class GRPacketInputData : public GRPacket {
-	GD_S_CLASS(GRPacketInputData, GRPacket);
+	GD_CLASS(GRPacketInputData, GRPacket);
 	friend GRPacket;
 
 	std::vector<Ref<GRInputData> > inputs;
@@ -179,7 +179,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // SERVER SETTINGS
 class GRPacketServerSettings : public GRPacket {
-	GD_S_CLASS(GRPacketServerSettings, GRPacket);
+	GD_CLASS(GRPacketServerSettings, GRPacket);
 	friend GRPacket;
 
 	std::map<int, Variant> settings;
@@ -205,7 +205,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // MOUSE MODE SYNC
 class GRPacketMouseModeSync : public GRPacket {
-	GD_S_CLASS(GRPacketMouseModeSync, GRPacket);
+	GD_CLASS(GRPacketMouseModeSync, GRPacket);
 	friend GRPacket;
 
 	Input::MouseMode mouse_mode;
@@ -226,7 +226,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // CUSTOM INPUT SCENE
 class GRPacketCustomInputScene : public GRPacket {
-	GD_S_CLASS(GRPacketCustomInputScene, GRPacket);
+	GD_CLASS(GRPacketCustomInputScene, GRPacket);
 	friend GRPacket;
 
 	String scene_path;
@@ -263,7 +263,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // CLIENT DEVICE ROTATION
 class GRPacketClientStreamOrientation : public GRPacket {
-	GD_S_CLASS(GRPacketClientStreamOrientation, GRPacket);
+	GD_CLASS(GRPacketClientStreamOrientation, GRPacket);
 	friend GRPacket;
 
 	bool vertical;
@@ -284,7 +284,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // CLIENT SCREEN ASCPECT
 class GRPacketClientStreamAspect : public GRPacket {
-	GD_S_CLASS(GRPacketClientStreamAspect, GRPacket);
+	GD_CLASS(GRPacketClientStreamAspect, GRPacket);
 	friend GRPacket;
 
 	float stream_aspect;
@@ -305,7 +305,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // CUSTOM USER DATA
 class GRPacketCustomUserData : public GRPacket {
-	GD_S_CLASS(GRPacketCustomUserData, GRPacket);
+	GD_CLASS(GRPacketCustomUserData, GRPacket);
 	friend GRPacket;
 
 	Variant packet_id;
@@ -336,7 +336,7 @@ public:
 
 #define BASIC_PACKET(_name, _type)                                                            \
 	class _name : public GRPacket {                                                           \
-		GD_S_CLASS(_name, GRPacket);                                                          \
+		GD_CLASS(_name, GRPacket);                                                          \
 		friend GRPacket;                                                                      \
                                                                                               \
 	protected:                                                                                \

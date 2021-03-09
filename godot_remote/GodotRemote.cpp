@@ -34,6 +34,7 @@ GR_PS_NAME_TYPE GodotRemote::ps_notifications_enabled_name = "debug/godot_remote
 GR_PS_NAME_TYPE GodotRemote::ps_noticications_position_name = "debug/godot_remote/notifications/notifications_position";
 GR_PS_NAME_TYPE GodotRemote::ps_notifications_duration_name = "debug/godot_remote/notifications/notifications_duration";
 
+GR_PS_NAME_TYPE GodotRemote::ps_server_image_sequence_buffer_size_name = "debug/godot_remote/server/image_sequence_buffer_size";
 GR_PS_NAME_TYPE GodotRemote::ps_server_config_adb_name = "debug/godot_remote/server/configure_adb_on_play";
 GR_PS_NAME_TYPE GodotRemote::ps_server_stream_skip_frames_name = "debug/godot_remote/server/skip_frames";
 GR_PS_NAME_TYPE GodotRemote::ps_server_stream_enabled_name = "debug/godot_remote/server/video_stream_enabled";
@@ -470,6 +471,7 @@ void GodotRemote::register_and_load_settings() {
 	DEF_(ps_notifications_duration_name, 3.f, Variant::REAL, PROPERTY_HINT_RANGE, "0,100, 0.01");
 
 	// const server settings
+	DEF_(ps_server_image_sequence_buffer_size_name, 5, Variant::INT, PROPERTY_HINT_RANGE, "1,16");
 	DEF_(ps_server_config_adb_name, false, Variant::BOOL, PROPERTY_HINT_NONE, "");
 	DEF_(ps_server_custom_input_scene_name, "", Variant::STRING, PROPERTY_HINT_FILE, "*.tscn,*.scn");
 #ifndef GDNATIVE_LIBRARY

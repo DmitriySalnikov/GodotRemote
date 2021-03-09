@@ -7,6 +7,7 @@
 #include "GRNotifications.h"
 #include "GRPacket.h"
 #include "GRServer.h"
+#include "GRStreamEncoders.h"
 #include "GRUtils.h"
 #include "GodotRemote.h"
 
@@ -35,6 +36,9 @@ void register_godot_remote_types() {
 	ClassDB::register_class<GRServer>();
 	ClassDB::register_class<GRSViewport>();
 	ClassDB::register_class<GRSViewportRenderer>();
+	ClassDB::register_class<GRStreamEncodersManager>();
+	ClassDB::register_class<GRStreamEncoder>();
+	ClassDB::register_class<GRStreamEncoderImageSequence>();
 #endif
 
 #ifndef NO_GODOTREMOTE_CLIENT
@@ -164,9 +168,11 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void* handle) {
 	register_class<GRServer>();
 	register_class<GRServer::ListenerThreadParamsServer>();
 	register_class<GRServer::ConnectionThreadParamsServer>();
-	register_class<GRSViewport::ImgProcessingViewportStorage>();
 	register_class<GRSViewport>();
 	register_class<GRSViewportRenderer>();
+	register_class<GRStreamEncodersManager>();
+	register_class<GRStreamEncoder>();
+	register_class<GRStreamEncoderImageSequence>();
 #endif
 
 #ifndef NO_GODOTREMOTE_CLIENT

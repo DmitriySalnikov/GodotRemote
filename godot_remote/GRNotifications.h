@@ -204,7 +204,7 @@ public:
 };
 
 class GRNotificationPanelUpdatable : public GRNotificationPanel {
-	GD_S_CLASS(GRNotificationPanelUpdatable, GRNotificationPanel);
+	GD_CLASS(GRNotificationPanelUpdatable, GRNotificationPanel);
 
 	friend GRNotifications;
 

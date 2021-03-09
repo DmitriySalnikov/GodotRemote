@@ -187,6 +187,7 @@
     <ClCompile Include="godot_remote\GRPacket.cpp" />
     <ClCompile Include="godot_remote\GRResources.cpp" />
     <ClCompile Include="godot_remote\GRServer.cpp" />
+    <ClCompile Include="godot_remote\GRStreamEncoders.cpp" />
     <ClCompile Include="godot_remote\GRUtils.cpp" />
     <ClCompile Include="godot_remote\jpge.cpp" />
     <ClCompile Include="godot_remote\register_types.cpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="godot_remote\GRPacket.h" />
     <ClInclude Include="godot_remote\GRResources.h" />
     <ClInclude Include="godot_remote\GRServer.h" />
+    <ClInclude Include="godot_remote\GRStreamEncoders.h" />
     <ClInclude Include="godot_remote\GRUtils.h" />
     <ClInclude Include="godot_remote\GRVersion.h" />
     <ClInclude Include="godot_remote\jpge.h" />

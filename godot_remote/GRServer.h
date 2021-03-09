@@ -4,6 +4,7 @@
 #ifndef NO_GODOTREMOTE_SERVER
 
 #include "GRDevice.h"
+#include "GRStreamEncoders.h"
 
 #ifndef GDNATIVE_LIBRARY
 
@@ -28,7 +29,7 @@ using namespace godot;
 #endif
 
 class GRServer : public GRDevice {
-	GD_S_CLASS(GRServer, GRDevice);
+	GD_CLASS(GRServer, GRDevice);
 
 private:
 #ifndef GDNATIVE_LIBRARY
@@ -178,43 +179,11 @@ public:
 class GRSViewport : public Viewport {
 	GD_CLASS(GRSViewport, Viewport);
 	friend GRServer;
-	friend class ImgProcessingViewportStorage;
-	_TS_CLASS_;
-
-public:
-	class ImgProcessingViewportStorage : public Object {
-		GD_CLASS(ImgProcessingViewportStorage, Object);
-
-	public:
-		PoolByteArray ret_data;
-		GRDevice::ImageCompressionType compression_type = GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED;
-		int width, height, format;
-		int bytes_in_color, jpg_quality;
-		bool is_empty = false;
-
-		static void _register_methods(){};
-		void _init() {
-			LEAVE_IF_EDITOR();
-			ret_data = PoolByteArray();
-		};
-
-		~ImgProcessingViewportStorage() {
-			LEAVE_IF_EDITOR();
-			ret_data.resize(0);
-		}
-	};
+	friend GRStreamEncoder;
+	friend GRStreamEncoderImageSequence;
 
 private:
-	Thread_define(_thread_process);
-
-	Ref<Image> last_image;
-	ImgProcessingViewportStorage *last_image_data = nullptr;
-
-	void _close_thread() { Thread_close(_thread_process); }
-	void _set_img_data(ImgProcessingViewportStorage *_data);
 	void _on_renderer_deleting();
-
-	THREAD_FUNC void _processing_thread(THREAD_DATA p_user);
 
 protected:
 	Viewport *main_vp = nullptr;
@@ -225,10 +194,10 @@ protected:
 	int jpg_quality = 80;
 	int skip_frames = 0;
 	GRDevice::ImageCompressionType compression_type = GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED;
+	Ref<GRStreamEncodersManager> stream_manager;
 
 	uint16_t frames_from_prev_image = 0;
 	bool is_empty_image_sended = false;
-	bool is_thread_active = false;
 
 #ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
@@ -243,9 +212,9 @@ protected:
 	void _update_size();
 
 public:
-	ImgProcessingViewportStorage *get_last_compressed_image_data();
-	bool has_compressed_image_data();
 	void force_get_image();
+	bool has_data_to_send();
+	Ref<GRPacket> pop_data_to_send();
 
 	void set_video_stream_enabled(bool val);
 	bool is_video_stream_enabled();
@@ -257,6 +226,9 @@ public:
 	int get_jpg_quality();
 	void set_skip_frames(int skip);
 	int get_skip_frames();
+
+	void start_encoder();
+	void stop_encoder();
 
 	void _init();
 	void _deinit();

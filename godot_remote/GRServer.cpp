@@ -87,30 +87,6 @@ void GRServer::_bind_methods() {
 #else
 
 void GRServer::_register_methods() {
-	///////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////
-	/*
-	METHOD_REG(GRServer, _internal_call_only_deffered_start);
-	METHOD_REG(GRServer, _internal_call_only_deffered_stop);
-
-	METHOD_REG(GRServer, _internal_call_only_deffered_restart);
-
-	METHOD_REG(GRServer, get_avg_ping);
-	METHOD_REG(GRServer, get_avg_fps);
-
-	METHOD_REG(GRServer, get_port);
-	METHOD_REG(GRServer, set_port);
-
-	METHOD_REG(GRServer, start);
-	METHOD_REG(GRServer, stop);
-	METHOD_REG(GRServer, get_status);
-
-	register_signal<GRServer>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
-	register_property<GRServer, uint16_t>("port", &GRServer::set_port, &GRServer::get_port, 52341);
-	*/
-	///////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////
-
 	METHOD_REG(GRServer, _notification);
 	METHOD_REG(GRServer, _thread_listen);
 	METHOD_REG(GRServer, _thread_connection);
@@ -172,11 +148,12 @@ void GRServer::_notification(int p_notification) {
 			_deinit();
 			GRDevice::_deinit();
 			break;
-			case NOTIFICATION_EXIT_TREE:
-				if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
-					_internal_call_only_deffered_stop();
-				}
-				break;
+		}
+		case NOTIFICATION_EXIT_TREE: {
+			if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
+				_internal_call_only_deffered_stop();
+			}
+			break;
 		}
 	}
 }
@@ -768,7 +745,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 				fps = fps / dev->resize_viewport->get_skip_frames();
 
 			if (!dev->resize_viewport->is_processing()) {
-				dev->resize_viewport->set_process(true);
+				dev->resize_viewport->start_encoder();
 				dev->resize_viewport->force_get_image();
 			}
 		}
@@ -802,38 +779,21 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 		time64 = os->get_ticks_usec();
 		// if image compressed and data is ready
 		if (dev->resize_viewport && !dev->resize_viewport->is_queued_for_deletion() &&
-				dev->resize_viewport->has_compressed_image_data()) {
+				dev->resize_viewport->has_data_to_send()) {
 			nothing_happens = false;
 
-			Ref<GRPacketImageData> pack(memnew(GRPacketImageData));
+			Ref<GRPacketImageData> pack = dev->resize_viewport->pop_data_to_send();
+			err = ppeer->put_var(pack->get_data());
 
-			auto ips = dev->resize_viewport->get_last_compressed_image_data();
+			// avg fps
+			dev->_update_avg_fps(time64 - prev_send_image_time);
+			dev->_adjust_viewport_scale();
+			prev_send_image_time = time64;
 
-			if (!(ips->ret_data.size() == 0) || ips->is_empty) { // if not broken image or force empty image :)
-				pack->set_is_empty(ips->is_empty);
-				pack->set_compression_type((int)ips->compression_type);
-				pack->set_size(Size2((float)ips->width, (float)ips->height));
-				pack->set_format(ips->format);
-				pack->set_image_data(ips->ret_data);
-				pack->set_start_time(os->get_ticks_usec());
-				pack->set_frametime(send_data_time_us);
-
-				err = ppeer->put_var(pack->get_data());
-
-				// avg fps
-				dev->_update_avg_fps(time64 - prev_send_image_time);
-				dev->_adjust_viewport_scale();
-				prev_send_image_time = time64;
-
-				if ((int)err) {
-					_log("Can't send image data! Code: " + str((int)err), LogLevel::LL_ERROR);
-					memdelete(ips);
-					ips = nullptr;
-					goto end_send;
-				}
+			if ((int)err) {
+				_log("Can't send image data! Code: " + str((int)err), LogLevel::LL_ERROR);
+				goto end_send;
 			}
-			memdelete(ips);
-			ips = nullptr;
 		} else {
 			if (!dev->is_video_stream_enabled()) {
 				dev->_update_avg_fps(0);
@@ -1114,7 +1074,7 @@ void GRServer::_thread_connection(THREAD_DATA p_userdata) {
 	_log("Closing connection thread with address: " + address, LogLevel::LL_DEBUG);
 
 	if (dev->resize_viewport)
-		dev->resize_viewport->set_process(false);
+		dev->resize_viewport->stop_encoder();
 
 	if (connection->is_connected_to_host()) {
 		GRNotifications::add_notification("Disconnected", "Closing connection with " + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
@@ -1422,88 +1382,6 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, std::vector<
 ////////////// GRSViewport ///////////////////
 //////////////////////////////////////////////
 
-void GRSViewport::_processing_thread(THREAD_DATA p_user) {
-	GRSViewport *vp = (GRSViewport *)p_user;
-
-	while (vp->is_thread_active) {
-		TimeCountInit();
-		vp->_TS_LOCK_;
-
-		if (img_is_empty(vp->last_image)) {
-			vp->_TS_UNLOCK_;
-			sleep_usec(1_ms);
-			continue;
-		}
-
-		ImgProcessingViewportStorage *ips = memnew(ImgProcessingViewportStorage);
-		Ref<Image> img = vp->last_image;
-		vp->last_image = newref(Image);
-
-		vp->_TS_UNLOCK_;
-
-		if (!ips) {
-			goto end;
-		}
-
-		ips->width = (int)img->get_width();
-		ips->height = (int)img->get_height();
-		ips->compression_type = vp->compression_type;
-		ips->jpg_quality = vp->jpg_quality;
-
-		ips->format = img->get_format();
-		if (!(ips->format == Image::FORMAT_RGBA8 || ips->format == Image::FORMAT_RGB8)) {
-			img->convert(Image::FORMAT_RGB8);
-			ips->format = img->get_format();
-
-			if (ips->format != Image::FORMAT_RGB8) {
-				_log("Can't convert stream image to RGB8.", LogLevel::LL_ERROR);
-				GRNotifications::add_notification("Stream Error", "Can't convert stream image to RGB8.", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-				goto end;
-			}
-
-			TimeCount("Image Convert");
-		}
-		ips->bytes_in_color = img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
-
-		if (img->get_data().size() == 0)
-			goto end;
-
-		switch (ips->compression_type) {
-			case GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED: {
-				ips->ret_data = img->get_data();
-				TimeCount("Image processed: Uncompressed");
-				break;
-			}
-			case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
-				if (!img_is_empty(img)) {
-					Error err = compress_jpg(ips->ret_data, img->get_data(), ips->width, ips->height, ips->bytes_in_color, ips->jpg_quality, GRServer::Subsampling::SUBSAMPLING_H2V2);
-					if ((int)err) {
-						_log("Can't compress stream image JPG. Code: " + str((int)err), LogLevel::LL_ERROR);
-						GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-					}
-				}
-				TimeCount("Image processed: JPG");
-				break;
-			}
-			case GRDevice::ImageCompressionType::COMPRESSION_PNG: {
-				ips->ret_data = img->save_png_to_buffer();
-				if (ips->ret_data.size() == 0) {
-					_log("Can't compress stream image to PNG.", LogLevel::LL_ERROR);
-					GRNotifications::add_notification("Stream Error", "Can't compress stream image to PNG.", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-				}
-				TimeCount("Image processed: PNG");
-				break;
-			}
-			default:
-				_log("Not implemented compression type: " + str((int)ips->compression_type), LogLevel::LL_ERROR);
-				break;
-		}
-	end:
-		if (vp->video_stream_enabled)
-			vp->_set_img_data(ips);
-	}
-}
-
 #ifndef GDNATIVE_LIBRARY
 
 void GRSViewport::_bind_methods() {
@@ -1519,7 +1397,6 @@ void GRSViewport::_bind_methods() {
 
 void GRSViewport::_register_methods() {
 	METHOD_REG(GRSViewport, _notification);
-	METHOD_REG(GRSViewport, _processing_thread);
 	METHOD_REG(GRSViewport, _on_renderer_deleting);
 
 	METHOD_REG(GRSViewport, _update_size);
@@ -1530,15 +1407,6 @@ void GRSViewport::_register_methods() {
 }
 
 #endif
-
-void GRSViewport::_set_img_data(ImgProcessingViewportStorage *_data) {
-	_TS_LOCK_;
-	if (last_image_data)
-		memdelete(last_image_data);
-
-	last_image_data = _data;
-	_TS_UNLOCK_;
-}
 
 void GRSViewport::_on_renderer_deleting() {
 	renderer = nullptr;
@@ -1561,34 +1429,26 @@ void GRSViewport::_notification(int p_notification) {
 			if (video_stream_enabled) {
 				is_empty_image_sended = false;
 
-				if (frames_from_prev_image > skip_frames && img_is_empty(last_image)) {
+				if (frames_from_prev_image > skip_frames) {
 					frames_from_prev_image = 0;
 
 					if (get_texture().is_null())
 						break;
 
 					auto tmp_image = get_texture()->get_data();
-					_TS_LOCK_;
 
-					last_image = tmp_image;
 					TimeCount("Get image data from VisualServer");
 
-					if (img_is_empty(last_image))
+					if (img_is_empty(tmp_image))
 						_log("Can't copy viewport image data", LogLevel::LL_ERROR);
-
-					_TS_UNLOCK_;
+					else {
+						stream_manager->commit_image(tmp_image, (uint64_t)(get_process_delta_time() * 1000000));
+					}
 				}
 			} else {
 				if (!is_empty_image_sended) {
 					is_empty_image_sended = true;
-					ImgProcessingViewportStorage *ipsv = memnew(ImgProcessingViewportStorage);
-					ipsv->width = 0;
-					ipsv->height = 0;
-					ipsv->format = Image::Format::FORMAT_RGB8;
-					ipsv->bytes_in_color = 3;
-					ipsv->jpg_quality = 1;
-					ipsv->is_empty = true;
-					_set_img_data(ipsv);
+					// TODO send empty image to immediate stop the stream
 				}
 			}
 			break;
@@ -1644,21 +1504,16 @@ void GRSViewport::_update_size() {
 	}
 }
 
-GRSViewport::ImgProcessingViewportStorage *GRSViewport::get_last_compressed_image_data() {
-	_TS_LOCK_;
-	auto res = last_image_data;
-	last_image_data = nullptr;
-	_TS_UNLOCK_;
-
-	return res;
-}
-
-bool GRSViewport::has_compressed_image_data() {
-	return last_image_data;
-}
-
 void GRSViewport::force_get_image() {
 	frames_from_prev_image = skip_frames;
+}
+
+bool GRSViewport::has_data_to_send() {
+	return stream_manager->has_data_to_send();
+}
+
+Ref<GRPacket> GRSViewport::pop_data_to_send() {
+	return stream_manager->pop_data_to_send();
 }
 
 void GRSViewport::set_video_stream_enabled(bool val) {
@@ -1680,6 +1535,9 @@ float GRSViewport::get_rendering_scale() {
 
 void GRSViewport::set_compression_type(GRDevice::ImageCompressionType val) {
 	compression_type = val;
+
+	if (stream_manager.is_valid())
+		stream_manager->start(compression_type, this);
 }
 
 GRDevice::ImageCompressionType GRSViewport::get_compression_type() {
@@ -1703,6 +1561,17 @@ int GRSViewport::get_skip_frames() {
 	return skip_frames;
 }
 
+void GRSViewport::start_encoder() {
+	set_process(true);
+	stream_manager = newref(GRStreamEncodersManager);
+	stream_manager->start(compression_type, this);
+}
+
+void GRSViewport::stop_encoder() {
+	set_process(false);
+	stream_manager = Ref<GRStreamEncodersManager>();
+}
+
 void GRSViewport::_init() {
 	set_name("GRSViewport");
 	LEAVE_IF_EDITOR();
@@ -1721,26 +1590,11 @@ void GRSViewport::_init() {
 	set_shadow_atlas_quadrant_subdiv(1, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
 	set_shadow_atlas_quadrant_subdiv(2, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
 	set_shadow_atlas_quadrant_subdiv(3, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
-
-	_TS_LOCK_;
-	last_image = newref(Image);
-	_TS_UNLOCK_;
-	is_thread_active = true;
-	Thread_start(_thread_process, GRSViewport, _processing_thread, this, this);
 }
 
 void GRSViewport::_deinit() {
 	LEAVE_IF_EDITOR();
-
-	is_thread_active = false;
-	_close_thread();
-
-	_TS_LOCK_;
-	if (last_image_data)
-		memdelete(last_image_data);
-	last_image_data = nullptr;
-	last_image.unref();
-	_TS_UNLOCK_;
+	stop_encoder();
 }
 
 //////////////////////////////////////////////
