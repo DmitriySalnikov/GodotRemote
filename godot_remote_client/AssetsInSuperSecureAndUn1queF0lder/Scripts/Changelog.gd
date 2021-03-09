@@ -1,4 +1,4 @@
-extends WindowDialog
+extends PopupPanel
 
 var changelog : Dictionary = {
 "1.0.2.0" : 
@@ -37,7 +37,12 @@ func _ready() -> void:
 		
 		$HBoxContainer/Control/ListOfChanges.text = text
 		$HBoxContainer/HBoxContainer/Button2.visible = _check_need_update_server(G.PreviousVersion, G.get_version())
-		call_deferred("popup_centered")
+		call_deferred("popup_centered_ratio", 1)
+		get_parent().connect("item_rect_changed", self, "viewport_size_changed")
+
+func viewport_size_changed() -> void:
+	if visible:
+		rect_size = get_viewport_rect().size
 
 func _get_version_sum(v : PoolStringArray) -> int:
 	var major = int(v[0]) << 32

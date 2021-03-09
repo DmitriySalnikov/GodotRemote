@@ -210,7 +210,7 @@ Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width,
 								params),
 			Error::FAILED, "Can't compress image.");
 
-	TimeCount("Compress img");
+	TimeCount("Compress jpg");
 
 	release_pva_read(ri);
 	res.resize(size);

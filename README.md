@@ -8,9 +8,11 @@ If you are developing on a non-touch device, this module is the best way to quic
 
 [Custom Packets Demo](https://youtu.be/RmhppDWZZk8)
 
-## Donations
+## Support
 
-[Paypal](https://paypal.me/dmitriysalnikov)
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/I2I53VZ2D)
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://paypal.me/dmitriysalnikov)
 
 ## Compiling the Module
 
