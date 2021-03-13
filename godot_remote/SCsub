@@ -1,17 +1,35 @@
 # SCsub
 Import('env')
-
 module_env = env.Clone()
 
-if ARGUMENTS.get('godot_remote_no_default_resources', 'no') == 'yes':
+from SCons.Variables import BoolVariable, EnumVariable
+opts = Variables([], ARGUMENTS)
+
+opts.Add(BoolVariable("godot_remote_tracy_enabled", "Godot Remote. Enable tracy profiler.", False))
+opts.Add(BoolVariable("godot_remote_no_default_resources", "Godot Remote. Remove default resources.", False))
+opts.Add(BoolVariable("godot_remote_disable_server", "Godot Remote. Remove server.", False))
+opts.Add(BoolVariable("godot_remote_disable_client", "Godot Remote. Remove client.", False))
+opts.Update(module_env)
+Help(opts.GenerateHelpText(module_env))
+
+if module_env['godot_remote_no_default_resources']:
     module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_DEFAULT_RESOURCES'])
-if ARGUMENTS.get('godot_remote_disable_server', 'no') == 'yes':
+if module_env['godot_remote_disable_server']:
     module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_SERVER'])
-if ARGUMENTS.get('godot_remote_disable_client', 'no') == 'yes':
+if module_env['godot_remote_disable_client']:
     module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_CLIENT'])
 
+module_env.Append(CPPPATH=["#modules/godot_remote/"])
+
 if env['platform'] == 'windows':
+    module_env.Append(CXXFLAGS=['/std:c++14'])
+    if module_env['godot_remote_tracy_enabled']:
+        module_env.Append(CPPDEFINES=['GODOTREMOTE_TRACY_ENABLED', 'TRACY_ENABLE', 'TRACY_ON_DEMAND'])
+        #module_env.Append(CPPDEFINES=['TRACY_CALLSTACK'])
+        module_env.add_source_files(env.modules_sources, "#modules/godot_remote/tracy/TracyClient.cpp")
+    
     module_env.add_source_files(env.modules_sources, '*.cpp')
+
 else:
     module_env.Append(CXXFLAGS=['-std=c++14']) # Flags for C++ code only
     module_env.Append(CCFLAGS=['-O2']) # Flags for C and C++ code

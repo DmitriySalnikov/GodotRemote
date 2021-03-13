@@ -8,23 +8,23 @@
 
 #ifndef GDNATIVE_LIBRARY
 
-#include "core/reference.h"
-image
+#include "core/image.h"
 #else
 
 #include <Image.hpp>
-#include <Reference.hpp>
 #include <Thread.hpp>
 
 using namespace godot;
 #endif
 
+const int GR_STREAM_ENCODER_IMAGE_SEQUENCE_MAX_THREADS = 16;
+
 class GRSViewport;
 class GRStreamEncoder;
 class GRStreamEncoderImageSequence;
 
-class GRStreamEncodersManager : public Reference {
-	GD_CLASS(GRStreamEncodersManager, Reference);
+class GRStreamEncodersManager : public Object {
+	GD_CLASS(GRStreamEncodersManager, Object);
 
 protected:
 #ifndef GDNATIVE_LIBRARY
@@ -36,7 +36,8 @@ public:
 protected:
 #endif
 
-	Ref<GRStreamEncoder> encoder;
+	GRStreamEncoder* encoder = nullptr;
+	GRSViewport *viewport = nullptr;
 
 	void _notification(int p_notification);
 
@@ -55,8 +56,8 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // Encoders
 
-class GRStreamEncoder : public Reference {
-	GD_CLASS(GRStreamEncoder, Reference);
+class GRStreamEncoder : public Object {
+	GD_CLASS(GRStreamEncoder, Object);
 
 protected:
 	_TS_CLASS_;
@@ -91,6 +92,7 @@ public:
 	void commit_image(Ref<Image> img, uint64_t frametime);
 	virtual bool has_data_to_send() const { return false; }
 	virtual Ref<GRPacket> pop_data_to_send() { return Ref<GRPacket>(); }
+	virtual int get_max_queued_frames() { return 16; }
 
 	void _init();
 	void _deinit();
@@ -118,7 +120,7 @@ private:
 	bool is_threads_active = true;
 	bool video_stream_enabled = true;
 
-	THREAD_FUNC void _processing_thread(THREAD_DATA p_user);
+	void _processing_thread(Variant p_userdata);
 
 protected:
 #ifndef GDNATIVE_LIBRARY
@@ -135,8 +137,9 @@ protected:
 public:
 	void set_compression_type(int comp) { compression_type = comp; };
 
-	virtual bool has_data_to_send() const override { return buffer.size(); }
+	virtual bool has_data_to_send() const override;
 	virtual Ref<GRPacket> pop_data_to_send() override;
+	virtual int get_max_queued_frames() override;
 
 	void _init();
 	void _deinit();

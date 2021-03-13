@@ -471,7 +471,7 @@ void GodotRemote::register_and_load_settings() {
 	DEF_(ps_notifications_duration_name, 3.f, Variant::REAL, PROPERTY_HINT_RANGE, "0,100, 0.01");
 
 	// const server settings
-	DEF_(ps_server_image_sequence_buffer_size_name, 5, Variant::INT, PROPERTY_HINT_RANGE, "1,16");
+	DEF_(ps_server_image_sequence_buffer_size_name, 4, Variant::INT, PROPERTY_HINT_RANGE, "1,16");
 	DEF_(ps_server_config_adb_name, false, Variant::BOOL, PROPERTY_HINT_NONE, "");
 	DEF_(ps_server_custom_input_scene_name, "", Variant::STRING, PROPERTY_HINT_FILE, "*.tscn,*.scn");
 #ifndef GDNATIVE_LIBRARY

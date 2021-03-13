@@ -121,8 +121,8 @@ private:
 
 	virtual void _reset_counters() override;
 
-	THREAD_FUNC void _thread_listen(THREAD_DATA p_userdata);
-	THREAD_FUNC void _thread_connection(THREAD_DATA p_userdata);
+	void _thread_listen(Variant p_userdata);
+	void _thread_connection(Variant p_userdata);
 
 	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection DEF_ARG(= false));
 
@@ -194,7 +194,7 @@ protected:
 	int jpg_quality = 80;
 	int skip_frames = 0;
 	GRDevice::ImageCompressionType compression_type = GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED;
-	Ref<GRStreamEncodersManager> stream_manager;
+	GRStreamEncodersManager* stream_manager;
 
 	uint16_t frames_from_prev_image = 0;
 	bool is_empty_image_sended = false;

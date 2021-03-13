@@ -5,6 +5,7 @@
 #include "GRClient.h"
 #include "GRNotifications.h"
 #include "GRPacket.h"
+#include "GRProfiler.h"
 #include "GRResources.h"
 #include "GodotRemote.h"
 
@@ -76,6 +77,8 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_load_custom_input_scene", "_data"), &GRClient::_load_custom_input_scene);
 	ClassDB::bind_method(D_METHOD("_remove_custom_input_scene"), &GRClient::_remove_custom_input_scene);
 	ClassDB::bind_method(D_METHOD("_on_node_deleting", "var_name"), &GRClient::_on_node_deleting);
+	ClassDB::bind_method(D_METHOD("_thread_connection", "user_data"), &GRClient::_thread_connection);
+	ClassDB::bind_method(D_METHOD("_thread_image_decoder", "user_data"), &GRClient::_thread_image_decoder);
 
 	ClassDB::bind_method(D_METHOD("set_control_to_show_in", "control_node", "position_in_node"), &GRClient::set_control_to_show_in, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("set_custom_no_signal_texture", "texture"), &GRClient::set_custom_no_signal_texture);
@@ -247,12 +250,17 @@ void GRClient::_notification(int p_notification) {
 			_deinit();
 			GRDevice::_deinit();
 			break;
-			case NOTIFICATION_EXIT_TREE:
-				is_deleting = true;
-				if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
-					_internal_call_only_deffered_stop();
-				}
-				break;
+		}
+		case NOTIFICATION_EXIT_TREE: {
+			is_deleting = true;
+			if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
+				_internal_call_only_deffered_stop();
+			}
+			break;
+		}
+		case NOTIFICATION_PROCESS: {
+			FrameMark;
+			break;
 		}
 	}
 }
@@ -260,6 +268,8 @@ void GRClient::_notification(int p_notification) {
 void GRClient::_init() {
 	set_name("GodotRemoteClient");
 	LEAVE_IF_EDITOR();
+	TracyAppInfo("Godot Remote Client", 20);
+	set_process(true);
 
 #ifndef GDNATIVE_LIBRARY
 #else
@@ -312,6 +322,8 @@ void GRClient::_deinit() {
 }
 
 void GRClient::_internal_call_only_deffered_start() {
+	ZoneScopedN("Client Start");
+
 	switch ((WorkingStatus)get_status()) {
 		case WorkingStatus::STATUS_WORKING:
 			ERR_FAIL_MSG("Can't start already working GodotRemote Client");
@@ -336,13 +348,15 @@ void GRClient::_internal_call_only_deffered_start() {
 	thread_connection = memnew(ConnectionThreadParamsClient);
 	thread_connection->dev = this;
 	thread_connection->peer.instance();
-	Thread_start(thread_connection->thread_ref, GRClient, _thread_connection, thread_connection, this);
+	Thread_start(thread_connection->thread_ref, this, _thread_connection, thread_connection);
 
 	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 	set_status(WorkingStatus::STATUS_WORKING);
 }
 
 void GRClient::_internal_call_only_deffered_stop() {
+	ZoneScopedN("Client Stop");
+
 	switch ((WorkingStatus)get_status()) {
 		case WorkingStatus::STATUS_STOPPED:
 			ERR_FAIL_MSG("Can't stop already stopped GodotRemote Client");
@@ -559,6 +573,7 @@ bool GRClient::set_address(String ip) {
 }
 
 bool GRClient::set_address_port(String ip, uint16_t _port) {
+	ZoneScopedN("Set Server Address and Port");
 	bool all_ok = false;
 
 #ifndef GDNATIVE_LIBRARY
@@ -671,6 +686,8 @@ void GRClient::_force_update_stream_viewport_signals() {
 }
 
 void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
+	ZoneScopedN("Load Custom Input Scene");
+
 	_remove_custom_input_scene();
 
 	if (_data->get_scene_path().empty() || _data->get_scene_data().size() == 0) {
@@ -764,6 +781,7 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 }
 
 void GRClient::_remove_custom_input_scene() {
+	ZoneScopedN("Remove Custom Input Scene");
 	if (custom_input_scene && !custom_input_scene->is_queued_for_deletion()) {
 
 		custom_input_scene->queue_del();
@@ -944,11 +962,11 @@ void GRClient::disable_overriding_server_settings() {
 }
 
 //////////////////////////////////////////////
-////////////////// STATIC ////////////////////
+////////////////// THREAD ////////////////////
 //////////////////////////////////////////////
 
-void GRClient::_thread_connection(THREAD_DATA p_userdata) {
-	ConnectionThreadParamsClient *con_thread = (ConnectionThreadParamsClient *)p_userdata;
+void GRClient::_thread_connection(Variant p_userdata) {
+	ConnectionThreadParamsClient *con_thread = VARIANT_OBJ_CAST_TO(p_userdata, ConnectionThreadParamsClient);
 	GRClient *dev = con_thread->dev;
 	Ref<StreamPeerTCP> con = con_thread->peer;
 
@@ -959,6 +977,7 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 	const String con_error_title = "Connection Error";
 
 	while (!con_thread->stop_thread) {
+		ZoneScopedNC("Client Connection Waiting Loop", tracy::Color::Orange2);
 		if (os->get_ticks_usec() - dev->prev_valid_connection_time > 1000_ms) {
 			dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
 			dev->call_deferred("_remove_custom_input_scene");
@@ -1028,8 +1047,11 @@ void GRClient::_thread_connection(THREAD_DATA p_userdata) {
 			continue;
 		}
 
-		while (con->get_status() == StreamPeerTCP::STATUS_CONNECTING) {
-			sleep_usec(1_ms);
+		{
+			ZoneScopedN("Connecting...");
+			while (con->get_status() == StreamPeerTCP::STATUS_CONNECTING) {
+				sleep_usec(1_ms);
+			}
 		}
 
 		if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
@@ -1138,7 +1160,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	ipsc->dev = dev;
 
 	Thread_define(_img_thread);
-	Thread_start(_img_thread, GRClient, _thread_image_decoder, ipsc, dev);
+	Thread_start(_img_thread, dev, _thread_image_decoder, ipsc);
 
 	OS *os = OS::get_singleton();
 	Error err = Error::OK;
@@ -1158,10 +1180,9 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 	bool ping_sended = false;
 
-	TimeCountInit();
 	while (!con_thread->break_connection && !con_thread->stop_thread && connection->is_connected_to_host()) {
+		ZoneScopedN("Connection Loop");
 		Mutex_lock(dev->connection_mutex);
-		TimeCount("Cycle start");
 		uint64_t cycle_start_time = os->get_ticks_usec();
 
 		bool nothing_happens = true;
@@ -1171,66 +1192,62 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 		///////////////////////////////////////////////////////////////////
 		// SENDING
-		bool is_queued_send = false; // this placed here for android compiler
+		{
+			ZoneScopedN("Send Data");
+			// INPUT
+			time64 = os->get_ticks_usec();
+			if ((time64 - prev_send_input_time) > send_data_time_us) {
+				prev_send_input_time = time64;
+				nothing_happens = false;
 
-		// INPUT
-		TimeCountReset();
-		time64 = os->get_ticks_usec();
-		if ((time64 - prev_send_input_time) > send_data_time_us) {
-			prev_send_input_time = time64;
-			nothing_happens = false;
+				if (dev->input_collector) {
+					ZoneScopedN("Sending Collected Input");
+					Ref<GRPacketInputData> pack = dev->input_collector->get_collected_input_data();
 
-			if (dev->input_collector) {
-				Ref<GRPacketInputData> pack = dev->input_collector->get_collected_input_data();
-
-				if (pack.is_valid()) {
-					err = ppeer->put_var(pack->get_data());
-					if ((int)err) {
-						_log("Put input data failed with code: " + str((int)err), LogLevel::LL_ERROR);
-						goto end_send;
+					if (pack.is_valid()) {
+						err = ppeer->put_var(pack->get_data());
+						if ((int)err) {
+							_log("Put input data failed with code: " + str((int)err), LogLevel::LL_ERROR);
+							goto end_send;
+						}
+					} else {
+						_log("Can't get input data from input collector", LogLevel::LL_ERROR);
 					}
-				} else {
-					_log("Can't get input data from input collector", LogLevel::LL_ERROR);
 				}
-				TimeCount("Input send");
 			}
-		}
 
-		// PING
-		TimeCountReset();
-		time64 = os->get_ticks_usec();
-		if ((time64 - prev_ping_sending_time) > 100_ms && !ping_sended) {
-			nothing_happens = false;
-			ping_sended = true;
+			// PING
+			time64 = os->get_ticks_usec();
+			if ((time64 - prev_ping_sending_time) > 100_ms && !ping_sended) {
+				ZoneScopedN("Send Ping");
+				nothing_happens = false;
+				ping_sended = true;
 
-			Ref<GRPacketPing> pack(memnew(GRPacketPing));
-			err = ppeer->put_var(pack->get_data());
-			prev_ping_sending_time = time64;
-
-			if ((int)err) {
-				_log("Send ping failed with code: " + str((int)err), LogLevel::LL_ERROR);
-				goto end_send;
-			}
-			TimeCount("Ping send");
-		}
-
-		// SEND QUEUE
-		start_while_time = os->get_ticks_usec();
-		while (!dev->send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
-			is_queued_send = true;
-			Ref<GRPacket> packet = dev->_send_queue_pop_front();
-
-			if (packet.is_valid()) {
-				err = ppeer->put_var(packet->get_data());
+				Ref<GRPacketPing> pack(memnew(GRPacketPing));
+				err = ppeer->put_var(pack->get_data());
+				prev_ping_sending_time = time64;
 
 				if ((int)err) {
-					_log("Put data from queue failed with code: " + str((int)err), LogLevel::LL_ERROR);
+					_log("Send ping failed with code: " + str((int)err), LogLevel::LL_ERROR);
 					goto end_send;
 				}
 			}
-		}
-		if (is_queued_send) {
-			TimeCount("Send queued data");
+
+			// SEND QUEUE
+			start_while_time = os->get_ticks_usec();
+			while (!dev->send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
+				ZoneScopedN("Send Queued Data");
+				Ref<GRPacket> packet = dev->_send_queue_pop_front();
+
+				if (packet.is_valid()) {
+					err = ppeer->put_var(packet->get_data());
+
+					if ((int)err) {
+						_log("Put data from queue failed with code: " + str((int)err), LogLevel::LL_ERROR);
+						goto end_send;
+					}
+				}
+			}
 		}
 	end_send:
 
@@ -1243,171 +1260,171 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 		///////////////////////////////////////////////////////////////////
 		// RECEIVING
+		{
+			ZoneScopedN("Receive Data");
+			// Send to processing one of buffered images
+			time64 = os->get_ticks_usec();
+			if (!ipsc->_is_processing_img && !stream_queue.empty() && time64 >= next_image_required_frametime) {
+				ZoneScopedN("Get Queued Imaged")
+						nothing_happens = false;
 
-		// Send to processing one of buffered images
-		time64 = os->get_ticks_usec();
-		TimeCountReset();
-		if (!ipsc->_is_processing_img && !stream_queue.empty() && time64 >= next_image_required_frametime) {
-			nothing_happens = false;
+				Ref<GRPacketImageData> pack = stream_queue.front();
+				stream_queue.erase(stream_queue.begin());
 
-			Ref<GRPacketImageData> pack = stream_queue.front();
-			stream_queue.erase(stream_queue.begin());
+				if (pack.is_null()) {
+					_log("Queued image data is null", LogLevel::LL_ERROR);
+					goto end_img_process;
+				}
 
-			if (pack.is_null()) {
-				_log("Queued image data is null", LogLevel::LL_ERROR);
-				goto end_img_process;
+				uint64_t frametime = pack->get_frametime() > 1000_ms ? 1000_ms : pack->get_frametime();
+				next_image_required_frametime = time64 + frametime - prev_cycle_time;
+
+				dev->_update_avg_fps(time64 - prev_display_image_time);
+				prev_display_image_time = time64;
+
+				if (pack->get_is_empty()) {
+					dev->_update_avg_fps(0);
+					dev->call_deferred("_update_texture_from_image", Ref<Image>());
+					dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
+				} else {
+					ipsc->tex_data = pack->get_image_data();
+					ipsc->compression_type = (ImageCompressionType)pack->get_compression_type();
+					ipsc->size = pack->get_size();
+					ipsc->format = pack->get_format();
+					ipsc->_is_processing_img = true;
+				}
+
+				pack.unref();
+			}
+		end_img_process:
+
+			// check if image displayed less then few seconds ago. if not then remove texture
+			const double image_loss_time = 1.5;
+			if (os->get_ticks_usec() > int64_t(prev_display_image_time + uint64_t(1000_ms * image_loss_time))) {
+				if (dev->signal_connection_state != StreamState::STREAM_NO_IMAGE) {
+					dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
+					dev->_reset_counters();
+				}
 			}
 
-			uint64_t frametime = pack->get_frametime() > 1000_ms ? 1000_ms : pack->get_frametime();
-			next_image_required_frametime = time64 + frametime - prev_cycle_time;
-
-			dev->_update_avg_fps(time64 - prev_display_image_time);
-			prev_display_image_time = time64;
-
-			if (pack->get_is_empty()) {
-				dev->_update_avg_fps(0);
-				dev->call_deferred("_update_texture_from_image", Ref<Image>());
-				dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
-			} else {
-				ipsc->tex_data = pack->get_image_data();
-				ipsc->compression_type = (ImageCompressionType)pack->get_compression_type();
-				ipsc->size = pack->get_size();
-				ipsc->format = pack->get_format();
-				ipsc->_is_processing_img = true;
+			if (stream_queue.size() > 10) {
+				//for (int i = 0; i<stream_queue.size(); i++)
+				//{
+				//	((Ref<GRPacketImageData>)stream_queue[i]).unref();
+				//}
+				stream_queue.clear();
 			}
 
-			pack.unref();
-			TimeCount("Get image from queue");
-		}
-	end_img_process:
-
-		// check if image displayed less then few seconds ago. if not then remove texture
-		const double image_loss_time = 1.5;
-		if (os->get_ticks_usec() > int64_t(prev_display_image_time + uint64_t(1000_ms * image_loss_time))) {
-			if (dev->signal_connection_state != StreamState::STREAM_NO_IMAGE) {
-				dev->call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
-				dev->_reset_counters();
-			}
-		}
-
-		if (stream_queue.size() > 10) {
-			//for (int i = 0; i<stream_queue.size(); i++)
-			//{
-			//	((Ref<GRPacketImageData>)stream_queue[i]).unref();
-			//}
-			stream_queue.clear();
-		}
-
-		// Get some packets
-		TimeCountReset();
-		start_while_time = os->get_ticks_usec();
-		while (ppeer->get_available_packet_count() > 0 && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
-			nothing_happens = false;
+			// Get some packets
+			start_while_time = os->get_ticks_usec();
+			while (ppeer->get_available_packet_count() > 0 && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
+				ZoneScopedN("Get Available Packet");
+				nothing_happens = false;
 
 #ifndef GDNATIVE_LIBRARY
-			Variant buf;
-			err = ppeer->get_var(buf);
+				Variant buf;
+				err = ppeer->get_var(buf);
 #else
-			Variant buf = ppeer->get_var();
+				Variant buf = ppeer->get_var();
 #endif
 
-			if ((int)err)
-				goto end_recv;
+				if ((int)err)
+					goto end_recv;
 
-			Ref<GRPacket> pack = GRPacket::create(buf);
-			if (pack.is_null()) {
-				_log("Incorrect GRPacket", LogLevel::LL_ERROR);
-				continue;
-			}
-
-			GRPacket::PacketType type = pack->get_type();
-
-			switch (type) {
-				case GRPacket::PacketType::SyncTime: {
-					Ref<GRPacketSyncTime> data = pack;
-					if (data.is_null()) {
-						_log("Incorrect GRPacketSyncTime", LogLevel::LL_ERROR);
-						continue;
-					}
-
-					dev->sync_time_client = os->get_ticks_usec();
-					dev->sync_time_server = data->get_time();
-
-					break;
+				Ref<GRPacket> pack = GRPacket::create(buf);
+				if (pack.is_null()) {
+					_log("Incorrect GRPacket", LogLevel::LL_ERROR);
+					continue;
 				}
-				case GRPacket::PacketType::ImageData: {
-					Ref<GRPacketImageData> data = pack;
-					if (data.is_null()) {
-						_log("Incorrect GRPacketImageData", LogLevel::LL_ERROR);
-						continue;
-					}
 
-					stream_queue.push_back(data);
-					break;
-				}
-				case GRPacket::PacketType::ServerSettings: {
-					if (!dev->_server_settings_syncing) {
-						continue;
-					}
+				GRPacket::PacketType type = pack->get_type();
 
-					Ref<GRPacketServerSettings> data = pack;
-					if (data.is_null()) {
-						_log("Incorrect GRPacketServerSettings", LogLevel::LL_ERROR);
-						continue;
-					}
+				switch (type) {
+					case GRPacket::PacketType::SyncTime: {
+						Ref<GRPacketSyncTime> data = pack;
+						if (data.is_null()) {
+							_log("Incorrect GRPacketSyncTime", LogLevel::LL_ERROR);
+							continue;
+						}
 
-					dev->call_deferred("emit_signal", "server_settings_received", map_to_dict(data->get_settings()));
-					break;
-				}
-				case GRPacket::PacketType::MouseModeSync: {
-					Ref<GRPacketMouseModeSync> data = pack;
-					if (data.is_null()) {
-						_log("Incorrect GRPacketMouseModeSync", LogLevel::LL_ERROR);
-						continue;
-					}
+						dev->sync_time_client = os->get_ticks_usec();
+						dev->sync_time_server = data->get_time();
 
-					dev->call_deferred("emit_signal", "mouse_mode_changed", data->get_mouse_mode());
-					break;
-				}
-				case GRPacket::PacketType::CustomInputScene: {
-					Ref<GRPacketCustomInputScene> data = pack;
-					if (data.is_null()) {
-						_log("Incorrect GRPacketCustomInputScene", LogLevel::LL_ERROR);
-						continue;
-					}
-
-					dev->call_deferred("_load_custom_input_scene", data);
-					break;
-				}
-				case GRPacket::PacketType::CustomUserData: {
-					Ref<GRPacketCustomUserData> data = pack;
-					if (data.is_null()) {
-						_log("Incorrect GRPacketCustomUserData", LogLevel::LL_ERROR);
 						break;
 					}
-					dev->call_deferred("emit_signal", "user_data_received", data->get_packet_id(), data->get_user_data());
-					break;
-				}
-				case GRPacket::PacketType::Ping: {
-					Ref<GRPacketPong> pack(memnew(GRPacketPong));
-					err = ppeer->put_var(pack->get_data());
-					if ((int)err) {
-						_log("Send pong failed with code: " + str((int)err), LogLevel::LL_NORMAL);
+					case GRPacket::PacketType::ImageData: {
+						Ref<GRPacketImageData> data = pack;
+						if (data.is_null()) {
+							_log("Incorrect GRPacketImageData", LogLevel::LL_ERROR);
+							continue;
+						}
+
+						stream_queue.push_back(data);
 						break;
 					}
-					break;
+					case GRPacket::PacketType::ServerSettings: {
+						if (!dev->_server_settings_syncing) {
+							continue;
+						}
+
+						Ref<GRPacketServerSettings> data = pack;
+						if (data.is_null()) {
+							_log("Incorrect GRPacketServerSettings", LogLevel::LL_ERROR);
+							continue;
+						}
+
+						dev->call_deferred("emit_signal", "server_settings_received", map_to_dict(data->get_settings()));
+						break;
+					}
+					case GRPacket::PacketType::MouseModeSync: {
+						Ref<GRPacketMouseModeSync> data = pack;
+						if (data.is_null()) {
+							_log("Incorrect GRPacketMouseModeSync", LogLevel::LL_ERROR);
+							continue;
+						}
+
+						dev->call_deferred("emit_signal", "mouse_mode_changed", data->get_mouse_mode());
+						break;
+					}
+					case GRPacket::PacketType::CustomInputScene: {
+						Ref<GRPacketCustomInputScene> data = pack;
+						if (data.is_null()) {
+							_log("Incorrect GRPacketCustomInputScene", LogLevel::LL_ERROR);
+							continue;
+						}
+
+						dev->call_deferred("_load_custom_input_scene", data);
+						break;
+					}
+					case GRPacket::PacketType::CustomUserData: {
+						Ref<GRPacketCustomUserData> data = pack;
+						if (data.is_null()) {
+							_log("Incorrect GRPacketCustomUserData", LogLevel::LL_ERROR);
+							break;
+						}
+						dev->call_deferred("emit_signal", "user_data_received", data->get_packet_id(), data->get_user_data());
+						break;
+					}
+					case GRPacket::PacketType::Ping: {
+						Ref<GRPacketPong> pack(memnew(GRPacketPong));
+						err = ppeer->put_var(pack->get_data());
+						if ((int)err) {
+							_log("Send pong failed with code: " + str((int)err), LogLevel::LL_NORMAL);
+							break;
+						}
+						break;
+					}
+					case GRPacket::PacketType::Pong: {
+						dev->_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
+						ping_sended = false;
+						break;
+					}
+					default:
+						_log("Not supported packet type! " + str((int)type), LogLevel::LL_WARNING);
+						break;
 				}
-				case GRPacket::PacketType::Pong: {
-					dev->_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
-					ping_sended = false;
-					break;
-				}
-				default:
-					_log("Not supported packet type! " + str((int)type), LogLevel::LL_WARNING);
-					break;
 			}
 		}
-		TimeCount("End receiving");
 	end_recv:
 		Mutex_unlock(dev->connection_mutex);
 
@@ -1438,12 +1455,11 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	Thread_close(_img_thread);
 	memdelete(ipsc);
 
-	_log("Closing connection", LogLevel::LL_NORMAL);
 	con_thread->break_connection = true;
 }
 
-void GRClient::_thread_image_decoder(THREAD_DATA p_userdata) {
-	ImgProcessingStorageClient *ipsc = (ImgProcessingStorageClient *)p_userdata;
+void GRClient::_thread_image_decoder(Variant p_userdata) {
+	ImgProcessingStorageClient *ipsc = VARIANT_OBJ_CAST_TO(p_userdata, ImgProcessingStorageClient);
 	GRClient *dev = ipsc->dev;
 	Error err = Error::OK;
 
@@ -1453,10 +1469,11 @@ void GRClient::_thread_image_decoder(THREAD_DATA p_userdata) {
 			continue;
 		}
 
+		ZoneScopedN("Image Decode");
+
 		Ref<Image> img(memnew(Image));
 		ImageCompressionType type = ipsc->compression_type;
 
-		TimeCountInit();
 		switch (type) {
 			case ImageCompressionType::COMPRESSION_UNCOMPRESSED: {
 #ifndef GDNATIVE_LIBRARY
@@ -1493,7 +1510,6 @@ void GRClient::_thread_image_decoder(THREAD_DATA p_userdata) {
 		}
 
 		if (!(int)err) { // is OK
-			TimeCount("Create Image Time");
 			dev->call_deferred("_update_texture_from_image", img);
 
 			if (dev->signal_connection_state != StreamState::STREAM_ACTIVE) {
@@ -1506,23 +1522,27 @@ void GRClient::_thread_image_decoder(THREAD_DATA p_userdata) {
 }
 
 GRDevice::AuthResult GRClient::_auth_on_server(GRClient *dev, Ref<PacketPeerStream> &ppeer) {
-#define wait_packet(_n)                                                                        \
-	time = (uint32_t)OS::get_singleton()->get_ticks_msec();                                    \
-	while (ppeer->get_available_packet_count() == 0) {                                         \
-		if (OS::get_singleton()->get_ticks_msec() - time > 150) {                              \
-			_log("Connection timeout. Disconnecting. Waited: " + str(_n), LogLevel::LL_DEBUG); \
-			goto timeout;                                                                      \
-		}                                                                                      \
-		if (!con->is_connected_to_host()) {                                                    \
-			return GRDevice::AuthResult::Error;                                                \
-		}                                                                                      \
-		sleep_usec(1_ms);                                                                      \
+#define wait_packet(_n)                                                                            \
+	{                                                                                              \
+		ZoneScopedN("Wait Auth Packet: " #_n);                                                     \
+		time = (uint32_t)OS::get_singleton()->get_ticks_msec();                                    \
+		while (ppeer->get_available_packet_count() == 0) {                                         \
+			if (OS::get_singleton()->get_ticks_msec() - time > 150) {                              \
+				_log("Connection timeout. Disconnecting. Waited: " + str(_n), LogLevel::LL_DEBUG); \
+				goto timeout;                                                                      \
+			}                                                                                      \
+			if (!con->is_connected_to_host()) {                                                    \
+				return GRDevice::AuthResult::Error;                                                \
+			}                                                                                      \
+			sleep_usec(1_ms);                                                                      \
+		}                                                                                          \
 	}
 #define packet_error_check(_t)              \
 	if ((int)err) {                         \
 		_log(_t, LogLevel::LL_DEBUG);       \
 		return GRDevice::AuthResult::Error; \
 	}
+	ZoneScopedN("Authorization");
 
 	Ref<StreamPeerTCP> con = ppeer->get_stream_peer();
 	String address = CONNECTION_ADDRESS(con);
@@ -1716,6 +1736,8 @@ void GRInputCollector::_register_methods() {
 #endif
 
 void GRInputCollector::_input(Ref<InputEvent> ie) {
+	ZoneScopedN("Input Collector Process");
+
 	if (!parent || (capture_only_when_control_in_focus && !parent->has_focus()) ||
 			(dev && dev->get_status() != GRDevice::WorkingStatus::STATUS_WORKING) ||
 			!dev->is_stream_active() || !is_inside_tree()) {
@@ -1829,6 +1851,7 @@ void GRInputCollector::_notification(int p_notification) {
 			break;
 		}
 		case NOTIFICATION_PROCESS: {
+			ZoneScopedN("Input Collector Sensors");
 			_TS_LOCK_;
 			auto w = sensors.write();
 			w[0] = Input::get_singleton()->get_accelerometer();
@@ -1882,6 +1905,7 @@ void GRInputCollector::set_tex_rect(TextureRect *tr) {
 }
 
 Ref<GRPacketInputData> GRInputCollector::get_collected_input_data() {
+	ZoneScopedN("Get Input Collector Data");
 	Ref<GRPacketInputData> res(memnew(GRPacketInputData));
 	Ref<GRInputDeviceSensorsData> s(memnew(GRInputDeviceSensorsData));
 

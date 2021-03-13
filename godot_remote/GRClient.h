@@ -172,8 +172,8 @@ private:
 	void _update_stream_texture_state(ENUM_ARG(StreamState) _stream_state);
 	virtual void _reset_counters() override;
 
-	THREAD_FUNC void _thread_connection(THREAD_DATA p_userdata);
-	THREAD_FUNC void _thread_image_decoder(THREAD_DATA p_userdata);
+	void _thread_connection(Variant p_userdata);
+	void _thread_image_decoder(Variant p_userdata);
 
 	static void _connection_loop(ConnectionThreadParamsClient *con_thread);
 	static GRDevice::AuthResult _auth_on_server(GRClient *dev, Ref<PacketPeerStream> &con);

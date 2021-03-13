@@ -9,6 +9,7 @@
 #include <vector>
 
 #ifndef GDNATIVE_LIBRARY
+#include "core/bind/core_bind.h"
 #include "core/image.h"
 #include "core/io/marshalls.h"
 #include "core/os/os.h"
@@ -44,6 +45,8 @@ using namespace godot;
 // CONDITIONAL DEFINES
 
 #ifndef GDNATIVE_LIBRARY
+#define VARIANT_OBJ_CAST_TO(var, to) ((to *)(Object *)var)
+
 #define ENUM_ARG(en) en
 #define ENUM_CONV(en) (en)
 
@@ -71,12 +74,12 @@ using namespace godot;
 
 #define file_get_as_string(path, err) FileAccess::get_file_as_string(path, err);
 
-#define THREAD_FUNC static
-#define THREAD_DATA void *
 #define _TS_CLASS_ _THREAD_SAFE_CLASS_
 #define _TS_METHOD_ _THREAD_SAFE_METHOD_
 #define _TS_LOCK_ _THREAD_SAFE_LOCK_
 #define _TS_UNLOCK_ _THREAD_SAFE_UNLOCK_
+#define Thread_define_type Ref<_Thread>
+#define Thread_define(_var) Ref<_Thread> _var
 #define Thread_set_name(_name) Thread::set_name(_name)
 
 #if VERSION_MINOR >= 2 && VERSION_PATCH >= 4
@@ -86,13 +89,6 @@ using namespace godot;
 #define Mutex_lock(_var) _var.lock()
 #define Mutex_unlock(_var) _var.unlock()
 
-#define t_wait_to_finish(thread) thread.wait_to_finish()
-#define Thread_define_type class Thread
-#define Thread_define(_var) class Thread _var
-#define Thread_start(_var, _class, function, data_to_send, inst) _var.start(&_class::function, data_to_send)
-#define Thread_close(_name) \
-	if (_name.is_started()) \
-		t_wait_to_finish(_name);
 #else
 #define Mutex_define(_var) Mutex *_var = nullptr
 #define Mutex_create(_var) _var = Mutex::create()
@@ -105,16 +101,6 @@ using namespace godot;
 #define Mutex_lock(_var) _var->lock()
 #define Mutex_unlock(_var) _var->unlock()
 
-#define t_wait_to_finish(thread) Thread::wait_to_finish(thread)
-#define Thread_define_type Thread*
-#define Thread_define(_var) class Thread *_var = nullptr
-#define Thread_start(_var, _class, function, data_to_send, inst) _var = Thread::create(&_class::function, data_to_send)
-#define Thread_close(_name)      \
-	if (_name) {                 \
-		t_wait_to_finish(_name); \
-		memdelete(_name);        \
-		_name = nullptr;         \
-	}
 #endif
 
 #else
@@ -170,8 +156,6 @@ public:
 	~ThreadSafeMethod() { _ts->unlock(); }
 };
 
-#define THREAD_FUNC
-#define THREAD_DATA Variant
 #define _TS_CLASS_ ThreadSafe __thread__safe__
 #define _TS_METHOD_ ThreadSafeMethod __thread_safe_method__(&__thread__safe__)
 #define _TS_LOCK_ __thread__safe__.lock()
@@ -189,17 +173,11 @@ public:
 
 #define Thread_define_type Ref<Thread>
 #define Thread_define(_var) Ref<Thread> _var
-#define t_wait_to_finish(thread) thread->wait_to_finish()
-#define Thread_start(_var, _class, function, data_to_send, inst) _var = _gdn_thread_create(inst, #function, data_to_send)
 #define Thread_set_name(_name)
-#define Thread_close(_name)      \
-	if (_name.is_valid()) {      \
-		t_wait_to_finish(_name); \
-		_name.unref();           \
-		_name = Ref<Thread>();   \
-	}
 
 // THREAD SAFE END
+
+#define VARIANT_OBJ_CAST_TO(var, to) ((to *)var)
 
 #define ENUM_ARG(en) int
 #define ENUM_CONV(en)
@@ -278,19 +256,7 @@ protected:
 // DEBUG DEFINES
 
 #ifdef DEBUG_ENABLED
-
-#define TimeCountInit() uint64_t simple_time_counter = OS::get_singleton()->get_ticks_usec()
-#define TimeCountReset() simple_time_counter = OS::get_singleton()->get_ticks_usec()
-// Shows delta between this and previous counter. Need to call TimeCountInit before
-#define TimeCount(str)                                                                                                                                                   \
-	GRUtils::_log(str + String(": ") + String::num((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0, 3) + " ms", LogLevel::LL_DEBUG); \
-	simple_time_counter = OS::get_singleton()->get_ticks_usec()
 #else
-
-#define TimeCountInit()
-#define TimeCountReset()
-#define TimeCount(str)
-
 #endif // DEBUG_ENABLED
 
 // =================================================================
@@ -302,9 +268,17 @@ protected:
 	if (Engine::get_singleton()->is_editor_hint()) \
 		return;
 
+#define t_wait_to_finish(thread) thread->wait_to_finish()
+#define Thread_start(_var, inst, function, data_to_send) _var = _utils_thread_create(inst, #function, data_to_send)
+#define Thread_start_string(_var, inst, function_string, data_to_send) _var = _utils_thread_create(inst, function_string, data_to_send)
+#define Thread_close(_name)                       \
+	if (_name.is_valid() && _name->is_active()) { \
+		t_wait_to_finish(_name);                  \
+		_name.unref();                            \
+		_name = Thread_define_type();             \
+	}
+
 #define newref(_class) Ref<_class>(memnew(_class))
-#define max(x, y) (x > y ? x : y)
-#define min(x, y) (x < y ? x : y)
 #define _log(val, ll) __log(val, ll, __FILE__, __LINE__)
 #define is_vector_contains(vec, val) (std::find(vec.begin(), vec.end(), val) != vec.end())
 
@@ -624,6 +598,7 @@ static std::vector<V> arr_to_vec(Array a) {
 
 #ifndef GDNATIVE_LIBRARY
 extern Vector<Variant> vec_args(const std::vector<Variant> &args);
+extern Ref<class _Thread> _utils_thread_create(Object *instance, String func_name, const Object *user_data);
 
 #else
 extern Array vec_args(const std::vector<Variant> &args);
@@ -631,7 +606,7 @@ extern Array vec_args(const std::vector<Variant> &args);
 extern String _gdn_get_file_as_string(String path, Error *ret_err);
 extern Variant _gdn_dictionary_get_key_at_index(Dictionary d, int idx);
 extern Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx);
-extern Ref<Thread> _gdn_thread_create(Object *instance, String func_name, const Object *user_data);
+extern Ref<Thread> _utils_thread_create(Object *instance, String func_name, const Object *user_data);
 extern Variant _GLOBAL_DEF(const String &p_var, const Variant &p_default, bool p_restart_if_changed = false);
 #endif
 

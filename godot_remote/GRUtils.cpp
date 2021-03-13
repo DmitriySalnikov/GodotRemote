@@ -1,6 +1,7 @@
 /* GRUtils.cpp */
 
 #include "GRUtils.h"
+#include "GRProfiler.h"
 #include "GodotRemote.h"
 
 #ifndef GDNATIVE_LIBRARY
@@ -61,10 +62,11 @@ void deinit_server_utils() {
 
 void __log(const Variant &val, int lvl, String file, int line) {
 #ifdef DEBUG_ENABLED
-#ifndef GDNATIVE_LIBRARY
 	if (lvl >= _grutils_data->current_loglevel && lvl < LogLevel::LL_NONE) {
+		auto val_str = str(val);
+#ifndef GDNATIVE_LIBRARY
 		String file_line = "";
-		if (file != "") {
+		if (lvl > LogLevel::LL_NORMAL && file != "") {
 			int idx = file.find("godot_remote");
 			if (idx != -1) {
 				file = file.substr(file.find("godot_remote"), file.length());
@@ -74,37 +76,42 @@ void __log(const Variant &val, int lvl, String file, int line) {
 		}
 
 		if (lvl == LogLevel::LL_ERROR) {
-			print_error("[GodotRemote Error] " + str(val) + file_line);
+			print_error("[GodotRemote] " + val_str + file_line);
 		} else if (lvl == LogLevel::LL_WARNING) {
-			print_error("[GodotRemote Warning] " + str(val) + file_line);
+			print_error("[GodotRemote] " + val_str + file_line);
 		} else {
-			print_line("[GodotRemote] " + str(val));
+			print_line("[GodotRemote] " + val_str);
 		}
-	}
-
 #else
 
-#define print_error_ext() Godot::print_error(str(val), "[GodotRemote Error]", file, line)
-#define print_warning_ext() Godot::print_warning(str(val), "[GodotRemote Warning]", file, line)
-
-	if (lvl >= _grutils_data->current_loglevel && lvl < LogLevel::LL_NONE) {
-		if (file != "") {
+		if (lvl > LogLevel::LL_NORMAL && file != "") {
 			int idx = file.find("godot_remote");
 			if (idx != -1)
 				file = file.substr(file.find("godot_remote"), file.length());
 		}
 
 		if (lvl == LogLevel::LL_ERROR) {
-			print_error_ext();
+			Godot::print_error(val_str, "[GodotRemote Error]", file, line);
 		} else if (lvl == LogLevel::LL_WARNING) {
-			print_warning_ext();
+			Godot::print_warning(val_str, "[GodotRemote Warning]", file, line);
 		} else {
-			Godot::print("[GodotRemote] " + str(val));
+			Godot::print("[GodotRemote] " + val_str);
 		}
-	}
-#undef print_error_ext
-#undef print_warning_ext
 #endif
+	}
+
+#ifdef GODOTREMOTE_TRACY_ENABLED
+	auto val_str = str(val);
+	if (lvl == LogLevel::LL_ERROR) {
+		TracyMessageC(val_str.ascii().get_data(), val_str.length(), tracy::Color::Red2);
+	} else if (lvl == LogLevel::LL_WARNING) {
+		TracyMessageC(val_str.ascii().get_data(), val_str.length(), tracy::Color::Yellow2);
+	} else if (lvl == LogLevel::LL_DEBUG) {
+		TracyMessageC(val_str.ascii().get_data(), val_str.length(), tracy::Color::Gray55);
+	} else {
+		TracyMessageC(val_str.ascii().get_data(), val_str.length(), tracy::Color::WhiteSmoke);
+	}
+#endif // !GODOTREMOTE_TRACY_ENABLED
 #endif
 }
 
@@ -198,28 +205,28 @@ Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width,
 	auto ri = img_data.read();
 	int size = _grutils_data_server->compress_buffer.size();
 
-	TimeCountInit();
+	{
+		ZoneScopedN("Compress JPG");
+		ERR_FAIL_COND_V_MSG(!jpge::compress_image_to_jpeg_file_in_memory(
+									(void *)rb.ptr(),
+									size,
+									width,
+									height,
+									bytes_for_color,
+									(const unsigned char *)ri.ptr(),
+									params),
+				Error::FAILED, "Can't compress image.");
+	}
 
-	ERR_FAIL_COND_V_MSG(!jpge::compress_image_to_jpeg_file_in_memory(
-								(void *)rb.ptr(),
-								size,
-								width,
-								height,
-								bytes_for_color,
-								(const unsigned char *)ri.ptr(),
-								params),
-			Error::FAILED, "Can't compress image.");
-
-	TimeCount("Compress jpg");
-
-	release_pva_read(ri);
-	res.resize(size);
-	auto wr = res.write();
-	memcpy(wr.ptr(), rb.ptr(), size);
-	release_pva_read(rb);
-	release_pva_write(wr);
-
-	TimeCount("Combine arrays");
+	{
+		ZoneScopedN("Copy Compressed JPG Data to result PoolArray");
+		release_pva_read(ri);
+		res.resize(size);
+		auto wr = res.write();
+		memcpy(wr.ptr(), rb.ptr(), size);
+		release_pva_read(rb);
+		release_pva_write(wr);
+	}
 
 	_log("JPG size: " + str(res.size()), GodotRemote::LogLevel::LL_DEBUG);
 
@@ -499,6 +506,12 @@ Vector<Variant> vec_args(const std::vector<Variant> &args) {
 	return res;
 }
 
+Ref<_Thread> _utils_thread_create(Object *instance, String func_name, const Object *user_data) {
+	Ref<_Thread> t = newref(_Thread);
+	t->start(instance, func_name, user_data);
+	return t;
+}
+
 #else
 Array vec_args(const std::vector<Variant> &args) {
 	return vec_to_arr(args);
@@ -533,7 +546,7 @@ Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx) {
 	return r;
 }
 
-Ref<Thread> _gdn_thread_create(Object *instance, String func_name, const Object *user_data) {
+Ref<Thread> _utils_thread_create(Object *instance, String func_name, const Object *user_data) {
 	Ref<Thread> t = newref(Thread);
 	t->start(instance, func_name, user_data);
 	return t;
