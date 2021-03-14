@@ -4,6 +4,7 @@
 #include "GRInputData.h"
 #include "GRPacket.h"
 #include "GRUtils.h"
+#include "GRProfiler.h"
 
 #ifndef GDNATIVE_LIBRARY
 #include "scene/main/node.h"
@@ -83,7 +84,7 @@ protected:
 	float avg_fps = 0, min_fps = 0, max_fps = 0;
 	uint32_t avg_ping_max_count = 100;
 
-	Mutex_define(send_queue_mutex);
+	Mutex_define(send_queue_mutex, "Device Send Queue Lock");
 	std::vector<Ref<GRPacket> > send_queue;
 
 	void set_status(WorkingStatus status);

@@ -13,11 +13,6 @@
 using namespace godot;
 #endif
 
-#ifndef NO_GODOTREMOTE_SERVER
-// richgel999/jpeg-compressor: https://github.com/richgel999/jpeg-compressor
-#include "jpge.h"
-#endif
-
 GRUtilsData *GRUtils::_grutils_data = nullptr;
 
 namespace GRUtils {
@@ -41,24 +36,6 @@ void deinit() {
 		_grutils_data = nullptr;
 	}
 }
-
-#ifndef NO_GODOTREMOTE_SERVER
-GRUtilsDataServer *_grutils_data_server = nullptr;
-
-void init_server_utils() {
-	LEAVE_IF_EDITOR();
-	_grutils_data_server = new GRUtilsDataServer();
-
-	GET_PS_SET(_grutils_data_server->compress_buffer_size_mb, GodotRemote::ps_server_jpg_buffer_mb_size_name);
-	_grutils_data_server->compress_buffer.resize((1024 * 1024) * _grutils_data_server->compress_buffer_size_mb);
-}
-
-void deinit_server_utils() {
-	LEAVE_IF_EDITOR();
-	_grutils_data_server->compress_buffer.resize(0);
-	delete _grutils_data_server;
-}
-#endif
 
 void __log(const Variant &val, int lvl, String file, int line) {
 #ifdef DEBUG_ENABLED
@@ -189,51 +166,6 @@ String str_arr(const uint8_t *data, const int size, const bool force_full, const
 
 	return res + " ]";
 };
-
-#ifndef NO_GODOTREMOTE_SERVER
-Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width, int height, int bytes_for_color, int quality, int subsampling) {
-	PoolByteArray res;
-	ERR_FAIL_COND_V(img_data.size() == 0, Error::ERR_INVALID_PARAMETER);
-	ERR_FAIL_COND_V(quality < 1 || quality > 100, Error::ERR_INVALID_PARAMETER);
-
-	jpge::params params;
-	params.m_quality = quality;
-	params.m_subsampling = (jpge::subsampling_t)subsampling;
-
-	ERR_FAIL_COND_V(!params.check(), Error::ERR_INVALID_PARAMETER);
-	auto rb = _grutils_data_server->compress_buffer.read();
-	auto ri = img_data.read();
-	int size = _grutils_data_server->compress_buffer.size();
-
-	{
-		ZoneScopedN("Compress JPG");
-		ERR_FAIL_COND_V_MSG(!jpge::compress_image_to_jpeg_file_in_memory(
-									(void *)rb.ptr(),
-									size,
-									width,
-									height,
-									bytes_for_color,
-									(const unsigned char *)ri.ptr(),
-									params),
-				Error::FAILED, "Can't compress image.");
-	}
-
-	{
-		ZoneScopedN("Copy Compressed JPG Data to result PoolArray");
-		release_pva_read(ri);
-		res.resize(size);
-		auto wr = res.write();
-		memcpy(wr.ptr(), rb.ptr(), size);
-		release_pva_read(rb);
-		release_pva_write(wr);
-	}
-
-	_log("JPG size: " + str(res.size()), GodotRemote::LogLevel::LL_DEBUG);
-
-	ret = res;
-	return Error::OK;
-}
-#endif
 
 Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type) {
 #ifndef GDNATIVE_LIBRARY
@@ -506,7 +438,7 @@ Vector<Variant> vec_args(const std::vector<Variant> &args) {
 	return res;
 }
 
-Ref<_Thread> _utils_thread_create(Object *instance, String func_name, const Object *user_data) {
+Ref<_Thread> _utils_thread_create(Object *instance, String func_name, const Variant &user_data) {
 	Ref<_Thread> t = newref(_Thread);
 	t->start(instance, func_name, user_data);
 	return t;
@@ -546,7 +478,7 @@ Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx) {
 	return r;
 }
 
-Ref<Thread> _utils_thread_create(Object *instance, String func_name, const Object *user_data) {
+Ref<Thread> _utils_thread_create(Object *instance, String func_name, const Variant &user_data) {
 	Ref<Thread> t = newref(Thread);
 	t->start(instance, func_name, user_data);
 	return t;

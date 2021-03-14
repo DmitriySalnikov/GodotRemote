@@ -7,7 +7,21 @@
 //#include "tracy/client/TracyCallstack.hpp"
 #include "tracy/Tracy.hpp"
 
+// CUSTOM MACROS
+
+#define TracyPlotExecTimeStart(name) int64_t _tracy_plot_time_##name = (int64_t)OS::get_singleton()->get_ticks_usec()
+#define TracyPlotExecTimeEnd(name)                                                              \
+	TracyPlot(#name, (int64_t)OS::get_singleton()->get_ticks_usec() - _tracy_plot_time_##name); \
+	TracyPlotConfig(#name, tracy::PlotFormatType::Number);
+
 #else
+
+// CUSTOM MACROS
+
+#define PlotExecTimeStart(name)
+#define PlotExecTimeEnd(name)
+
+// TRACY MACRO
 
 #define ZoneNamed(varname, active)
 #define ZoneNamedN(varname, name, active)

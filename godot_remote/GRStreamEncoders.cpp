@@ -2,11 +2,15 @@
 
 #ifndef NO_GODOTREMOTE_SERVER
 
-#include "GRStreamEncoders.h"
+#ifndef NO_GODOTREMOTE_SERVER
+// richgel999/jpeg-compressor: https://github.com/richgel999/jpeg-compressor
+#include "jpge.h"
+#endif
+
 #include "GRNotifications.h"
 #include "GRPacket.h"
-#include "GRProfiler.h"
 #include "GRServer.h"
+#include "GRStreamEncoders.h"
 #include "GodotRemote.h"
 
 #ifndef GDNATIVE_LIBRARY
@@ -160,13 +164,16 @@ void GRStreamEncoder::_notification(int p_notification) {
 
 void GRStreamEncoder::commit_image(Ref<Image> img, uint64_t frametime) {
 	if (!img_is_empty(img)) {
-		_TS_LOCK_;
+		ts_lock.lock();
+
 		while (images.size() > get_max_queued_frames()) {
 			images.pop();
+			TracyMessage("Removed Queued Image", 21);
 		}
 
 		images.push(CommitedImage(img, OS::get_singleton()->get_ticks_usec(), frametime));
-		_TS_UNLOCK_;
+
+		ts_lock.unlock();
 	} else {
 		_log("Commited empty image to StreamEncoder. Ignoring.", LogLevel::LL_ERROR);
 	}
@@ -214,25 +221,25 @@ void GRStreamEncoderImageSequence::_notification(int p_notification) {
 	}
 }
 
-bool GRStreamEncoderImageSequence::has_data_to_send() const {
-	_TS_LOCK_;
+bool GRStreamEncoderImageSequence::has_data_to_send() {
+	ts_lock.lock();
 	bool ret = buffer.size();
-	_TS_UNLOCK_;
+	ts_lock.unlock();
 	return ret;
 }
 
 Ref<GRPacket> GRStreamEncoderImageSequence::pop_data_to_send() {
-	_TS_LOCK_;
+	ts_lock.lock();
 	auto data = buffer.back();
 	buffer.pop_back();
-	_TS_UNLOCK_;
+	ts_lock.unlock();
 	return data.pack;
 }
 
 int GRStreamEncoderImageSequence::get_max_queued_frames() {
-	_TS_METHOD_;
+	ts_lock.lock();
 	int ret = (int)threads.size();
-	_TS_UNLOCK_;
+	ts_lock.unlock();
 	return ret;
 }
 
@@ -256,7 +263,7 @@ void GRStreamEncoderImageSequence::_init() {
 
 	threads.resize(count);
 	for (int i = 0; i < count; i++) {
-		Thread_start(threads[i], this, _processing_thread, this);
+		Thread_start(threads[i], this, _processing_thread, i);
 	}
 	//_log("img processing thread " + str(0), LogLevel::LL_NORMAL);
 }
@@ -271,24 +278,28 @@ void GRStreamEncoderImageSequence::_deinit() {
 }
 
 void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
-	GRStreamEncoderImageSequence *p = VARIANT_OBJ_CAST_TO(p_userdata, GRStreamEncoderImageSequence);
+	int thread_idx = p_userdata;
 	OS *os = OS::get_singleton();
 
-	Thread_set_name("ImageProcessingThread");
+	PoolByteArray jpg_buffer;
+	jpg_buffer.resize((1024 * 1024) * ((int)GET_PS(GodotRemote::ps_server_jpg_buffer_mb_size_name)));
 
-	while (p->is_threads_active) {
-		p->_TS_LOCK_;
+	Thread_set_name(("Stream Encoder: Image Sequence " + str(thread_idx)).ascii().get_data());
 
-		if (p->images.size() == 0) {
-			p->_TS_UNLOCK_;
+	while (is_threads_active) {
+		ts_lock.lock();
+
+		if (images.size() == 0) {
+			ts_lock.unlock();
 			sleep_usec(1_ms);
 			continue;
 		}
 
-		CommitedImage com_image = p->images.front();
-		p->images.pop();
+		int jpg_quality = viewport->jpg_quality;
+		CommitedImage com_image = images.front();
+		images.pop();
 
-		p->_TS_UNLOCK_;
+		ts_lock.unlock();
 
 		Ref<Image> img = com_image.img;
 
@@ -297,7 +308,7 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		Ref<GRPacketImageData> pack(memnew(GRPacketImageData));
 		int bytes_in_color = img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
 
-		pack->set_compression_type(p->compression_type);
+		pack->set_compression_type(compression_type);
 		pack->set_size(Size2((float)img->get_width(), (float)img->get_height()));
 		pack->set_format(img->get_format());
 		pack->set_start_time(os->get_ticks_usec());
@@ -305,7 +316,7 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		pack->set_is_empty(false);
 
 		if (!(img->get_format() == Image::FORMAT_RGBA8 || img->get_format() == Image::FORMAT_RGB8)) {
-			ZoneScopedN("Convert Image Format");
+			ZoneScopedNC("Convert Image Format", tracy::Color::VioletRed);
 			img->convert(Image::FORMAT_RGB8);
 			pack->set_format(img->get_format());
 			bytes_in_color = img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
@@ -322,14 +333,14 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 
 		switch (pack->get_compression_type()) {
 			case GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED: {
-				ZoneScopedN("Image processed: Uncompressed");
+				ZoneScopedNC("Image processed: Uncompressed", tracy::Color::VioletRed3);
 				img_data = img->get_data();
 				break;
 			}
 			case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
-				ZoneScopedN("Image processed: JPG");
+				ZoneScopedNC("Image processed: JPG", tracy::Color::VioletRed3);
 				if (!img_is_empty(img)) {
-					Error err = compress_jpg(img_data, img->get_data(), (int)img->get_width(), (int)img->get_height(), bytes_in_color, p->viewport->jpg_quality, GRServer::Subsampling::SUBSAMPLING_H2V2);
+					Error err = compress_jpg(img_data, img->get_data(), jpg_buffer, (int)img->get_width(), (int)img->get_height(), bytes_in_color, jpg_quality, GRServer::Subsampling::SUBSAMPLING_H2V2);
 					if ((int)err) {
 						_log("Can't compress stream image JPG. Code: " + str((int)err), LogLevel::LL_ERROR);
 						GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
@@ -339,7 +350,7 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 				break;
 			}
 			case GRDevice::ImageCompressionType::COMPRESSION_PNG: {
-				ZoneScopedN("Image processed: PNG");
+				ZoneScopedNC("Image processed: PNG", tracy::Color::VioletRed3);
 				img_data = img->save_png_to_buffer();
 				if (img_data.size() == 0) {
 					_log("Can't compress stream image to PNG.", LogLevel::LL_ERROR);
@@ -355,17 +366,61 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		}
 		pack->set_image_data(img_data);
 	end:
-		if (p->video_stream_enabled) {
-			ZoneScopedN("Push Image to Buffer");
-			p->_TS_LOCK_;
-			while (p->buffer.size() > p->threads.size() - 1) {
-				p->buffer.pop_back();
+		if (video_stream_enabled) {
+			ZoneScopedNC("Push Image to Buffer", tracy::Color::Violet);
+			ts_lock.lock();
+			while (buffer.size() > threads.size() - 1) {
+				buffer.pop_back();
 			}
-			p->buffer.push_back(BufferedImage(pack, com_image.time));
-			std::sort(p->buffer.begin(), p->buffer.end());
-			p->_TS_UNLOCK_;
+			TracyPlot("Frame Adding Time", (int64_t)com_image.time);
+			buffer.push_back(BufferedImage(pack, com_image.time));
+			std::sort(buffer.begin(), buffer.end());
+			ts_lock.unlock();
 		}
 	}
+}
+
+Error GRStreamEncoderImageSequence::compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, const PoolByteArray &jpg_buffer, int width, int height, int bytes_for_color, int quality, int subsampling) {
+	PoolByteArray res;
+	ERR_FAIL_COND_V(img_data.size() == 0, Error::ERR_INVALID_PARAMETER);
+	ERR_FAIL_COND_V(quality < 1 || quality > 100, Error::ERR_INVALID_PARAMETER);
+
+	jpge::params params;
+	params.m_quality = quality;
+	params.m_subsampling = (jpge::subsampling_t)subsampling;
+
+	ERR_FAIL_COND_V(!params.check(), Error::ERR_INVALID_PARAMETER);
+	auto rb = jpg_buffer.read();
+	auto ri = img_data.read();
+	int size = jpg_buffer.size();
+
+	ERR_FAIL_COND_V_MSG(!jpge::compress_image_to_jpeg_file_in_memory(
+								(void *)rb.ptr(),
+								size,
+								width,
+								height,
+								bytes_for_color,
+								(const unsigned char *)ri.ptr(),
+								params),
+			Error::FAILED, "Can't compress image.");
+
+
+	{
+		ZoneScopedNC("Copy Compressed JPG Data to result PoolArray", tracy::Color::HotPink3);
+		release_pva_read(ri);
+		res.resize(size);
+		auto wr = res.write();
+		memcpy(wr.ptr(), rb.ptr(), size);
+		release_pva_read(rb);
+		release_pva_write(wr);
+	}
+
+	// TODO tracy image here? or on client when receive
+
+	_log("JPG size: " + str(res.size()), GodotRemote::LogLevel::LL_DEBUG);
+
+	ret = res;
+	return Error::OK;
 }
 #undef THREAD_METHOD
 

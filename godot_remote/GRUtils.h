@@ -74,34 +74,8 @@ using namespace godot;
 
 #define file_get_as_string(path, err) FileAccess::get_file_as_string(path, err);
 
-#define _TS_CLASS_ _THREAD_SAFE_CLASS_
-#define _TS_METHOD_ _THREAD_SAFE_METHOD_
-#define _TS_LOCK_ _THREAD_SAFE_LOCK_
-#define _TS_UNLOCK_ _THREAD_SAFE_UNLOCK_
 #define Thread_define_type Ref<_Thread>
 #define Thread_define(_var) Ref<_Thread> _var
-#define Thread_set_name(_name) Thread::set_name(_name)
-
-#if VERSION_MINOR >= 2 && VERSION_PATCH >= 4
-#define Mutex_define(_var) Mutex _var
-#define Mutex_create(_var)
-#define Mutex_delete(_var)
-#define Mutex_lock(_var) _var.lock()
-#define Mutex_unlock(_var) _var.unlock()
-
-#else
-#define Mutex_define(_var) Mutex *_var = nullptr
-#define Mutex_create(_var) _var = Mutex::create()
-#define Mutex_delete(_var) \
-	if (_var) {            \
-		memdelete(_var);   \
-		_var = nullptr;    \
-	}
-
-#define Mutex_lock(_var) _var->lock()
-#define Mutex_unlock(_var) _var->unlock()
-
-#endif
 
 #else
 
@@ -112,68 +86,8 @@ enum Margin : int {
 	MARGIN_BOTTOM
 };
 
-// THREAD SAFE classes
-// ORIGINAL CODE FROM GODOT CORE
-// because GDNative don't has it
-
-class ThreadSafe {
-
-	Mutex *mutex;
-
-public:
-	inline void lock() const {
-		if (mutex) mutex->lock();
-	}
-	inline void unlock() const {
-		if (mutex) mutex->unlock();
-	}
-
-	ThreadSafe() {
-		mutex = Mutex::_new();
-		if (!mutex) {
-
-			WARN_PRINT("THREAD_SAFE defined, but no default mutex type");
-		}
-	}
-
-	~ThreadSafe() {
-		if (mutex)
-			mutex->free();
-	}
-};
-
-class ThreadSafeMethod {
-
-	const ThreadSafe *_ts;
-
-public:
-	ThreadSafeMethod(const ThreadSafe *p_ts) {
-
-		_ts = p_ts;
-		_ts->lock();
-	}
-
-	~ThreadSafeMethod() { _ts->unlock(); }
-};
-
-#define _TS_CLASS_ ThreadSafe __thread__safe__
-#define _TS_METHOD_ ThreadSafeMethod __thread_safe_method__(&__thread__safe__)
-#define _TS_LOCK_ __thread__safe__.lock()
-#define _TS_UNLOCK_ __thread__safe__.unlock()
-
-#define Mutex_define(_var) Ref<Mutex> _var
-#define Mutex_create(_var) _var = newref(Mutex)
-#define Mutex_lock(_var) _var->lock()
-#define Mutex_unlock(_var) _var->unlock()
-#define Mutex_delete(_var)   \
-	if (_var.is_valid()) {   \
-		_var.unref();        \
-		_var = Ref<Mutex>(); \
-	}
-
 #define Thread_define_type Ref<Thread>
 #define Thread_define(_var) Ref<Thread> _var
-#define Thread_set_name(_name)
 
 // THREAD SAFE END
 
@@ -259,10 +173,17 @@ protected:
 #else
 #endif // DEBUG_ENABLED
 
+#ifdef TRACY_ENABLE
+#define Thread_set_name(_name) tracy::SetThreadName(_name)
+#else
+#define Thread_set_name(_name)
+#endif
+
 // =================================================================
 // GLOBAL DEFINES
 
 #define sleep_usec(usec) OS::get_singleton()->delay_usec(usec)
+#define Mutex_define(_var, _description) TracyLockableN(std::recursive_mutex, _var, _description)
 
 #define LEAVE_IF_EDITOR()                          \
 	if (Engine::get_singleton()->is_editor_hint()) \
@@ -279,7 +200,7 @@ protected:
 	}
 
 #define newref(_class) Ref<_class>(memnew(_class))
-#define _log(val, ll) __log(val, ll, __FILE__, __LINE__)
+#define _log(val, logLevel) __log(val, logLevel, __FILE__, __LINE__)
 #define is_vector_contains(vec, val) (std::find(vec.begin(), vec.end(), val) != vec.end())
 
 #define GR_VERSION(x, y, z)                            \
@@ -348,25 +269,10 @@ public:
 	PoolByteArray internal_VERSION;
 };
 
-#ifndef NO_GODOTREMOTE_SERVER
-class GRUtilsDataServer {
-public:
-	PoolByteArray compress_buffer;
-	int compress_buffer_size_mb;
-};
-
-extern GRUtilsDataServer *_grutils_data_server;
-#endif
 extern GRUtilsData *_grutils_data;
 
 extern void init();
 extern void deinit();
-
-#ifndef NO_GODOTREMOTE_SERVER
-extern void init_server_utils();
-extern void deinit_server_utils();
-extern Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width, int height, int bytes_for_color = 4, int quality = 75, int subsampling = 3 /*Subsampling ::SUBSAMPLING_H2V2*/);
-#endif
 
 extern Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type);
 extern Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolByteArray &res, int type);
@@ -598,7 +504,7 @@ static std::vector<V> arr_to_vec(Array a) {
 
 #ifndef GDNATIVE_LIBRARY
 extern Vector<Variant> vec_args(const std::vector<Variant> &args);
-extern Ref<class _Thread> _utils_thread_create(Object *instance, String func_name, const Object *user_data);
+extern Ref<class _Thread> _utils_thread_create(Object *instance, String func_name, const Variant &user_data);
 
 #else
 extern Array vec_args(const std::vector<Variant> &args);
@@ -606,7 +512,7 @@ extern Array vec_args(const std::vector<Variant> &args);
 extern String _gdn_get_file_as_string(String path, Error *ret_err);
 extern Variant _gdn_dictionary_get_key_at_index(Dictionary d, int idx);
 extern Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx);
-extern Ref<Thread> _utils_thread_create(Object *instance, String func_name, const Object *user_data);
+extern Ref<Thread> _utils_thread_create(Object *instance, String func_name, const Variant &user_data);
 extern Variant _GLOBAL_DEF(const String &p_var, const Variant &p_default, bool p_restart_if_changed = false);
 #endif
 

@@ -40,7 +40,6 @@ public:
 		GD_CLASS(ListenerThreadParamsServer, Object);
 
 	public:
-		GRServer *dev = nullptr;
 		Thread_define(thread_ref);
 
 		bool stop_thread = false;
@@ -65,7 +64,6 @@ public:
 
 	public:
 		String device_id = "";
-		GRServer *dev = nullptr;
 		Ref<PacketPeerStream> ppeer;
 
 		Thread_define(thread_ref);
@@ -91,7 +89,7 @@ public:
 	};
 
 private:
-	Mutex_define(connection_mutex);
+	Mutex_define(connection_mutex, "Connection Lock");
 	ListenerThreadParamsServer *server_thread_listen = nullptr;
 	Ref<TCP_Server> tcp_server;
 	class GRSViewport *resize_viewport = nullptr;
@@ -124,7 +122,7 @@ private:
 	void _thread_listen(Variant p_userdata);
 	void _thread_connection(Variant p_userdata);
 
-	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection DEF_ARG(= false));
+	AuthResult _auth_client(Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection DEF_ARG(= false));
 
 	Ref<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress DEF_ARG(= true), ENUM_ARG(Compression::Mode) compression_type DEF_ARG(= ENUM_CONV(Compression::Mode) 0));
 	void _scan_resource_for_dependencies_recursive(String _dir, std::vector<String> &_arr);
@@ -181,6 +179,8 @@ class GRSViewport : public Viewport {
 	friend GRServer;
 	friend GRStreamEncoder;
 	friend GRStreamEncoderImageSequence;
+
+	Mutex_define(stream_mutex, "Stream Manager Mutex");
 
 private:
 	void _on_renderer_deleting();

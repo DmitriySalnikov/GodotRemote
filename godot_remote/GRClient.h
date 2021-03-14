@@ -61,7 +61,6 @@ public:
 		GD_CLASS(ImgProcessingStorageClient, Object);
 
 	public:
-		GRClient *dev = nullptr;
 		PoolByteArray tex_data;
 		uint64_t framerate = 0;
 		int format = 0;
@@ -86,7 +85,6 @@ public:
 		GD_CLASS(ConnectionThreadParamsClient, Object);
 
 	public:
-		GRClient *dev = nullptr;
 		Ref<StreamPeerTCP> peer;
 		Ref<PacketPeerStream> ppeer;
 
@@ -137,8 +135,8 @@ private:
 	bool _server_settings_syncing = false;
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
-	Mutex_define(connection_mutex);
-	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
+	Mutex_define(connection_mutex, "Connection Lock");
+	ConnectionType connection_type = ConnectionType::CONNECTION_WiFi;
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
 
@@ -175,8 +173,8 @@ private:
 	void _thread_connection(Variant p_userdata);
 	void _thread_image_decoder(Variant p_userdata);
 
-	static void _connection_loop(ConnectionThreadParamsClient *con_thread);
-	static GRDevice::AuthResult _auth_on_server(GRClient *dev, Ref<PacketPeerStream> &con);
+	void _connection_loop(ConnectionThreadParamsClient *con_thread);
+	GRDevice::AuthResult _auth_on_server(Ref<PacketPeerStream> &con);
 
 protected:
 	virtual void _internal_call_only_deffered_start() override;
@@ -249,7 +247,7 @@ class GRInputCollector : public Node {
 	GD_CLASS(GRInputCollector, Node);
 	friend GRClient;
 
-	_TS_CLASS_;
+	Mutex_define(ts_lock, "GRInputCollector Lock");
 
 private:
 	GRClient *dev = nullptr;

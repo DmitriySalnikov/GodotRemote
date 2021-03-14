@@ -5,7 +5,6 @@
 #include "GRServer.h"
 #include "GRNotifications.h"
 #include "GRPacket.h"
-#include "GRProfiler.h"
 #include "GodotRemote.h"
 
 #ifndef GDNATIVE_LIBRARY
@@ -297,11 +296,8 @@ void GRServer::_init() {
 	GRDevice::_init();
 #endif
 
-	Mutex_create(connection_mutex);
-
 	custom_input_scene_regex_resource_finder.instance();
 	custom_input_scene_regex_resource_finder->compile(custom_input_scene_regex_resource_finder_pattern);
-	init_server_utils();
 }
 
 void GRServer::_deinit() {
@@ -309,13 +305,11 @@ void GRServer::_deinit() {
 	if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
 		_internal_call_only_deffered_stop();
 	}
-	Mutex_delete(connection_mutex);
-
 	custom_input_scene_regex_resource_finder.unref();
-	deinit_server_utils();
 }
 
 void GRServer::_internal_call_only_deffered_start() {
+	ZoneScopedNC("Client Start", tracy::Color::Green3);
 	switch ((WorkingStatus)get_status()) {
 		case WorkingStatus::STATUS_WORKING:
 			ERR_FAIL_MSG("Can't start already working GodotRemote Server");
@@ -340,7 +334,6 @@ void GRServer::_internal_call_only_deffered_start() {
 	}
 
 	server_thread_listen = memnew(ListenerThreadParamsServer);
-	server_thread_listen->dev = this;
 	Thread_start(server_thread_listen->thread_ref, this, _thread_listen, server_thread_listen);
 
 	set_status(WorkingStatus::STATUS_WORKING);
@@ -350,6 +343,7 @@ void GRServer::_internal_call_only_deffered_start() {
 }
 
 void GRServer::_internal_call_only_deffered_stop() {
+	ZoneScopedNC("Client Stop", tracy::Color::Red3);
 	switch ((WorkingStatus)get_status()) {
 		case WorkingStatus::STATUS_STOPPED:
 			ERR_FAIL_MSG("Can't stop already stopped GodotRemote Server");
@@ -369,7 +363,7 @@ void GRServer::_internal_call_only_deffered_stop() {
 	}
 
 	if (resize_viewport)
-		resize_viewport->set_process(false);
+		resize_viewport->stop_encoder();
 	call_deferred("_remove_resize_viewport", resize_viewport);
 	resize_viewport = nullptr;
 
@@ -568,19 +562,18 @@ void GRServer::_reset_counters() {
 //////////////////////////////////////////////
 
 void GRServer::_thread_listen(Variant p_userdata) {
-	Thread_set_name("GR_listen_thread");
+	Thread_set_name("Server Listen for Connections");
+
 	ListenerThreadParamsServer *this_thread_info = VARIANT_OBJ_CAST_TO(p_userdata, ListenerThreadParamsServer);
-	GRServer *dev = this_thread_info->dev;
-	Ref<TCP_Server> srv = dev->tcp_server;
 	OS *os = OS::get_singleton();
 	ConnectionThreadParamsServer *connection_thread_info = nullptr;
 	Error err = Error::OK;
 	bool listening_error_notification_shown = false;
 
 	while (!this_thread_info->stop_thread) {
-		ZoneScopedN("Server Listen For Connections");
-		if (!srv->is_listening()) {
-			err = srv->listen(dev->port);
+		ZoneScopedNC("Server Listen For Connections", tracy::Color::Orange2);
+		if (!tcp_server->is_listening()) {
+			err = tcp_server->listen(port);
 
 			if (err != Error::OK) {
 				switch (err) {
@@ -630,8 +623,8 @@ void GRServer::_thread_listen(Variant p_userdata) {
 				sleep_usec(1000_ms);
 				continue;
 			} else {
-				_log("Start listening port " + str(dev->port), LogLevel::LL_NORMAL);
-				GRNotifications::add_notification("Start listening", "Start listening on port: " + str(dev->port), GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
+				_log("Start listening port " + str(port), LogLevel::LL_NORMAL);
+				GRNotifications::add_notification("Start listening", "Start listening on port: " + str(port), GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 			}
 		}
 		listening_error_notification_shown = false;
@@ -649,18 +642,18 @@ void GRServer::_thread_listen(Variant p_userdata) {
 			}
 		}
 
-		if (srv->is_connection_available()) {
-			Ref<StreamPeerTCP> con = srv->take_connection();
+		if (tcp_server->is_connection_available()) {
+			Ref<StreamPeerTCP> con = tcp_server->take_connection();
 			con->set_no_delay(true);
 			String address = CONNECTION_ADDRESS(con);
 
 			Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
 			ppeer->set_stream_peer(con);
-			ppeer->set_output_buffer_max_size(_grutils_data_server->compress_buffer.size());
+			ppeer->set_output_buffer_max_size((1024 * 1024) * ((int)GET_PS(GodotRemote::ps_server_jpg_buffer_mb_size_name)));
 
 			if (!connection_thread_info) {
 				Dictionary ret_data;
-				GRDevice::AuthResult res = _auth_client(dev, ppeer, ret_data, false);
+				GRDevice::AuthResult res = _auth_client(ppeer, ret_data, false);
 				String dev_id = "";
 
 				if (ret_data.has("id")) {
@@ -671,17 +664,15 @@ void GRServer::_thread_listen(Variant p_userdata) {
 					case GRDevice::AuthResult::OK:
 						connection_thread_info = memnew(ConnectionThreadParamsServer);
 						connection_thread_info->device_id = dev_id;
-
-						connection_thread_info->dev = dev;
 						connection_thread_info->ppeer = ppeer;
 
-						dev->custom_input_scene_was_updated = false;
-						dev->client_connected++;
+						custom_input_scene_was_updated = false;
+						client_connected++;
 
-						Thread_start(connection_thread_info->thread_ref, dev, _thread_connection, connection_thread_info);
+						Thread_start(connection_thread_info->thread_ref, this, _thread_connection, connection_thread_info);
 						_log("New connection from " + address, LogLevel::LL_NORMAL);
 
-						dev->call_deferred("emit_signal", "client_connected", dev_id);
+						call_deferred("emit_signal", "client_connected", dev_id);
 						GRNotifications::add_notification("Connected", "Client connected: " + address + "\nDevice ID: " + connection_thread_info->device_id, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 						break;
 
@@ -698,7 +689,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 
 			} else {
 				Dictionary ret_data;
-				GRDevice::AuthResult res = _auth_client(dev, ppeer, ret_data, true);
+				GRDevice::AuthResult res = _auth_client(ppeer, ret_data, true);
 			}
 		} else {
 			_log("Waiting...", LogLevel::LL_DEBUG);
@@ -714,7 +705,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 		connection_thread_info = nullptr;
 	}
 
-	dev->tcp_server->stop();
+	tcp_server->stop();
 	this_thread_info->finished = true;
 }
 
@@ -722,9 +713,8 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	ConnectionThreadParamsServer *thread_info = VARIANT_OBJ_CAST_TO(p_userdata, ConnectionThreadParamsServer);
 	Ref<StreamPeerTCP> connection = thread_info->ppeer->get_stream_peer();
 	Ref<PacketPeerStream> ppeer = thread_info->ppeer;
-	GRServer *dev = thread_info->dev;
-	dev->_reset_counters();
-	dev->_send_queue_resize(0);
+	_reset_counters();
+	_send_queue_resize(0);
 
 	GodotRemote *gr = GodotRemote::get_singleton();
 	OS *os = OS::get_singleton();
@@ -733,7 +723,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 
 	Input::MouseMode mouse_mode = Input::MOUSE_MODE_VISIBLE;
 	String address = CONNECTION_ADDRESS(connection);
-	Thread_set_name("GR_connection " + address);
+	Thread_set_name(("Server Connection: " + address).ascii().get_data());
 
 	uint64_t time64 = os->get_ticks_usec();
 	uint64_t prev_send_settings_time = time64;
@@ -747,7 +737,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 
 	while (!thread_info->break_connection && connection.is_valid() &&
 			!connection->is_queued_for_deletion() && connection->is_connected_to_host()) {
-		ZoneScopedN("Connection Loop");
+		ZoneScopedNC("Server Loop", tracy::Color::OrangeRed4);
 
 		bool nothing_happens = true;
 		float fps = Engine::get_singleton()->get_frames_per_second();
@@ -755,13 +745,13 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			fps = 1;
 		}
 
-		if (dev->resize_viewport && !dev->resize_viewport->is_queued_for_deletion()) {
-			if (dev->resize_viewport->get_skip_frames())
-				fps = fps / dev->resize_viewport->get_skip_frames();
+		if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
+			if (resize_viewport->get_skip_frames())
+				fps = fps / resize_viewport->get_skip_frames();
 
-			if (!dev->resize_viewport->is_processing()) {
-				dev->resize_viewport->start_encoder();
-				dev->resize_viewport->force_get_image();
+			if (!resize_viewport->is_processing()) {
+				resize_viewport->start_encoder();
+				resize_viewport->force_get_image();
 			}
 		}
 
@@ -775,7 +765,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		//time = os->get_ticks_usec();
 		//if (time - prev_send_sync_time > 1000_ms) {
 		if (!time_synced) {
-			ZoneScopedN("Send Sync Time");
+			ZoneScopedNC("Send Sync Time", tracy::Color::Bisque);
 			time_synced = true;
 			nothing_happens = false;
 			//prev_send_sync_time = time;
@@ -790,18 +780,18 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		// IMAGE
 		time64 = os->get_ticks_usec();
 		// if image compressed and data is ready
-		if (dev->resize_viewport && !dev->resize_viewport->is_queued_for_deletion() &&
-				dev->resize_viewport->has_data_to_send()) {
-			ZoneScopedN("Send Buffered Image Data");
+		if (resize_viewport && !resize_viewport->is_queued_for_deletion() &&
+				resize_viewport->has_data_to_send()) {
+			ZoneScopedNC("Send Buffered Image Data", tracy::Color::Gray71);
 			nothing_happens = false;
 
-			Ref<GRPacketImageData> pack = dev->resize_viewport->pop_data_to_send();
+			Ref<GRPacketImageData> pack = resize_viewport->pop_data_to_send();
 			if (pack.is_valid()) {
 				err = ppeer->put_var(pack->get_data());
 
 				// avg fps
-				dev->_update_avg_fps(time64 - prev_send_image_time);
-				dev->_adjust_viewport_scale();
+				_update_avg_fps(time64 - prev_send_image_time);
+				_adjust_viewport_scale();
 				prev_send_image_time = time64;
 
 				if ((int)err) {
@@ -811,27 +801,27 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			}
 			// TODO mb some error here
 		} else {
-			if (!dev->is_video_stream_enabled()) {
-				dev->_update_avg_fps(0);
+			if (!is_video_stream_enabled()) {
+				_update_avg_fps(0);
 			}
 		}
 
 		// SERVER SETTINGS
 		time64 = os->get_ticks_usec();
-		if (time64 - prev_send_settings_time > 1000_ms && dev->using_client_settings) {
+		if (time64 - prev_send_settings_time > 1000_ms && using_client_settings) {
 			prev_send_settings_time = time64;
-			if (dev->using_client_settings_recently_updated) {
-				dev->using_client_settings_recently_updated = false;
+			if (using_client_settings_recently_updated) {
+				using_client_settings_recently_updated = false;
 			} else {
-				ZoneScopedN("Send server settings");
+				ZoneScopedNC("Send server settings", tracy::Color::Yellow4);
 				nothing_happens = false;
 
 				Ref<GRPacketServerSettings> pack(memnew(GRPacketServerSettings));
-				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_VIDEO_STREAM_ENABLED, dev->is_video_stream_enabled());
-				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_COMPRESSION_TYPE, dev->get_compression_type());
-				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_JPG_QUALITY, dev->get_jpg_quality());
-				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_RENDER_SCALE, dev->get_render_scale());
-				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_SKIP_FRAMES, dev->get_skip_frames());
+				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_VIDEO_STREAM_ENABLED, is_video_stream_enabled());
+				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_COMPRESSION_TYPE, get_compression_type());
+				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_JPG_QUALITY, get_jpg_quality());
+				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_RENDER_SCALE, get_render_scale());
+				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_SKIP_FRAMES, get_skip_frames());
 
 				err = ppeer->put_var(pack->get_data());
 				if ((int)err) {
@@ -843,7 +833,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 
 		// MOUSE MODE
 		if (input->get_mouse_mode() != mouse_mode) {
-			ZoneScopedN("Send Mouse Mode Sync Data");
+			ZoneScopedNC("Send Mouse Mode Sync Data", tracy::Color::CadetBlue1);
 			nothing_happens = false;
 			mouse_mode = input->get_mouse_mode();
 
@@ -860,7 +850,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		// PING
 		time64 = os->get_ticks_usec();
 		if ((time64 - prev_ping_sending_time) > 100_ms && !ping_sended) {
-			ZoneScopedN("Send Ping");
+			ZoneScopedNC("Send Ping", tracy::Color::CadetBlue);
 			nothing_happens = false;
 			ping_sended = true;
 
@@ -875,13 +865,13 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		}
 
 		// CUSTOM INPUT SCENE
-		if (!dev->custom_input_scene_was_updated) {
-			ZoneScopedN("Send Custom Input Scene");
-			dev->custom_input_scene_was_updated = true;
+		if (!custom_input_scene_was_updated) {
+			ZoneScopedNC("Send Custom Input Scene", tracy::Color::Moccasin);
+			custom_input_scene_was_updated = true;
 
 			Ref<GRPacketCustomInputScene> pack;
-			if (!dev->custom_input_scene.empty()) {
-				pack = dev->_create_custom_input_pack(dev->custom_input_scene, dev->custom_input_pck_compressed, dev->custom_input_pck_compression_type);
+			if (!custom_input_scene.empty()) {
+				pack = _create_custom_input_pack(custom_input_scene, custom_input_pck_compressed, custom_input_pck_compression_type);
 			} else {
 				pack.instance();
 			}
@@ -895,9 +885,9 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		}
 
 		// SEND QUEUE
-		while (!dev->send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
-			ZoneScopedN("Send Queued Data");
-			Ref<GRPacket> packet = dev->_send_queue_pop_front();
+		while (!send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
+			ZoneScopedNC("Send Queued Data", tracy::Color::Burlywood1);
+			Ref<GRPacket> packet = _send_queue_pop_front();
 
 			if (packet.is_valid()) {
 				err = ppeer->put_var(packet->get_data());
@@ -920,11 +910,11 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		///////////////////////////////////////////////////////////////////
 		// RECEIVING
 		{
-			ZoneScopedN("Receive Data");
+			ZoneScopedNC("Receive Data", tracy::Color::IndianRed1);
 			uint64_t recv_start_time = os->get_ticks_usec();
 			while (connection->is_connected_to_host() && ppeer->get_available_packet_count() > 0 &&
 					(os->get_ticks_usec() - recv_start_time) < send_data_time_us / 2) {
-				ZoneScopedN("Get Available Packet");
+				ZoneScopedNC("Get Available Packet", tracy::Color::MintCream);
 				nothing_happens = false;
 				Variant res;
 #ifndef GDNATIVE_LIBRARY
@@ -962,7 +952,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 							_log("Incorrect GRPacketInputData", LogLevel::LL_ERROR);
 							break;
 						}
-						ZoneScopedN("Parce Input Data");
+						ZoneScopedNC("Parce Input Data", tracy::Color::MediumOrchid3);
 
 						for (int i = 0; i < data->get_inputs_count(); i++) {
 							Ref<GRInputData> id = data->get_input_data(i);
@@ -1014,36 +1004,36 @@ void GRServer::_thread_connection(Variant p_userdata) {
 						Ref<GRPacketServerSettings> data = pack;
 						if (data.is_null()) {
 							_log("Incorrect GRPacketServerSettings", LogLevel::LL_ERROR);
-							break;
+							continue;
 						}
-						dev->_update_settings_from_client(data->get_settings());
+						_update_settings_from_client(data->get_settings());
 						break;
 					}
 					case GRPacket::PacketType::ClientStreamOrientation: {
 						Ref<GRPacketClientStreamOrientation> data = pack;
 						if (data.is_null()) {
 							_log("Incorrect GRPacketClientStreamOrientation", LogLevel::LL_ERROR);
-							break;
+							continue;
 						}
-						dev->call_deferred("emit_signal", "client_viewport_orientation_changed", data->is_vertical());
+						call_deferred("emit_signal", "client_viewport_orientation_changed", data->is_vertical());
 						break;
 					}
 					case GRPacket::PacketType::ClientStreamAspect: {
 						Ref<GRPacketClientStreamAspect> data = pack;
 						if (data.is_null()) {
 							_log("Incorrect GRPacketClientStreamAspect", LogLevel::LL_ERROR);
-							break;
+							continue;
 						}
-						dev->call_deferred("emit_signal", "client_viewport_aspect_ratio_changed", data->get_aspect());
+						call_deferred("emit_signal", "client_viewport_aspect_ratio_changed", data->get_aspect());
 						break;
 					}
 					case GRPacket::PacketType::CustomUserData: {
 						Ref<GRPacketCustomUserData> data = pack;
 						if (data.is_null()) {
 							_log("Incorrect GRPacketCustomUserData", LogLevel::LL_ERROR);
-							break;
+							continue;
 						}
-						dev->call_deferred("emit_signal", "user_data_received", data->get_packet_id(), data->get_user_data());
+						call_deferred("emit_signal", "user_data_received", data->get_packet_id(), data->get_user_data());
 						break;
 					}
 					case GRPacket::PacketType::Ping: {
@@ -1057,7 +1047,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 						break;
 					}
 					case GRPacket::PacketType::Pong: {
-						dev->_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
+						_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
 						ping_sended = false;
 						break;
 					}
@@ -1082,8 +1072,8 @@ void GRServer::_thread_connection(Variant p_userdata) {
 
 	_log("Closing connection thread with address: " + address, LogLevel::LL_DEBUG);
 
-	if (dev->resize_viewport)
-		dev->resize_viewport->stop_encoder();
+	if (resize_viewport)
+		resize_viewport->stop_encoder();
 
 	if (connection->is_connected_to_host()) {
 		GRNotifications::add_notification("Disconnected", "Closing connection with " + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
@@ -1096,16 +1086,16 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	}
 	thread_info->ppeer.unref();
 	thread_info->break_connection = true;
-	dev->client_connected--;
-	dev->_send_queue_resize(0);
+	client_connected--;
+	_send_queue_resize(0);
 
-	dev->call_deferred("_load_settings");
-	dev->call_deferred("emit_signal", "client_disconnected", thread_info->device_id);
+	call_deferred("_load_settings");
+	call_deferred("emit_signal", "client_disconnected", thread_info->device_id);
 
 	thread_info->finished = true;
 }
 
-GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection) {
+GRServer::AuthResult GRServer::_auth_client(Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection) {
 	// _v - variable definition, _n - dict key, _c - fail condition, _e - error message, _r - return value on fail condition
 #define packet_error_check(_t)              \
 	if ((int)err) {                         \
@@ -1127,7 +1117,7 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream>
 	}
 #define wait_packet(_n)                                                                                       \
 	{                                                                                                         \
-		ZoneScopedN("Waiting Auth Packet: " #_n);                                                             \
+		ZoneScopedNC("Waiting Auth Packet: " #_n, tracy::Color::DarkCyan);                                    \
 		time = (uint32_t)OS::get_singleton()->get_ticks_msec();                                               \
 		while (ppeer->get_available_packet_count() == 0) {                                                    \
 			if (OS::get_singleton()->get_ticks_msec() - time > 150) {                                         \
@@ -1141,7 +1131,7 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream>
 		}                                                                                                     \
 	}
 
-	ZoneScopedN("Authorization");
+	ZoneScopedNC("Authorization", tracy::Color::Cyan3);
 
 	Ref<StreamPeerTCP> con = ppeer->get_stream_peer();
 	String address = CONNECTION_ADDRESS(con);
@@ -1184,9 +1174,11 @@ GRServer::AuthResult GRServer::_auth_client(GRServer *dev, Ref<PacketPeerStream>
 				return GRDevice::AuthResult::VersionMismatch;
 			}
 
-			if (!dev->password.empty()) {
-				dict_get(String, password, "password",
-						password != dev->password, "Incorrect password. " + address,
+			// TODO thread safe password...
+
+			if (!password.empty()) {
+				dict_get(String, tmp_pass, "password",
+						tmp_pass != password, "Incorrect password. " + address,
 						GRDevice::AuthResult::IncorrectPassword);
 			}
 		}
@@ -1220,7 +1212,7 @@ timeout:
 }
 
 Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_path, bool compress, ENUM_ARG(Compression::Mode) compression_type) {
-	ZoneScopedN("Create Custom Input Scene Pack");
+	ZoneScopedNC("Create Custom Input Scene Pack", tracy::Color::LimeGreen);
 
 	Ref<GRPacketCustomInputScene> pack = memnew(GRPacketCustomInputScene);
 	std::vector<String> files;
@@ -1452,14 +1444,14 @@ void GRSViewport::_notification(int p_notification) {
 
 					Ref<Image> tmp_image = Ref<Image>();
 					{
-						ZoneScopedN("Get image data from VisualServer");
+						ZoneScopedNC("Get image data from VisualServer", tracy::Color::OrangeRed4);
 						tmp_image = get_texture()->get_data();
 					}
 
 					if (img_is_empty(tmp_image))
 						_log("Can't copy viewport image data", LogLevel::LL_ERROR);
 					else {
-						ZoneScopedN("Commit Image to Encoder");
+						ZoneScopedNC("Commit Image to Encoder", tracy::Color::DarkOrange3);
 						stream_manager->commit_image(tmp_image, (uint64_t)(get_process_delta_time() * 1000000));
 					}
 				}
@@ -1504,21 +1496,27 @@ void GRSViewport::_update_size() {
 		scale = auto_scale;
 
 	if (main_vp && main_vp->get_texture().is_valid()) {
-		Vector2 size = main_vp->get_size() * scale;
+		Size2 size = main_vp->get_size() * scale;
 		if (get_size() == size)
 			return;
 
-		if (size.x < 8)
-			size.x = 8;
-		else if (size.x > Image::MAX_WIDTH)
-			size.x = Image::MAX_WIDTH;
+		int width = (int)size.x;
+		int height = (int)size.y;
 
-		if (size.y < 8)
-			size.y = 8;
-		else if (size.y > Image::MAX_HEIGHT)
-			size.y = Image::MAX_HEIGHT;
+		width = width - (int)width % 4;
+		height = height - (int)height % 4;
 
-		set_size(size);
+		if (width < 8)
+			width = 8;
+		else if (width > Image::MAX_WIDTH)
+			width = Image::MAX_WIDTH;
+
+		if (height < 8)
+			height = 8;
+		else if (height > Image::MAX_HEIGHT)
+			height = Image::MAX_HEIGHT;
+
+		set_size(Size2(width, height));
 	}
 }
 
@@ -1527,11 +1525,17 @@ void GRSViewport::force_get_image() {
 }
 
 bool GRSViewport::has_data_to_send() {
-	return stream_manager->has_data_to_send();
+	stream_mutex.lock();
+	auto res = stream_manager->has_data_to_send();
+	stream_mutex.unlock();
+	return res;
 }
 
 Ref<GRPacket> GRSViewport::pop_data_to_send() {
-	return stream_manager->pop_data_to_send();
+	stream_mutex.lock();
+	auto res = stream_manager->pop_data_to_send();
+	stream_mutex.unlock();
+	return res;
 }
 
 void GRSViewport::set_video_stream_enabled(bool val) {
@@ -1554,8 +1558,10 @@ float GRSViewport::get_rendering_scale() {
 void GRSViewport::set_compression_type(GRDevice::ImageCompressionType val) {
 	compression_type = val;
 
+	stream_mutex.lock();
 	if (stream_manager)
 		stream_manager->start(compression_type, this);
+	stream_mutex.unlock();
 }
 
 GRDevice::ImageCompressionType GRSViewport::get_compression_type() {
@@ -1581,13 +1587,20 @@ int GRSViewport::get_skip_frames() {
 
 void GRSViewport::start_encoder() {
 	set_process(true);
+	stream_mutex.lock();
+	if (stream_manager)
+		memdelete(stream_manager);
 	stream_manager = memnew(GRStreamEncodersManager);
 	stream_manager->start(compression_type, this);
+	stream_mutex.unlock();
 }
 
 void GRSViewport::stop_encoder() {
 	set_process(false);
-	memdelete(stream_manager);
+	stream_mutex.lock();
+	if (stream_manager)
+		memdelete(stream_manager);
+	stream_mutex.unlock();
 }
 
 void GRSViewport::_init() {
@@ -1603,6 +1616,7 @@ void GRSViewport::_init() {
 	set_keep_3d_linear(true);
 	set_usage(Viewport::USAGE_2D);
 	set_update_mode(Viewport::UPDATE_ALWAYS);
+	set_transparent_background(true);
 	set_disable_input(true);
 	set_shadow_atlas_quadrant_subdiv(0, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
 	set_shadow_atlas_quadrant_subdiv(1, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
