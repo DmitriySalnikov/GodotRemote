@@ -69,29 +69,29 @@ using namespace GRUtils;
 #ifndef GDNATIVE_LIBRARY
 void GRClient::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("_update_texture_from_image", "image"), &GRClient::_update_texture_from_image);
-	ClassDB::bind_method(D_METHOD("_update_stream_texture_state", "state"), &GRClient::_update_stream_texture_state);
-	ClassDB::bind_method(D_METHOD("_force_update_stream_viewport_signals"), &GRClient::_force_update_stream_viewport_signals);
-	ClassDB::bind_method(D_METHOD("_viewport_size_changed"), &GRClient::_viewport_size_changed);
-	ClassDB::bind_method(D_METHOD("_load_custom_input_scene", "_data"), &GRClient::_load_custom_input_scene);
-	ClassDB::bind_method(D_METHOD("_remove_custom_input_scene"), &GRClient::_remove_custom_input_scene);
-	ClassDB::bind_method(D_METHOD("_on_node_deleting", "var_name"), &GRClient::_on_node_deleting);
-	ClassDB::bind_method(D_METHOD("_thread_connection", "user_data"), &GRClient::_thread_connection);
-	ClassDB::bind_method(D_METHOD("_thread_image_decoder", "user_data"), &GRClient::_thread_image_decoder);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_update_texture_from_image), "image"), &GRClient::_update_texture_from_image);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_update_stream_texture_state), "state"), &GRClient::_update_stream_texture_state);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_force_update_stream_viewport_signals)), &GRClient::_force_update_stream_viewport_signals);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_viewport_size_changed)), &GRClient::_viewport_size_changed);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_load_custom_input_scene), "_data"), &GRClient::_load_custom_input_scene);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_custom_input_scene)), &GRClient::_remove_custom_input_scene);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_on_node_deleting), "var_name"), &GRClient::_on_node_deleting);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_connection), "user_data"), &GRClient::_thread_connection);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_image_decoder), "user_data"), &GRClient::_thread_image_decoder);
 
-	ClassDB::bind_method(D_METHOD("set_control_to_show_in", "control_node", "position_in_node"), &GRClient::set_control_to_show_in, DEFVAL(0));
-	ClassDB::bind_method(D_METHOD("set_custom_no_signal_texture", "texture"), &GRClient::set_custom_no_signal_texture);
-	ClassDB::bind_method(D_METHOD("set_custom_no_signal_vertical_texture", "texture"), &GRClient::set_custom_no_signal_vertical_texture);
-	ClassDB::bind_method(D_METHOD("set_custom_no_signal_material", "material"), &GRClient::set_custom_no_signal_material);
-	ClassDB::bind_method(D_METHOD("set_address_port", "ip", "port"), &GRClient::set_address_port);
-	ClassDB::bind_method(D_METHOD("set_address", "ip"), &GRClient::set_address);
-	ClassDB::bind_method(D_METHOD("set_server_setting", "setting", "value"), &GRClient::set_server_setting);
-	ClassDB::bind_method(D_METHOD("disable_overriding_server_settings"), &GRClient::disable_overriding_server_settings);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_control_to_show_in), "control_node", "position_in_node"), &GRClient::set_control_to_show_in, DEFVAL(0));
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_no_signal_texture), "texture"), &GRClient::set_custom_no_signal_texture);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_no_signal_vertical_texture), "texture"), &GRClient::set_custom_no_signal_vertical_texture);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_no_signal_material), "material"), &GRClient::set_custom_no_signal_material);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_address_port), "ip", "port"), &GRClient::set_address_port);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_address), "ip"), &GRClient::set_address);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_server_setting), "setting", "value"), &GRClient::set_server_setting);
+	ClassDB::bind_method(D_METHOD(NAMEOF(disable_overriding_server_settings)), &GRClient::disable_overriding_server_settings);
 
-	ClassDB::bind_method(D_METHOD("get_custom_input_scene"), &GRClient::get_custom_input_scene);
-	ClassDB::bind_method(D_METHOD("get_address"), &GRClient::get_address);
-	ClassDB::bind_method(D_METHOD("is_stream_active"), &GRClient::is_stream_active);
-	ClassDB::bind_method(D_METHOD("is_connected_to_host"), &GRClient::is_connected_to_host);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_custom_input_scene)), &GRClient::get_custom_input_scene);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_address)), &GRClient::get_address);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_stream_active)), &GRClient::is_stream_active);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_connected_to_host)), &GRClient::is_connected_to_host);
 
 	ADD_SIGNAL(MethodInfo("custom_input_scene_added"));
 	ADD_SIGNAL(MethodInfo("custom_input_scene_removed"));
@@ -102,33 +102,33 @@ void GRClient::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("server_settings_received", PropertyInfo(Variant::DICTIONARY, "settings")));
 
 	// SETGET
-	ClassDB::bind_method(D_METHOD("set_capture_on_focus", "val"), &GRClient::set_capture_on_focus);
-	ClassDB::bind_method(D_METHOD("set_capture_when_hover", "val"), &GRClient::set_capture_when_hover);
-	ClassDB::bind_method(D_METHOD("set_capture_pointer", "val"), &GRClient::set_capture_pointer);
-	ClassDB::bind_method(D_METHOD("set_capture_input", "val"), &GRClient::set_capture_input);
-	ClassDB::bind_method(D_METHOD("set_connection_type", "type"), &GRClient::set_connection_type);
-	ClassDB::bind_method(D_METHOD("set_target_send_fps", "fps"), &GRClient::set_target_send_fps);
-	ClassDB::bind_method(D_METHOD("set_stretch_mode", "mode"), &GRClient::set_stretch_mode);
-	ClassDB::bind_method(D_METHOD("set_texture_filtering", "is_filtered"), &GRClient::set_texture_filtering);
-	ClassDB::bind_method(D_METHOD("set_password", "password"), &GRClient::set_password);
-	ClassDB::bind_method(D_METHOD("set_device_id", "id"), &GRClient::set_device_id);
-	ClassDB::bind_method(D_METHOD("set_viewport_orientation_syncing", "is_syncing"), &GRClient::set_viewport_orientation_syncing);
-	ClassDB::bind_method(D_METHOD("set_viewport_aspect_ratio_syncing", "is_syncing"), &GRClient::set_viewport_aspect_ratio_syncing);
-	ClassDB::bind_method(D_METHOD("set_server_settings_syncing", "is_syncing"), &GRClient::set_server_settings_syncing);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_capture_on_focus), "val"), &GRClient::set_capture_on_focus);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_capture_when_hover), "val"), &GRClient::set_capture_when_hover);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_capture_pointer), "val"), &GRClient::set_capture_pointer);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_capture_input), "val"), &GRClient::set_capture_input);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_connection_type), "type"), &GRClient::set_connection_type);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_target_send_fps), "fps"), &GRClient::set_target_send_fps);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_stretch_mode), "mode"), &GRClient::set_stretch_mode);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_texture_filtering), "is_filtered"), &GRClient::set_texture_filtering);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_password), "password"), &GRClient::set_password);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_device_id), "id"), &GRClient::set_device_id);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_viewport_orientation_syncing), "is_syncing"), &GRClient::set_viewport_orientation_syncing);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_viewport_aspect_ratio_syncing), "is_syncing"), &GRClient::set_viewport_aspect_ratio_syncing);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_server_settings_syncing), "is_syncing"), &GRClient::set_server_settings_syncing);
 
-	ClassDB::bind_method(D_METHOD("is_capture_on_focus"), &GRClient::is_capture_on_focus);
-	ClassDB::bind_method(D_METHOD("is_capture_when_hover"), &GRClient::is_capture_when_hover);
-	ClassDB::bind_method(D_METHOD("is_capture_pointer"), &GRClient::is_capture_pointer);
-	ClassDB::bind_method(D_METHOD("is_capture_input"), &GRClient::is_capture_input);
-	ClassDB::bind_method(D_METHOD("get_connection_type"), &GRClient::get_connection_type);
-	ClassDB::bind_method(D_METHOD("get_target_send_fps"), &GRClient::get_target_send_fps);
-	ClassDB::bind_method(D_METHOD("get_stretch_mode"), &GRClient::get_stretch_mode);
-	ClassDB::bind_method(D_METHOD("get_texture_filtering"), &GRClient::get_texture_filtering);
-	ClassDB::bind_method(D_METHOD("get_password"), &GRClient::get_password);
-	ClassDB::bind_method(D_METHOD("get_device_id"), &GRClient::get_device_id);
-	ClassDB::bind_method(D_METHOD("is_viewport_orientation_syncing"), &GRClient::is_viewport_orientation_syncing);
-	ClassDB::bind_method(D_METHOD("is_viewport_aspect_ratio_syncing"), &GRClient::is_viewport_aspect_ratio_syncing);
-	ClassDB::bind_method(D_METHOD("is_server_settings_syncing"), &GRClient::is_server_settings_syncing);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_on_focus)), &GRClient::is_capture_on_focus);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_when_hover)), &GRClient::is_capture_when_hover);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_pointer)), &GRClient::is_capture_pointer);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_input)), &GRClient::is_capture_input);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_connection_type)), &GRClient::get_connection_type);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_target_send_fps)), &GRClient::get_target_send_fps);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_stretch_mode)), &GRClient::get_stretch_mode);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_texture_filtering)), &GRClient::get_texture_filtering);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_password)), &GRClient::get_password);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_device_id)), &GRClient::get_device_id);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_viewport_orientation_syncing)), &GRClient::is_viewport_orientation_syncing);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_viewport_aspect_ratio_syncing)), &GRClient::is_viewport_aspect_ratio_syncing);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_server_settings_syncing)), &GRClient::is_server_settings_syncing);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
@@ -345,7 +345,7 @@ void GRClient::_internal_call_only_deffered_start() {
 	thread_connection->peer.instance();
 	Thread_start(thread_connection->thread_ref, this, _thread_connection, thread_connection);
 
-	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
+	call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_SIGNAL);
 	set_status(WorkingStatus::STATUS_WORKING);
 }
 
@@ -377,7 +377,7 @@ void GRClient::_internal_call_only_deffered_stop() {
 
 	_send_queue_resize(0);
 
-	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
+	call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_SIGNAL);
 	set_status(WorkingStatus::STATUS_STOPPED);
 }
 
@@ -393,9 +393,9 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 		input_collector = nullptr;
 	}
 	if (control_to_show_in && !control_to_show_in->is_queued_for_deletion() &&
-			control_to_show_in->is_connected("resized", this, "_viewport_size_changed")) {
-		control_to_show_in->disconnect("resized", this, "_viewport_size_changed");
-		control_to_show_in->disconnect("tree_exiting", this, "_on_node_deleting");
+			control_to_show_in->is_connected("resized", this, NAMEOF(_viewport_size_changed))) {
+		control_to_show_in->disconnect("resized", this, NAMEOF(_viewport_size_changed));
+		control_to_show_in->disconnect("tree_exiting", this, NAMEOF(_on_node_deleting));
 	}
 
 	_remove_custom_input_scene();
@@ -403,14 +403,14 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 	control_to_show_in = ctrl;
 
 	if (control_to_show_in && !control_to_show_in->is_queued_for_deletion()) {
-		control_to_show_in->connect("resized", this, "_viewport_size_changed");
+		control_to_show_in->connect("resized", this, NAMEOF(_viewport_size_changed));
 
 		tex_shows_stream = memnew(GRTextureRect);
 		input_collector = memnew(GRInputCollector);
 
-		tex_shows_stream->connect("tree_exiting", this, "_on_node_deleting", vec_args({ (int)DeletingVarName::TEXTURE_TO_SHOW_STREAM }));
-		input_collector->connect("tree_exiting", this, "_on_node_deleting", vec_args({ (int)DeletingVarName::INPUT_COLLECTOR }));
-		control_to_show_in->connect("tree_exiting", this, "_on_node_deleting", vec_args({ (int)DeletingVarName::CONTROL_TO_SHOW_STREAM }));
+		tex_shows_stream->connect("tree_exiting", this, NAMEOF(_on_node_deleting), vec_args({ (int)DeletingVarName::TEXTURE_TO_SHOW_STREAM }));
+		input_collector->connect("tree_exiting", this, NAMEOF(_on_node_deleting), vec_args({ (int)DeletingVarName::INPUT_COLLECTOR }));
+		control_to_show_in->connect("tree_exiting", this, NAMEOF(_on_node_deleting), vec_args({ (int)DeletingVarName::CONTROL_TO_SHOW_STREAM }));
 
 		tex_shows_stream->set_name("GodotRemoteStreamSprite");
 		input_collector->set_name("GodotRemoteInputCollector");
@@ -430,8 +430,8 @@ void GRClient::set_control_to_show_in(Control *ctrl, int position_in_node) {
 		input_collector->this_in_client = &input_collector;
 
 		signal_connection_state = StreamState::STREAM_ACTIVE; // force execute update function
-		call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
-		call_deferred("_force_update_stream_viewport_signals"); // force update if client connected faster than scene loads
+		call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_SIGNAL);
+		call_deferred(NAMEOF(_force_update_stream_viewport_signals)); // force update if client connected faster than scene loads
 	}
 }
 
@@ -457,17 +457,17 @@ void GRClient::_on_node_deleting(int var_name) {
 
 void GRClient::set_custom_no_signal_texture(Ref<Texture> custom_tex) {
 	custom_no_signal_texture = custom_tex;
-	call_deferred("_update_stream_texture_state", signal_connection_state);
+	call_deferred(NAMEOF(_update_stream_texture_state), signal_connection_state);
 }
 
 void GRClient::set_custom_no_signal_vertical_texture(Ref<Texture> custom_tex) {
 	custom_no_signal_vertical_texture = custom_tex;
-	call_deferred("_update_stream_texture_state", signal_connection_state);
+	call_deferred(NAMEOF(_update_stream_texture_state), signal_connection_state);
 }
 
 void GRClient::set_custom_no_signal_material(Ref<Material> custom_mat) {
 	custom_no_signal_material = custom_mat;
-	call_deferred("_update_stream_texture_state", signal_connection_state);
+	call_deferred(NAMEOF(_update_stream_texture_state), signal_connection_state);
 }
 
 bool GRClient::is_capture_on_focus() {
@@ -534,7 +534,7 @@ int GRClient::get_target_send_fps() {
 
 void GRClient::set_stretch_mode(ENUM_ARG(StretchMode) stretch) {
 	stretch_mode = (StretchMode)stretch;
-	call_deferred("_update_stream_texture_state", signal_connection_state);
+	call_deferred(NAMEOF(_update_stream_texture_state), signal_connection_state);
 }
 
 ENUM_ARG(GRClient::StretchMode)
@@ -627,7 +627,7 @@ bool GRClient::is_viewport_orientation_syncing() {
 void GRClient::set_viewport_aspect_ratio_syncing(bool is_syncing) {
 	_viewport_aspect_ratio_syncing = is_syncing;
 	if (is_syncing) {
-		call_deferred("_viewport_size_changed"); // force update screen aspect
+		call_deferred(NAMEOF(_viewport_size_changed)); // force update screen aspect
 	}
 }
 
@@ -677,7 +677,7 @@ void GRClient::_force_update_stream_viewport_signals() {
 		return;
 	}
 
-	call_deferred("_viewport_size_changed"); // force update screen aspect ratio
+	call_deferred(NAMEOF(_viewport_size_changed)); // force update screen aspect ratio
 }
 
 void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
@@ -760,7 +760,7 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 					} else {
 
 						control_to_show_in->add_child(custom_input_scene);
-						custom_input_scene->connect("tree_exiting", this, "_on_node_deleting", vec_args({ (int)DeletingVarName::CUSTOM_INPUT_SCENE }));
+						custom_input_scene->connect("tree_exiting", this, NAMEOF(_on_node_deleting), vec_args({ (int)DeletingVarName::CUSTOM_INPUT_SCENE }));
 
 						_reset_counters();
 						emit_signal("custom_input_scene_added");
@@ -975,8 +975,8 @@ void GRClient::_thread_connection(Variant p_userdata) {
 		FrameMarkNamed("Client Connection Waiting Loop");
 
 		if (os->get_ticks_usec() - prev_valid_connection_time > 1000_ms) {
-			call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
-			call_deferred("_remove_custom_input_scene");
+			call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_SIGNAL);
+			call_deferred(NAMEOF(_remove_custom_input_scene));
 		}
 
 		if (con->get_status() == StreamPeerTCP::STATUS_CONNECTED || con->get_status() == StreamPeerTCP::STATUS_CONNECTING) {
@@ -1073,7 +1073,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 			case GRDevice::AuthResult::OK: {
 				_log("Successful connected to " + address, LogLevel::LL_NORMAL);
 
-				call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
+				call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_IMAGE);
 
 				con_thread->break_connection = false;
 				con_thread->peer = con;
@@ -1081,7 +1081,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 				is_connection_working = true;
 				call_deferred("emit_signal", "connection_state_changed", true);
-				call_deferred("_force_update_stream_viewport_signals"); // force update screen aspect ratio and orientation
+				call_deferred(NAMEOF(_force_update_stream_viewport_signals)); // force update screen aspect ratio and orientation
 				GRNotifications::add_notification("Connected", "Connected to " + address, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 
 				_connection_loop(con_thread);
@@ -1142,7 +1142,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 		}
 	}
 
-	call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_SIGNAL);
+	call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_SIGNAL);
 	_log("Connection thread stopped", LogLevel::LL_DEBUG);
 	con_thread->finished = true;
 }
@@ -1178,8 +1178,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 	while (!con_thread->break_connection && !con_thread->stop_thread && connection->is_connected_to_host()) {
 		ZoneScopedNC("Client Loop", tracy::Color::OrangeRed4);
+		Scoped_lock(connection_mutex);
 
-		connection_mutex.lock();
 		uint64_t cycle_start_time = os->get_ticks_usec();
 
 		bool nothing_happens = true;
@@ -1251,7 +1251,6 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after sending!", LogLevel::LL_ERROR);
 			GRNotifications::add_notification("Error", "Lost connection after sending data!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-			connection_mutex.unlock();
 			continue;
 		}
 
@@ -1281,8 +1280,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 				if (pack->get_is_empty()) {
 					_update_avg_fps(0);
-					call_deferred("_update_texture_from_image", Ref<Image>());
-					call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
+					call_deferred(NAMEOF(_update_texture_from_image), Ref<Image>());
+					call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_IMAGE);
 				} else {
 					ipsc->tex_data = pack->get_image_data();
 					ipsc->compression_type = (ImageCompressionType)pack->get_compression_type();
@@ -1299,7 +1298,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 			const double image_loss_time = 1.5;
 			if (os->get_ticks_usec() > int64_t(prev_display_image_time + uint64_t(1000_ms * image_loss_time))) {
 				if (signal_connection_state != StreamState::STREAM_NO_IMAGE) {
-					call_deferred("_update_stream_texture_state", StreamState::STREAM_NO_IMAGE);
+					call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_IMAGE);
 					_reset_counters();
 				}
 			}
@@ -1390,7 +1389,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 							continue;
 						}
 
-						call_deferred("_load_custom_input_scene", data);
+						call_deferred(NAMEOF(_load_custom_input_scene), data);
 						break;
 					}
 					case GRPacket::PacketType::CustomUserData: {
@@ -1423,7 +1422,6 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 			}
 		}
 	end_recv:
-		connection_mutex.unlock();
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after receiving!", LogLevel::LL_ERROR);
@@ -1470,7 +1468,6 @@ void GRClient::_thread_image_decoder(Variant p_userdata) {
 		}
 
 		ZoneScopedNC("Image Decode", tracy::Color::Aquamarine4);
-		TracyPlotExecTimeStart(ImageDecode);
 
 		Ref<Image> img(memnew(Image));
 		ImageCompressionType type = ipsc->compression_type;
@@ -1510,13 +1507,11 @@ void GRClient::_thread_image_decoder(Variant p_userdata) {
 				break;
 		}
 
-		TracyPlotExecTimeEnd(ImageDecode);
-
 		if (!(int)err) { // is OK
-			call_deferred("_update_texture_from_image", img);
+			call_deferred(NAMEOF(_update_texture_from_image), img);
 
 			if (signal_connection_state != StreamState::STREAM_ACTIVE) {
-				call_deferred("_update_stream_texture_state", StreamState::STREAM_ACTIVE);
+				call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_ACTIVE);
 			}
 		}
 
@@ -1664,9 +1659,8 @@ void GRInputCollector::_update_stream_rect() {
 void GRInputCollector::_collect_input(Ref<InputEvent> ie) {
 	Ref<GRInputDataEvent> data = GRInputDataEvent::parse_event(ie, stream_rect);
 	if (data.is_valid()) {
-		ts_lock.lock();
+		Scoped_lock(ts_lock);
 		collected_input_data.push_back(data);
-		ts_lock.unlock();
 	}
 }
 
@@ -1747,11 +1741,12 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		return;
 	}
 
-		ts_lock.lock();
-	if (collected_input_data.size() >= 256) {
-		collected_input_data.resize(0);
+	{
+		Scoped_lock(ts_lock);
+		if (collected_input_data.size() >= 256) {
+			collected_input_data.resize(0);
+		}
 	}
-	ts_lock.unlock();
 
 	_update_stream_rect();
 
@@ -1855,14 +1850,13 @@ void GRInputCollector::_notification(int p_notification) {
 		}
 		case NOTIFICATION_PROCESS: {
 			ZoneScopedNC("Input Collector Sensors", tracy::Color::Goldenrod2);
-			ts_lock.lock();
+			Scoped_lock(ts_lock);
 			auto w = sensors.write();
 			w[0] = Input::get_singleton()->get_accelerometer();
 			w[1] = Input::get_singleton()->get_gravity();
 			w[2] = Input::get_singleton()->get_gyroscope();
 			w[3] = Input::get_singleton()->get_magnetometer();
 			release_pva_write(w);
-			ts_lock.unlock();
 			break;
 		}
 	}
@@ -1912,31 +1906,27 @@ Ref<GRPacketInputData> GRInputCollector::get_collected_input_data() {
 	Ref<GRPacketInputData> res(memnew(GRPacketInputData));
 	Ref<GRInputDeviceSensorsData> s(memnew(GRInputDeviceSensorsData));
 
-	ts_lock.lock();
+	Scoped_lock(ts_lock);
 
 	s->set_sensors(sensors);
 	collected_input_data.push_back(s);
 	res->set_input_data(collected_input_data);
 	collected_input_data.resize(0);
-
-	ts_lock.unlock();
 	return res;
 }
 
 void GRInputCollector::_init() {
 	LEAVE_IF_EDITOR();
-	ts_lock.lock();
+	Scoped_lock(ts_lock);
 
 	parent = nullptr;
 	set_process_input(true);
 	sensors.resize(4);
-
-	ts_lock.unlock();
 }
 
 void GRInputCollector::_deinit() {
 	LEAVE_IF_EDITOR();
-	ts_lock.lock();
+	Scoped_lock(ts_lock);
 
 	sensors.resize(0);
 	collected_input_data.resize(0);
@@ -1944,8 +1934,6 @@ void GRInputCollector::_deinit() {
 		*this_in_client = nullptr;
 	mouse_buttons.clear();
 	screen_touches.clear();
-
-	ts_lock.unlock();
 }
 
 //////////////////////////////////////////////

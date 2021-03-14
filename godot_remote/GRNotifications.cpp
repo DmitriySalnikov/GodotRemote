@@ -157,15 +157,14 @@ void GRNotifications::_notification(int p_what) {
 #ifndef GDNATIVE_LIBRARY
 
 void GRNotifications::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("_set_notifications_position", "pos"), &GRNotifications::_set_notifications_position);
-	ClassDB::bind_method(D_METHOD("_add_notification_or_append_string", "title", "text", "icon", "new_string", "duration_multiplier"), &GRNotifications::_add_notification_or_append_string);
-	ClassDB::bind_method(D_METHOD("_add_notification_or_update_line", "title", "id", "text", "icon", "duration_multiplier"), &GRNotifications::_add_notification_or_update_line);
-	ClassDB::bind_method(D_METHOD("_add_notification", "title", "text", "icon", "update_existing", "duration_multiplier"), &GRNotifications::_add_notification);
-	ClassDB::bind_method(D_METHOD("_remove_notification", "title", "is_all_entries"), &GRNotifications::_remove_notification);
-	ClassDB::bind_method(D_METHOD("_remove_exact_notification", "notification"), &GRNotifications::_remove_exact_notification);
-	ClassDB::bind_method(D_METHOD("_clear_notifications"), &GRNotifications::_clear_notifications);
-
-	ClassDB::bind_method(D_METHOD("_remove_list"), &GRNotifications::_remove_list);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_set_notifications_position), "pos"), &GRNotifications::_set_notifications_position);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_add_notification_or_append_string), "title", "text", "icon", "new_string", "duration_multiplier"), &GRNotifications::_add_notification_or_append_string);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_add_notification_or_update_line), "title", "id", "text", "icon", "duration_multiplier"), &GRNotifications::_add_notification_or_update_line);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_add_notification), "title", "text", "icon", "update_existing", "duration_multiplier"), &GRNotifications::_add_notification);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_notification), "title", "is_all_entries"), &GRNotifications::_remove_notification);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_exact_notification), "notification"), &GRNotifications::_remove_exact_notification);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_clear_notifications)), &GRNotifications::_clear_notifications);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_list)), &GRNotifications::_remove_list);
 
 	ADD_SIGNAL(MethodInfo("notifications_toggled", PropertyInfo(Variant::BOOL, "is_enabled")));
 	ADD_SIGNAL(MethodInfo("notifications_cleared"));
@@ -246,7 +245,7 @@ GRNotifications::NotificationsPosition GRNotifications::get_notifications_positi
 
 void GRNotifications::set_notifications_position(NotificationsPosition positon) {
 	if (singleton) {
-		singleton->call_deferred("_set_notifications_position", positon);
+		singleton->call_deferred(NAMEOF(_set_notifications_position), positon);
 	}
 }
 
@@ -294,37 +293,37 @@ void GRNotifications::set_notifications_style(Ref<GRNotificationStyle> _style) {
 
 void GRNotifications::add_notification_or_append_string(String title, String text, NotificationIcon icon, bool new_string, float duration_multiplier) {
 	if (singleton) {
-		singleton->call_deferred("_add_notification_or_append_string", title, text, icon, new_string, duration_multiplier);
+		singleton->call_deferred(NAMEOF(_add_notification_or_append_string), title, text, icon, new_string, duration_multiplier);
 	}
 }
 
 void GRNotifications::add_notification_or_update_line(String title, String id, String text, NotificationIcon icon, float duration_multiplier) {
 	if (singleton) {
-		singleton->call_deferred("_add_notification_or_update_line", title, id, text, icon, duration_multiplier);
+		singleton->call_deferred(NAMEOF(_add_notification_or_update_line), title, id, text, icon, duration_multiplier);
 	}
 }
 
 void GRNotifications::add_notification(String title, String text, NotificationIcon icon, bool update_existing, float duration_multiplier) {
 	if (singleton) {
-		singleton->call_deferred("_add_notification", title, text, icon, update_existing, duration_multiplier);
+		singleton->call_deferred(NAMEOF(_add_notification), title, text, icon, update_existing, duration_multiplier);
 	}
 }
 
 void GRNotifications::remove_notification(String title, bool all_entries) {
 	if (singleton) {
-		singleton->call_deferred("_remove_notification", title, all_entries);
+		singleton->call_deferred(NAMEOF(_remove_notification), title, all_entries);
 	}
 }
 
 void GRNotifications::remove_notification_exact(Node *_notif) {
 	if (singleton) {
-		singleton->call_deferred("_remove_exact_notification", _notif);
+		singleton->call_deferred(NAMEOF(_remove_exact_notification), _notif);
 	}
 }
 
 void GRNotifications::clear_notifications() {
 	if (singleton) {
-		singleton->call_deferred("_clear_notifications");
+		singleton->call_deferred(NAMEOF(_clear_notifications));
 	}
 }
 
@@ -439,7 +438,7 @@ void GRNotifications::_deinit() {
 
 	if (this == singleton)
 		singleton = nullptr;
-	call_deferred("_remove_list");
+	call_deferred(NAMEOF(_remove_list));
 
 	notifications.clear();
 	GRNotificationPanel::_default_data->_default_close_texture.unref();
@@ -484,7 +483,7 @@ void GRNotificationPanel::_setup_tween(Tween *_tween) {
 	const float duration = owner->get_notifications_duration() * duration_mul;
 	_tween->remove_all();
 	_tween->interpolate_property(this, NodePath("modulate"), Color(1, 1, 1, 1), Color(1, 1, 1, 0), duration, Tween::TRANS_QUART, Tween::EASE_IN);
-	_tween->interpolate_callback(this, duration, "_remove_this_notification", Variant(), Variant(), Variant(), Variant(), Variant());
+	_tween->interpolate_callback(this, duration, NAMEOF(_remove_this_notification), Variant(), Variant(), Variant(), Variant(), Variant());
 }
 
 void GRNotificationPanel::_update_style() {
@@ -597,13 +596,13 @@ void GRNotificationPanel::_load_default_textures() {
 #ifndef GDNATIVE_LIBRARY
 
 void GRNotificationPanel::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("_remove_this_notification"), &GRNotificationPanel::_remove_this_notification);
-	ClassDB::bind_method(D_METHOD("_panel_hovered"), &GRNotificationPanel::_panel_hovered);
-	ClassDB::bind_method(D_METHOD("_panel_lose_hover"), &GRNotificationPanel::_panel_lose_hover);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_this_notification)), &GRNotificationPanel::_remove_this_notification);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_panel_hovered)), &GRNotificationPanel::_panel_hovered);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_panel_lose_hover)), &GRNotificationPanel::_panel_lose_hover);
 
-	ClassDB::bind_method(D_METHOD("get_title"), &GRNotificationPanel::get_title);
-	ClassDB::bind_method(D_METHOD("get_text"), &GRNotificationPanel::get_text);
-	ClassDB::bind_method(D_METHOD("update_text", "text"), &GRNotificationPanel::update_text);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_title)), &GRNotificationPanel::get_title);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_text)), &GRNotificationPanel::get_text);
+	ClassDB::bind_method(D_METHOD(NAMEOF(update_text), "text"), &GRNotificationPanel::update_text);
 }
 
 #else
@@ -704,8 +703,8 @@ void GRNotificationPanel::_init() {
 		_default_data->_default_style = generate_default_style();
 
 	set_mouse_filter(Control::MouseFilter::MOUSE_FILTER_PASS);
-	connect("mouse_entered", this, "_panel_hovered");
-	connect("mouse_exited", this, "_panel_lose_hover");
+	connect("mouse_entered", this, NAMEOF(_panel_hovered));
+	connect("mouse_exited", this, NAMEOF(_panel_lose_hover));
 
 	vbox_node = memnew(VBoxContainer);
 	hbox_node = memnew(HBoxContainer);
@@ -749,7 +748,7 @@ void GRNotificationPanel::_init() {
 	text_node->set_text("EMPTY TEXT");
 
 	close_node->set_focus_mode(Control::FOCUS_NONE);
-	close_node->connect("pressed", this, "_remove_this_notification");
+	close_node->connect("pressed", this, NAMEOF(_remove_this_notification));
 
 	//_setup_tween(tween_node);
 	//_update_style();
@@ -793,8 +792,8 @@ String GRNotificationPanelUpdatable::_get_text_from_lines() {
 
 #ifndef GDNATIVE_LIBRARY
 void GRNotificationPanelUpdatable::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("clear_lines"), &GRNotificationPanelUpdatable::clear_lines);
-	ClassDB::bind_method(D_METHOD("remove_updatable_line", "id"), &GRNotificationPanelUpdatable::remove_updatable_line);
+	ClassDB::bind_method(D_METHOD(NAMEOF(clear_lines)), &GRNotificationPanelUpdatable::clear_lines);
+	ClassDB::bind_method(D_METHOD(NAMEOF(remove_updatable_line), "id"), &GRNotificationPanelUpdatable::remove_updatable_line);
 }
 
 #else
@@ -876,20 +875,20 @@ void GRNotificationPanelUpdatable::clear_lines() {
 
 #ifndef GDNATIVE_LIBRARY
 void GRNotificationStyle::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("set_notification_icon", "notification_icon", "icon_texture"), &GRNotificationStyle::set_notification_icon);
-	ClassDB::bind_method(D_METHOD("get_notification_icon", "notification_icon"), &GRNotificationStyle::get_notification_icon);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_notification_icon), "notification_icon", "icon_texture"), &GRNotificationStyle::set_notification_icon);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_notification_icon), "notification_icon"), &GRNotificationStyle::get_notification_icon);
 
-	ClassDB::bind_method(D_METHOD("set_panel_style", "style"), &GRNotificationStyle::set_panel_style);
-	ClassDB::bind_method(D_METHOD("set_close_button_theme", "theme"), &GRNotificationStyle::set_close_button_theme);
-	ClassDB::bind_method(D_METHOD("set_close_button_icon", "icon"), &GRNotificationStyle::set_close_button_icon);
-	ClassDB::bind_method(D_METHOD("set_title_font", "font"), &GRNotificationStyle::set_title_font);
-	ClassDB::bind_method(D_METHOD("set_text_font", "font"), &GRNotificationStyle::set_text_font);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_panel_style), "style"), &GRNotificationStyle::set_panel_style);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_close_button_theme), "theme"), &GRNotificationStyle::set_close_button_theme);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_close_button_icon), "icon"), &GRNotificationStyle::set_close_button_icon);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_title_font), "font"), &GRNotificationStyle::set_title_font);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_text_font), "font"), &GRNotificationStyle::set_text_font);
 
-	ClassDB::bind_method(D_METHOD("get_panel_style"), &GRNotificationStyle::get_panel_style);
-	ClassDB::bind_method(D_METHOD("get_close_button_theme"), &GRNotificationStyle::get_close_button_theme);
-	ClassDB::bind_method(D_METHOD("get_close_button_icon"), &GRNotificationStyle::get_close_button_icon);
-	ClassDB::bind_method(D_METHOD("get_title_font"), &GRNotificationStyle::get_title_font);
-	ClassDB::bind_method(D_METHOD("get_text_font"), &GRNotificationStyle::get_text_font);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_panel_style)), &GRNotificationStyle::get_panel_style);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_close_button_theme)), &GRNotificationStyle::get_close_button_theme);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_close_button_icon)), &GRNotificationStyle::get_close_button_icon);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_title_font)), &GRNotificationStyle::get_title_font);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_text_font)), &GRNotificationStyle::get_text_font);
 
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "panel_style"), "set_panel_style", "get_panel_style");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "close_button_theme"), "set_close_button_theme", "get_close_button_theme");

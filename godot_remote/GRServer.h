@@ -115,7 +115,6 @@ private:
 	void _load_settings();
 	void _update_settings_from_client(const std::map<int, Variant> settings);
 	void _remove_resize_viewport(Node *vp);
-	void _on_grviewport_deleting();
 
 	virtual void _reset_counters() override;
 
@@ -153,6 +152,8 @@ public:
 	bool is_custom_input_scene_compressed();
 	void set_custom_input_scene_compression_type(int _type);
 	int get_custom_input_scene_compression_type();
+
+	// TODO mb need to add setget for image processing thread count
 
 	// VIEWPORT
 	bool set_video_stream_enabled(bool val);
@@ -194,7 +195,7 @@ protected:
 	int jpg_quality = 80;
 	int skip_frames = 0;
 	GRDevice::ImageCompressionType compression_type = GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED;
-	GRStreamEncodersManager* stream_manager;
+	GRStreamEncodersManager *stream_manager = nullptr;
 
 	uint16_t frames_from_prev_image = 0;
 	bool is_empty_image_sended = false;

@@ -12,11 +12,11 @@
 	memcpy(to_var##write.ptr(), res, res##_size); \
 	to_var##write.release()
 #else
-#define GetPoolVectorFromBin(to_var, res)         \
-	PoolByteArray to_var;                         \
-	to_var.resize(res##_size);                    \
-	auto to_var##write = to_var.write();          \
-	memcpy(to_var##write.ptr(), res, res##_size); 
+#define GetPoolVectorFromBin(to_var, res) \
+	PoolByteArray to_var;                 \
+	to_var.resize(res##_size);            \
+	auto to_var##write = to_var.write();  \
+	memcpy(to_var##write.ptr(), res, res##_size);
 #endif
 
 namespace GRResources {

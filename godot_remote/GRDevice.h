@@ -3,8 +3,8 @@
 
 #include "GRInputData.h"
 #include "GRPacket.h"
-#include "GRUtils.h"
 #include "GRProfiler.h"
+#include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
 #include "scene/main/node.h"

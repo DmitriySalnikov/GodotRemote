@@ -40,34 +40,33 @@ using namespace GRUtils;
 #ifndef GDNATIVE_LIBRARY
 
 void GRServer::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("_load_settings"), &GRServer::_load_settings);
-	ClassDB::bind_method(D_METHOD("_remove_resize_viewport", "vp"), &GRServer::_remove_resize_viewport);
-	ClassDB::bind_method(D_METHOD("_on_grviewport_deleting"), &GRServer::_on_grviewport_deleting);
-	ClassDB::bind_method(D_METHOD("_thread_listen", "user_data"), &GRServer::_thread_listen);
-	ClassDB::bind_method(D_METHOD("_thread_connection", "user_data"), &GRServer::_thread_connection);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_load_settings)), &GRServer::_load_settings);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_resize_viewport), "vp"), &GRServer::_remove_resize_viewport);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_listen), "user_data"), &GRServer::_thread_listen);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_connection), "user_data"), &GRServer::_thread_connection);
 
-	ClassDB::bind_method(D_METHOD("get_gr_viewport"), &GRServer::get_gr_viewport);
-	ClassDB::bind_method(D_METHOD("force_update_custom_input_scene"), &GRServer::force_update_custom_input_scene);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_gr_viewport)), &GRServer::get_gr_viewport);
+	ClassDB::bind_method(D_METHOD(NAMEOF(force_update_custom_input_scene)), &GRServer::force_update_custom_input_scene);
 
-	ClassDB::bind_method(D_METHOD("set_video_stream_enabled", "value"), &GRServer::set_video_stream_enabled);
-	ClassDB::bind_method(D_METHOD("set_skip_frames", "frames"), &GRServer::set_skip_frames);
-	//ClassDB::bind_method(D_METHOD("set_auto_adjust_scale"), &GRServer::set_auto_adjust_scale);
-	ClassDB::bind_method(D_METHOD("set_jpg_quality", "quality"), &GRServer::set_jpg_quality);
-	ClassDB::bind_method(D_METHOD("set_render_scale", "scale"), &GRServer::set_render_scale);
-	ClassDB::bind_method(D_METHOD("set_password", "password"), &GRServer::set_password);
-	ClassDB::bind_method(D_METHOD("set_custom_input_scene", "_scn"), &GRServer::set_custom_input_scene);
-	ClassDB::bind_method(D_METHOD("set_custom_input_scene_compressed", "_is_compressed"), &GRServer::set_custom_input_scene_compressed);
-	ClassDB::bind_method(D_METHOD("set_custom_input_scene_compression_type", "_type"), &GRServer::set_custom_input_scene_compression_type);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_video_stream_enabled), "value"), &GRServer::set_video_stream_enabled);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_skip_frames), "frames"), &GRServer::set_skip_frames);
+	//ClassDB::bind_method(D_METHOD(NAMEOF(set_auto_adjust_scale)), &GRServer::set_auto_adjust_scale);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_jpg_quality), "quality"), &GRServer::set_jpg_quality);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_render_scale), "scale"), &GRServer::set_render_scale);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_password), "password"), &GRServer::set_password);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_input_scene), "_scn"), &GRServer::set_custom_input_scene);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_input_scene_compressed), "_is_compressed"), &GRServer::set_custom_input_scene_compressed);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_input_scene_compression_type), "_type"), &GRServer::set_custom_input_scene_compression_type);
 
-	ClassDB::bind_method(D_METHOD("is_video_stream_enabled"), &GRServer::is_video_stream_enabled);
-	ClassDB::bind_method(D_METHOD("get_skip_frames"), &GRServer::get_skip_frames);
-	//ClassDB::bind_method(D_METHOD("is_auto_adjust_scale"), &GRServer::is_auto_adjust_scale);
-	ClassDB::bind_method(D_METHOD("get_jpg_quality"), &GRServer::get_jpg_quality);
-	ClassDB::bind_method(D_METHOD("get_render_scale"), &GRServer::get_render_scale);
-	ClassDB::bind_method(D_METHOD("get_password"), &GRServer::get_password);
-	ClassDB::bind_method(D_METHOD("get_custom_input_scene"), &GRServer::get_custom_input_scene);
-	ClassDB::bind_method(D_METHOD("is_custom_input_scene_compressed"), &GRServer::is_custom_input_scene_compressed);
-	ClassDB::bind_method(D_METHOD("get_custom_input_scene_compression_type"), &GRServer::get_custom_input_scene_compression_type);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_video_stream_enabled)), &GRServer::is_video_stream_enabled);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_skip_frames)), &GRServer::get_skip_frames);
+	//ClassDB::bind_method(D_METHOD(NAMEOF(is_auto_adjust_scale)), &GRServer::is_auto_adjust_scale);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_jpg_quality)), &GRServer::get_jpg_quality);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_render_scale)), &GRServer::get_render_scale);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_password)), &GRServer::get_password);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_custom_input_scene)), &GRServer::get_custom_input_scene);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_custom_input_scene_compressed)), &GRServer::is_custom_input_scene_compressed);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_custom_input_scene_compression_type)), &GRServer::get_custom_input_scene_compression_type);
 
 	//ADD_PROPERTY(PropertyInfo(Variant::BOOL, "video_stream_enabled"), "set_video_stream_enabled", "is_video_stream_enabled");
 	//ADD_PROPERTY(PropertyInfo(Variant::INT, "skip_frames"), "set_skip_frames", "get_skip_frames");
@@ -90,12 +89,10 @@ void GRServer::_bind_methods() {
 
 void GRServer::_register_methods() {
 	METHOD_REG(GRServer, _notification);
-	METHOD_REG(GRServer, _thread_listen);
-	METHOD_REG(GRServer, _thread_connection);
-	METHOD_REG(GRServer, _on_grviewport_deleting);
-
 	METHOD_REG(GRServer, _load_settings);
 	METHOD_REG(GRServer, _remove_resize_viewport);
+	METHOD_REG(GRServer, _thread_listen);
+	METHOD_REG(GRServer, _thread_connection);
 
 	METHOD_REG(GRServer, get_gr_viewport);
 	METHOD_REG(GRServer, force_update_custom_input_scene);
@@ -337,7 +334,7 @@ void GRServer::_internal_call_only_deffered_start() {
 	Thread_start(server_thread_listen->thread_ref, this, _thread_listen, server_thread_listen);
 
 	set_status(WorkingStatus::STATUS_WORKING);
-	call_deferred("_load_settings");
+	call_deferred(NAMEOF(_load_settings));
 
 	GRNotifications::add_notification("Godot Remote Server Status", "Server started", GRNotifications::GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 }
@@ -364,7 +361,7 @@ void GRServer::_internal_call_only_deffered_stop() {
 
 	if (resize_viewport)
 		resize_viewport->stop_encoder();
-	call_deferred("_remove_resize_viewport", resize_viewport);
+	call_deferred(NAMEOF(_remove_resize_viewport), resize_viewport);
 	resize_viewport = nullptr;
 
 	_send_queue_resize(0);
@@ -379,11 +376,8 @@ void GRServer::_remove_resize_viewport(Node *node) {
 	if (vp && !vp->is_queued_for_deletion()) {
 		remove_child(vp);
 		memdelete(vp);
+		vp = nullptr;
 	}
-}
-
-void GRServer::_on_grviewport_deleting() {
-	resize_viewport = nullptr;
 }
 
 GRSViewport *GRServer::get_gr_viewport() {
@@ -430,7 +424,7 @@ void GRServer::_adjust_viewport_scale() {
 end:
 	resize_viewport->auto_scale = scale;
 	prev_avg_fps = 0;
-	resize_viewport->call_deferred("_update_size");
+	resize_viewport->call_deferred(NAMEOF(_update_size));
 }
 
 void GRServer::_load_settings() {
@@ -517,7 +511,7 @@ void GRServer::_update_settings_from_client(const std::map<int, Variant> setting
 			switch (k) {
 				case TypesOfServerSettings::SERVER_SETTINGS_USE_INTERNAL:
 					if ((bool)value) {
-						call_deferred("_load_settings");
+						call_deferred(NAMEOF(_load_settings));
 						return;
 					}
 					break;
@@ -1089,7 +1083,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	client_connected--;
 	_send_queue_resize(0);
 
-	call_deferred("_load_settings");
+	call_deferred(NAMEOF(_load_settings));
 	call_deferred("emit_signal", "client_disconnected", thread_info->device_id);
 
 	thread_info->finished = true;
@@ -1393,10 +1387,11 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, std::vector<
 #ifndef GDNATIVE_LIBRARY
 
 void GRSViewport::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("_update_size"), &GRSViewport::_update_size);
-	ClassDB::bind_method(D_METHOD("_on_renderer_deleting"), &GRSViewport::_on_renderer_deleting);
-	ClassDB::bind_method(D_METHOD("set_rendering_scale"), &GRSViewport::set_rendering_scale);
-	ClassDB::bind_method(D_METHOD("get_rendering_scale"), &GRSViewport::get_rendering_scale);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_update_size)), &GRSViewport::_update_size);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_on_renderer_deleting)), &GRSViewport::_on_renderer_deleting);
+
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_rendering_scale)), &GRSViewport::set_rendering_scale);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_rendering_scale)), &GRSViewport::get_rendering_scale);
 
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "rendering_scale", PROPERTY_HINT_RANGE, "0,1,0.001"), "set_rendering_scale", "get_rendering_scale");
 }
@@ -1452,7 +1447,10 @@ void GRSViewport::_notification(int p_notification) {
 						_log("Can't copy viewport image data", LogLevel::LL_ERROR);
 					else {
 						ZoneScopedNC("Commit Image to Encoder", tracy::Color::DarkOrange3);
-						stream_manager->commit_image(tmp_image, (uint64_t)(get_process_delta_time() * 1000000));
+						Scoped_lock(stream_mutex);
+						if (stream_manager) {
+							stream_manager->commit_image(tmp_image, (uint64_t)(get_process_delta_time() * 1000000));
+						}
 					}
 				}
 			} else {
@@ -1465,12 +1463,12 @@ void GRSViewport::_notification(int p_notification) {
 		}
 		case NOTIFICATION_ENTER_TREE: {
 			main_vp = ST()->get_root();
-			main_vp->connect("size_changed", this, "_update_size");
+			main_vp->connect("size_changed", this, NAMEOF(_update_size));
 			_update_size();
 
 			renderer = memnew(GRSViewportRenderer);
 			renderer->tex = main_vp->get_texture();
-			renderer->connect("tree_exiting", this, "_on_renderer_deleting");
+			renderer->connect("tree_exiting", this, NAMEOF(_on_renderer_deleting));
 			add_child(renderer);
 
 			break;
@@ -1480,8 +1478,9 @@ void GRSViewport::_notification(int p_notification) {
 				remove_child(renderer);
 				//renderer->queue_del();
 				memdelete(renderer);
+				renderer = nullptr;
 			}
-			main_vp->disconnect("size_changed", this, "_update_size");
+			main_vp->disconnect("size_changed", this, NAMEOF(_update_size));
 			main_vp = nullptr;
 			break;
 		}
@@ -1525,17 +1524,13 @@ void GRSViewport::force_get_image() {
 }
 
 bool GRSViewport::has_data_to_send() {
-	stream_mutex.lock();
-	auto res = stream_manager->has_data_to_send();
-	stream_mutex.unlock();
-	return res;
+	Scoped_lock(stream_mutex);
+	return stream_manager->has_data_to_send();
 }
 
 Ref<GRPacket> GRSViewport::pop_data_to_send() {
-	stream_mutex.lock();
-	auto res = stream_manager->pop_data_to_send();
-	stream_mutex.unlock();
-	return res;
+	Scoped_lock(stream_mutex);
+	return stream_manager->pop_data_to_send();
 }
 
 void GRSViewport::set_video_stream_enabled(bool val) {
@@ -1548,7 +1543,7 @@ bool GRSViewport::is_video_stream_enabled() {
 
 void GRSViewport::set_rendering_scale(float val) {
 	rendering_scale = val;
-	call_deferred("_update_size");
+	call_deferred(NAMEOF(_update_size));
 }
 
 float GRSViewport::get_rendering_scale() {
@@ -1556,12 +1551,10 @@ float GRSViewport::get_rendering_scale() {
 }
 
 void GRSViewport::set_compression_type(GRDevice::ImageCompressionType val) {
+	Scoped_lock(stream_mutex);
 	compression_type = val;
-
-	stream_mutex.lock();
 	if (stream_manager)
 		stream_manager->start(compression_type, this);
-	stream_mutex.unlock();
 }
 
 GRDevice::ImageCompressionType GRSViewport::get_compression_type() {
@@ -1586,21 +1579,21 @@ int GRSViewport::get_skip_frames() {
 }
 
 void GRSViewport::start_encoder() {
+	Scoped_lock(stream_mutex);
 	set_process(true);
-	stream_mutex.lock();
 	if (stream_manager)
 		memdelete(stream_manager);
 	stream_manager = memnew(GRStreamEncodersManager);
 	stream_manager->start(compression_type, this);
-	stream_mutex.unlock();
 }
 
 void GRSViewport::stop_encoder() {
+	Scoped_lock(stream_mutex);
 	set_process(false);
-	stream_mutex.lock();
-	if (stream_manager)
+	if (stream_manager) {
 		memdelete(stream_manager);
-	stream_mutex.unlock();
+		stream_manager = nullptr;
+	}
 }
 
 void GRSViewport::_init() {

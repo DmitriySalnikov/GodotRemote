@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <deque>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <queue>
 #include <vector>
 
@@ -184,6 +186,7 @@ protected:
 
 #define sleep_usec(usec) OS::get_singleton()->delay_usec(usec)
 #define Mutex_define(_var, _description) TracyLockableN(std::recursive_mutex, _var, _description)
+#define Scoped_lock(_mutex_name) std::lock_guard<LockableBase(std::recursive_mutex)> _scoped_lock_guard(_mutex_name)
 
 #define LEAVE_IF_EDITOR()                          \
 	if (Engine::get_singleton()->is_editor_hint()) \
@@ -219,6 +222,7 @@ protected:
 	}
 
 #define CONNECTION_ADDRESS(con) str(con->get_connected_host()) + ":" + str(con->get_connected_port())
+#define NAMEOF(var) #var
 
 // Get Project Setting
 #define GET_PS(setting_name) \

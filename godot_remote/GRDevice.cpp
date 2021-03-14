@@ -13,27 +13,26 @@ using namespace GRUtils;
 #ifndef GDNATIVE_LIBRARY
 
 void GRDevice::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_start"), &GRDevice::_internal_call_only_deffered_start);
-	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_stop"), &GRDevice::_internal_call_only_deffered_stop);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_internal_call_only_deffered_start)), &GRDevice::_internal_call_only_deffered_start);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_internal_call_only_deffered_stop)), &GRDevice::_internal_call_only_deffered_stop);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_internal_call_only_deffered_restart)), &GRDevice::_internal_call_only_deffered_restart);
 
-	ClassDB::bind_method(D_METHOD("_internal_call_only_deffered_restart"), &GRDevice::_internal_call_only_deffered_restart);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_avg_ping)), &GRDevice::get_avg_ping);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_min_ping)), &GRDevice::get_min_ping);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_max_ping)), &GRDevice::get_max_ping);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_avg_fps)), &GRDevice::get_avg_fps);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_min_fps)), &GRDevice::get_min_fps);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_max_fps)), &GRDevice::get_max_fps);
 
-	ClassDB::bind_method(D_METHOD("get_avg_ping"), &GRDevice::get_avg_ping);
-	ClassDB::bind_method(D_METHOD("get_min_ping"), &GRDevice::get_min_ping);
-	ClassDB::bind_method(D_METHOD("get_max_ping"), &GRDevice::get_max_ping);
-	ClassDB::bind_method(D_METHOD("get_avg_fps"), &GRDevice::get_avg_fps);
-	ClassDB::bind_method(D_METHOD("get_min_fps"), &GRDevice::get_min_fps);
-	ClassDB::bind_method(D_METHOD("get_max_fps"), &GRDevice::get_max_fps);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_port)), &GRDevice::get_port);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_port), "port"), &GRDevice::set_port, DEFVAL(52341));
 
-	ClassDB::bind_method(D_METHOD("get_port"), &GRDevice::get_port);
-	ClassDB::bind_method(D_METHOD("set_port", "port"), &GRDevice::set_port, DEFVAL(52341));
+	//ClassDB::bind_method(D_METHOD(NAMEOF(send_packet), "packet"), &GRDevice::send_packet);
+	ClassDB::bind_method(D_METHOD(NAMEOF(send_user_data), "packet_id", "user_data", "full_objects"), &GRDevice::send_user_data, DEFVAL(false));
 
-	//ClassDB::bind_method(D_METHOD("send_packet", "packet"), &GRDevice::send_packet);
-	ClassDB::bind_method(D_METHOD("send_user_data", "packet_id", "user_data", "full_objects"), &GRDevice::send_user_data, DEFVAL(false));
-
-	ClassDB::bind_method(D_METHOD("start"), &GRDevice::start);
-	ClassDB::bind_method(D_METHOD("stop"), &GRDevice::stop);
-	ClassDB::bind_method(D_METHOD("get_status"), &GRDevice::get_status);
+	ClassDB::bind_method(D_METHOD(NAMEOF(start)), &GRDevice::start);
+	ClassDB::bind_method(D_METHOD(NAMEOF(stop)), &GRDevice::stop);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_status)), &GRDevice::get_status);
 
 	ADD_SIGNAL(MethodInfo("status_changed", PropertyInfo(Variant::INT, "status")));
 	ADD_SIGNAL(MethodInfo("user_data_received", PropertyInfo(Variant::NIL, "packet_id"), PropertyInfo(Variant::NIL, "user_data")));
@@ -138,31 +137,27 @@ float GRDevice::_fps_calc_modifier(double i) {
 }
 
 void GRDevice::send_user_data(Variant packet_id, Variant user_data, bool full_objects) {
-	send_queue_mutex.lock();
+	Scoped_lock(send_queue_mutex);
 	Ref<GRPacketCustomUserData> packet = newref(GRPacketCustomUserData);
 	send_packet(packet);
 
 	packet->set_packet_id(packet_id);
 	packet->set_send_full_objects(full_objects);
 	packet->set_user_data(user_data);
-
-	send_queue_mutex.unlock();
 }
 
 void GRDevice::_send_queue_resize(int new_size) {
-	send_queue_mutex.lock();
+	Scoped_lock(send_queue_mutex);
 	send_queue.resize(new_size);
-	send_queue_mutex.unlock();
 }
 
 Ref<GRPacket> GRDevice::_send_queue_pop_front() {
-	send_queue_mutex.lock();
+	Scoped_lock(send_queue_mutex);
 	Ref<GRPacket> packet;
 	if (send_queue.size() > 0) {
 		packet = send_queue.front();
 		send_queue.erase(send_queue.begin());
 	}
-	send_queue_mutex.unlock();
 	return packet;
 }
 
@@ -206,25 +201,23 @@ void GRDevice::set_port(uint16_t _port) {
 
 void GRDevice::send_packet(Ref<GRPacket> packet) {
 	ERR_FAIL_COND(packet.is_null());
-
-	send_queue_mutex.lock();
+	Scoped_lock(send_queue_mutex);
 	if (send_queue.size() > 10000)
 		send_queue.resize(0);
 
 	send_queue.push_back(packet);
-	send_queue_mutex.unlock();
 }
 
 void GRDevice::start() {
-	call_deferred("_internal_call_only_deffered_start");
+	call_deferred(NAMEOF(_internal_call_only_deffered_start));
 }
 
 void GRDevice::stop() {
-	call_deferred("_internal_call_only_deffered_stop");
+	call_deferred(NAMEOF(_internal_call_only_deffered_stop));
 }
 
 void GRDevice::restart() {
-	call_deferred("_internal_call_only_deffered_restart");
+	call_deferred(NAMEOF(_internal_call_only_deffered_restart));
 }
 
 void GRDevice::_internal_call_only_deffered_restart() {

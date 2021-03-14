@@ -63,6 +63,7 @@ protected:
 public:
 	void _init(){};
 	static void _register_methods(){};
+
 protected:
 #endif
 
@@ -110,7 +111,7 @@ class GRPacketImageData : public GRPacket {
 	GD_CLASS(GRPacketImageData, GRPacket);
 	friend GRPacket;
 
-	/*GRDevice::ImageCompressionType*/int compression = 1 /*GRDevice::ImageCompressionType::JPG*/;
+	/*GRDevice::ImageCompressionType*/ int compression = 1 /*GRDevice::ImageCompressionType::JPG*/;
 	Size2 size;
 	int format = 0;
 	PoolByteArray img_data;
@@ -336,7 +337,7 @@ public:
 
 #define BASIC_PACKET(_name, _type)                                                            \
 	class _name : public GRPacket {                                                           \
-		GD_CLASS(_name, GRPacket);                                                          \
+		GD_CLASS(_name, GRPacket);                                                            \
 		friend GRPacket;                                                                      \
                                                                                               \
 	protected:                                                                                \

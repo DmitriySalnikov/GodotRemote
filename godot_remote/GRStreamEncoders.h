@@ -4,8 +4,8 @@
 #ifndef NO_GODOTREMOTE_SERVER
 
 #include "GRPacket.h"
-#include "GRUtils.h"
 #include "GRProfiler.h"
+#include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
 
@@ -26,6 +26,7 @@ class GRStreamEncoderImageSequence;
 
 class GRStreamEncodersManager : public Object {
 	GD_CLASS(GRStreamEncodersManager, Object);
+	Mutex_define(ts_lock, "GRStreamEncodersManager Lock");
 
 protected:
 #ifndef GDNATIVE_LIBRARY
@@ -37,7 +38,7 @@ public:
 protected:
 #endif
 
-	GRStreamEncoder* encoder = nullptr;
+	GRStreamEncoder *encoder = nullptr;
 	GRSViewport *viewport = nullptr;
 
 	void _notification(int p_notification);
@@ -99,6 +100,9 @@ public:
 	void _deinit();
 };
 
+//////////////////////////////////////////////////////////////////////////
+// Image Sequence
+
 class GRStreamEncoderImageSequence : public GRStreamEncoder {
 	GD_CLASS(GRStreamEncoderImageSequence, GRStreamEncoder);
 
@@ -107,15 +111,16 @@ private:
 	public:
 		Ref<GRPacket> pack;
 		uint64_t time;
-		BufferedImage(Ref<GRPacket> packet, uint64_t time_added) {
-			pack = packet;
+		bool is_ready = false;
+		BufferedImage(uint64_t time_added) {
 			time = time_added;
 		}
 		bool operator<(const BufferedImage &bi) const { return time < bi.time; }
 	};
 
 	std::vector<Thread_define_type> threads;
-	std::vector<BufferedImage> buffer;
+	std::queue<std::shared_ptr<BufferedImage> > buffer;
+
 	PoolByteArray ret_data;
 	int compression_type = 0;
 	bool is_threads_active = true;

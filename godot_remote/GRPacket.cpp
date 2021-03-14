@@ -15,7 +15,7 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 	if (bytes.size() == 0) {
 		ERR_FAIL_V_MSG(Ref<GRPacket>(), "Can't create GRPacket from empty data!");
 	}
-
+	
 	PacketType type = (PacketType)((PoolByteArray)bytes)[0];
 	Ref<StreamPeerBuffer> buf(memnew(StreamPeerBuffer));
 	buf->set_data_array(bytes);

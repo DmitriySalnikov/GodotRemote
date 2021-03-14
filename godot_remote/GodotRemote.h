@@ -173,7 +173,7 @@ public:
 	CONST_GET(GRPacket, PacketType, CustomUserData);
 	CONST_GET(GRPacket, PacketType, Ping);
 	CONST_GET(GRPacket, PacketType, Pong);
-	
+
 	// GRDevice
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_USE_INTERNAL);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_VIDEO_STREAM_ENABLED);
@@ -224,7 +224,8 @@ public:
 	int get_notifications_layer();
 
 	void set_notifications_position(ENUM_ARG(GRNotifications::NotificationsPosition) positon);
-	ENUM_ARG(GRNotifications::NotificationsPosition) get_notifications_position();
+	ENUM_ARG(GRNotifications::NotificationsPosition)
+	get_notifications_position();
 
 	void set_notifications_enabled(bool _enabled);
 	bool get_notifications_enabled();

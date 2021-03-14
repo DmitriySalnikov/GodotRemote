@@ -62,13 +62,13 @@ void GodotRemote::_init() {
 
 	GRUtils::init();
 
-	call_deferred("_create_notification_manager");
+	call_deferred(NAMEOF(_create_notification_manager));
 	if (is_autostart)
-		call_deferred("create_and_start_device", DeviceType::DEVICE_AUTO);
+		call_deferred(NAMEOF(create_and_start_device), DeviceType::DEVICE_AUTO);
 
 #ifndef GDNATIVE_LIBRARY
 #ifdef TOOLS_ENABLED
-	call_deferred("_prepare_editor");
+	call_deferred(NAMEOF(_prepare_editor));
 #endif
 #endif
 }
@@ -80,7 +80,7 @@ void GodotRemote::_deinit() {
 
 #ifndef GDNATIVE_LIBRARY
 #ifdef TOOLS_ENABLED
-	call_deferred("_adb_start_timer_timeout");
+	call_deferred(NAMEOF(_adb_start_timer_timeout));
 #endif
 #endif
 	if (singleton == this) {
@@ -92,46 +92,46 @@ void GodotRemote::_deinit() {
 #ifndef GDNATIVE_LIBRARY
 
 void GodotRemote::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("_create_notification_manager"), &GodotRemote::_create_notification_manager);
-
-	ClassDB::bind_method(D_METHOD("create_and_start_device", "device_type"), &GodotRemote::create_and_start_device, DEFVAL(DeviceType::DEVICE_AUTO));
-	ClassDB::bind_method(D_METHOD("create_remote_device", "device_type"), &GodotRemote::create_remote_device, DEFVAL(DeviceType::DEVICE_AUTO));
-	ClassDB::bind_method(D_METHOD("start_remote_device"), &GodotRemote::start_remote_device);
-	ClassDB::bind_method(D_METHOD("remove_remote_device"), &GodotRemote::remove_remote_device);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_create_notification_manager)), &GodotRemote::_create_notification_manager);
 #ifdef TOOLS_ENABLED
-	ClassDB::bind_method(D_METHOD("_adb_port_forwarding"), &GodotRemote::_adb_port_forwarding);
-	ClassDB::bind_method(D_METHOD("_run_emitted"), &GodotRemote::_run_emitted);
-	ClassDB::bind_method(D_METHOD("_prepare_editor"), &GodotRemote::_prepare_editor);
-	ClassDB::bind_method(D_METHOD("_adb_start_timer_timeout"), &GodotRemote::_adb_start_timer_timeout);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_adb_port_forwarding)), &GodotRemote::_adb_port_forwarding);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_run_emitted)), &GodotRemote::_run_emitted);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_prepare_editor)), &GodotRemote::_prepare_editor);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_adb_start_timer_timeout)), &GodotRemote::_adb_start_timer_timeout);
 #endif
 
-	ClassDB::bind_method(D_METHOD("get_device"), &GodotRemote::get_device);
-	ClassDB::bind_method(D_METHOD("get_version"), &GodotRemote::get_version);
-	ClassDB::bind_method(D_METHOD("is_gdnative"), &GodotRemote::is_gdnative);
+	ClassDB::bind_method(D_METHOD(NAMEOF(create_and_start_device), "device_type"), &GodotRemote::create_and_start_device, DEFVAL(DeviceType::DEVICE_AUTO));
+	ClassDB::bind_method(D_METHOD(NAMEOF(create_remote_device), "device_type"), &GodotRemote::create_remote_device, DEFVAL(DeviceType::DEVICE_AUTO));
+	ClassDB::bind_method(D_METHOD(NAMEOF(start_remote_device)), &GodotRemote::start_remote_device);
+	ClassDB::bind_method(D_METHOD(NAMEOF(remove_remote_device)), &GodotRemote::remove_remote_device);
+
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_device)), &GodotRemote::get_device);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_version)), &GodotRemote::get_version);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_gdnative)), &GodotRemote::is_gdnative);
 
 	// GRNotifications
-	ClassDB::bind_method(D_METHOD("get_notification", "title"), &GodotRemote::get_notification);
-	ClassDB::bind_method(D_METHOD("get_all_notifications"), &GodotRemote::get_all_notifications);
-	ClassDB::bind_method(D_METHOD("get_notifications_with_title", "title"), &GodotRemote::get_notifications_with_title);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_notification), "title"), &GodotRemote::get_notification);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_all_notifications)), &GodotRemote::get_all_notifications);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_notifications_with_title), "title"), &GodotRemote::get_notifications_with_title);
 
-	ClassDB::bind_method(D_METHOD("add_notification_or_append_string", "title", "text", "icon", "add_to_new_line", "duration_multiplier"), &GodotRemote::add_notification_or_append_string, DEFVAL(true), DEFVAL(1.f));
-	ClassDB::bind_method(D_METHOD("add_notification_or_update_line", "title", "id", "text", "icon", "duration_multiplier"), &GodotRemote::add_notification_or_update_line, DEFVAL(1.f));
-	ClassDB::bind_method(D_METHOD("add_notification", "title", "text", "notification_icon", "update_existing", "duration_multiplier"), &GodotRemote::add_notification, DEFVAL((int)GRNotifications::NotificationIcon::ICON_NONE), DEFVAL(true), DEFVAL(1.f));
-	ClassDB::bind_method(D_METHOD("remove_notification", "title", "is_all_entries"), &GodotRemote::remove_notification, DEFVAL(true));
-	ClassDB::bind_method(D_METHOD("remove_notification_exact", "notification"), &GodotRemote::remove_notification_exact);
-	ClassDB::bind_method(D_METHOD("clear_notifications"), &GodotRemote::clear_notifications);
+	ClassDB::bind_method(D_METHOD(NAMEOF(add_notification_or_append_string), "title", "text", "icon", "add_to_new_line", "duration_multiplier"), &GodotRemote::add_notification_or_append_string, DEFVAL(true), DEFVAL(1.f));
+	ClassDB::bind_method(D_METHOD(NAMEOF(add_notification_or_update_line), "title", "id", "text", "icon", "duration_multiplier"), &GodotRemote::add_notification_or_update_line, DEFVAL(1.f));
+	ClassDB::bind_method(D_METHOD(NAMEOF(add_notification), "title", "text", "notification_icon", "update_existing", "duration_multiplier"), &GodotRemote::add_notification, DEFVAL((int)GRNotifications::NotificationIcon::ICON_NONE), DEFVAL(true), DEFVAL(1.f));
+	ClassDB::bind_method(D_METHOD(NAMEOF(remove_notification), "title", "is_all_entries"), &GodotRemote::remove_notification, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD(NAMEOF(remove_notification_exact), "notification"), &GodotRemote::remove_notification_exact);
+	ClassDB::bind_method(D_METHOD(NAMEOF(clear_notifications)), &GodotRemote::clear_notifications);
 
-	ClassDB::bind_method(D_METHOD("set_notifications_layer", "position"), &GodotRemote::set_notifications_layer);
-	ClassDB::bind_method(D_METHOD("set_notifications_position", "position"), &GodotRemote::set_notifications_position);
-	ClassDB::bind_method(D_METHOD("set_notifications_enabled", "enabled"), &GodotRemote::set_notifications_enabled);
-	ClassDB::bind_method(D_METHOD("set_notifications_duration", "duration"), &GodotRemote::set_notifications_duration);
-	ClassDB::bind_method(D_METHOD("set_notifications_style", "style"), &GodotRemote::set_notifications_style);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_notifications_layer), "position"), &GodotRemote::set_notifications_layer);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_notifications_position), "position"), &GodotRemote::set_notifications_position);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_notifications_enabled), "enabled"), &GodotRemote::set_notifications_enabled);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_notifications_duration), "duration"), &GodotRemote::set_notifications_duration);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_notifications_style), "style"), &GodotRemote::set_notifications_style);
 
-	ClassDB::bind_method(D_METHOD("get_notifications_layer"), &GodotRemote::get_notifications_layer);
-	ClassDB::bind_method(D_METHOD("get_notifications_position"), &GodotRemote::get_notifications_position);
-	ClassDB::bind_method(D_METHOD("get_notifications_enabled"), &GodotRemote::get_notifications_enabled);
-	ClassDB::bind_method(D_METHOD("get_notifications_duration"), &GodotRemote::get_notifications_duration);
-	ClassDB::bind_method(D_METHOD("get_notifications_style"), &GodotRemote::get_notifications_style);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_notifications_layer)), &GodotRemote::get_notifications_layer);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_notifications_position)), &GodotRemote::get_notifications_position);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_notifications_enabled)), &GodotRemote::get_notifications_enabled);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_notifications_duration)), &GodotRemote::get_notifications_duration);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_notifications_style)), &GodotRemote::get_notifications_style);
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_layer"), "set_notifications_layer", "get_notifications_layer");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_position"), "set_notifications_position", "get_notifications_position");
@@ -154,12 +154,12 @@ void GodotRemote::_bind_methods() {
 	BIND_ENUM_CONSTANT(LL_WARNING);
 	BIND_ENUM_CONSTANT(LL_ERROR);
 
-	ClassDB::bind_method(D_METHOD("set_log_level", "level"), &GodotRemote::set_log_level);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_log_level), "level"), &GodotRemote::set_log_level);
 
-	ClassDB::bind_method(D_METHOD("set_gravity", "value"), &GodotRemote::set_gravity);
-	ClassDB::bind_method(D_METHOD("set_accelerometer", "value"), &GodotRemote::set_accelerometer);
-	ClassDB::bind_method(D_METHOD("set_magnetometer", "value"), &GodotRemote::set_magnetometer);
-	ClassDB::bind_method(D_METHOD("set_gyroscope", "value"), &GodotRemote::set_gyroscope);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_gravity), "value"), &GodotRemote::set_gravity);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_accelerometer), "value"), &GodotRemote::set_accelerometer);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_magnetometer), "value"), &GodotRemote::set_magnetometer);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_gyroscope), "value"), &GodotRemote::set_gyroscope);
 
 	// Other Enums
 }
@@ -526,14 +526,14 @@ void GodotRemote::create_and_start_device(ENUM_ARG(DeviceType) type) {
 void GodotRemote::_prepare_editor() {
 	if (Engine::get_singleton() && Engine::get_singleton()->is_editor_hint()) {
 		if (EditorNode::get_singleton())
-			EditorNode::get_singleton()->connect("play_pressed", this, "_run_emitted");
+			EditorNode::get_singleton()->connect("play_pressed", this, NAMEOF(_run_emitted));
 	}
 }
 
 void GodotRemote::_run_emitted() {
 	// call_deferred because debugger can't connect to game if process blocks thread on start
 	if ((bool)GET_PS(ps_server_config_adb_name))
-		call_deferred("_adb_port_forwarding");
+		call_deferred(NAMEOF(_adb_port_forwarding));
 }
 
 void GodotRemote::_adb_port_forwarding() {
@@ -545,7 +545,7 @@ void GodotRemote::_adb_port_forwarding() {
 			SceneTree::get_singleton()->get_root()->add_child(adb_start_timer);
 			adb_start_timer->set_one_shot(true);
 			adb_start_timer->set_autostart(false);
-			adb_start_timer->connect("timeout", this, "_adb_start_timer_timeout");
+			adb_start_timer->connect("timeout", this, NAMEOF(_adb_start_timer_timeout));
 		}
 
 		adb_start_timer->start(4.f);

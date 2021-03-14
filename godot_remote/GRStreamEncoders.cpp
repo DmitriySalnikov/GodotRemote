@@ -2,10 +2,8 @@
 
 #ifndef NO_GODOTREMOTE_SERVER
 
-#ifndef NO_GODOTREMOTE_SERVER
 // richgel999/jpeg-compressor: https://github.com/richgel999/jpeg-compressor
 #include "jpge.h"
-#endif
 
 #include "GRNotifications.h"
 #include "GRPacket.h"
@@ -66,6 +64,7 @@ void GRStreamEncodersManager::_notification(int p_notification) {
 }
 
 void GRStreamEncodersManager::start(int compression, GRSViewport *vp) {
+	Scoped_lock(ts_lock);
 	if (vp && encoder && viewport && viewport != vp) {
 		encoder->set_viewport(vp);
 		viewport = vp;
@@ -98,12 +97,14 @@ void GRStreamEncodersManager::start(int compression, GRSViewport *vp) {
 }
 
 void GRStreamEncodersManager::commit_image(Ref<Image> img, uint64_t frametime) {
+	Scoped_lock(ts_lock);
 	if (encoder) {
 		encoder->commit_image(img, frametime);
 	}
 }
 
 bool GRStreamEncodersManager::has_data_to_send() {
+	Scoped_lock(ts_lock);
 	if (encoder) {
 		return encoder->has_data_to_send();
 	}
@@ -111,6 +112,7 @@ bool GRStreamEncodersManager::has_data_to_send() {
 }
 
 Ref<GRPacket> GRStreamEncodersManager::pop_data_to_send() {
+	Scoped_lock(ts_lock);
 	if (encoder) {
 		return encoder->pop_data_to_send();
 	}
@@ -121,6 +123,7 @@ void GRStreamEncodersManager::_init() {
 }
 
 void GRStreamEncodersManager::_deinit() {
+	Scoped_lock(ts_lock);
 	if (encoder)
 		memdelete(encoder);
 }
@@ -164,16 +167,13 @@ void GRStreamEncoder::_notification(int p_notification) {
 
 void GRStreamEncoder::commit_image(Ref<Image> img, uint64_t frametime) {
 	if (!img_is_empty(img)) {
-		ts_lock.lock();
-
+		Scoped_lock(ts_lock);
 		while (images.size() > get_max_queued_frames()) {
 			images.pop();
 			TracyMessage("Removed Queued Image", 21);
 		}
 
 		images.push(CommitedImage(img, OS::get_singleton()->get_ticks_usec(), frametime));
-
-		ts_lock.unlock();
 	} else {
 		_log("Commited empty image to StreamEncoder. Ignoring.", LogLevel::LL_ERROR);
 	}
@@ -191,7 +191,7 @@ void GRStreamEncoder::_deinit() {
 #ifndef GDNATIVE_LIBRARY
 
 void GRStreamEncoderImageSequence::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("_processing_thread", "user_data"), &GRStreamEncoderImageSequence::_processing_thread);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_processing_thread), "user_data"), &GRStreamEncoderImageSequence::_processing_thread);
 	//ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
 
 	//ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
@@ -222,25 +222,20 @@ void GRStreamEncoderImageSequence::_notification(int p_notification) {
 }
 
 bool GRStreamEncoderImageSequence::has_data_to_send() {
-	ts_lock.lock();
-	bool ret = buffer.size();
-	ts_lock.unlock();
-	return ret;
+	Scoped_lock(ts_lock);
+	return buffer.size() && buffer.front()->is_ready;
 }
 
 Ref<GRPacket> GRStreamEncoderImageSequence::pop_data_to_send() {
-	ts_lock.lock();
-	auto data = buffer.back();
-	buffer.pop_back();
-	ts_lock.unlock();
-	return data.pack;
+	Scoped_lock(ts_lock);
+	auto buf_img = buffer.front();
+	buffer.pop();
+	return buf_img->pack;
 }
 
 int GRStreamEncoderImageSequence::get_max_queued_frames() {
-	ts_lock.lock();
-	int ret = (int)threads.size();
-	ts_lock.unlock();
-	return ret;
+	Scoped_lock(ts_lock);
+	return (int)threads.size() * 2;
 }
 
 void GRStreamEncoderImageSequence::_init() {
@@ -274,6 +269,9 @@ void GRStreamEncoderImageSequence::_deinit() {
 	for (int i = 0; i < threads.size(); i++) {
 		Thread_close(threads[i]);
 	}
+	while (buffer.size()) {
+		buffer.pop();
+	}
 	threads.resize(0);
 }
 
@@ -298,6 +296,14 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		int jpg_quality = viewport->jpg_quality;
 		CommitedImage com_image = images.front();
 		images.pop();
+
+		while (buffer.size() > threads.size() * 2) {
+			auto buf_img = buffer.front();
+			buffer.pop();
+		}
+
+		auto buf_img = std::make_shared<BufferedImage>(com_image.time);
+		buffer.push(buf_img);
 
 		ts_lock.unlock();
 
@@ -369,12 +375,8 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		if (video_stream_enabled) {
 			ZoneScopedNC("Push Image to Buffer", tracy::Color::Violet);
 			ts_lock.lock();
-			while (buffer.size() > threads.size() - 1) {
-				buffer.pop_back();
-			}
-			TracyPlot("Frame Adding Time", (int64_t)com_image.time);
-			buffer.push_back(BufferedImage(pack, com_image.time));
-			std::sort(buffer.begin(), buffer.end());
+			buf_img->pack = pack;
+			buf_img->is_ready = true;
 			ts_lock.unlock();
 		}
 	}
@@ -403,7 +405,6 @@ Error GRStreamEncoderImageSequence::compress_jpg(PoolByteArray &ret, const PoolB
 								(const unsigned char *)ri.ptr(),
 								params),
 			Error::FAILED, "Can't compress image.");
-
 
 	{
 		ZoneScopedNC("Copy Compressed JPG Data to result PoolArray", tracy::Color::HotPink3);
