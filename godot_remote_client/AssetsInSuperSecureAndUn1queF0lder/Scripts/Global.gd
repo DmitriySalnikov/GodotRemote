@@ -13,6 +13,7 @@ enum StatInfoState{
 }
 
 signal show_stats_changed(state)
+signal touches_to_open_settings_changed(count)
 
 const CLIENT_VERSION := 0
 const SAVE_FILE := "user://settings.json"
@@ -245,6 +246,7 @@ func get_version() -> String:
 func set_touches_to_open_settings(val : int):
 	TouchesToOpenSettings = val
 	_save_settings()
+	emit_signal("touches_to_open_settings_changed", val)
 
 func set_user_rate_state(val : int):
 	UserRateState = val

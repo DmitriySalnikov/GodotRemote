@@ -48,6 +48,7 @@ __meta__ = {
 }
 
 [node name="BackgroundTouchHint" type="Control" parent="."]
+visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
@@ -95,6 +96,58 @@ __meta__ = {
 "_edit_lock_": true,
 "_edit_use_anchors_": false
 }
+
+[node name="OpenSettingsWithoutSignal" type="VBoxContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Control" type="Control" parent="OpenSettingsWithoutSignal"]
+margin_right = 800.0
+margin_bottom = 522.0
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="OpenSettingsWithoutSignal"]
+margin_top = 526.0
+margin_right = 800.0
+margin_bottom = 572.0
+text = "Unable to connect to the server!"
+align = 1
+valign = 1
+clip_text = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="SettingsHint" type="Label" parent="OpenSettingsWithoutSignal"]
+margin_top = 576.0
+margin_right = 800.0
+margin_bottom = 704.0
+size_flags_vertical = 5
+text = "Change the settings or start the server.
+If you want to change the settings during the broadcast, touch the screen with %d fingers at once."
+align = 1
+valign = 1
+autowrap = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="OpenSettings" type="Button" parent="OpenSettingsWithoutSignal"]
+margin_top = 708.0
+margin_right = 800.0
+margin_bottom = 754.0
+size_flags_stretch_ratio = 0.1
+text = "Open settings"
+
+[node name="Control2" type="Control" parent="OpenSettingsWithoutSignal"]
+margin_top = 758.0
+margin_right = 800.0
+margin_bottom = 800.0
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.08
 
 [node name="Stats" type="Control" parent="."]
 anchor_right = 1.0
@@ -364,14 +417,13 @@ text = "Open the documentation page"
 script = SubResource( 3 )
 
 [node name="Label2" type="Label" parent="FirstLaunchHint/VBox"]
-margin_top = 434.0
+margin_top = 455.0
 margin_right = 1112.0
-margin_bottom = 521.0
+margin_bottom = 501.0
 grow_horizontal = 0
 grow_vertical = 0
 size_flags_vertical = 6
-text = "To reopen this screen, click on the 'Godot Remote' version in settings.
-To open app settings touch the screen with %d fingers at once."
+text = "To reopen this screen, click on the 'Godot Remote' version in settings."
 align = 1
 valign = 1
 autowrap = true
@@ -386,6 +438,7 @@ margin_bottom = 653.0
 text = "Okay, I get it!"
 script = SubResource( 4 )
 
+[connection signal="pressed" from="OpenSettingsWithoutSignal/OpenSettings" to="." method="_on_open_settings_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button2" to="PlsSupportPopup" method="_on_Button2_pressed"]
 [connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button" to="Changelog" method="_on_Button_pressed"]

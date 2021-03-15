@@ -246,7 +246,7 @@ void GRStreamEncoderImageSequence::_init() {
 	GRStreamEncoder::_init();
 #endif
 
-	int count = GET_PS(GodotRemote::ps_server_image_sequence_buffer_size_name);
+	int count = GET_PS(GodotRemote::ps_server_image_sequence_threads_count_name);
 	if (count < 1) {
 		count = 1;
 		_log("threads count " + str(count) + " < 1. Clamping.", LogLevel::LL_ERROR);

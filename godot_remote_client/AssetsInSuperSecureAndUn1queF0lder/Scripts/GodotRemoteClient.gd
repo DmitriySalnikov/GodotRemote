@@ -3,7 +3,8 @@ extends Control
 var touches : Dictionary = {}
 var mouse_mode : = Input.MOUSE_MODE_VISIBLE
 var support : Control = null
-var orig_welcome_text : String = ""
+var orig_hint_text : String = ""
+var prev_stream_state
 
 func _ready():
 	var d = Directory.new()
@@ -28,13 +29,18 @@ func _ready():
 	
 	GodotRemote.get_device().start()
 	
+	orig_hint_text = $OpenSettingsWithoutSignal/SettingsHint.text
+	
+	G.connect("touches_to_open_settings_changed", self, "_touches_to_open_settings_changed")
 	connect("item_rect_changed", self, "viewport_size_changed")
-	orig_welcome_text = $FirstLaunchHint/VBox/Label2.text
 	if G.TotalAppRuns == 1:
 		popup_welcome_screen()
+	_touches_to_open_settings_changed(G.TouchesToOpenSettings)
 
-func popup_welcome_screen():
-	$FirstLaunchHint/VBox/Label2.text = orig_welcome_text % G.TouchesToOpenSettings
+func _touches_to_open_settings_changed(count : int) -> void:
+	$OpenSettingsWithoutSignal/SettingsHint.text = orig_hint_text % count
+
+func popup_welcome_screen() -> void:
 	$FirstLaunchHint.popup_centered(get_viewport_rect().size)
 
 func viewport_size_changed() -> void:
@@ -56,21 +62,25 @@ func _custom_input_scene_removed():
 	GodotRemote.get_device().capture_pointer = true
 
 func _stream_state_changed(_is_connected):
+	prev_stream_state = _is_connected
 	match _is_connected:
 		C.GRClient_STREAM_NO_SIGNAL:
 			OS.keep_screen_on = G.keepscreenon
 			$Stats.visible = false
 			$BackgroundTouchHint.visible = false
+			$OpenSettingsWithoutSignal.visible = true && !$GRSettings.visible
 			
 		C.GRClient_STREAM_ACTIVE:
 			OS.keep_screen_on = true
 			$Stats.visible = not $GRSettings.visible
 			$BackgroundTouchHint.visible = false
+			$OpenSettingsWithoutSignal.visible = false
 			
 		C.GRClient_STREAM_NO_IMAGE:
 			$Stats.visible = not $GRSettings.visible
 			$BackgroundTouchHint.visible = true
 			$BackgroundTouchHint/Panel/TextureRect.visible = GodotRemote.get_device().get_custom_input_scene() == null
+			$OpenSettingsWithoutSignal.visible = false
 
 func _device_removed():
 	$Stats.visible = false
@@ -87,11 +97,21 @@ func _show_settings():
 	$GRSettings.visible = true
 	$Stats.visible = false
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	$OpenSettingsWithoutSignal.visible = false
 
 func _hide_settings():
 	$GRSettings.visible = false
 	$Stats.visible = GodotRemote.get_device().is_stream_active()
 	Input.set_mouse_mode(mouse_mode)
+	
+	match prev_stream_state:
+		C.GRClient_STREAM_NO_SIGNAL:
+			$OpenSettingsWithoutSignal.visible = true
+		C.GRClient_STREAM_ACTIVE:
+			$OpenSettingsWithoutSignal.visible = false
+		C.GRClient_STREAM_NO_IMAGE:
+			$OpenSettingsWithoutSignal.visible = false
+
 
 func _count_pressed_touches() -> int:
 	var res = 0
@@ -127,3 +147,6 @@ func _input(e):
 func show_support_window():
 	if support:
 		support.visible = true
+
+func _on_open_settings_pressed() -> void:
+	_show_settings()
