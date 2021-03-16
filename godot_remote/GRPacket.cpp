@@ -119,10 +119,6 @@ int GRPacketImageData::get_compression_type() {
 	return (int)compression;
 }
 
-uint64_t GRPacketImageData::get_start_time() {
-	return start_time;
-}
-
 uint64_t GRPacketImageData::get_frametime() {
 	return frametime;
 }
@@ -141,10 +137,6 @@ int GRPacketImageData::get_format() {
 
 void GRPacketImageData::set_compression_type(int type) {
 	compression = type;
-}
-
-void GRPacketImageData::set_start_time(uint64_t time) {
-	start_time = time;
 }
 
 void GRPacketImageData::set_image_data(PoolByteArray &buf) {

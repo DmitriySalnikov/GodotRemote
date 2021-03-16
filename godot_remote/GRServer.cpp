@@ -58,6 +58,9 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_input_scene_compressed), "_is_compressed"), &GRServer::set_custom_input_scene_compressed);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_input_scene_compression_type), "_type"), &GRServer::set_custom_input_scene_compression_type);
 
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_encoder_threads_count), "count"), &GRServer::set_encoder_threads_count);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_encoder_threads_count)), &GRServer::get_encoder_threads_count);
+
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_video_stream_enabled)), &GRServer::is_video_stream_enabled);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_skip_frames)), &GRServer::get_skip_frames);
 	//ClassDB::bind_method(D_METHOD(NAMEOF(is_auto_adjust_scale)), &GRServer::is_auto_adjust_scale);
@@ -106,6 +109,9 @@ void GRServer::_register_methods() {
 	METHOD_REG(GRServer, set_custom_input_scene);
 	METHOD_REG(GRServer, set_custom_input_scene_compressed);
 	METHOD_REG(GRServer, set_custom_input_scene_compression_type);
+
+	METHOD_REG(GRServer, set_encoder_threads_count);
+	METHOD_REG(GRServer, get_encoder_threads_count);
 
 	METHOD_REG(GRServer, is_video_stream_enabled);
 	METHOD_REG(GRServer, get_skip_frames);
@@ -227,6 +233,20 @@ int GRServer::get_skip_frames() {
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion())
 		return resize_viewport->get_skip_frames();
 	return -1;
+}
+
+bool GRServer::set_encoder_threads_count(int count) {
+	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
+		resize_viewport->set_encoder_threads_count(count);
+		return true;
+	}
+	return false;
+}
+
+int GRServer::get_encoder_threads_count() {
+	if (resize_viewport && !resize_viewport->is_queued_for_deletion())
+		return resize_viewport->get_encoder_threads_count();
+	return GET_PS(GodotRemote::ps_server_image_encoder_threads_count_name);
 }
 
 bool GRServer::set_jpg_quality(int quality) {
@@ -360,7 +380,7 @@ void GRServer::_internal_call_only_deffered_stop() {
 	}
 
 	if (resize_viewport)
-		resize_viewport->stop_encoder();
+		resize_viewport->_stop_encoder();
 	call_deferred(NAMEOF(_remove_resize_viewport), resize_viewport);
 	resize_viewport = nullptr;
 
@@ -744,7 +764,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 				fps = fps / resize_viewport->get_skip_frames();
 
 			if (!resize_viewport->is_processing()) {
-				resize_viewport->start_encoder();
+				resize_viewport->_start_encoder();
 				resize_viewport->force_get_image();
 			}
 		}
@@ -1067,7 +1087,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	_log("Closing connection thread with address: " + address, LogLevel::LL_DEBUG);
 
 	if (resize_viewport)
-		resize_viewport->stop_encoder();
+		resize_viewport->_stop_encoder();
 
 	if (connection->is_connected_to_host()) {
 		GRNotifications::add_notification("Disconnected", "Closing connection with " + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
@@ -1525,12 +1545,16 @@ void GRSViewport::force_get_image() {
 
 bool GRSViewport::has_data_to_send() {
 	Scoped_lock(stream_mutex);
-	return stream_manager->has_data_to_send();
+	if (stream_manager)
+		return stream_manager->has_data_to_send();
+	return false;
 }
 
 Ref<GRPacket> GRSViewport::pop_data_to_send() {
 	Scoped_lock(stream_mutex);
-	return stream_manager->pop_data_to_send();
+	if (stream_manager)
+		return stream_manager->pop_data_to_send();
+	return Ref<GRPacket>();
 }
 
 void GRSViewport::set_video_stream_enabled(bool val) {
@@ -1578,21 +1602,31 @@ int GRSViewport::get_skip_frames() {
 	return skip_frames;
 }
 
-void GRSViewport::start_encoder() {
+void GRSViewport::set_encoder_threads_count(int count) {
+	Scoped_lock(stream_mutex);
+	if (stream_manager)
+		stream_manager->set_threads_count(count);
+}
+
+int GRSViewport::get_encoder_threads_count() {
+	Scoped_lock(stream_mutex);
+	if (stream_manager)
+		return stream_manager->get_threads_count();
+	return GET_PS(GodotRemote::ps_server_image_encoder_threads_count_name);
+}
+
+void GRSViewport::_start_encoder() {
 	Scoped_lock(stream_mutex);
 	set_process(true);
 	if (stream_manager)
-		memdelete(stream_manager);
-	stream_manager = memnew(GRStreamEncodersManager);
-	stream_manager->start(compression_type, this);
+		stream_manager->start(compression_type, this);
 }
 
-void GRSViewport::stop_encoder() {
+void GRSViewport::_stop_encoder() {
 	Scoped_lock(stream_mutex);
 	set_process(false);
 	if (stream_manager) {
-		memdelete(stream_manager);
-		stream_manager = nullptr;
+		stream_manager->set_active(false);
 	}
 }
 
@@ -1615,11 +1649,18 @@ void GRSViewport::_init() {
 	set_shadow_atlas_quadrant_subdiv(1, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
 	set_shadow_atlas_quadrant_subdiv(2, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
 	set_shadow_atlas_quadrant_subdiv(3, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
+
+	Scoped_lock(stream_mutex);
+	stream_manager = memnew(GRStreamEncodersManager);
 }
 
 void GRSViewport::_deinit() {
 	LEAVE_IF_EDITOR();
-	stop_encoder();
+
+	Scoped_lock(stream_mutex);
+	if (stream_manager) {
+		memdelete(stream_manager);
+	}
 }
 
 //////////////////////////////////////////////

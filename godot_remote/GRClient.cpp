@@ -77,7 +77,6 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_custom_input_scene)), &GRClient::_remove_custom_input_scene);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_on_node_deleting), "var_name"), &GRClient::_on_node_deleting);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_connection), "user_data"), &GRClient::_thread_connection);
-	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_image_decoder), "user_data"), &GRClient::_thread_image_decoder);
 
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_control_to_show_in), "control_node", "position_in_node"), &GRClient::set_control_to_show_in, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_no_signal_texture), "texture"), &GRClient::set_custom_no_signal_texture);
@@ -92,6 +91,9 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_address)), &GRClient::get_address);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_stream_active)), &GRClient::is_stream_active);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_connected_to_host)), &GRClient::is_connected_to_host);
+
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_encoder_threads_count), "count"), &GRClient::set_decoder_threads_count);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_encoder_threads_count)), &GRClient::get_decoder_threads_count);
 
 	ADD_SIGNAL(MethodInfo("custom_input_scene_added"));
 	ADD_SIGNAL(MethodInfo("custom_input_scene_removed"));
@@ -160,7 +162,6 @@ void GRClient::_bind_methods() {
 void GRClient::_register_methods() {
 	METHOD_REG(GRClient, _notification);
 	METHOD_REG(GRClient, _thread_connection);
-	METHOD_REG(GRClient, _thread_image_decoder);
 
 	METHOD_REG(GRClient, _update_texture_from_image);
 	METHOD_REG(GRClient, _update_stream_texture_state);
@@ -183,6 +184,9 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, get_address);
 	METHOD_REG(GRClient, is_stream_active);
 	METHOD_REG(GRClient, is_connected_to_host);
+
+	METHOD_REG(GRClient, set_encoder_threads_count);
+	METHOD_REG(GRClient, get_encoder_threads_count);
 
 	register_signal<GRClient>("custom_input_scene_added", Dictionary::make());
 	register_signal<GRClient>("custom_input_scene_removed", Dictionary::make());
@@ -299,10 +303,20 @@ void GRClient::_init() {
 	no_signal_mat.instance();
 	no_signal_mat->set_shader(shader);
 #endif
+
+	Scoped_lock(stream_mutex);
+	stream_manager = memnew(GRStreamDecodersManager);
+	stream_manager->set_gr_client(this);
+	stream_manager->set_threads_count(default_decoder_threads_count);
 }
 
 void GRClient::_deinit() {
 	LEAVE_IF_EDITOR();
+
+	Scoped_lock(stream_mutex);
+	if (stream_manager) {
+		memdelete(stream_manager);
+	}
 
 	is_deleting = true;
 	if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
@@ -453,6 +467,55 @@ void GRClient::_on_node_deleting(int var_name) {
 		default:
 			break;
 	}
+}
+
+void GRClient::_stop_decoder() {
+	Scoped_lock(stream_mutex);
+	if (stream_manager) {
+		stream_manager->set_active(false);
+	}
+}
+
+void GRClient::_update_stream_manager() {
+	Scoped_lock(stream_mutex);
+	if (stream_manager) {
+		stream_manager->update();
+	}
+}
+
+void GRClient::_push_pack_to_decoder(Ref<GRPacket> pack) {
+	Scoped_lock(stream_mutex);
+	if (stream_manager) {
+		stream_manager->push_packet_to_decode(pack);
+	}
+}
+
+void GRClient::_image_lost() {
+	if (signal_connection_state != StreamState::STREAM_NO_IMAGE) {
+		call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_IMAGE);
+		_reset_counters();
+	}
+}
+
+void GRClient::_display_new_image(Ref<Image> img) {
+	call_deferred(NAMEOF(_update_texture_from_image), img);
+
+	if (signal_connection_state != StreamState::STREAM_ACTIVE) {
+		call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_ACTIVE);
+	}
+}
+
+void GRClient::set_decoder_threads_count(int count) {
+	Scoped_lock(stream_mutex);
+	if (stream_manager)
+		stream_manager->set_threads_count(count);
+}
+
+int GRClient::get_decoder_threads_count() {
+	Scoped_lock(stream_mutex);
+	if (stream_manager)
+		return stream_manager->get_threads_count();
+	return default_decoder_threads_count;
 }
 
 void GRClient::set_custom_no_signal_texture(Ref<Texture> custom_tex) {
@@ -1084,6 +1147,9 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				call_deferred(NAMEOF(_force_update_stream_viewport_signals)); // force update screen aspect ratio and orientation
 				GRNotifications::add_notification("Connected", "Connected to " + address, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 
+				//////////////////////////////////////////////////////////////////////////
+				// Connection Loop Enter point
+
 				_connection_loop(con_thread);
 
 				con_thread->peer.unref();
@@ -1150,11 +1216,6 @@ void GRClient::_thread_connection(Variant p_userdata) {
 void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	Ref<StreamPeerTCP> connection = con_thread->peer;
 	Ref<PacketPeerStream> ppeer = con_thread->ppeer;
-	// Data sync with _img_thread
-	ImgProcessingStorageClient *ipsc = memnew(ImgProcessingStorageClient);
-
-	Thread_define(_img_thread);
-	Thread_start(_img_thread, this, _thread_image_decoder, ipsc);
 
 	OS *os = OS::get_singleton();
 	Error err = Error::OK;
@@ -1258,58 +1319,6 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 		// RECEIVING
 		{
 			ZoneScopedNC("Receive Data", tracy::Color::IndianRed1);
-			// Send to processing one of buffered images
-			time64 = os->get_ticks_usec();
-			if (!ipsc->_is_processing_img && !stream_queue.empty() && time64 >= next_image_required_frametime) {
-				ZoneScopedNC("Get Queued Imaged", tracy::Color::IndianRed2)
-						nothing_happens = false;
-
-				Ref<GRPacketImageData> pack = stream_queue.front();
-				stream_queue.erase(stream_queue.begin());
-
-				if (pack.is_null()) {
-					_log("Queued image data is null", LogLevel::LL_ERROR);
-					goto end_img_process;
-				}
-
-				uint64_t frametime = pack->get_frametime() > 1000_ms ? 1000_ms : pack->get_frametime();
-				next_image_required_frametime = time64 + frametime - prev_cycle_time;
-
-				_update_avg_fps(time64 - prev_display_image_time);
-				prev_display_image_time = time64;
-
-				if (pack->get_is_empty()) {
-					_update_avg_fps(0);
-					call_deferred(NAMEOF(_update_texture_from_image), Ref<Image>());
-					call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_IMAGE);
-				} else {
-					ipsc->tex_data = pack->get_image_data();
-					ipsc->compression_type = (ImageCompressionType)pack->get_compression_type();
-					ipsc->size = pack->get_size();
-					ipsc->format = pack->get_format();
-					ipsc->_is_processing_img = true;
-				}
-
-				pack.unref();
-			}
-		end_img_process:
-
-			// check if image displayed less then few seconds ago. if not then remove texture
-			const double image_loss_time = 1.5;
-			if (os->get_ticks_usec() > int64_t(prev_display_image_time + uint64_t(1000_ms * image_loss_time))) {
-				if (signal_connection_state != StreamState::STREAM_NO_IMAGE) {
-					call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_IMAGE);
-					_reset_counters();
-				}
-			}
-
-			if (stream_queue.size() > 10) {
-				//for (int i = 0; i<stream_queue.size(); i++)
-				//{
-				//	((Ref<GRPacketImageData>)stream_queue[i]).unref();
-				//}
-				stream_queue.clear();
-			}
 
 			// Get some packets
 			start_while_time = os->get_ticks_usec();
@@ -1355,7 +1364,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 							continue;
 						}
 
-						stream_queue.push_back(data);
+						_push_pack_to_decoder(data);
 						break;
 					}
 					case GRPacket::PacketType::ServerSettings: {
@@ -1423,6 +1432,9 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 		}
 	end_recv:
 
+		// Update stream image
+		_update_stream_manager();
+
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after receiving!", LogLevel::LL_ERROR);
 			GRNotifications::add_notification("Error", "Lost connection after receiving data!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
@@ -1438,8 +1450,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	if (input_collector)
 		input_collector->set_process(false);
 
+	_stop_decoder();
 	_send_queue_resize(0);
-	stream_queue.clear();
 
 	if (connection->is_connected_to_host()) {
 		_log("Lost connection to " + address, LogLevel::LL_ERROR);
@@ -1449,74 +1461,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 		GRNotifications::add_notification("Disconnected", "Lost connection to " + address, GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
 	}
 
-	ipsc->_thread_closing = true;
-	Thread_close(_img_thread);
-	memdelete(ipsc);
-
 	con_thread->break_connection = true;
-}
-
-void GRClient::_thread_image_decoder(Variant p_userdata) {
-	ImgProcessingStorageClient *ipsc = VARIANT_OBJ_CAST_TO(p_userdata, ImgProcessingStorageClient);
-	Error err = Error::OK;
-	Thread_set_name("Image Decoder");
-
-	while (!ipsc->_thread_closing) {
-		if (!ipsc->_is_processing_img) {
-			sleep_usec(1_ms);
-			continue;
-		}
-
-		ZoneScopedNC("Image Decode", tracy::Color::Aquamarine4);
-
-		Ref<Image> img(memnew(Image));
-		ImageCompressionType type = ipsc->compression_type;
-
-		switch (type) {
-			case ImageCompressionType::COMPRESSION_UNCOMPRESSED: {
-#ifndef GDNATIVE_LIBRARY
-				img->create(ipsc->size.x, ipsc->size.y, false, (Image::Format)ipsc->format, ipsc->tex_data);
-#else
-				img->create_from_data((int)ipsc->size.x, (int)ipsc->size.y, false, (Image::Format)ipsc->format, ipsc->tex_data);
-#endif
-				if (img_is_empty(img)) { // is NOT OK
-					err = Error::FAILED;
-					_log("Incorrect uncompressed image data.", LogLevel::LL_ERROR);
-					GRNotifications::add_notification("Stream Error", "Incorrect uncompressed image data.", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-				}
-				break;
-			}
-			case ImageCompressionType::COMPRESSION_JPG: {
-				err = img->load_jpg_from_buffer(ipsc->tex_data);
-				if ((int)err || img_is_empty(img)) { // is NOT OK
-					_log("Can't decode JPG image.", LogLevel::LL_ERROR);
-					GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-				}
-				break;
-			}
-			case ImageCompressionType::COMPRESSION_PNG: {
-				err = img->load_png_from_buffer(ipsc->tex_data);
-				if ((int)err || img_is_empty(img)) { // is NOT OK
-					_log("Can't decode PNG image.", LogLevel::LL_ERROR);
-					GRNotifications::add_notification("Stream Error", "Can't decode PNG image. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-				}
-				break;
-			}
-			default:
-				_log("Not implemented image decoder type: " + str((int)type), LogLevel::LL_ERROR);
-				break;
-		}
-
-		if (!(int)err) { // is OK
-			call_deferred(NAMEOF(_update_texture_from_image), img);
-
-			if (signal_connection_state != StreamState::STREAM_ACTIVE) {
-				call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_ACTIVE);
-			}
-		}
-
-		ipsc->_is_processing_img = false;
-	}
 }
 
 GRDevice::AuthResult GRClient::_auth_on_server(Ref<PacketPeerStream> &ppeer) {

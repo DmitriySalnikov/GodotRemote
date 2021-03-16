@@ -132,7 +132,6 @@ public:
 	int get_compression_type();
 	Size2 get_size();
 	int get_format();
-	uint64_t get_start_time();
 	uint64_t get_frametime();
 	bool get_is_empty();
 
@@ -140,7 +139,6 @@ public:
 	void set_compression_type(int type);
 	void set_size(Size2 _size);
 	void set_format(int _format);
-	void set_start_time(uint64_t time);
 	void set_frametime(uint64_t _frametime);
 	void set_is_empty(bool _empty);
 

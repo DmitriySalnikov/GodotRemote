@@ -4,6 +4,7 @@
 #ifndef NO_GODOTREMOTE_CLIENT
 
 #include "GRDevice.h"
+#include "GRStreamDecoders.h"
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/io/ip_address.h"
@@ -27,6 +28,7 @@ class GRClient : public GRDevice {
 	GD_CLASS(GRClient, GRDevice);
 
 	friend class GRTextureRect;
+	friend class GRStreamDecoderImageSequence;
 
 	enum class ScreenOrientation : int {
 		NONE = 0,
@@ -116,6 +118,8 @@ public:
 	};
 
 private:
+	const int default_decoder_threads_count = 3;
+
 	bool is_deleting = false;
 	bool is_connection_working = false;
 	Node *settings_menu_node = nullptr;
@@ -123,20 +127,24 @@ private:
 	class GRTextureRect *tex_shows_stream = nullptr;
 	class GRInputCollector *input_collector = nullptr;
 	ConnectionThreadParamsClient *thread_connection = nullptr;
-	ScreenOrientation is_vertical = ScreenOrientation::NONE;
+	GRStreamDecodersManager *stream_manager = nullptr;
 
 	String device_id = "UNKNOWN";
 	String server_address = String("127.0.0.1");
+
+	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
+	ScreenOrientation is_vertical = ScreenOrientation::NONE;
+	ConnectionType connection_type = ConnectionType::CONNECTION_WiFi;
+	StreamState signal_connection_state = StreamState::STREAM_NO_SIGNAL;
 
 	String password;
 	bool is_filtering_enabled = true;
 	bool _viewport_orientation_syncing = true;
 	bool _viewport_aspect_ratio_syncing = true;
 	bool _server_settings_syncing = false;
-	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
 	Mutex_define(connection_mutex, "Connection Lock");
-	ConnectionType connection_type = ConnectionType::CONNECTION_WiFi;
+	Mutex_define(stream_mutex, "Stream Manager Mutex");
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
 
@@ -145,7 +153,6 @@ private:
 
 	// NO SIGNAL screen
 	uint64_t prev_valid_connection_time = 0;
-	StreamState signal_connection_state = StreamState::STREAM_NO_SIGNAL;
 	bool no_signal_is_vertical = false;
 	Ref<class Texture> custom_no_signal_texture;
 	Ref<class Texture> custom_no_signal_vertical_texture;
@@ -160,6 +167,12 @@ private:
 	Node *custom_input_scene = nullptr;
 	String custom_input_scene_tmp_pck_file = "user://custom_input_scene.pck";
 
+	void _stop_decoder();
+	void _update_stream_manager();
+	void _push_pack_to_decoder(Ref<GRPacket> pack);
+	void _image_lost();
+	void _display_new_image(Ref<Image> img);
+
 	void _force_update_stream_viewport_signals();
 	void _load_custom_input_scene(Ref<class GRPacketCustomInputScene> _data);
 	void _remove_custom_input_scene();
@@ -171,7 +184,6 @@ private:
 	virtual void _reset_counters() override;
 
 	void _thread_connection(Variant p_userdata);
-	void _thread_image_decoder(Variant p_userdata);
 
 	void _connection_loop(ConnectionThreadParamsClient *con_thread);
 	GRDevice::AuthResult _auth_on_server(Ref<PacketPeerStream> &con);
@@ -235,6 +247,9 @@ public:
 	bool set_address(String ip);
 	bool set_address_port(String ip, uint16_t _port);
 	void set_input_buffer(int mb);
+
+	void set_decoder_threads_count(int count);
+	int get_decoder_threads_count();
 
 	void set_server_setting(ENUM_ARG(TypesOfServerSettings) param, Variant value);
 	void disable_overriding_server_settings();

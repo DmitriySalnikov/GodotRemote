@@ -163,9 +163,11 @@ public:
 	bool set_jpg_quality(int _quality);
 	int get_jpg_quality();
 	bool set_skip_frames(int fps);
-	int get_skip_frames();
 	bool set_render_scale(float _scale);
 	float get_render_scale();
+	int get_skip_frames();
+	bool set_encoder_threads_count(int count);
+	int get_encoder_threads_count();
 	// NOT VIEWPORT
 
 	GRSViewport *get_gr_viewport();
@@ -185,6 +187,8 @@ class GRSViewport : public Viewport {
 
 private:
 	void _on_renderer_deleting();
+	void _start_encoder();
+	void _stop_encoder();
 
 protected:
 	Viewport *main_vp = nullptr;
@@ -227,9 +231,8 @@ public:
 	int get_jpg_quality();
 	void set_skip_frames(int skip);
 	int get_skip_frames();
-
-	void start_encoder();
-	void stop_encoder();
+	void set_encoder_threads_count(int count);
+	int get_encoder_threads_count();
 
 	void _init();
 	void _deinit();

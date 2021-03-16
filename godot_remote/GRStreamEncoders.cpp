@@ -69,6 +69,7 @@ void GRStreamEncodersManager::start(int compression, GRSViewport *vp) {
 		encoder->set_viewport(vp);
 		viewport = vp;
 	}
+	active = true;
 
 	GRDevice::ImageCompressionType comp = (GRDevice::ImageCompressionType)compression;
 	switch (comp) {
@@ -78,6 +79,7 @@ void GRStreamEncodersManager::start(int compression, GRSViewport *vp) {
 			GRStreamEncoderImageSequence *tmp_en = encoder ? cast_to<GRStreamEncoderImageSequence>(encoder) : nullptr;
 			if (tmp_en) {
 				tmp_en->set_compression_type(compression);
+				tmp_en->start_encoder_threads(threads_count);
 			} else {
 				if (encoder) {
 					memdelete(encoder);
@@ -88,11 +90,18 @@ void GRStreamEncodersManager::start(int compression, GRSViewport *vp) {
 				encoder = tmp_en;
 				encoder->set_viewport(vp);
 				viewport = vp;
+
+				encoder->start_encoder_threads(threads_count);
 			}
 			break;
 		}
-		default:
+		default: {
+			active = false;
+			if (encoder) {
+				memdelete(encoder);
+			}
 			break;
+		}
 	}
 }
 
@@ -119,10 +128,40 @@ Ref<GRPacket> GRStreamEncodersManager::pop_data_to_send() {
 	return Ref<GRPacket>();
 }
 
+void GRStreamEncodersManager::set_threads_count(int count) {
+	ERR_FAIL_COND(count < 1 || count > GR_STREAM_ENCODER_IMAGE_SEQUENCE_MAX_THREADS);
+	Scoped_lock(ts_lock);
+	if (threads_count != count) {
+		threads_count = count;
+		if (encoder)
+			encoder->start_encoder_threads(count);
+	}
+}
+
+int GRStreamEncodersManager::get_threads_count() {
+	return threads_count;
+}
+
+void GRStreamEncodersManager::set_active(bool state) {
+	if (active != state) {
+		active = state;
+		if (active) {
+			if (encoder)
+				encoder->start_encoder_threads(threads_count);
+		} else {
+			if (encoder)
+				encoder->start_encoder_threads(0);
+		}
+	}
+}
+
 void GRStreamEncodersManager::_init() {
+	LEAVE_IF_EDITOR();
+	threads_count = GET_PS(GodotRemote::ps_server_image_encoder_threads_count_name);
 }
 
 void GRStreamEncodersManager::_deinit() {
+	LEAVE_IF_EDITOR();
 	Scoped_lock(ts_lock);
 	if (encoder)
 		memdelete(encoder);
@@ -180,9 +219,11 @@ void GRStreamEncoder::commit_image(Ref<Image> img, uint64_t frametime) {
 }
 
 void GRStreamEncoder::_init() {
+	LEAVE_IF_EDITOR();
 }
 
 void GRStreamEncoder::_deinit() {
+	LEAVE_IF_EDITOR();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -238,19 +279,19 @@ int GRStreamEncoderImageSequence::get_max_queued_frames() {
 	return (int)threads.size() * 2;
 }
 
-void GRStreamEncoderImageSequence::_init() {
-	LEAVE_IF_EDITOR();
+void GRStreamEncoderImageSequence::start_encoder_threads(int count) {
+	if (threads.size() == count)
+		return;
 
-#ifndef GDNATIVE_LIBRARY
-#else
-	GRStreamEncoder::_init();
-#endif
+	stop_encoder_threads();
+	is_threads_active = true;
+	ZoneScopedNC("Start Encoder Threads", tracy::Color::Firebrick);
 
-	int count = GET_PS(GodotRemote::ps_server_image_sequence_threads_count_name);
 	if (count < 1) {
-		count = 1;
-		_log("threads count " + str(count) + " < 1. Clamping.", LogLevel::LL_ERROR);
+		_log("threads count < 1. Disabling encoder.", LogLevel::LL_DEBUG);
+		return;
 	}
+
 	if (count > GR_STREAM_ENCODER_IMAGE_SEQUENCE_MAX_THREADS) {
 		_log("threads count " + str(count) + " > 16. Clamping.", LogLevel::LL_ERROR);
 		count = GR_STREAM_ENCODER_IMAGE_SEQUENCE_MAX_THREADS;
@@ -260,19 +301,37 @@ void GRStreamEncoderImageSequence::_init() {
 	for (int i = 0; i < count; i++) {
 		Thread_start(threads[i], this, _processing_thread, i);
 	}
-	//_log("img processing thread " + str(0), LogLevel::LL_NORMAL);
 }
 
-void GRStreamEncoderImageSequence::_deinit() {
-	LEAVE_IF_EDITOR();
+void GRStreamEncoderImageSequence::stop_encoder_threads() {
+	ZoneScopedNC("Stop Encoder Threads", tracy::Color::Firebrick3);
 	is_threads_active = false;
 	for (int i = 0; i < threads.size(); i++) {
 		Thread_close(threads[i]);
 	}
+	threads.resize(0);
+
+	while (buffer.size())
+		buffer.pop();
+	while (images.size())
+		images.pop();
+}
+
+void GRStreamEncoderImageSequence::_init() {
+	LEAVE_IF_EDITOR();
+
+#ifndef GDNATIVE_LIBRARY
+#else
+	GRStreamEncoder::_init();
+#endif
+}
+
+void GRStreamEncoderImageSequence::_deinit() {
+	LEAVE_IF_EDITOR();
+	stop_encoder_threads();
 	while (buffer.size()) {
 		buffer.pop();
 	}
-	threads.resize(0);
 }
 
 void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
@@ -297,7 +356,7 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		CommitedImage com_image = images.front();
 		images.pop();
 
-		while (buffer.size() > threads.size() * 2) {
+		while (buffer.size() > get_max_queued_frames()) {
 			auto buf_img = buffer.front();
 			buffer.pop();
 		}
@@ -317,7 +376,6 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		pack->set_compression_type(compression_type);
 		pack->set_size(Size2((float)img->get_width(), (float)img->get_height()));
 		pack->set_format(img->get_format());
-		pack->set_start_time(os->get_ticks_usec());
 		pack->set_frametime(com_image.frametime);
 		pack->set_is_empty(false);
 
@@ -416,13 +474,10 @@ Error GRStreamEncoderImageSequence::compress_jpg(PoolByteArray &ret, const PoolB
 		release_pva_write(wr);
 	}
 
-	// TODO tracy image here? or on client when receive
-
 	_log("JPG size: " + str(res.size()), GodotRemote::LogLevel::LL_DEBUG);
 
 	ret = res;
 	return Error::OK;
 }
-#undef THREAD_METHOD
 
 #endif // !NO_GODOTREMOTE_SERVER

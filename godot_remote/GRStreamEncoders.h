@@ -1,4 +1,4 @@
-/* GRServer.h */
+/* GRStreamEncoders.h */
 #pragma once
 
 #ifndef NO_GODOTREMOTE_SERVER
@@ -40,6 +40,8 @@ protected:
 
 	GRStreamEncoder *encoder = nullptr;
 	GRSViewport *viewport = nullptr;
+	int threads_count = 1;
+	bool active = false;
 
 	void _notification(int p_notification);
 
@@ -50,6 +52,10 @@ public:
 	void commit_image(Ref<Image> img, uint64_t frametime);
 	bool has_data_to_send();
 	Ref<GRPacket> pop_data_to_send();
+	void set_threads_count(int count);
+	int get_threads_count();
+	void set_active(bool state);
+	bool is_active() { return active; };
 
 	void _init();
 	void _deinit();
@@ -95,6 +101,8 @@ public:
 	virtual bool has_data_to_send() { return false; }
 	virtual Ref<GRPacket> pop_data_to_send() { return Ref<GRPacket>(); }
 	virtual int get_max_queued_frames() { return 16; }
+	virtual void start_encoder_threads(int count){};
+	virtual void stop_encoder_threads(){};
 
 	void _init();
 	void _deinit();
@@ -115,7 +123,6 @@ private:
 		BufferedImage(uint64_t time_added) {
 			time = time_added;
 		}
-		bool operator<(const BufferedImage &bi) const { return time < bi.time; }
 	};
 
 	std::vector<Thread_define_type> threads;
@@ -147,6 +154,8 @@ public:
 	virtual bool has_data_to_send() override;
 	virtual Ref<GRPacket> pop_data_to_send() override;
 	virtual int get_max_queued_frames() override;
+	virtual void start_encoder_threads(int count) override;
+	virtual void stop_encoder_threads() override;
 
 	void _init();
 	void _deinit();
