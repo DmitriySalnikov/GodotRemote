@@ -32,6 +32,7 @@ api.json
 obj/
 libs/
 bin/
+temp_folder_for_lib_copies/
 
 # exist only for testing
 test.gd

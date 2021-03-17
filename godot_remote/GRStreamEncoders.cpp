@@ -26,6 +26,9 @@ using namespace GRUtils;
 
 #ifndef GDNATIVE_LIBRARY
 
+// TODO add framerate limiter to avoid stutters on client
+// TODO make it toggleable
+
 ///////////////////////////////////////////////////////////////////////////////
 // MANAGER
 

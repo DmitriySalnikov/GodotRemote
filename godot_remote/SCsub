@@ -1,4 +1,5 @@
 # SCsub
+import lib_utils
 Import('env')
 module_env = env.Clone()
 
@@ -42,10 +43,15 @@ src_files = [
     'register_types.cpp',
 ]
 
+
 def get_sources():
     return [module_dir + file for file in src_files]
 
-if not module_env['godot_remote_libjpeg_turbo_enabled']:
+if module_env['godot_remote_libjpeg_turbo_enabled']:
+    # an absolutely stupid system that doesn't allow me to link libraries 
+    # inside this module without 'LIBSUFFIX' required this hack
+    lib_utils.prepare_lib(env)
+else:
     src.append('jpge.cpp')
 
 # platform specific

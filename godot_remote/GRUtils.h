@@ -240,7 +240,14 @@ enum LogLevel : int {
 };
 
 namespace GRUtils {
-// DEFINES
+// LITERALS
+
+// conversion from usec to msec. most useful to OS::delay_usec()
+constexpr uint32_t operator"" _ms(unsigned long long val) {
+	return (int)val * 1000;
+}
+
+// CLASSES
 
 template <typename T, typename Container = std::deque<T> >
 class iterable_queue : public std::queue<T, Container> {
@@ -297,13 +304,6 @@ extern void set_gravity(const Vector3 &p_gravity);
 extern void set_accelerometer(const Vector3 &p_accel);
 extern void set_magnetometer(const Vector3 &p_magnetometer);
 extern void set_gyroscope(const Vector3 &p_gyroscope);
-
-// LITERALS
-
-// conversion from usec to msec. most useful to OS::delay_usec()
-constexpr uint32_t operator"" _ms(unsigned long long val) {
-	return (int)val * 1000;
-}
 
 // IMPLEMENTATINS
 

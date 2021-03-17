@@ -1,27 +1,9 @@
 /* GRJPGCodec.cpp */
 
 #include "GRJPGCodec.h"
-
 using namespace GRUtils;
-#ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
 
-#if defined _MSC_VER || defined __CYGWIN__
-// Windows
-#if _WIN32 || _WIN64
-#if _WIN64
-#pragma comment(lib, "modules/godot_remote/libjpeg-turbo/lib/win/x64/turbojpeg-static.lib")
-#else
-#pragma comment(lib, "modules/godot_remote/libjpeg-turbo/lib/win/x86/turbojpeg-static.lib")
-#endif
-#endif
-// Unix
-#elif __GNUC__
-#if __x86_64__ || __ppc64__
-#define ENVIRONMENT64
-#else
-#define ENVIRONMENT32
-#endif
-#endif
+#ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
 
 #include "libjpeg-turbo/include/turbojpeg.h"
 
