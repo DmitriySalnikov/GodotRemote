@@ -40,6 +40,7 @@ var sync_viewport_orientation : bool = true setget set_sync_viewport_orientation
 var sync_viewport_aspect_ratio : bool = true setget set_sync_viewport_aspect_ratio
 var keepscreenon : bool = false setget set_keep_screen_on
 var capture_input_when_custom_scene : bool = false setget set_capture_input_when_custom_scene
+var decoder_threads_number : int = 2 setget set_decoder_threads_number
 
 var show_stats : int = StatInfoState.Hidden setget set_show_stats
 
@@ -126,6 +127,7 @@ func _set_all_values():
 	
 	dev.device_id = device_id
 	dev.set_address_port(ip, port)
+	dev.set_decoder_threads_count(decoder_threads_number)
 	dev.connection_type = connection_type
 	dev.stretch_mode = stretch_mode
 	dev.target_send_fps = target_send_fps
@@ -165,6 +167,7 @@ func _save_settings():
 	d["password"] = password
 	d["v_orient"] = sync_viewport_orientation
 	d["v_aspect"] = sync_viewport_aspect_ratio
+	d["decoder_threads"] = decoder_threads_number
 	d["keepscreenon"] = keepscreenon
 	d["capture_input_when_custom_scene"] = capture_input_when_custom_scene
 	
@@ -224,6 +227,7 @@ func _load_settings():
 			password = _safe_get_from_dict(d, "password", password)
 			sync_viewport_orientation = _safe_get_from_dict(d, "v_orient", sync_viewport_orientation)
 			sync_viewport_aspect_ratio = _safe_get_from_dict(d, "v_aspect", sync_viewport_aspect_ratio)
+			decoder_threads_number = _safe_get_from_dict(d, "decoder_threads", decoder_threads_number)
 			keepscreenon = _safe_get_from_dict(d, "keepscreenon", keepscreenon)
 			capture_input_when_custom_scene = _safe_get_from_dict(d, "capture_input_when_custom_scene", capture_input_when_custom_scene)
 			
@@ -295,6 +299,10 @@ func set_sync_viewport_orientation(val : bool):
 
 func set_sync_viewport_aspect_ratio(val : bool):
 	sync_viewport_aspect_ratio = val
+	_save_settings()
+
+func set_decoder_threads_number(val : int):
+	decoder_threads_number = val
 	_save_settings()
 
 func set_keep_screen_on(val : bool):

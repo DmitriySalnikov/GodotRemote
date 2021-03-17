@@ -50,13 +50,6 @@ public:
 		SERVER_SETTINGS_RENDER_SCALE = 5,
 	};
 
-	enum Subsampling : int {
-		SUBSAMPLING_Y_ONLY = 0,
-		SUBSAMPLING_H1V1 = 1,
-		SUBSAMPLING_H2V1 = 2,
-		SUBSAMPLING_H2V2 = 3
-	};
-
 	enum ImageCompressionType : int {
 		COMPRESSION_UNCOMPRESSED = 0,
 		COMPRESSION_JPG = 1,
@@ -138,7 +131,6 @@ public:
 
 #ifndef GDNATIVE_LIBRARY
 VARIANT_ENUM_CAST(GRDevice::WorkingStatus)
-VARIANT_ENUM_CAST(GRDevice::Subsampling)
 VARIANT_ENUM_CAST(GRDevice::ImageCompressionType)
 VARIANT_ENUM_CAST(GRDevice::TypesOfServerSettings)
 #endif

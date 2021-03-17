@@ -117,7 +117,7 @@ class GRPacketImageData : public GRPacket {
 	PoolByteArray img_data;
 	uint64_t start_time = 0;
 	uint64_t frametime = 0;
-	bool is_empty = false;
+	bool is_stream_end = false;
 
 protected:
 	GDNATIVE_BASIC_REGISTER;
@@ -133,14 +133,14 @@ public:
 	Size2 get_size();
 	int get_format();
 	uint64_t get_frametime();
-	bool get_is_empty();
+	bool get_is_stream_end();
 
 	void set_image_data(PoolByteArray &buf);
 	void set_compression_type(int type);
 	void set_size(Size2 _size);
 	void set_format(int _format);
 	void set_frametime(uint64_t _frametime);
-	void set_is_empty(bool _empty);
+	void set_is_stream_end(bool _empty);
 
 	~GRPacketImageData() {
 		//img_data.resize(0);

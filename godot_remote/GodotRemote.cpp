@@ -294,11 +294,6 @@ void GodotRemote::_register_methods() {
 	CONST_REG(GRDevice, ImageCompressionType, COMPRESSION_JPG);
 	CONST_REG(GRDevice, ImageCompressionType, COMPRESSION_PNG);
 
-	CONST_REG(GRDevice, Subsampling, SUBSAMPLING_Y_ONLY);
-	CONST_REG(GRDevice, Subsampling, SUBSAMPLING_H1V1);
-	CONST_REG(GRDevice, Subsampling, SUBSAMPLING_H2V1);
-	CONST_REG(GRDevice, Subsampling, SUBSAMPLING_H2V2);
-
 	CONST_REG(GRDevice, WorkingStatus, STATUS_STARTING);
 	CONST_REG(GRDevice, WorkingStatus, STATUS_STOPPING);
 	CONST_REG(GRDevice, WorkingStatus, STATUS_WORKING);
@@ -471,7 +466,7 @@ void GodotRemote::register_and_load_settings() {
 	DEF_(ps_notifications_duration_name, 3.f, Variant::REAL, PROPERTY_HINT_RANGE, "0,100, 0.01");
 
 	// const server settings
-	DEF_(ps_server_image_encoder_threads_count_name, 3, Variant::INT, PROPERTY_HINT_RANGE, "1,16");
+	DEF_(ps_server_image_encoder_threads_count_name, 2, Variant::INT, PROPERTY_HINT_RANGE, "1,16");
 	DEF_(ps_server_config_adb_name, false, Variant::BOOL, PROPERTY_HINT_NONE, "");
 	DEF_(ps_server_custom_input_scene_name, "", Variant::STRING, PROPERTY_HINT_FILE, "*.tscn,*.scn");
 #ifndef GDNATIVE_LIBRARY

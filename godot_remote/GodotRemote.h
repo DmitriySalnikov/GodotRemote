@@ -186,11 +186,6 @@ public:
 	CONST_GET(GRDevice, ImageCompressionType, COMPRESSION_JPG);
 	CONST_GET(GRDevice, ImageCompressionType, COMPRESSION_PNG);
 
-	CONST_GET(GRDevice, Subsampling, SUBSAMPLING_Y_ONLY);
-	CONST_GET(GRDevice, Subsampling, SUBSAMPLING_H1V1);
-	CONST_GET(GRDevice, Subsampling, SUBSAMPLING_H2V1);
-	CONST_GET(GRDevice, Subsampling, SUBSAMPLING_H2V2);
-
 	CONST_GET(GRDevice, WorkingStatus, STATUS_STOPPED);
 	CONST_GET(GRDevice, WorkingStatus, STATUS_WORKING);
 	CONST_GET(GRDevice, WorkingStatus, STATUS_STOPPING);

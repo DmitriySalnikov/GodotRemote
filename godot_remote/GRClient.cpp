@@ -92,8 +92,8 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_stream_active)), &GRClient::is_stream_active);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_connected_to_host)), &GRClient::is_connected_to_host);
 
-	ClassDB::bind_method(D_METHOD(NAMEOF(set_encoder_threads_count), "count"), &GRClient::set_decoder_threads_count);
-	ClassDB::bind_method(D_METHOD(NAMEOF(get_encoder_threads_count)), &GRClient::get_decoder_threads_count);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_decoder_threads_count), "count"), &GRClient::set_decoder_threads_count);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_decoder_threads_count)), &GRClient::get_decoder_threads_count);
 
 	ADD_SIGNAL(MethodInfo("custom_input_scene_added"));
 	ADD_SIGNAL(MethodInfo("custom_input_scene_removed"));
@@ -185,8 +185,8 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, is_stream_active);
 	METHOD_REG(GRClient, is_connected_to_host);
 
-	METHOD_REG(GRClient, set_encoder_threads_count);
-	METHOD_REG(GRClient, get_encoder_threads_count);
+	METHOD_REG(GRClient, set_decoder_threads_count);
+	METHOD_REG(GRClient, get_decoder_threads_count);
 
 	register_signal<GRClient>("custom_input_scene_added", Dictionary::make());
 	register_signal<GRClient>("custom_input_scene_removed", Dictionary::make());
@@ -499,6 +499,8 @@ void GRClient::_image_lost() {
 
 void GRClient::_display_new_image(Ref<Image> img) {
 	call_deferred(NAMEOF(_update_texture_from_image), img);
+	_update_avg_fps(OS::get_singleton()->get_ticks_usec() - prev_shown_frame_time);
+	prev_shown_frame_time = OS::get_singleton()->get_ticks_usec();
 
 	if (signal_connection_state != StreamState::STREAM_ACTIVE) {
 		call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_ACTIVE);
@@ -1229,11 +1231,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	std::vector<Ref<GRPacketImageData> > stream_queue; // Ref<GRPacketImageData>
 
 	uint64_t time64 = os->get_ticks_usec();
-	uint64_t prev_cycle_time = 0;
 	uint64_t prev_send_input_time = time64;
 	uint64_t prev_ping_sending_time = time64;
-	uint64_t next_image_required_frametime = time64;
-	uint64_t prev_display_image_time = time64 - 16_ms;
 
 	bool ping_sended = false;
 
@@ -1443,8 +1442,6 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 		if (nothing_happens)
 			sleep_usec(1_ms);
-
-		prev_cycle_time = os->get_ticks_usec() - cycle_start_time;
 	}
 
 	if (input_collector)

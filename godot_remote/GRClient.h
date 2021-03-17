@@ -128,6 +128,7 @@ private:
 	class GRInputCollector *input_collector = nullptr;
 	ConnectionThreadParamsClient *thread_connection = nullptr;
 	GRStreamDecodersManager *stream_manager = nullptr;
+	uint64_t prev_shown_frame_time = 0;
 
 	String device_id = "UNKNOWN";
 	String server_address = String("127.0.0.1");

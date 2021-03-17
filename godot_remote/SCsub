@@ -6,6 +6,7 @@ from SCons.Variables import BoolVariable, EnumVariable
 opts = Variables([], ARGUMENTS)
 
 opts.Add(BoolVariable("godot_remote_tracy_enabled", "Godot Remote. Enable tracy profiler.", False))
+opts.Add(BoolVariable("godot_remote_libjpeg_turbo_enabled", "Godot Remote. Enable libjpeg-turbo.", True))
 opts.Add(BoolVariable("godot_remote_no_default_resources", "Godot Remote. Remove default resources.", False))
 opts.Add(BoolVariable("godot_remote_disable_server", "Godot Remote. Remove server.", False))
 opts.Add(BoolVariable("godot_remote_disable_client", "Godot Remote. Remove client.", False))
@@ -14,36 +15,62 @@ Help(opts.GenerateHelpText(module_env))
 
 if module_env['godot_remote_no_default_resources']:
     module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_DEFAULT_RESOURCES'])
+if module_env['godot_remote_libjpeg_turbo_enabled']:
+    module_env.Append(CPPDEFINES=['GODOTREMOTE_LIBJPEG_TURBO_ENABLED'])
 if module_env['godot_remote_disable_server']:
     module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_SERVER'])
 if module_env['godot_remote_disable_client']:
     module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_CLIENT'])
 
-module_env.Append(CPPPATH=["#modules/godot_remote/"])
+module_dir = "#modules/godot_remote/"
+module_env.Append(CPPPATH=[module_dir])
+
+src_files = [
+    'GodotRemote.cpp',
+    'GRClient.cpp',
+    'GRDevice.cpp',
+    'GRInputData.cpp',
+    'GRJPGCodec.cpp',
+    'GRNotifications.cpp',
+    'GRPacket.cpp',
+    'GRProfiler.cpp',
+    'GRResources.cpp',
+    'GRServer.cpp',
+    'GRStreamDecoders.cpp',
+    'GRStreamEncoders.cpp',
+    'GRUtils.cpp',
+    'register_types.cpp',
+]
+
+def get_sources():
+    return [module_dir + file for file in src_files]
+
+if not module_env['godot_remote_libjpeg_turbo_enabled']:
+    src.append('jpge.cpp')
+
+# platform specific
 
 if env['platform'] == 'windows':
     module_env.Append(CXXFLAGS=['/std:c++14'])
     if module_env['godot_remote_tracy_enabled']:
+        src_files.append('tracy/TracyClient.cpp')
         module_env.Append(CPPDEFINES=['GODOTREMOTE_TRACY_ENABLED', 'TRACY_ENABLE', 'TRACY_ON_DEMAND'])
         #module_env.Append(CPPDEFINES=['TRACY_CALLSTACK'])
-        module_env.add_source_files(env.modules_sources, "#modules/godot_remote/tracy/TracyClient.cpp")
     
-    module_env.add_source_files(env.modules_sources, '*.cpp')
+    module_env.add_source_files(env.modules_sources, get_sources())
 
 else:
     module_env.Append(CXXFLAGS=['-std=c++14']) # Flags for C++ code only
     module_env.Append(CCFLAGS=['-O2']) # Flags for C and C++ code
     
     if ARGUMENTS.get('godot_remote_shared', 'no') == 'yes':
-        sources = []
-        module_env.add_source_files(sources, '*.cpp')
         module_env.Append(CCFLAGS=['-fPIC']) # Flags for C and C++ code
         module_env['LIBS'] = []
         module_env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME'] = True
-        shared_lib = module_env.SharedLibrary(target='#bin/godot_remote', source=sources)
+        shared_lib = module_env.SharedLibrary(target='#bin/godot_remote', source=get_sources())
 
         shared_lib_shim = shared_lib[0].name.rsplit('.', 1)[0]
         env.Append(LIBS=[shared_lib_shim])
         env.Append(LIBPATH=['#bin'])
     else:
-        module_env.add_source_files(env.modules_sources, '*.cpp')
+        module_env.add_source_files(env.modules_sources, get_sources())

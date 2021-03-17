@@ -107,6 +107,7 @@ private:
 		Ref<Image> img;
 		uint64_t frametime;
 		bool is_ready = false;
+		bool is_end = false;
 		BufferedImage(uint64_t time_of_frame) {
 			frametime = time_of_frame;
 		}

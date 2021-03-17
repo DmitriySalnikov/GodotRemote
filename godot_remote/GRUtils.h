@@ -253,8 +253,8 @@ public:
 	const_iterator begin() const { return this->c.begin(); }
 	const_iterator end() const { return this->c.end(); }
 	void add_value_limited(T value, uint32_t limit) {
-		if (value > 100000)
-			this->push(100000);
+		if (value > 10000_ms)
+			this->push(10000_ms);
 		else
 			this->push(value);
 		while (this->size() > limit) {

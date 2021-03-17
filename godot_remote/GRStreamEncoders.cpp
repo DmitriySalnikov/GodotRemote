@@ -2,13 +2,11 @@
 
 #ifndef NO_GODOTREMOTE_SERVER
 
-// richgel999/jpeg-compressor: https://github.com/richgel999/jpeg-compressor
-#include "jpge.h"
-
+#include "GRStreamEncoders.h"
+#include "GRJPGCodec.h"
 #include "GRNotifications.h"
 #include "GRPacket.h"
 #include "GRServer.h"
-#include "GRStreamEncoders.h"
 #include "GodotRemote.h"
 
 #ifndef GDNATIVE_LIBRARY
@@ -112,6 +110,13 @@ void GRStreamEncodersManager::commit_image(Ref<Image> img, uint64_t frametime) {
 	}
 }
 
+void GRStreamEncodersManager::commit_stream_end() {
+	Scoped_lock(ts_lock);
+	if (encoder) {
+		encoder->commit_stream_end();
+	}
+}
+
 bool GRStreamEncodersManager::has_data_to_send() {
 	Scoped_lock(ts_lock);
 	if (encoder) {
@@ -133,7 +138,7 @@ void GRStreamEncodersManager::set_threads_count(int count) {
 	Scoped_lock(ts_lock);
 	if (threads_count != count) {
 		threads_count = count;
-		if (encoder)
+		if (encoder && active)
 			encoder->start_encoder_threads(count);
 	}
 }
@@ -262,6 +267,22 @@ void GRStreamEncoderImageSequence::_notification(int p_notification) {
 	}
 }
 
+void GRStreamEncoderImageSequence::commit_stream_end() {
+	Scoped_lock(ts_lock);
+	while (buffer.size())
+		buffer.pop();
+	while (images.size())
+		images.pop();
+
+	auto b = std::make_shared<BufferedImage>(0);
+	auto p = newref(GRPacketImageData);
+	p->set_is_stream_end(true);
+
+	b->is_ready = true;
+	b->pack = p;
+	buffer.push(b);
+}
+
 bool GRStreamEncoderImageSequence::has_data_to_send() {
 	Scoped_lock(ts_lock);
 	return buffer.size() && buffer.front()->is_ready;
@@ -357,8 +378,15 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		images.pop();
 
 		while (buffer.size() > get_max_queued_frames()) {
-			auto buf_img = buffer.front();
 			buffer.pop();
+		}
+
+		if (buffer.size()) {
+			Ref<GRPacketImageData> im = buffer.front()->pack;
+			if (im.is_valid() && im->get_is_stream_end()) {
+				ts_lock.unlock();
+				continue;
+			}
 		}
 
 		auto buf_img = std::make_shared<BufferedImage>(com_image.time);
@@ -367,9 +395,7 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		ts_lock.unlock();
 
 		Ref<Image> img = com_image.img;
-
 		PoolByteArray img_data;
-
 		Ref<GRPacketImageData> pack(memnew(GRPacketImageData));
 		int bytes_in_color = img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
 
@@ -377,7 +403,7 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		pack->set_size(Size2((float)img->get_width(), (float)img->get_height()));
 		pack->set_format(img->get_format());
 		pack->set_frametime(com_image.frametime);
-		pack->set_is_empty(false);
+		pack->set_is_stream_end(false);
 
 		if (!(img->get_format() == Image::FORMAT_RGBA8 || img->get_format() == Image::FORMAT_RGB8)) {
 			ZoneScopedNC("Convert Image Format", tracy::Color::VioletRed);
@@ -404,7 +430,14 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 			case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
 				ZoneScopedNC("Image processed: JPG", tracy::Color::VioletRed3);
 				if (!img_is_empty(img)) {
-					Error err = compress_jpg(img_data, img->get_data(), jpg_buffer, (int)img->get_width(), (int)img->get_height(), bytes_in_color, jpg_quality, GRServer::Subsampling::SUBSAMPLING_H2V2);
+					Error err = Error::OK;
+
+#ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
+					err = GRJPGCodec::_compress_jpg_turbo(img_data, img->get_data(), jpg_buffer, (int)img->get_width(), (int)img->get_height(), bytes_in_color, jpg_quality);
+#else
+					err = GRJPGCodec::_compress_jpg(img_data, img->get_data(), jpg_buffer, (int)img->get_width(), (int)img->get_height(), bytes_in_color, jpg_quality);
+#endif
+
 					if ((int)err) {
 						_log("Can't compress stream image JPG. Code: " + str((int)err), LogLevel::LL_ERROR);
 						GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
@@ -438,46 +471,6 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 			ts_lock.unlock();
 		}
 	}
-}
-
-Error GRStreamEncoderImageSequence::compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, const PoolByteArray &jpg_buffer, int width, int height, int bytes_for_color, int quality, int subsampling) {
-	PoolByteArray res;
-	ERR_FAIL_COND_V(img_data.size() == 0, Error::ERR_INVALID_PARAMETER);
-	ERR_FAIL_COND_V(quality < 1 || quality > 100, Error::ERR_INVALID_PARAMETER);
-
-	jpge::params params;
-	params.m_quality = quality;
-	params.m_subsampling = (jpge::subsampling_t)subsampling;
-
-	ERR_FAIL_COND_V(!params.check(), Error::ERR_INVALID_PARAMETER);
-	auto rb = jpg_buffer.read();
-	auto ri = img_data.read();
-	int size = jpg_buffer.size();
-
-	ERR_FAIL_COND_V_MSG(!jpge::compress_image_to_jpeg_file_in_memory(
-								(void *)rb.ptr(),
-								size,
-								width,
-								height,
-								bytes_for_color,
-								(const unsigned char *)ri.ptr(),
-								params),
-			Error::FAILED, "Can't compress image.");
-
-	{
-		ZoneScopedNC("Copy Compressed JPG Data to result PoolArray", tracy::Color::HotPink3);
-		release_pva_read(ri);
-		res.resize(size);
-		auto wr = res.write();
-		memcpy(wr.ptr(), rb.ptr(), size);
-		release_pva_read(rb);
-		release_pva_write(wr);
-	}
-
-	_log("JPG size: " + str(res.size()), GodotRemote::LogLevel::LL_DEBUG);
-
-	ret = res;
-	return Error::OK;
 }
 
 #endif // !NO_GODOTREMOTE_SERVER

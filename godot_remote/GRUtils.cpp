@@ -19,7 +19,7 @@ namespace GRUtils {
 void init() {
 	LEAVE_IF_EDITOR();
 	_grutils_data = memnew(GRUtilsData);
-	_grutils_data->current_loglevel = GodotRemote::LogLevel::LL_NORMAL;
+	_grutils_data->current_loglevel = LogLevel::LL_NORMAL;
 
 	GR_PACKET_HEADER('G', 'R', 'H', 'D');
 #include "GRVersion.h"
@@ -191,7 +191,7 @@ Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type) {
 	return err;
 #else
 	// TODO I don't found any ways to implement compression in GDNative
-	_log("Compression not supported in GDNative library", GodotRemote::LogLevel::LL_ERROR);
+	_log("Compression not supported in GDNative library", LogLevel::LL_ERROR);
 	res = bytes;
 	return Error::OK;
 #endif
@@ -220,7 +220,7 @@ Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolByteArra
 	return err;
 #else
 	// TODO I don't found any ways to implement compression in GDNative
-	_log("Compression not supported in GDNative library", GodotRemote::LogLevel::LL_ERROR);
+	_log("Compression not supported in GDNative library", LogLevel::LL_ERROR);
 	res = bytes;
 	return Error::OK;
 #endif

@@ -1,5 +1,11 @@
 extends PopupPanel
 
+# 1.0.2.3 means:
+# 1 - major version of module
+# 0 - minor version of module
+# 2 - patch version of module
+# 3 - version of this client
+
 var changelog : Dictionary = {
 "1.0.2.0" : 
 """Client:
@@ -7,6 +13,7 @@ Added detailed ping and fps stats.
 Added the ability to change the number of touches to open the settings.
 Changed the 'Welcome' screen to be more clear. Now it can be reopened by clicking on 'Godot Remote' version in the settings.
 Added the ability to open settings when the broadcast is not active.
+Changed the text of the 'Connect' button. The Start/Stop client button now changes color to visually indicate the client status.
 Module:
 Fixed multithreading issues.
 Improved fps and ping counters.

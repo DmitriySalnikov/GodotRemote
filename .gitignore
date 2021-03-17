@@ -21,7 +21,7 @@ __pycache__
 *.ilk
 *.exe
 *.exp
-*.lib
+#*.lib
 *.vcxproj.filters
 *.vcxproj.user
 *.os

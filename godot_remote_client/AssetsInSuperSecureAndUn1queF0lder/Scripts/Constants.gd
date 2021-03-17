@@ -60,11 +60,6 @@ var GRDevice_STATUS_STOPPING : int
 var GRDevice_STATUS_WORKING : int
 var GRDevice_STATUS_STOPPED : int
 
-var GRDevice_SS_Y_ONLY : int
-var GRDevice_SS_H1V1 : int
-var GRDevice_SS_H2V1 : int
-var GRDevice_SS_H2V2 : int
-
 var GRDevice_USE_INTERNAL_SERVER_SETTINGS : int
 var GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED : int
 var GRDevice_SERVER_PARAM_COMPRESSION_TYPE : int
@@ -155,11 +150,6 @@ func _setup_constants():
 	GRDevice_IMAGE_COMPRESSION_UNCOMPRESSED = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_UNCOMPRESSED");
 	GRDevice_IMAGE_COMPRESSION_JPG = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_JPG");
 	GRDevice_IMAGE_COMPRESSION_PNG = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_PNG");
-
-	GRDevice_SS_Y_ONLY = get_enum_constant("GRDevice", "Subsampling", "SUBSAMPLING_Y_ONLY");
-	GRDevice_SS_H1V1 = get_enum_constant("GRDevice", "Subsampling", "SUBSAMPLING_H1V1");
-	GRDevice_SS_H2V1 = get_enum_constant("GRDevice", "Subsampling", "SUBSAMPLING_H2V1");
-	GRDevice_SS_H2V2 = get_enum_constant("GRDevice", "Subsampling", "SUBSAMPLING_H2V2");
 
 	GRDevice_STATUS_STARTING = get_enum_constant("GRDevice", "WorkingStatus", "STATUS_STARTING");
 	GRDevice_STATUS_STOPPING = get_enum_constant("GRDevice", "WorkingStatus", "STATUS_STOPPING");

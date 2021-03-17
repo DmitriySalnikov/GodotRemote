@@ -1476,7 +1476,7 @@ void GRSViewport::_notification(int p_notification) {
 			} else {
 				if (!is_empty_image_sended) {
 					is_empty_image_sended = true;
-					// TODO send empty image to immediate stop the stream
+					stream_manager->commit_stream_end();
 				}
 			}
 			break;

@@ -153,8 +153,6 @@ public:
 	void set_custom_input_scene_compression_type(int _type);
 	int get_custom_input_scene_compression_type();
 
-	// TODO mb need to add setget for image processing thread count
-
 	// VIEWPORT
 	bool set_video_stream_enabled(bool val);
 	bool is_video_stream_enabled();

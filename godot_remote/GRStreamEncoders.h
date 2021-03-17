@@ -50,6 +50,7 @@ public:
 	*/
 	void start(int compression_type, GRSViewport *vp);
 	void commit_image(Ref<Image> img, uint64_t frametime);
+	void commit_stream_end();
 	bool has_data_to_send();
 	Ref<GRPacket> pop_data_to_send();
 	void set_threads_count(int count);
@@ -98,6 +99,7 @@ protected:
 public:
 	void set_viewport(GRSViewport *vp) { viewport = vp; }
 	void commit_image(Ref<Image> img, uint64_t frametime);
+	virtual void commit_stream_end(){};
 	virtual bool has_data_to_send() { return false; }
 	virtual Ref<GRPacket> pop_data_to_send() { return Ref<GRPacket>(); }
 	virtual int get_max_queued_frames() { return 16; }
@@ -134,7 +136,6 @@ private:
 	bool video_stream_enabled = true;
 
 	void _processing_thread(Variant p_userdata);
-	Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, const PoolByteArray &jpg_buffer, int width, int height, int bytes_for_color = 4, int quality = 75, int subsampling = 3 /*Subsampling ::SUBSAMPLING_H2V2*/);
 
 protected:
 #ifndef GDNATIVE_LIBRARY
@@ -151,6 +152,7 @@ protected:
 public:
 	void set_compression_type(int comp) { compression_type = comp; };
 
+	virtual void commit_stream_end() override;
 	virtual bool has_data_to_send() override;
 	virtual Ref<GRPacket> pop_data_to_send() override;
 	virtual int get_max_queued_frames() override;

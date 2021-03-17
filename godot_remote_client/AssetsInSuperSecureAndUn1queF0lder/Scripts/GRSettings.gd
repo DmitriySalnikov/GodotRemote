@@ -1,5 +1,8 @@
 extends Control
 
+var button_red_theme = preload("res://AssetsInSuperSecureAndUn1queF0lder/Styles/ButtonRed.tres")
+var button_green_theme = preload("res://AssetsInSuperSecureAndUn1queF0lder/Styles/ButtonGreen.tres")
+
 onready var timer = $Timer
 onready var start_stop = $H/StartStop
 onready var version = $H/Version
@@ -27,6 +30,7 @@ onready var stretch_mode = $Scroll/H/Grid/StretchMode/Type
 onready var stats = $Scroll/H/Grid/ShowStats/Type
 onready var sync_orient = $Scroll/H/Grid/SyncOrientation
 onready var sync_aspect = $Scroll/H/Grid/SyncAspect
+onready var decoder_threads = $Scroll/H/Grid/DecoderThreads/Type
 onready var keepscreen = $Scroll/H/Grid/KeepScreen
 onready var captureinput = $Scroll/H/Grid/CaptureInput
 onready var touches_to_open = $Scroll/H/Grid/TouchesToOpenSettings/Type
@@ -101,7 +105,7 @@ func _points_update(points):
 	donations.text = "Points: " + str(points)
 
 func _on_GRSettings_resized():
-	var cols = 2 if (rect_size.x / rect_size.y > 1.3) else 1
+	var cols = 2 if (rect_size.x / rect_size.y > 1.37) else 1
 	if cols != grid.columns:
 		grid.columns = cols
 
@@ -147,6 +151,7 @@ func update_values():
 	keepscreen.pressed = G.keepscreenon
 	captureinput.pressed = G.capture_input_when_custom_scene
 	touches_to_open.selected = G.TouchesToOpenSettings - 3
+	decoder_threads.selected = G.decoder_threads_number - 1
 	
 	enabled_server_settings.pressed = G.override_server_settings
 	sync_server_settings.pressed = G.sync_server_settings
@@ -207,12 +212,16 @@ func _update_start_stop():
 	match GodotRemote.get_device().get_status():
 		C.GRDevice_STATUS_STARTING: 
 			start_stop.text = "   Starting Client   "
+			start_stop.theme = button_green_theme
 		C.GRDevice_STATUS_STOPPING: 
 			start_stop.text = "   Stopping Client   "
+			start_stop.theme = button_red_theme
 		C.GRDevice_STATUS_WORKING: 
 			start_stop.text = "     Stop Client     "
+			start_stop.theme = button_green_theme
 		C.GRDevice_STATUS_STOPPED: 
 			start_stop.text = "    Launch Client    "
+			start_stop.theme = button_red_theme
 
 func _set_buttons_disabled(state : bool):
 	if is_inside_tree():
@@ -317,6 +326,10 @@ func _on_SyncOrientation_toggled(button_pressed):
 func _on_SyncAspect_toggled(button_pressed):
 	G.sync_viewport_aspect_ratio = button_pressed
 	GodotRemote.get_device().viewport_aspect_ratio_syncing = button_pressed
+
+func _on_number_of_decoder_threads_item_selected(index: int) -> void:
+	G.decoder_threads_number =  index + 1
+	GodotRemote.get_device().set_decoder_threads_count(index + 1)
 
 func _on_keep_screen_CheckButton_toggled(button_pressed):
 	G.keepscreenon = button_pressed

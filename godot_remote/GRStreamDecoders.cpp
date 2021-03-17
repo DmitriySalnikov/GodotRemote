@@ -2,13 +2,11 @@
 
 #ifndef NO_GODOTREMOTE_CLIENT
 
-// richgel999/jpeg-compressor: https://github.com/richgel999/jpeg-compressor
-#include "jpge.h"
-
+#include "GRStreamDecoders.h"
 #include "GRClient.h"
+#include "GRJPGCodec.h"
 #include "GRNotifications.h"
 #include "GRPacket.h"
-#include "GRStreamDecoders.h"
 #include "GodotRemote.h"
 
 #ifndef GDNATIVE_LIBRARY
@@ -125,7 +123,7 @@ void GRStreamDecodersManager::set_threads_count(int count) {
 	Scoped_lock(ts_lock);
 	if (threads_count != count) {
 		threads_count = count;
-		if (decoder)
+		if (decoder && active)
 			decoder->start_decoder_threads(count);
 	}
 }
@@ -200,8 +198,6 @@ void GRStreamDecoder::set_gr_client(GRClient *client) {
 }
 
 void GRStreamDecoder::push_packet_to_decode(Ref<GRPacket> packet) {
-	Scoped_lock(ts_lock);
-
 	if (packet.is_valid()) {
 		Scoped_lock(ts_lock);
 		while (images.size() > get_max_queued_frames()) {
@@ -260,18 +256,22 @@ void GRStreamDecoderImageSequence::_notification(int p_notification) {
 }
 
 void GRStreamDecoderImageSequence::push_packet_to_decode(Ref<GRPacket> packet) {
+	ZoneScopedNC("Push packet to decode", tracy::Color::Ivory);
 	GRStreamDecoder::push_packet_to_decode(packet);
 
 	Ref<GRPacketImageData> img_data = packet;
 	if (img_data.is_valid()) {
-		if (img_data->get_is_empty()) {
+		if (img_data->get_is_stream_end()) {
+			Scoped_lock(ts_lock);
 			images.pop();
 
-			auto img = std::make_shared<BufferedImage>(0);
-			img->img = newref(Image);
-			img->is_ready = true;
+			while (buffer.size())
+				buffer.pop();
 
-			Scoped_lock(ts_lock);
+			auto img = std::make_shared<BufferedImage>(0);
+			img->is_ready = true;
+			img->is_end = true;
+
 			buffer.push(img);
 		}
 	}
@@ -302,11 +302,13 @@ void GRStreamDecoderImageSequence::update() {
 		auto buf = buffer.front();
 
 		if (buf->is_ready) {
-			if (os->get_ticks_usec() > prev_shown_frame_time + buf->frametime) {
+			if (buf->is_end) {
+				gr_client->_image_lost();
+			} else if (os->get_ticks_usec() > prev_shown_frame_time + buf->frametime) {
 				buffer.pop();
 				prev_shown_frame_time = os->get_ticks_usec();
 
-				if (buf->img.is_valid()) {
+				if (buf->img.is_valid() && !buf->img->empty()) {
 					gr_client->_display_new_image(buf->img);
 				} else {
 					gr_client->_image_lost();
@@ -358,7 +360,6 @@ void GRStreamDecoderImageSequence::stop_decoder_threads() {
 	}
 	threads.resize(0);
 
-
 	while (buffer.size())
 		buffer.pop();
 	while (images.size())
@@ -377,9 +378,8 @@ void GRStreamDecoderImageSequence::_init() {
 void GRStreamDecoderImageSequence::_deinit() {
 	LEAVE_IF_EDITOR();
 	stop_decoder_threads();
-	while (buffer.size()) {
+	while (buffer.size())
 		buffer.pop();
-	}
 }
 
 void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
@@ -387,7 +387,7 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 	OS *os = OS::get_singleton();
 
 	PoolByteArray jpg_buffer;
-	jpg_buffer.resize((1024 * 1024) * ((int)GET_PS(GodotRemote::ps_server_jpg_buffer_mb_size_name)));
+	jpg_buffer.resize((1024 * 1024) * 4);
 
 	Thread_set_name(("Stream Decoder: Image Sequence " + str(thread_idx)).ascii().get_data());
 
@@ -407,9 +407,14 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 		if (image_pack.is_valid()) {
 			ZoneScopedNC("Image Decode", tracy::Color::Aquamarine4);
 
-			while (buffer.size() > get_max_queued_frames()) {
-				auto buf_img = buffer.front();
+			while (buffer.size() > get_max_queued_frames())
 				buffer.pop();
+
+			PoolByteArray img_data = image_pack->get_image_data();
+
+			if (buffer.size() && buffer.front()->is_end && !img_data.size()) {
+				ts_lock.unlock();
+				continue;
 			}
 
 			auto buf_img = std::make_shared<BufferedImage>(image_pack->get_frametime());
@@ -435,7 +440,12 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 					break;
 				}
 				case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
-					err = img->load_jpg_from_buffer(image_pack->get_image_data());
+#ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
+					err = GRJPGCodec::_decompress_jpg_turbo(img_data, jpg_buffer, &img);
+#else
+					err = img->load_jpg_from_buffer(img_data);
+#endif
+
 					if ((int)err || img_is_empty(img)) { // is NOT OK
 						_log("Can't decode JPG image.", LogLevel::LL_ERROR);
 						GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
@@ -443,7 +453,7 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 					break;
 				}
 				case GRDevice::ImageCompressionType::COMPRESSION_PNG: {
-					err = img->load_png_from_buffer(image_pack->get_image_data());
+					err = img->load_png_from_buffer(img_data);
 					if ((int)err || img_is_empty(img)) { // is NOT OK
 						_log("Can't decode PNG image.", LogLevel::LL_ERROR);
 						GRNotifications::add_notification("Stream Error", "Can't decode PNG image. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
