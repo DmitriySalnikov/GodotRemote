@@ -37,8 +37,8 @@ void deinit() {
 	}
 }
 
-void __log(const Variant &val, int lvl, String file, int line) {
 #ifdef DEBUG_ENABLED
+void __log(const Variant &val, int lvl, String file, int line) {
 	if (lvl >= _grutils_data->current_loglevel && lvl < LogLevel::LL_NONE) {
 		auto val_str = str(val);
 #ifndef GDNATIVE_LIBRARY
@@ -88,9 +88,9 @@ void __log(const Variant &val, int lvl, String file, int line) {
 	} else {
 		TracyMessageC(val_str.ascii().get_data(), val_str.length(), tracy::Color::WhiteSmoke);
 	}
-#endif // !GODOTREMOTE_TRACY_ENABLED
-#endif
+#endif // GODOTREMOTE_TRACY_ENABLED
 }
+#endif
 
 String str_arr(const Array arr, const bool force_full, const int max_shown_items, String separator) {
 	String res = "[ ";

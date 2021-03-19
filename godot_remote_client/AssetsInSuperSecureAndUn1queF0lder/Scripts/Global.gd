@@ -48,9 +48,10 @@ var override_server_settings : bool = false setget set_override_settings
 var sync_server_settings : bool = false setget set_sync_server_settings
 var server_video_stream : bool = true setget set_server_video_stream
 var server_compression_type : int = 1 setget set_server_compression_type
-var server_jpg_quality : int = 80 setget set_server_jpg_quality
-var server_render_scale : float = 0.3 setget set_server_render_scale
+var server_jpg_quality : int = 90 setget set_server_jpg_quality
+var server_render_scale : float = 0.5 setget set_server_render_scale
 var server_skip_fps : int = 0 setget set_server_skip_fps
+var server_target_fps : int = 60 setget set_server_target_fps
 
 func get_random_hash(length : int = 6) -> String:
 	return str(randi() * randi()).md5_text().substr(0,length)
@@ -144,6 +145,7 @@ func _set_all_values():
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_JPG_QUALITY, server_jpg_quality)
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_RENDER_SCALE, server_render_scale)
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_SKIP_FRAMES, server_skip_fps)
+		dev.set_server_setting(C.GRDevice_SERVER_PARAM_TARGET_FPS, server_target_fps)
 	
 	if i_w:
 		dev.start()
@@ -177,6 +179,7 @@ func _save_settings():
 	d["s_jpg_quality"] = server_jpg_quality
 	d["s_render_scale"] = server_render_scale
 	d["s_skip_fps"] = server_skip_fps
+	d["s_target_fps"] = server_target_fps
 	d["s_compression_type"] = server_compression_type
 	
 	var dir = Directory.new()
@@ -237,7 +240,16 @@ func _load_settings():
 			server_jpg_quality = _safe_get_from_dict(d, "s_jpg_quality", server_jpg_quality)
 			server_render_scale = _safe_get_from_dict(d, "s_render_scale", server_render_scale)
 			server_skip_fps = _safe_get_from_dict(d, "s_skip_fps", server_skip_fps)
+			server_target_fps = _safe_get_from_dict(d, "s_target_fps", server_target_fps)
 			server_compression_type = _safe_get_from_dict(d, "s_compression_type", server_compression_type)
+			
+			_check_for_outdated_values()
+
+func _check_for_outdated_values() -> void:
+	if server_compression_type == 2:
+		server_compression_type = 1
+	
+	_save_settings()
 
 func _safe_get_from_dict(dict:Dictionary, val, def):
 	if dict.has(val):
@@ -339,4 +351,8 @@ func set_server_render_scale(val : float):
 
 func set_server_skip_fps(val : int):
 	server_skip_fps = val
+	_save_settings()
+
+func set_server_target_fps(val : int):
+	server_target_fps = val
 	_save_settings()

@@ -349,4 +349,4 @@ VARIANT_ENUM_CAST(GRClient::StretchMode)
 VARIANT_ENUM_CAST(GRClient::StreamState)
 #endif
 
-#endif // !NO_GODOTREMOTE_CLIENT
+#endif // NO_GODOTREMOTE_CLIENT

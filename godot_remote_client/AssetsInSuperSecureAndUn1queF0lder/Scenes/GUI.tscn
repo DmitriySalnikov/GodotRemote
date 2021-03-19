@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=2]
+[gd_scene load_steps=16 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/GodotRemoteClient.gd" type="Script" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalLight.tres" type="DynamicFont" id=2]
@@ -24,17 +24,24 @@ corner_detail = 1
 default_font = ExtResource( 2 )
 
 [sub_resource type="GDScript" id=3]
-script/source = "extends Button
+script/source = "extends Control
 
-func _pressed() -> void:
-	OS.shell_open(\"https://github.com/DmitriySalnikov/GodotRemote#godot-remote\")
+func _ready() -> void:
+	rect_min_size.y = OS.get_window_safe_area().position.y
 "
 
 [sub_resource type="GDScript" id=4]
 script/source = "extends Button
 
 func _pressed() -> void:
-	get_parent().get_parent().hide()
+	OS.shell_open(\"https://github.com/DmitriySalnikov/GodotRemote#godot-remote\")
+"
+
+[sub_resource type="GDScript" id=5]
+script/source = "extends Button
+
+func _pressed() -> void:
+	get_parent().get_parent().get_parent().hide()
 "
 
 [node name="GodotRemote" type="Control"]
@@ -126,7 +133,7 @@ margin_right = 800.0
 margin_bottom = 707.0
 size_flags_vertical = 5
 text = "Change the settings or start the server.
-If you want to change the settings during the broadcast, touch the screen with %d fingers at once."
+If you want to change settings during the broadcast, touch the screen with %d fingers at once."
 align = 1
 valign = 1
 autowrap = true
@@ -245,29 +252,29 @@ __meta__ = {
 [node name="HBoxContainer" type="VBoxContainer" parent="Changelog"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_left = 10.0
-margin_top = 10.0
-margin_right = -10.0
-margin_bottom = -10.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = -8.0
+margin_bottom = -8.0
 __meta__ = {
 "_edit_lock_": true,
 "_edit_use_anchors_": false
 }
 
 [node name="Label" type="Label" parent="Changelog/HBoxContainer"]
-margin_right = 669.0
+margin_right = 673.0
 margin_bottom = 46.0
 text = "Godot Remote Updated"
 align = 1
 
 [node name="Control" type="ScrollContainer" parent="Changelog/HBoxContainer"]
 margin_top = 50.0
-margin_right = 669.0
-margin_bottom = 452.0
+margin_right = 673.0
+margin_bottom = 456.0
 size_flags_vertical = 3
 
 [node name="ListOfChanges" type="Label" parent="Changelog/HBoxContainer/Control"]
-margin_right = 669.0
+margin_right = 673.0
 margin_bottom = 46.0
 size_flags_horizontal = 3
 size_flags_vertical = 1
@@ -276,20 +283,20 @@ text = "         don't forget to write a changelog..."
 autowrap = true
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Changelog/HBoxContainer"]
-margin_top = 456.0
-margin_right = 669.0
-margin_bottom = 520.0
+margin_top = 460.0
+margin_right = 673.0
+margin_bottom = 524.0
 
 [node name="Button" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
-margin_right = 252.0
+margin_right = 256.0
 margin_bottom = 64.0
 rect_min_size = Vector2( 0, 64 )
 size_flags_horizontal = 3
 text = "Okay, I get it!"
 
 [node name="Button2" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
-margin_left = 256.0
-margin_right = 669.0
+margin_left = 260.0
+margin_right = 673.0
 margin_bottom = 64.0
 rect_min_size = Vector2( 0, 64 )
 size_flags_horizontal = 3
@@ -383,9 +390,14 @@ margin_left = 8.0
 margin_top = 8.0
 margin_right = -8.0
 margin_bottom = -8.0
+custom_constants/separation = 0
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[node name="SafeAreaHeight" type="Control" parent="FirstLaunchHint/VBox"]
+margin_right = 1112.0
+script = SubResource( 3 )
 
 [node name="Label" type="Label" parent="FirstLaunchHint/VBox"]
 margin_right = 1112.0
@@ -422,7 +434,7 @@ margin_right = 1112.0
 margin_bottom = 349.0
 rect_min_size = Vector2( 0, 64 )
 text = "Open documentation page"
-script = SubResource( 3 )
+script = SubResource( 4 )
 
 [node name="Label2" type="Label" parent="FirstLaunchHint/VBox"]
 margin_top = 446.0
@@ -439,13 +451,28 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Button2" type="Button" parent="FirstLaunchHint/VBox"]
+[node name="HBoxContainer" type="HBoxContainer" parent="FirstLaunchHint/VBox"]
 margin_top = 589.0
 margin_right = 1112.0
 margin_bottom = 653.0
+custom_constants/separation = 0
+
+[node name="Button2" type="Button" parent="FirstLaunchHint/VBox/HBoxContainer"]
+margin_right = 1112.0
+margin_bottom = 64.0
 rect_min_size = Vector2( 0, 64 )
+size_flags_horizontal = 3
 text = "Okay, I get it!"
-script = SubResource( 4 )
+script = SubResource( 5 )
+
+[node name="Button3" type="Button" parent="FirstLaunchHint/VBox/HBoxContainer"]
+visible = false
+margin_left = 774.0
+margin_right = 1112.0
+margin_bottom = 64.0
+rect_min_size = Vector2( 0, 64 )
+text = "NO!!! THIS IS A GAME!"
+script = SubResource( 5 )
 
 [connection signal="pressed" from="OpenSettingsWithoutSignal/OpenSettings" to="." method="_on_open_settings_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]

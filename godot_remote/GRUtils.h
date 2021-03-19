@@ -20,8 +20,7 @@
 #include "core/variant.h"
 #include "core/version_generated.gen.h"
 #include "main/input_default.h"
-//#define VERSION_MINOR 2
-//#define VERSION_PATCH 3
+//#define VERSION_MINOR 3
 
 #else
 
@@ -172,7 +171,9 @@ protected:
 // DEBUG DEFINES
 
 #ifdef DEBUG_ENABLED
+#define _log(val, logLevel) __log(val, logLevel, __FILE__, __LINE__)
 #else
+#define _log(val, logLevel)
 #endif // DEBUG_ENABLED
 
 #ifdef TRACY_ENABLE
@@ -203,7 +204,6 @@ protected:
 	}
 
 #define newref(_class) Ref<_class>(memnew(_class))
-#define _log(val, logLevel) __log(val, logLevel, __FILE__, __LINE__)
 #define is_vector_contains(vec, val) (std::find(vec.begin(), vec.end(), val) != vec.end())
 
 #define GR_VERSION(x, y, z)                            \
@@ -287,7 +287,9 @@ extern void deinit();
 
 extern Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type);
 extern Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolByteArray &res, int type);
+#ifdef DEBUG_ENABLED
 extern void __log(const Variant &val, int lvl = 1 /*LogLevel::LL_NORMAL*/, String file = "", int line = 0);
+#endif
 
 extern String str(const Variant &val);
 extern String str_arr(const Array arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ");
@@ -522,4 +524,4 @@ extern Variant _GLOBAL_DEF(const String &p_var, const Variant &p_default, bool p
 
 }; // namespace GRUtils
 
-#endif // !GRUTILS_H
+#endif // GRUTILS_H

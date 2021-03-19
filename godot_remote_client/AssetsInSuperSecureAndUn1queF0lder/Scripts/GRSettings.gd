@@ -40,8 +40,9 @@ onready var sync_server_settings = $Scroll/H/Grid/SyncServerSettings
 onready var video_stream = $Scroll/H/Grid/VideoStream
 onready var jpg_quality = $Scroll/H/Grid/JPG_Quality/Quality
 onready var render_scale = $Scroll/H/Grid/RenderScale/Scale
-onready var skip_frames = $Scroll/H/Grid/HBoxContainer/SKIP
-onready var compression = $Scroll/H/Grid/HBoxContainer2/State2
+onready var skip_frames = $Scroll/H/Grid/SkipFrames/SKIP
+onready var target_server_fps = $Scroll/H/Grid/TargetFramerate/fps
+onready var compression = $Scroll/H/Grid/CompressionType/State2
 
 # Names of LineEdits in custom touch input menu
 onready var line_edits_to_touch_input = [
@@ -77,8 +78,11 @@ func _ready():
 func _notification(what):
 	match what:
 		NOTIFICATION_WM_GO_BACK_REQUEST: 
-			if visible: # TODO maybe try to open settings by this back button
-				visible = false
+			if visible:
+					if get_parent().has_method("_hide_settings"):
+						get_parent()._hide_settings()
+					else:
+						visible = false
 		NOTIFICATION_WM_QUIT_REQUEST:
 			grab_focus()
 
@@ -160,8 +164,9 @@ func update_values():
 	jpg_quality.value = G.server_jpg_quality
 	render_scale.value = G.server_render_scale
 	skip_frames.value = G.server_skip_fps
-	compression.select(G.server_compression_type)
+	compression.select(compression.get_item_index(G.server_compression_type))
 	video_stream.pressed = G.server_video_stream
+	target_server_fps.value = G.server_target_fps
 	
 	_set_all_server_settings()
 	_on_con_Type_item_selected(con_type_menu.selected)
@@ -172,8 +177,9 @@ func _set_all_server_settings():
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_JPG_QUALITY, jpg_quality.value)
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_RENDER_SCALE, render_scale.value)
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_SKIP_FRAMES, skip_frames.value)
-		d.set_server_setting(C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE, compression.selected)
+		d.set_server_setting(C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE, compression.get_item_id(compression.selected))
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED, video_stream.pressed)
+		d.set_server_setting(C.GRDevice_SERVER_PARAM_TARGET_FPS, target_server_fps.value)
 
 func _status_changed(_status : int):
 	if timer.is_stopped():
@@ -196,8 +202,9 @@ func _server_settings_received(_settings : Dictionary):
 			C.GRDevice_SERVER_PARAM_JPG_QUALITY: jpg_quality.value = v
 			C.GRDevice_SERVER_PARAM_RENDER_SCALE: render_scale.value = v 
 			C.GRDevice_SERVER_PARAM_SKIP_FRAMES: skip_frames.value = v
-			C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE: compression.selected = v
+			C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE: compression.selected = compression.get_item_index(v)
 			C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED: video_stream.pressed = v
+			C.GRDevice_SERVER_PARAM_TARGET_FPS: target_server_fps.value = v
 	
 	updated_by_code = false
 
@@ -375,13 +382,20 @@ func _on_server_send_FPS_value_changed(value):
 	G.server_skip_fps = value
 
 func _on_compression_type_item_selected(index):
+	var id = compression.get_item_id(index)
 	if not updated_by_code:
 		if G.override_server_settings:
-			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE, index)
-	G.server_compression_type = index
+			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE, id)
+	G.server_compression_type = id
 
 func _on_video_stream_Enabled_toggled(button_pressed):
 	if not updated_by_code:
 		if G.override_server_settings:
 			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED, button_pressed)
 	G.server_video_stream = button_pressed
+
+func _on_server_target_fps_value_changed(value: float) -> void:
+	if not updated_by_code:
+		if G.override_server_settings:
+			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_TARGET_FPS, value)
+	G.server_target_fps = value

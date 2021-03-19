@@ -44,6 +44,7 @@ GR_PS_NAME_TYPE GodotRemote::ps_server_jpg_buffer_mb_size_name = "debug/godot_re
 GR_PS_NAME_TYPE GodotRemote::ps_server_auto_adjust_scale_name = "debug/godot_remote/server/auto_adjust_scale";
 GR_PS_NAME_TYPE GodotRemote::ps_server_scale_of_sending_stream_name = "debug/godot_remote/server/scale_of_sending_stream";
 GR_PS_NAME_TYPE GodotRemote::ps_server_password_name = "debug/godot_remote/server/password";
+GR_PS_NAME_TYPE GodotRemote::ps_server_target_fps_name = "debug/godot_remote/server/target_fps";
 
 GR_PS_NAME_TYPE GodotRemote::ps_server_custom_input_scene_name = "debug/godot_remote/server_custom_input_scene/custom_input_scene";
 GR_PS_NAME_TYPE GodotRemote::ps_server_custom_input_scene_compressed_name = "debug/godot_remote/server_custom_input_scene/send_custom_input_scene_compressed";
@@ -289,10 +290,12 @@ void GodotRemote::_register_methods() {
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_JPG_QUALITY);
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_SKIP_FRAMES);
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_RENDER_SCALE);
+	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_TARGET_FPS);
 
 	CONST_REG(GRDevice, ImageCompressionType, COMPRESSION_UNCOMPRESSED);
 	CONST_REG(GRDevice, ImageCompressionType, COMPRESSION_JPG);
 	CONST_REG(GRDevice, ImageCompressionType, COMPRESSION_PNG);
+	CONST_REG(GRDevice, ImageCompressionType, COMPRESSION_H264);
 
 	CONST_REG(GRDevice, WorkingStatus, STATUS_STARTING);
 	CONST_REG(GRDevice, WorkingStatus, STATUS_STOPPING);
@@ -310,7 +313,7 @@ void GodotRemote::_register_methods() {
 	CONST_REG(GRClient, StreamState, STREAM_NO_SIGNAL);
 	CONST_REG(GRClient, StreamState, STREAM_ACTIVE);
 	CONST_REG(GRClient, StreamState, STREAM_NO_IMAGE);
-#endif // !NO_GODOTREMOTE_CLIENT
+#endif // NO_GODOTREMOTE_CLIENT
 }
 #endif
 
@@ -477,13 +480,14 @@ void GodotRemote::register_and_load_settings() {
 
 	// only server can change this settings
 	DEF_(ps_server_password_name, "", Variant::STRING, PROPERTY_HINT_NONE, "");
+	DEF_(ps_server_target_fps_name, 60, Variant::INT, PROPERTY_HINT_NONE, "1,1000");
 
 	// client can change this settings
 	DEF_(ps_server_stream_enabled_name, true, Variant::BOOL, PROPERTY_HINT_NONE, "");
-	DEF_(ps_server_compression_type_name, 1 /*GRServer::ImageCompressionType::JPG*/, Variant::INT, PROPERTY_HINT_ENUM, "Uncompressed,JPG,PNG");
+	DEF_(ps_server_compression_type_name, 1 /*GRDevice::ImageCompressionType::JPG*/, Variant::INT, PROPERTY_HINT_ENUM, "Uncompressed,JPG,PNG (deprecated),H264");
 	DEF_(ps_server_stream_skip_frames_name, 0, Variant::INT, PROPERTY_HINT_RANGE, "0,1000");
-	DEF_(ps_server_scale_of_sending_stream_name, 0.3f, Variant::REAL, PROPERTY_HINT_RANGE, "0,1,0.01");
-	DEF_(ps_server_jpg_quality_name, 80, Variant::INT, PROPERTY_HINT_RANGE, "0,100");
+	DEF_(ps_server_scale_of_sending_stream_name, 0.5f, Variant::REAL, PROPERTY_HINT_RANGE, "0,1,0.01");
+	DEF_(ps_server_jpg_quality_name, 90, Variant::INT, PROPERTY_HINT_RANGE, "0,100");
 	DEF_(ps_server_auto_adjust_scale_name, false, Variant::BOOL, PROPERTY_HINT_NONE, "");
 
 #undef DEF_SET

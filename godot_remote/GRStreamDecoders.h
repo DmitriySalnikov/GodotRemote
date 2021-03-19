@@ -146,4 +146,4 @@ public:
 	void _deinit();
 };
 
-#endif // !NO_GODOTREMOTE_CLIENT
+#endif // NO_GODOTREMOTE_CLIENT

@@ -65,11 +65,13 @@ var GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED : int
 var GRDevice_SERVER_PARAM_COMPRESSION_TYPE : int
 var GRDevice_SERVER_PARAM_JPG_QUALITY : int
 var GRDevice_SERVER_PARAM_SKIP_FRAMES : int
+var GRDevice_SERVER_PARAM_TARGET_FPS : int
 var GRDevice_SERVER_PARAM_RENDER_SCALE : int
 
 var GRDevice_IMAGE_COMPRESSION_UNCOMPRESSED : int
 var GRDevice_IMAGE_COMPRESSION_JPG : int
 var GRDevice_IMAGE_COMPRESSION_PNG : int
+var GRDevice_IMAGE_COMPRESSION_H264 : int
 
 var GRClient_CONNECTION_ADB : int
 var GRClient_CONNECTION_WiFi : int
@@ -146,10 +148,12 @@ func _setup_constants():
 	GRDevice_SERVER_PARAM_JPG_QUALITY = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_JPG_QUALITY");
 	GRDevice_SERVER_PARAM_SKIP_FRAMES = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_SKIP_FRAMES");
 	GRDevice_SERVER_PARAM_RENDER_SCALE = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_RENDER_SCALE");
+	GRDevice_SERVER_PARAM_TARGET_FPS = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_TARGET_FPS");
 
 	GRDevice_IMAGE_COMPRESSION_UNCOMPRESSED = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_UNCOMPRESSED");
 	GRDevice_IMAGE_COMPRESSION_JPG = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_JPG");
 	GRDevice_IMAGE_COMPRESSION_PNG = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_PNG");
+	GRDevice_IMAGE_COMPRESSION_H264 = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_H264");
 
 	GRDevice_STATUS_STARTING = get_enum_constant("GRDevice", "WorkingStatus", "STATUS_STARTING");
 	GRDevice_STATUS_STOPPING = get_enum_constant("GRDevice", "WorkingStatus", "STATUS_STOPPING");
@@ -170,4 +174,7 @@ func get_enum_constant(_class : String, _enum : String, _value : String) -> int:
 	if GodotRemote.is_gdnative():
 		return int(GodotRemote.call("_get_%s_%s_%s"%[_class, _enum, _value]))
 	else:
-		return ClassDB.class_get_integer_constant(_class, _value)
+		if ClassDB.class_has_integer_constant(_class, _value):
+			return ClassDB.class_get_integer_constant(_class, _value)
+		print("'%s' constant not found in class '%s'" % [_value, _class])
+		return 0

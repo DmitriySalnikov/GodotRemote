@@ -35,6 +35,7 @@ public:
 		ClientStreamOrientation = 7,
 		ClientStreamAspect = 8,
 		CustomUserData = 9,
+		H264Data = 10,
 
 		// Requests
 		Ping = 128,
@@ -56,7 +57,12 @@ protected:
 		BIND_ENUM_CONSTANT(ClientStreamOrientation);
 		BIND_ENUM_CONSTANT(ClientStreamAspect);
 		BIND_ENUM_CONSTANT(CustomUserData);
+		BIND_ENUM_CONSTANT(H264Data);
+
+		// Requests
 		BIND_ENUM_CONSTANT(Ping);
+
+		// Responses
 		BIND_ENUM_CONSTANT(Pong);
 	}
 #else
@@ -102,7 +108,9 @@ protected:
 public:
 	virtual PacketType get_type() override { return PacketType::SyncTime; };
 
-	uint64_t get_time();
+	uint64_t get_time() {
+		return time;
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -128,22 +136,104 @@ protected:
 public:
 	virtual PacketType get_type() override { return PacketType::ImageData; };
 
-	PoolByteArray get_image_data();
-	int get_compression_type();
-	Size2 get_size();
-	int get_format();
-	uint64_t get_frametime();
-	bool get_is_stream_end();
+	PoolByteArray get_image_data() {
+		return img_data;
+	}
+	int get_compression_type() {
+		return (int)compression;
+	}
+	Size2 get_size() {
+		return size;
+	}
+	int get_format() {
+		return format;
+	}
+	uint64_t get_frametime() {
+		return frametime;
+	}
+	bool get_is_stream_end() {
+		return is_stream_end;
+	}
 
-	void set_image_data(PoolByteArray &buf);
-	void set_compression_type(int type);
-	void set_size(Size2 _size);
-	void set_format(int _format);
-	void set_frametime(uint64_t _frametime);
-	void set_is_stream_end(bool _empty);
+	void set_image_data(PoolByteArray &buf) {
+		img_data = buf;
+	}
+	void set_compression_type(int type) {
+		compression = type;
+	}
+	void set_size(Size2 _size) {
+		size = _size;
+	}
+	void set_format(int _format) {
+		format = _format;
+	}
+	void set_frametime(uint64_t _frametime) {
+		frametime = _frametime;
+	}
+	void set_is_stream_end(bool _empty) {
+		is_stream_end = _empty;
+	}
+};
 
-	~GRPacketImageData() {
-		//img_data.resize(0);
+//////////////////////////////////////////////////////////////////////////
+// H264 DATA
+class GRPacketH264 : public GRPacket {
+	GD_CLASS(GRPacketH264, GRPacket);
+	friend GRPacket;
+
+	/*GRDevice::ImageCompressionType*/ int compression = 1 /*GRDevice::ImageCompressionType::JPG*/;
+	Size2 size;
+	int format = 0;
+	PoolByteArray img_data;
+	uint64_t start_time = 0;
+	uint64_t frametime = 0;
+	bool is_stream_end = false;
+
+protected:
+	GDNATIVE_BASIC_REGISTER;
+
+	virtual Ref<StreamPeerBuffer> _get_data() override;
+	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+
+public:
+	virtual PacketType get_type() override { return PacketType::H264Data; };
+
+	PoolByteArray get_image_data() {
+		return img_data;
+	}
+	int get_compression_type() {
+		return (int)compression;
+	}
+	Size2 get_size() {
+		return size;
+	}
+	int get_format() {
+		return format;
+	}
+	uint64_t get_frametime() {
+		return frametime;
+	}
+	bool get_is_stream_end() {
+		return is_stream_end;
+	}
+
+	void set_image_data(PoolByteArray &buf) {
+		img_data = buf;
+	}
+	void set_compression_type(int type) {
+		compression = type;
+	}
+	void set_size(Size2 _size) {
+		size = _size;
+	}
+	void set_format(int _format) {
+		format = _format;
+	}
+	void set_frametime(uint64_t _frametime) {
+		frametime = _frametime;
+	}
+	void set_is_stream_end(bool _empty) {
+		is_stream_end = _empty;
 	}
 };
 
@@ -164,14 +254,26 @@ protected:
 public:
 	virtual PacketType get_type() override { return PacketType::InputData; };
 
-	int get_inputs_count();
-	Ref<class GRInputData> get_input_data(int idx);
-	void remove_input_data(int idx);
-	void add_input_data(Ref<GRInputData> &input);
-	void set_input_data(std::vector<Ref<GRInputData> > &_inputs); // Ref<GRInputData>
+	int get_inputs_count() {
+		return (int)inputs.size();
+	}
 
-	~GRPacketInputData() {
-		//inputs.clear();
+	Ref<class GRInputData> get_input_data(int idx) {
+		ERR_FAIL_INDEX_V(idx, (int)inputs.size(), Ref<GRInputData>());
+		return inputs[idx];
+	}
+
+	void remove_input_data(int idx) {
+		ERR_FAIL_INDEX(idx, (int)inputs.size());
+		inputs.erase(inputs.begin() + idx);
+	}
+
+	void add_input_data(Ref<GRInputData> &input) {
+		inputs.push_back(input);
+	}
+
+	void set_input_data(std::vector<Ref<GRInputData> > &_inputs) {
+		inputs = _inputs;
 	}
 };
 
@@ -192,12 +294,16 @@ protected:
 public:
 	virtual PacketType get_type() override { return PacketType::ServerSettings; };
 
-	std::map<int, Variant> get_settings();
-	void set_settings(std::map<int, Variant> &_settings);
-	void add_setting(int _setting, Variant value);
+	std::map<int, Variant> get_settings() {
+		return settings;
+	}
 
-	~GRPacketServerSettings() {
-		//settings.clear();
+	void set_settings(std::map<int, Variant> &_settings) {
+		settings = _settings;
+	}
+
+	void add_setting(int _setting, Variant value) {
+		settings[_setting] = value;
 	}
 };
 
@@ -218,8 +324,13 @@ protected:
 public:
 	virtual PacketType get_type() override { return PacketType::MouseModeSync; };
 
-	Input::MouseMode get_mouse_mode();
-	void set_mouse_mode(Input::MouseMode _mode);
+	Input::MouseMode get_mouse_mode() {
+		return mouse_mode;
+	}
+
+	void set_mouse_mode(Input::MouseMode _mode) {
+		mouse_mode = _mode;
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -243,19 +354,36 @@ protected:
 public:
 	virtual PacketType get_type() override { return PacketType::CustomInputScene; };
 
-	String get_scene_path();
-	void set_scene_path(String _path);
-	PoolByteArray get_scene_data();
-	void set_scene_data(PoolByteArray _data);
-	bool is_compressed();
-	void set_compressed(bool val);
-	int get_original_size();
-	void set_original_size(int val);
-	int get_compression_type();
-	void set_compression_type(int val);
+	PoolByteArray get_scene_data() {
+		return scene_data;
+	}
+	String get_scene_path() {
+		return scene_path;
+	}
+	int get_original_size() {
+		return original_data_size;
+	}
+	bool is_compressed() {
+		return compressed;
+	}
+	int get_compression_type() {
+		return compression_type;
+	}
 
-	~GRPacketCustomInputScene() {
-		//scene_data.resize(0);
+	void set_scene_data(PoolByteArray _data) {
+		scene_data = _data;
+	}
+	void set_scene_path(String _path) {
+		scene_path = _path;
+	}
+	void set_original_size(int val) {
+		original_data_size = val;
+	}
+	void set_compressed(bool val) {
+		compressed = val;
+	}
+	void set_compression_type(int val) {
+		compression_type = val;
 	}
 };
 
@@ -276,8 +404,13 @@ protected:
 public:
 	virtual PacketType get_type() override { return PacketType::ClientStreamOrientation; };
 
-	bool is_vertical();
-	void set_vertical(bool val);
+	bool is_vertical() {
+		return vertical;
+	}
+
+	void set_vertical(bool val) {
+		vertical = val;
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -297,8 +430,13 @@ protected:
 public:
 	virtual PacketType get_type() override { return PacketType::ClientStreamAspect; };
 
-	float get_aspect();
-	void set_aspect(float val);
+	float get_aspect() {
+		return stream_aspect;
+	}
+
+	void set_aspect(float val) {
+		stream_aspect = val;
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -320,12 +458,29 @@ protected:
 public:
 	virtual PacketType get_type() override { return PacketType::CustomUserData; };
 
-	Variant get_packet_id();
-	void set_packet_id(Variant val);
-	bool get_send_full_objects();
-	void set_send_full_objects(bool val);
-	Variant get_user_data();
-	void set_user_data(Variant val);
+	Variant get_packet_id() {
+		return packet_id;
+	}
+
+	void set_packet_id(Variant val) {
+		packet_id = val;
+	}
+
+	bool get_send_full_objects() {
+		return full_objects;
+	}
+
+	void set_send_full_objects(bool val) {
+		full_objects = val;
+	}
+
+	Variant get_user_data() {
+		return user_data;
+	}
+
+	void set_user_data(Variant val) {
+		user_data = val;
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -4,9 +4,9 @@
 
 #include "GRStreamDecoders.h"
 #include "GRClient.h"
-#include "GRJPGCodec.h"
 #include "GRNotifications.h"
 #include "GRPacket.h"
+#include "GRUtilsJPGCodec.h"
 #include "GodotRemote.h"
 
 #ifndef GDNATIVE_LIBRARY
@@ -31,9 +31,7 @@ using namespace GRUtils;
 
 void GRStreamDecodersManager::_bind_methods() {
 	//ClassDB::bind_method(D_METHOD("_load_settings"), &GRStreamDecoders::_load_settings);
-
 	//ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
-
 	//ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
 }
 
@@ -163,9 +161,7 @@ void GRStreamDecodersManager::_deinit() {
 
 void GRStreamDecoder::_bind_methods() {
 	//ClassDB::bind_method(D_METHOD("_load_settings"), &GRStreamDecoders::_load_settings);
-
 	//ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
-
 	//ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
 }
 
@@ -220,14 +216,16 @@ void GRStreamDecoder::_deinit() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // IMAGE SEQUENCE ENCODER
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 #ifndef GDNATIVE_LIBRARY
 
 void GRStreamDecoderImageSequence::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(_processing_thread), "user_data"), &GRStreamDecoderImageSequence::_processing_thread);
 	//ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
-
 	//ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
 }
 
@@ -277,13 +275,12 @@ void GRStreamDecoderImageSequence::push_packet_to_decode(Ref<GRPacket> packet) {
 	}
 }
 
-// TODO mb found a way to reduce delay
 // TODO add a way to calculate delay of stream. based on sync time mb
 
 void GRStreamDecoderImageSequence::update() {
 	ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
-	auto os = OS::get_singleton();
 	Scoped_lock(ts_lock);
+	auto os = OS::get_singleton();
 
 	if (buffer.size()) {
 		int count = 0;
@@ -302,11 +299,19 @@ void GRStreamDecoderImageSequence::update() {
 		auto buf = buffer.front();
 
 		if (buf->is_ready) {
+			uint64_t time = os->get_ticks_usec();
+			uint64_t next_frame = prev_shown_frame_time + buf->frametime;
 			if (buf->is_end) {
 				gr_client->_image_lost();
-			} else if (os->get_ticks_usec() > prev_shown_frame_time + buf->frametime) {
+			} else if (time > next_frame) {
 				buffer.pop();
-				prev_shown_frame_time = os->get_ticks_usec();
+
+				// TODO mb found a way to reduce delay
+				if (time > next_frame) {
+					prev_shown_frame_time = time;
+				} else {
+					prev_shown_frame_time = next_frame;
+				}
 
 				if (buf->img.is_valid() && !buf->img->empty()) {
 					gr_client->_display_new_image(buf->img);
@@ -441,7 +446,7 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 				}
 				case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
 #ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
-					err = GRJPGCodec::_decompress_jpg_turbo(img_data, jpg_buffer, &img);
+					err = GRUtilsJPGCodec::_decompress_jpg_turbo(img_data, jpg_buffer, &img);
 #else
 					err = img->load_jpg_from_buffer(img_data);
 #endif
@@ -449,14 +454,6 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 					if ((int)err || img_is_empty(img)) { // is NOT OK
 						_log("Can't decode JPG image.", LogLevel::LL_ERROR);
 						GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-					}
-					break;
-				}
-				case GRDevice::ImageCompressionType::COMPRESSION_PNG: {
-					err = img->load_png_from_buffer(img_data);
-					if ((int)err || img_is_empty(img)) { // is NOT OK
-						_log("Can't decode PNG image.", LogLevel::LL_ERROR);
-						GRNotifications::add_notification("Stream Error", "Can't decode PNG image. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 					}
 					break;
 				}
@@ -474,4 +471,4 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 	}
 }
 
-#endif // !NO_GODOTREMOTE_CLIENT
+#endif // NO_GODOTREMOTE_CLIENT

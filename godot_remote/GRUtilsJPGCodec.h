@@ -1,11 +1,11 @@
-/* GRJPGCodec.h */
-#ifndef GRJPGCODEC_H
-#define GRJPGCODEC_H
+/* GRUtilsJPGCodec.h */
+#ifndef GRUTILSJPGCODEC_H
+#define GRUTILSJPGCODEC_H
 
 #include "GRProfiler.h"
 #include "GRUtils.h"
 
-class GRJPGCodec {
+class GRUtilsJPGCodec {
 public:
 #ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
 	static Error _decompress_jpg_turbo(PoolByteArray &img_data, PoolByteArray &jpg_buffer, Ref<Image> *out_img);
@@ -18,4 +18,4 @@ public:
 #endif
 };
 
-#endif // !GRJPGCODEC_H
+#endif // GRUTILSJPGCODEC_H

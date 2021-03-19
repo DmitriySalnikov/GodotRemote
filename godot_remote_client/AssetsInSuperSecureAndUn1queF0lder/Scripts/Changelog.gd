@@ -18,6 +18,7 @@ Module:
 Fixed multithreading issues.
 Improved fps and ping counters.
 Most enums have been renamed and moved.
+Significantly improved JPG compression/decompression performance.
 Exposed all classes in GDScript, but did not expose their methods.
 Custom input scenes now adding '.md5' files from '.import' folder.
 """,

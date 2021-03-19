@@ -114,6 +114,6 @@
 #define TracyParameterSetup(idx, name, isBool, val)
 #define TracyIsConnected false
 
-#endif // !GODOTREMOTE_TRACY_ENABLED
+#endif // GODOTREMOTE_TRACY_ENABLED
 
-#endif // !GRPROFILER_H
+#endif // GRPROFILER_H

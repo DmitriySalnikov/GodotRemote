@@ -1,13 +1,13 @@
-/* GRJPGCodec.cpp */
+/* GRUtilsJPGCodec.cpp */
 
-#include "GRJPGCodec.h"
+#include "GRUtilsJPGCodec.h"
 using namespace GRUtils;
 
 #ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
 
 #include "libjpeg-turbo/include/turbojpeg.h"
 
-Error GRJPGCodec::_compress_jpg_turbo(PoolByteArray &ret, const PoolByteArray &img_data, PoolByteArray &jpg_buffer, int width, int height, int bytes_for_color, int quality) {
+Error GRUtilsJPGCodec::_compress_jpg_turbo(PoolByteArray &ret, const PoolByteArray &img_data, PoolByteArray &jpg_buffer, int width, int height, int bytes_for_color, int quality) {
 	PoolByteArray res;
 	ERR_FAIL_COND_V(img_data.size() == 0, Error::ERR_INVALID_PARAMETER);
 	ERR_FAIL_COND_V(quality < 1 || quality > 100, Error::ERR_INVALID_PARAMETER);
@@ -48,7 +48,7 @@ Error GRJPGCodec::_compress_jpg_turbo(PoolByteArray &ret, const PoolByteArray &i
 	return Error::FAILED;
 }
 
-Error GRJPGCodec::_decompress_jpg_turbo(PoolByteArray &img_data, PoolByteArray &jpg_buffer, Ref<Image> *out_img) {
+Error GRUtilsJPGCodec::_decompress_jpg_turbo(PoolByteArray &img_data, PoolByteArray &jpg_buffer, Ref<Image> *out_img) {
 	ERR_FAIL_COND_V(img_data.size() == 0, Error::ERR_INVALID_PARAMETER);
 
 	int jpegSubsamp, width, height;
@@ -106,7 +106,7 @@ Error GRJPGCodec::_decompress_jpg_turbo(PoolByteArray &img_data, PoolByteArray &
 // richgel999/jpeg-compressor: https://github.com/richgel999/jpeg-compressor
 #include "jpge.h"
 
-Error GRJPGCodec::_compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, PoolByteArray &jpg_buffer, int width, int height, int bytes_for_color, int quality) {
+Error GRUtilsJPGCodec::_compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, PoolByteArray &jpg_buffer, int width, int height, int bytes_for_color, int quality) {
 	PoolByteArray res;
 	ERR_FAIL_COND_V(img_data.size() == 0, Error::ERR_INVALID_PARAMETER);
 	ERR_FAIL_COND_V(quality < 1 || quality > 100, Error::ERR_INVALID_PARAMETER);

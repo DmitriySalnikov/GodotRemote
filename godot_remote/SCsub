@@ -31,7 +31,6 @@ src_files = [
     'GRClient.cpp',
     'GRDevice.cpp',
     'GRInputData.cpp',
-    'GRJPGCodec.cpp',
     'GRNotifications.cpp',
     'GRPacket.cpp',
     'GRProfiler.cpp',
@@ -40,6 +39,8 @@ src_files = [
     'GRStreamDecoders.cpp',
     'GRStreamEncoders.cpp',
     'GRUtils.cpp',
+    'GRUtilsH264Codec.cpp',
+    'GRUtilsJPGCodec.cpp',
     'register_types.cpp',
 ]
 
@@ -47,6 +48,13 @@ src_files = [
 def get_sources():
     return [module_dir + file for file in src_files]
 
+# Tracy
+if module_env['godot_remote_tracy_enabled']:
+	src_files.append('tracy/TracyClient.cpp')
+	module_env.Append(CPPDEFINES=['GODOTREMOTE_TRACY_ENABLED', 'TRACY_ENABLE', 'TRACY_ON_DEMAND'])
+	#module_env.Append(CPPDEFINES=['TRACY_CALLSTACK'])
+
+# libturbo-jpeg
 if module_env['godot_remote_libjpeg_turbo_enabled']:
     # an absolutely stupid system that doesn't allow me to link libraries 
     # inside this module without 'LIBSUFFIX' required this hack
@@ -54,15 +62,14 @@ if module_env['godot_remote_libjpeg_turbo_enabled']:
 else:
     src.append('jpge.cpp')
 
-# platform specific
+# OpenH264
 
+# RPATH can be used to specify a list of paths to shared find libs
+# env.Append(RPATH=["."])
+
+# platform specific
 if env['platform'] == 'windows':
     module_env.Append(CXXFLAGS=['/std:c++14'])
-    if module_env['godot_remote_tracy_enabled']:
-        src_files.append('tracy/TracyClient.cpp')
-        module_env.Append(CPPDEFINES=['GODOTREMOTE_TRACY_ENABLED', 'TRACY_ENABLE', 'TRACY_ON_DEMAND'])
-        #module_env.Append(CPPDEFINES=['TRACY_CALLSTACK'])
-    
     module_env.add_source_files(env.modules_sources, get_sources())
 
 else:

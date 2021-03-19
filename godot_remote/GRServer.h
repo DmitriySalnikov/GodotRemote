@@ -94,6 +94,7 @@ private:
 	Ref<TCP_Server> tcp_server;
 	class GRSViewport *resize_viewport = nullptr;
 	int client_connected = 0;
+	int target_fps = 60;
 
 	bool using_client_settings = false;
 	bool using_client_settings_recently_updated = false;
@@ -153,6 +154,9 @@ public:
 	void set_custom_input_scene_compression_type(int _type);
 	int get_custom_input_scene_compression_type();
 
+	bool set_target_fps(int value);
+	int get_target_fps();
+
 	// VIEWPORT
 	bool set_video_stream_enabled(bool val);
 	bool is_video_stream_enabled();
@@ -180,6 +184,7 @@ class GRSViewport : public Viewport {
 	friend GRServer;
 	friend GRStreamEncoder;
 	friend GRStreamEncoderImageSequence;
+	friend GRStreamEncoderH264;
 
 	Mutex_define(stream_mutex, "Stream Manager Mutex");
 
@@ -260,4 +265,4 @@ public:
 	void _deinit();
 };
 
-#endif // !NO_GODOTREMOTE_SERVER
+#endif // NO_GODOTREMOTE_SERVER

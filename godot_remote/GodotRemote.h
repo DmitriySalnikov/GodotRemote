@@ -76,6 +76,7 @@ public:
 	static GR_PS_NAME_TYPE ps_server_auto_adjust_scale_name;
 	static GR_PS_NAME_TYPE ps_server_scale_of_sending_stream_name;
 	static GR_PS_NAME_TYPE ps_server_password_name;
+	static GR_PS_NAME_TYPE ps_server_target_fps_name;
 
 	static GR_PS_NAME_TYPE ps_server_custom_input_scene_name;
 	static GR_PS_NAME_TYPE ps_server_custom_input_scene_compressed_name;
@@ -202,7 +203,7 @@ public:
 	CONST_GET(GRClient, StreamState, STREAM_NO_SIGNAL);
 	CONST_GET(GRClient, StreamState, STREAM_ACTIVE);
 	CONST_GET(GRClient, StreamState, STREAM_NO_IMAGE);
-#endif // !NO_GODOTREMOTE_CLIENT
+#endif // NO_GODOTREMOTE_CLIENT
 
 protected:
 #endif

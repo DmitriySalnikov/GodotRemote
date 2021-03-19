@@ -795,7 +795,7 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 			if (PackedData::get_singleton()->is_disabled()) {
 				err = Error::FAILED;
 			} else {
-#if VERSION_MINOR >= 2 && VERSION_PATCH >= 4
+#if VERSION_MINOR >= 3 || (VERSION_MINOR >= 2 && VERSION_PATCH > 3)
 				err = PackedData::get_singleton()->add_pack(custom_input_scene_tmp_pck_file, true, 0);
 #else
 				err = PackedData::get_singleton()->add_pack(custom_input_scene_tmp_pck_file, true);
@@ -944,6 +944,7 @@ void GRClient::_update_texture_from_image(Ref<Image> img) {
 }
 
 void GRClient::_update_stream_texture_state(ENUM_ARG(StreamState) _stream_state) {
+	ZoneScopedNC("Updating stream texture", tracy::Color::Cornsilk1);
 	if (is_deleting)
 		return;
 
@@ -1934,4 +1935,4 @@ void GRTextureRect::_deinit() {
 	disconnect("resized", this, "_tex_size_changed");
 }
 
-#endif // !NO_GODOTREMOTE_CLIENT
+#endif // NO_GODOTREMOTE_CLIENT

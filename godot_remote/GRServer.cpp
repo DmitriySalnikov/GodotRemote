@@ -300,6 +300,21 @@ int GRServer::get_custom_input_scene_compression_type() {
 	return custom_input_pck_compression_type;
 }
 
+bool GRServer::set_target_fps(int value) {
+	if (target_fps != value) {
+		target_fps = value;
+		if (client_connected) {
+			Engine::get_singleton()->set_target_fps(value);
+		}
+		return true;
+	}
+	return false;
+}
+
+int GRServer::get_target_fps() {
+	return target_fps;
+}
+
 void GRServer::_init() {
 	set_name("GodotRemoteServer");
 	LEAVE_IF_EDITOR();
@@ -477,12 +492,14 @@ void GRServer::_load_settings() {
 		set_jpg_quality(GET_PS(GodotRemote::ps_server_jpg_quality_name));
 		set_render_scale(GET_PS(GodotRemote::ps_server_scale_of_sending_stream_name));
 		set_skip_frames(GET_PS(GodotRemote::ps_server_stream_skip_frames_name));
+		set_target_fps(GET_PS(GodotRemote::ps_server_target_fps_name));
 
 		GRNotifications::add_notification_or_update_line(title, "stream", "Stream enabled: " + str(is_video_stream_enabled()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
-		GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str(get_render_scale()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str(get_compression_type()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 		GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(get_jpg_quality()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 		GRNotifications::add_notification_or_update_line(title, "skip", "Skip Frames: " + str(get_skip_frames()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 		GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(get_render_scale()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+		GRNotifications::add_notification_or_update_line(title, "fps", "Target FPS: " + str(get_target_fps()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 	} else {
 		_log("Resize viewport not found!", LogLevel::LL_ERROR);
 		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
@@ -553,6 +570,10 @@ void GRServer::_update_settings_from_client(const std::map<int, Variant> setting
 				}
 				case TypesOfServerSettings::SERVER_SETTINGS_RENDER_SCALE: {
 					SET_BODY(set_render_scale, "scale", "Scale of stream: ", (float));
+					break;
+				}
+				case TypesOfServerSettings::SERVER_SETTINGS_TARGET_FPS: {
+					SET_BODY(set_target_fps, "fps", "Target FPS: ", (int));
 					break;
 				}
 				default:
@@ -735,6 +756,10 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	Input *input = Input::get_singleton();
 	Error err = Error::OK;
 
+	// Store prev target fps of game
+	int default_target_fps = Engine::get_singleton()->get_target_fps();
+	Engine::get_singleton()->set_target_fps(target_fps);
+
 	Input::MouseMode mouse_mode = Input::MOUSE_MODE_VISIBLE;
 	String address = CONNECTION_ADDRESS(connection);
 	Thread_set_name(("Server Connection: " + address).ascii().get_data());
@@ -799,21 +824,22 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			ZoneScopedNC("Send Buffered Image Data", tracy::Color::Gray71);
 			nothing_happens = false;
 
-			Ref<GRPacketImageData> pack = resize_viewport->pop_data_to_send();
+			Ref<GRPacket> pack = resize_viewport->pop_data_to_send();
 			if (pack.is_valid()) {
-				err = ppeer->put_var(pack->get_data());
-
 				// avg fps
 				_update_avg_fps(time64 - prev_send_image_time);
 				_adjust_viewport_scale();
 				prev_send_image_time = time64;
 
+				err = ppeer->put_var(pack->get_data());
+
 				if ((int)err) {
 					_log("Can't send image data! Code: " + str((int)err), LogLevel::LL_ERROR);
 					goto end_send;
 				}
+			} else {
+				_log("Got empty image data from the encoder", LogLevel::LL_ERROR);
 			}
-			// TODO mb some error here
 		} else {
 			if (!is_video_stream_enabled()) {
 				_update_avg_fps(0);
@@ -1101,6 +1127,9 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	thread_info->ppeer.unref();
 	thread_info->break_connection = true;
 	client_connected--;
+
+	// Reset target fps
+	Engine::get_singleton()->set_target_fps(default_target_fps);
 	_send_queue_resize(0);
 
 	call_deferred(NAMEOF(_load_settings));
@@ -1578,7 +1607,7 @@ void GRSViewport::set_compression_type(GRDevice::ImageCompressionType val) {
 	Scoped_lock(stream_mutex);
 	compression_type = val;
 	if (stream_manager)
-		stream_manager->start(compression_type, this);
+		stream_manager->set_compression_type(compression_type, this);
 }
 
 GRDevice::ImageCompressionType GRSViewport::get_compression_type() {
@@ -1722,4 +1751,4 @@ void GRSViewportRenderer::_init() {
 void GRSViewportRenderer::_deinit() {
 	LEAVE_IF_EDITOR();
 }
-#endif // !NO_GODOTREMOTE_SERVER
+#endif // NO_GODOTREMOTE_SERVER

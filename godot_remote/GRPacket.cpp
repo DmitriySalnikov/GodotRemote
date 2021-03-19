@@ -51,6 +51,8 @@ Ref<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 			CREATE(GRPacketClientStreamAspect);
 		case PacketType::CustomUserData:
 			CREATE(GRPacketCustomUserData);
+		case PacketType::H264Data:
+			CREATE(GRPacketH264);
 
 			// Requests
 		case PacketType::Ping:
@@ -81,10 +83,6 @@ bool GRPacketSyncTime::_create(Ref<StreamPeerBuffer> buf) {
 	return true;
 }
 
-uint64_t GRPacketSyncTime::get_time() {
-	return time;
-}
-
 //////////////////////////////////////////////////////////////////////////
 // IMAGE DATA
 Ref<StreamPeerBuffer> GRPacketImageData::_get_data() {
@@ -111,52 +109,30 @@ bool GRPacketImageData::_create(Ref<StreamPeerBuffer> buf) {
 	return true;
 }
 
-PoolByteArray GRPacketImageData::get_image_data() {
-	return img_data;
+//////////////////////////////////////////////////////////////////////////
+// H264 DATA
+Ref<StreamPeerBuffer> GRPacketH264::_get_data() {
+	auto buf = GRPacket::_get_data();
+	buf->put_8(is_stream_end);
+	buf->put_32((int)compression);
+	buf->put_var(size);
+	buf->put_var(format);
+	buf->put_var(img_data);
+	buf->put_var(start_time);
+	buf->put_var(frametime);
+	return buf;
 }
 
-int GRPacketImageData::get_compression_type() {
-	return (int)compression;
-}
-
-uint64_t GRPacketImageData::get_frametime() {
-	return frametime;
-}
-
-bool GRPacketImageData::get_is_stream_end() {
-	return is_stream_end;
-}
-
-Size2 GRPacketImageData::get_size() {
-	return size;
-}
-
-int GRPacketImageData::get_format() {
-	return format;
-}
-
-void GRPacketImageData::set_compression_type(int type) {
-	compression = type;
-}
-
-void GRPacketImageData::set_image_data(PoolByteArray &buf) {
-	img_data = buf;
-}
-
-void GRPacketImageData::set_frametime(uint64_t _frametime) {
-	frametime = _frametime;
-}
-
-void GRPacketImageData::set_is_stream_end(bool _empty) {
-	is_stream_end = _empty;
-}
-
-void GRPacketImageData::set_size(Size2 _size) {
-	size = _size;
-}
-
-void GRPacketImageData::set_format(int _format) {
-	format = _format;
+bool GRPacketH264::_create(Ref<StreamPeerBuffer> buf) {
+	GRPacket::_create(buf);
+	is_stream_end = (bool)buf->get_8();
+	compression = (int)buf->get_32();
+	size = buf->get_var();
+	format = buf->get_var();
+	img_data = buf->get_var();
+	start_time = buf->get_var();
+	frametime = buf->get_var();
+	return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -195,30 +171,6 @@ bool GRPacketInputData::_create(Ref<StreamPeerBuffer> buf) {
 	return true;
 }
 
-int GRPacketInputData::get_inputs_count() {
-	return (int)inputs.size();
-}
-
-Ref<GRInputData> GRPacketInputData::get_input_data(int idx) {
-	ERR_FAIL_INDEX_V(idx, (int)inputs.size(), Ref<GRInputData>());
-	return inputs[idx];
-}
-
-void GRPacketInputData::remove_input_data(int idx) {
-	ERR_FAIL_INDEX(idx, (int)inputs.size());
-
-	//inputs.remove(idx);
-	inputs.erase(inputs.begin() + idx);
-}
-
-void GRPacketInputData::add_input_data(Ref<GRInputData> &input) {
-	inputs.push_back(input);
-}
-
-void GRPacketInputData::set_input_data(std::vector<Ref<GRInputData> > &_inputs) {
-	inputs = _inputs;
-}
-
 //////////////////////////////////////////////////////////////////////////
 // SERVER SETTINGS
 Ref<StreamPeerBuffer> GRPacketServerSettings::_get_data() {
@@ -231,18 +183,6 @@ bool GRPacketServerSettings::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
 	settings = dict_to_map<int, Variant>(buf->get_var());
 	return true;
-}
-
-std::map<int, Variant> GRPacketServerSettings::get_settings() {
-	return settings;
-}
-
-void GRPacketServerSettings::set_settings(std::map<int, Variant> &_settings) {
-	settings = _settings;
-}
-
-void GRPacketServerSettings::add_setting(int _setting, Variant value) {
-	settings[_setting] = value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -258,13 +198,6 @@ bool GRPacketMouseModeSync::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
 	mouse_mode = (Input::MouseMode)buf->get_8();
 	return true;
-}
-Input::MouseMode GRPacketMouseModeSync::get_mouse_mode() {
-	return mouse_mode;
-}
-
-void GRPacketMouseModeSync::set_mouse_mode(Input::MouseMode _mode) {
-	mouse_mode = _mode;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -290,46 +223,6 @@ bool GRPacketCustomInputScene::_create(Ref<StreamPeerBuffer> buf) {
 	return true;
 }
 
-String GRPacketCustomInputScene::get_scene_path() {
-	return scene_path;
-}
-
-void GRPacketCustomInputScene::set_scene_path(String _path) {
-	scene_path = _path;
-}
-
-PoolByteArray GRPacketCustomInputScene::get_scene_data() {
-	return scene_data;
-}
-
-void GRPacketCustomInputScene::set_scene_data(PoolByteArray _data) {
-	scene_data = _data;
-}
-
-bool GRPacketCustomInputScene::is_compressed() {
-	return compressed;
-}
-
-void GRPacketCustomInputScene::set_compressed(bool val) {
-	compressed = val;
-}
-
-int GRPacketCustomInputScene::get_original_size() {
-	return original_data_size;
-}
-
-void GRPacketCustomInputScene::set_original_size(int val) {
-	original_data_size = val;
-}
-
-int GRPacketCustomInputScene::get_compression_type() {
-	return compression_type;
-}
-
-void GRPacketCustomInputScene::set_compression_type(int val) {
-	compression_type = val;
-}
-
 //////////////////////////////////////////////////////////////////////////
 // CLIENT DEVICE ROTATION
 
@@ -345,14 +238,6 @@ bool GRPacketClientStreamOrientation::_create(Ref<StreamPeerBuffer> buf) {
 	return true;
 }
 
-bool GRPacketClientStreamOrientation::is_vertical() {
-	return vertical;
-}
-
-void GRPacketClientStreamOrientation::set_vertical(bool val) {
-	vertical = val;
-}
-
 //////////////////////////////////////////////////////////////////////////
 // CLIENT SCREEN ASCPECT
 
@@ -366,14 +251,6 @@ bool GRPacketClientStreamAspect::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
 	stream_aspect = buf->get_float();
 	return true;
-}
-
-float GRPacketClientStreamAspect::get_aspect() {
-	return stream_aspect;
-}
-
-void GRPacketClientStreamAspect::set_aspect(float val) {
-	stream_aspect = val;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -393,28 +270,4 @@ bool GRPacketCustomUserData::_create(Ref<StreamPeerBuffer> buf) {
 	full_objects = buf->get_8();
 	user_data = buf->get_var(full_objects);
 	return true;
-}
-
-Variant GRPacketCustomUserData::get_packet_id() {
-	return packet_id;
-}
-
-void GRPacketCustomUserData::set_packet_id(Variant val) {
-	packet_id = val;
-}
-
-bool GRPacketCustomUserData::get_send_full_objects() {
-	return full_objects;
-}
-
-void GRPacketCustomUserData::set_send_full_objects(bool val) {
-	full_objects = val;
-}
-
-Variant GRPacketCustomUserData::get_user_data() {
-	return user_data;
-}
-
-void GRPacketCustomUserData::set_user_data(Variant val) {
-	user_data = val;
 }
