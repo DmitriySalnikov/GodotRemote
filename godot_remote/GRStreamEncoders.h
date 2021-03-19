@@ -137,7 +137,6 @@ private:
 	std::queue<std::shared_ptr<BufferedImage> > buffer;
 
 	PoolByteArray ret_data;
-	int compression_type = 0;
 	bool is_threads_active = true;
 
 	void _processing_thread(Variant p_userdata);

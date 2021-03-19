@@ -12,8 +12,8 @@ __pycache__
 # Binaries
 *.obj
 *.iobj
-*.so
-*.dll
+#*.so
+#*.dll
 *.o
 *.dylib
 *.pdb

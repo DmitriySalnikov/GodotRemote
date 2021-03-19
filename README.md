@@ -18,6 +18,9 @@ If you are developing on a non-touch device, this module is the best way to quic
 
 ### As a module
 
+<!-- TODO add clone --recursive or make a wrapper around Tracy macros-->
+<!-- TODO add license for libjpeg-turbo, tracy and openh264-->
+
 1. [configure environment](https://docs.godotengine.org/en/3.2/development/compiling/index.html) to build editor for your platform (you need to clone [3.2 branch](https://github.com/godotengine/godot/tree/3.2) not master)
 2. copy ```godot_remote``` folder to the ```modules/``` directory or make [symlink](https://en.wikipedia.org/wiki/Symbolic_link)
 3. compile engine with instructions from documentation above (e.g. ```scons p=windows tools=yes -j[place here count of your CPU threads]```)
