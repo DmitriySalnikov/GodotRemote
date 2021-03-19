@@ -778,36 +778,10 @@ step = 0.01
 value = 0.53
 tick_count = 5
 
-[node name="SkipFrames" type="HBoxContainer" parent="Scroll/H/Grid"]
+[node name="TargetFramerate" type="HBoxContainer" parent="Scroll/H/Grid"]
 margin_top = 2170.0
 margin_right = 744.0
 margin_bottom = 2216.0
-size_flags_horizontal = 3
-
-[node name="Label" type="Label" parent="Scroll/H/Grid/SkipFrames" groups=[
-"nodes_that_should_be_higher",
-]]
-margin_right = 370.0
-margin_bottom = 46.0
-size_flags_horizontal = 3
-text = "Skip Frames"
-valign = 1
-
-[node name="SKIP" type="SpinBox" parent="Scroll/H/Grid/SkipFrames" groups=[
-"nodes_that_should_be_higher",
-]]
-margin_left = 374.0
-margin_right = 744.0
-margin_bottom = 46.0
-size_flags_horizontal = 3
-size_flags_vertical = 5
-max_value = 1000.0
-align = 1
-
-[node name="TargetFramerate" type="HBoxContainer" parent="Scroll/H/Grid"]
-margin_top = 2240.0
-margin_right = 744.0
-margin_bottom = 2286.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="Scroll/H/Grid/TargetFramerate" groups=[
@@ -831,6 +805,32 @@ min_value = 1.0
 max_value = 1000.0
 value = 60.0
 rounded = true
+align = 1
+
+[node name="SkipFrames" type="HBoxContainer" parent="Scroll/H/Grid"]
+margin_top = 2240.0
+margin_right = 744.0
+margin_bottom = 2286.0
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/SkipFrames" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_right = 370.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "Skip Frames"
+valign = 1
+
+[node name="SKIP" type="SpinBox" parent="Scroll/H/Grid/SkipFrames" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_left = 374.0
+margin_right = 744.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+size_flags_vertical = 5
+max_value = 1000.0
 align = 1
 
 [node name="CompressionType" type="HBoxContainer" parent="Scroll/H/Grid"]
@@ -914,7 +914,7 @@ __meta__ = {
 [connection signal="toggled" from="Scroll/H/Grid/VideoStream" to="." method="_on_video_stream_Enabled_toggled"]
 [connection signal="value_changed" from="Scroll/H/Grid/JPG_Quality/Quality" to="." method="_on_server_Quality_value_changed"]
 [connection signal="value_changed" from="Scroll/H/Grid/RenderScale/Scale" to="." method="_on_server_render_Scale_value_changed"]
-[connection signal="value_changed" from="Scroll/H/Grid/SkipFrames/SKIP" to="." method="_on_server_send_FPS_value_changed"]
 [connection signal="value_changed" from="Scroll/H/Grid/TargetFramerate/fps" to="." method="_on_server_target_fps_value_changed"]
+[connection signal="value_changed" from="Scroll/H/Grid/SkipFrames/SKIP" to="." method="_on_server_send_FPS_value_changed"]
 [connection signal="item_selected" from="Scroll/H/Grid/CompressionType/State2" to="." method="_on_compression_type_item_selected"]
 [connection signal="id_pressed" from="LogLevelPopupMenu" to="." method="_on_LogLevelPopupMenu_id_pressed"]

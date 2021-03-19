@@ -87,6 +87,10 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_server_setting), "setting", "value"), &GRClient::set_server_setting);
 	ClassDB::bind_method(D_METHOD(NAMEOF(disable_overriding_server_settings)), &GRClient::disable_overriding_server_settings);
 
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_avg_delay)), &GRClient::get_avg_delay);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_min_delay)), &GRClient::get_min_delay);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_max_delay)), &GRClient::get_max_delay);
+
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_custom_input_scene)), &GRClient::get_custom_input_scene);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_address)), &GRClient::get_address);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_stream_active)), &GRClient::is_stream_active);
@@ -184,6 +188,10 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, get_address);
 	METHOD_REG(GRClient, is_stream_active);
 	METHOD_REG(GRClient, is_connected_to_host);
+
+	METHOD_REG(GRClient, get_avg_delay);
+	METHOD_REG(GRClient, get_min_delay);
+	METHOD_REG(GRClient, get_max_delay);
 
 	METHOD_REG(GRClient, set_decoder_threads_count);
 	METHOD_REG(GRClient, get_decoder_threads_count);
@@ -497,8 +505,9 @@ void GRClient::_image_lost() {
 	}
 }
 
-void GRClient::_display_new_image(Ref<Image> img) {
+void GRClient::_display_new_image(Ref<Image> img, uint64_t delay) {
 	call_deferred(NAMEOF(_update_texture_from_image), img);
+	_update_avg_delay(delay);
 	_update_avg_fps(OS::get_singleton()->get_ticks_usec() - prev_shown_frame_time);
 	prev_shown_frame_time = OS::get_singleton()->get_ticks_usec();
 
@@ -670,10 +679,21 @@ bool GRClient::set_address_port(String ip, uint16_t _port) {
 	return all_ok;
 }
 
-void GRClient::set_input_buffer(int mb) {
-
+void GRClient::set_input_buffer_size(int mb) {
 	input_buffer_size_in_mb = mb;
 	restart();
+}
+
+float GRClient::get_avg_delay() {
+	return avg_delay;
+}
+
+float GRClient::get_min_delay() {
+	return min_delay;
+}
+
+float GRClient::get_max_delay() {
+	return max_delay;
 }
 
 void GRClient::set_viewport_orientation_syncing(bool is_syncing) {
@@ -995,10 +1015,23 @@ void GRClient::_update_stream_texture_state(ENUM_ARG(StreamState) _stream_state)
 	}
 }
 
+void GRClient::_update_avg_delay(uint64_t delay) {
+	delay_queue.add_value_limited(delay, (int)round(Engine::get_singleton()->get_frames_per_second()));
+	calculate_avg_min_max_values(delay_queue, &avg_delay, &min_delay, &max_delay, &GRClient::_delay_calc_modifier);
+}
+
+float GRClient::_delay_calc_modifier(double i) {
+	if (i > 0)
+		return float(1000000.0 / i);
+	else
+		return 0;
+}
+
 void GRClient::_reset_counters() {
 	GRDevice::_reset_counters();
 	sync_time_client = 0;
 	sync_time_server = 0;
+	avg_delay = min_delay = max_delay = 0;
 }
 
 void GRClient::set_server_setting(ENUM_ARG(TypesOfServerSettings) param, Variant value) {

@@ -9,7 +9,7 @@ extends PopupPanel
 var changelog : Dictionary = {
 "1.0.2.0" : 
 """Client:
-Added detailed ping and fps stats.
+Added detailed Ping and FPS stats. Added Delay stats in detailed mode.
 Added the ability to change the number of touches to open the settings.
 Changed the 'Welcome' screen to be more clear. Now it can be reopened by clicking on 'Godot Remote' version in the settings.
 Added the ability to open settings when the broadcast is not active.
@@ -21,6 +21,7 @@ Most enums have been renamed and moved.
 Significantly improved JPG compression/decompression performance.
 Exposed all classes in GDScript, but did not expose their methods.
 Custom input scenes now adding '.md5' files from '.import' folder.
+Added 'tracy' profiler.
 """,
 }
 

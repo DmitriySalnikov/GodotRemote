@@ -106,10 +106,12 @@ private:
 	public:
 		Ref<Image> img;
 		uint64_t frametime;
+		uint64_t frame_send_time;
 		bool is_ready = false;
 		bool is_end = false;
-		BufferedImage(uint64_t time_of_frame) {
+		BufferedImage(uint64_t time_of_frame, uint64_t frame_added) {
 			frametime = time_of_frame;
+			frame_send_time = frame_added;
 		}
 	};
 

@@ -151,6 +151,9 @@ public:
 	uint64_t get_frametime() {
 		return frametime;
 	}
+	uint64_t get_start_time() {
+		return start_time;
+	}
 	bool get_is_stream_end() {
 		return is_stream_end;
 	}
@@ -169,6 +172,9 @@ public:
 	}
 	void set_frametime(uint64_t _frametime) {
 		frametime = _frametime;
+	}
+	void set_start_time(uint64_t _start_time) {
+		start_time = _start_time;
 	}
 	void set_is_stream_end(bool _empty) {
 		is_stream_end = _empty;

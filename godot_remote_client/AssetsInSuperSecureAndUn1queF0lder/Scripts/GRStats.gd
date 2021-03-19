@@ -7,11 +7,15 @@ onready var fps_max = $Grid/FPS_max
 onready var ping = $Grid/Ping
 onready var ping_min = $Grid/Ping_min
 onready var ping_max = $Grid/Ping_max
+onready var delay = $Grid/Delay
+onready var delay_min = $Grid/Delay_min
+onready var delay_max = $Grid/Delay_max
 var stat_state : int = 0
 
 onready var detailed_labels = [
 	ping_max, ping_min,
 	fps_max, fps_min,
+	delay, delay_max, delay_min,
 ]
 
 func _ready():
@@ -19,17 +23,22 @@ func _ready():
 	show_stats_changed(G.show_stats)
 
 func _process(_delta):
-	if GodotRemote.get_device():
+	if GodotRemote.get_device() and visible:
+		var dev = GodotRemote.get_device()
 		if stat_state > G.StatInfoState.Hidden:
-			fps.text = "FPS: %.1f" % GodotRemote.get_device().get_avg_fps()
-			ping.text = "PING: %.1f" % GodotRemote.get_device().get_avg_ping()
+			fps.text = "FPS: %.1f" % dev.get_avg_fps()
+			ping.text = "Ping: %.1f" % dev.get_avg_ping()
 		
 		if stat_state > G.StatInfoState.Simple:
-			fps_min.text = "%.1f" % GodotRemote.get_device().get_min_fps()
-			fps_max.text = "%.1f" % GodotRemote.get_device().get_max_fps()
+			fps_min.text = "%.1f" % dev.get_min_fps()
+			fps_max.text = "%.1f" % dev.get_max_fps()
 			
-			ping_min.text = "%.1f" % GodotRemote.get_device().get_min_ping()
-			ping_max.text = "%.1f" % GodotRemote.get_device().get_max_ping()
+			ping_min.text = "%.1f" % dev.get_min_ping()
+			ping_max.text = "%.1f" % dev.get_max_ping()
+			
+			delay.text = "Delay: %.1f" % dev.get_avg_delay()
+			delay_min.text = "%.1f" % dev.get_max_delay()
+			delay_max.text = "%.1f" % dev.get_max_delay()
 		
 		rect_size = grid.rect_size
 

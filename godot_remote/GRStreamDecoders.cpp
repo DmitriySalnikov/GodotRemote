@@ -266,7 +266,7 @@ void GRStreamDecoderImageSequence::push_packet_to_decode(Ref<GRPacket> packet) {
 			while (buffer.size())
 				buffer.pop();
 
-			auto img = std::make_shared<BufferedImage>(0);
+			auto img = std::make_shared<BufferedImage>(0, 0);
 			img->is_ready = true;
 			img->is_end = true;
 
@@ -300,24 +300,22 @@ void GRStreamDecoderImageSequence::update() {
 
 		if (buf->is_ready) {
 			uint64_t time = os->get_ticks_usec();
-			uint64_t next_frame = prev_shown_frame_time + buf->frametime;
+			// TODO check for correctness. it looks like the fps changes in a wave
+			uint64_t next_frame = prev_shown_frame_time + buf->frametime - 1_ms;
 			if (buf->is_end) {
 				gr_client->_image_lost();
 			} else if (time > next_frame) {
 				buffer.pop();
 
-				// TODO mb found a way to reduce delay
-				if (time > next_frame) {
-					prev_shown_frame_time = time;
-				} else {
-					prev_shown_frame_time = next_frame;
-				}
+				prev_shown_frame_time = time;
 
 				if (buf->img.is_valid() && !buf->img->empty()) {
-					gr_client->_display_new_image(buf->img);
+					// TODO does not work
+					gr_client->_display_new_image(buf->img, buf->frame_send_time - abs(int64_t(gr_client->sync_time_server) - int64_t(gr_client->sync_time_client)));
 				} else {
 					gr_client->_image_lost();
 				}
+				return;
 			}
 		}
 	}
@@ -422,7 +420,8 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 				continue;
 			}
 
-			auto buf_img = std::make_shared<BufferedImage>(image_pack->get_frametime());
+			auto buf_img = std::make_shared<BufferedImage>(image_pack->get_frametime(), image_pack->get_start_time());
+
 			buffer.push(buf_img);
 
 			ts_lock.unlock();

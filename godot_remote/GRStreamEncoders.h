@@ -79,11 +79,11 @@ protected:
 	class CommitedImage {
 	public:
 		Ref<Image> img;
-		uint64_t time;
+		uint64_t time_added;
 		uint64_t frametime;
-		CommitedImage(Ref<Image> image, uint64_t time_added, uint64_t frame_time) {
+		CommitedImage(Ref<Image> image, uint64_t _time_added, uint64_t frame_time) {
 			img = image;
-			time = time_added;
+			time_added = _time_added;
 			frametime = frame_time;
 		}
 	};
@@ -126,11 +126,7 @@ private:
 	class BufferedImage {
 	public:
 		Ref<GRPacket> pack;
-		uint64_t time;
 		bool is_ready = false;
-		BufferedImage(uint64_t time_added) {
-			time = time_added;
-		}
 	};
 
 	std::vector<Thread_define_type> threads;
@@ -176,11 +172,7 @@ private:
 	class BufferedImage {
 	public:
 		Ref<GRPacket> pack;
-		uint64_t time;
 		bool is_ready = false;
-		BufferedImage(uint64_t time_added) {
-			time = time_added;
-		}
 	};
 
 	ISVCEncoder *h264_encoder = nullptr;

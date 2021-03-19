@@ -151,6 +151,8 @@ private:
 
 	uint64_t sync_time_client = 0;
 	uint64_t sync_time_server = 0;
+	float avg_delay = 0, min_delay = 0, max_delay = 0;
+	GRUtils::iterable_queue<uint64_t> delay_queue;
 
 	// NO SIGNAL screen
 	uint64_t prev_valid_connection_time = 0;
@@ -172,7 +174,7 @@ private:
 	void _update_stream_manager();
 	void _push_pack_to_decoder(Ref<GRPacket> pack);
 	void _image_lost();
-	void _display_new_image(Ref<Image> img);
+	void _display_new_image(Ref<Image> img, uint64_t delay);
 
 	void _force_update_stream_viewport_signals();
 	void _load_custom_input_scene(Ref<class GRPacketCustomInputScene> _data);
@@ -182,6 +184,9 @@ private:
 
 	void _update_texture_from_image(Ref<Image> img);
 	void _update_stream_texture_state(ENUM_ARG(StreamState) _stream_state);
+
+	void _update_avg_delay(uint64_t delay);
+	static float _delay_calc_modifier(double i);
 	virtual void _reset_counters() override;
 
 	void _thread_connection(Variant p_userdata);
@@ -247,7 +252,11 @@ public:
 	String get_address();
 	bool set_address(String ip);
 	bool set_address_port(String ip, uint16_t _port);
-	void set_input_buffer(int mb);
+	void set_input_buffer_size(int mb);
+
+	float get_avg_delay();
+	float get_min_delay();
+	float get_max_delay();
 
 	void set_decoder_threads_count(int count);
 	int get_decoder_threads_count();
