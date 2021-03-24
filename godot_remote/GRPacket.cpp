@@ -35,8 +35,8 @@ std::shared_ptr<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 			ERR_FAIL_V_MSG(std::shared_ptr<GRPacket>(), "Can't create abstract GRPacket!");
 		case PacketType::SyncTime:
 			CREATE(GRPacketSyncTime);
-		case PacketType::ImageData:
-			CREATE(GRPacketImageData);
+		case PacketType::StreamDataImage:
+			CREATE(GRPacketStreamDataImage);
 		case PacketType::InputData:
 			CREATE(GRPacketInputData);
 		case PacketType::ServerSettings:
@@ -51,8 +51,8 @@ std::shared_ptr<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 			CREATE(GRPacketClientStreamAspect);
 		case PacketType::CustomUserData:
 			CREATE(GRPacketCustomUserData);
-		case PacketType::H264Data:
-			CREATE(GRPacketH264);
+		case PacketType::StreamDataH264:
+			CREATE(GRPacketStreamDataH264);
 
 			// Requests
 		case PacketType::Ping:
@@ -69,26 +69,25 @@ std::shared_ptr<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 }
 
 //////////////////////////////////////////////////////////////////////////
-// SYNC TIME
-
-Ref<StreamPeerBuffer> GRPacketSyncTime::_get_data() {
+// STREAM DATA
+Ref<StreamPeerBuffer> GRPacketStreamData::_get_data() {
 	auto buf = GRPacket::_get_data();
-	buf->put_var(OS::get_singleton()->get_ticks_usec());
+	buf->put_8(is_stream_end);
+	buf->put_32((int)compression);
 	return buf;
 }
 
-bool GRPacketSyncTime::_create(Ref<StreamPeerBuffer> buf) {
+bool GRPacketStreamData::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
-	time = buf->get_var();
+	is_stream_end = (bool)buf->get_8();
+	compression = (int)buf->get_32();
 	return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
-// IMAGE DATA
-Ref<StreamPeerBuffer> GRPacketImageData::_get_data() {
-	auto buf = GRPacket::_get_data();
-	buf->put_8(is_stream_end);
-	buf->put_32((int)compression);
+// STREAM DATA IMAGE
+Ref<StreamPeerBuffer> GRPacketStreamDataImage::_get_data() {
+	auto buf = GRPacketStreamData::_get_data();
 	buf->put_var(size);
 	buf->put_var(format);
 	buf->put_var(img_data);
@@ -97,10 +96,8 @@ Ref<StreamPeerBuffer> GRPacketImageData::_get_data() {
 	return buf;
 }
 
-bool GRPacketImageData::_create(Ref<StreamPeerBuffer> buf) {
-	GRPacket::_create(buf);
-	is_stream_end = (bool)buf->get_8();
-	compression = (int)buf->get_32();
+bool GRPacketStreamDataImage::_create(Ref<StreamPeerBuffer> buf) {
+	GRPacketStreamData::_create(buf);
 	size = buf->get_var();
 	format = buf->get_var();
 	img_data = buf->get_var();
@@ -110,10 +107,9 @@ bool GRPacketImageData::_create(Ref<StreamPeerBuffer> buf) {
 }
 
 //////////////////////////////////////////////////////////////////////////
-// H264 DATA
-Ref<StreamPeerBuffer> GRPacketH264::_get_data() {
-	auto buf = GRPacket::_get_data();
-	buf->put_8(is_stream_end);
+// STREAM DATA H264
+Ref<StreamPeerBuffer> GRPacketStreamDataH264::_get_data() {
+	auto buf = GRPacketStreamData::_get_data();
 	buf->put_64(start_time);
 	buf->put_64(data_size);
 	if (data_size > 0) {
@@ -122,15 +118,28 @@ Ref<StreamPeerBuffer> GRPacketH264::_get_data() {
 	return buf;
 }
 
-bool GRPacketH264::_create(Ref<StreamPeerBuffer> buf) {
-	GRPacket::_create(buf);
-	is_stream_end = (bool)buf->get_8();
+bool GRPacketStreamDataH264::_create(Ref<StreamPeerBuffer> buf) {
+	GRPacketStreamData::_create(buf);
 	start_time = buf->get_64();
 	data_size = buf->get_64();
 	if (data_size > 0) {
 		img_data = new uint8_t[data_size];
 		get_data_from_stream(buf, img_data, data_size);
 	}
+	return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// SYNC TIME
+Ref<StreamPeerBuffer> GRPacketSyncTime::_get_data() {
+	auto buf = GRPacket::_get_data();
+	buf->put_var(OS::get_singleton()->get_ticks_usec());
+	return buf;
+}
+
+bool GRPacketSyncTime::_create(Ref<StreamPeerBuffer> buf) {
+	GRPacket::_create(buf);
+	time = buf->get_var();
 	return true;
 }
 

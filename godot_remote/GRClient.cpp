@@ -490,7 +490,7 @@ void GRClient::_update_stream_manager() {
 	}
 }
 
-void GRClient::_push_pack_to_decoder(std::shared_ptr<GRPacket> pack) {
+void GRClient::_push_pack_to_decoder(std::shared_ptr<GRPacketStreamData> pack) {
 	Scoped_lock(stream_mutex);
 	if (stream_manager) {
 		stream_manager->push_packet_to_decode(pack);
@@ -1254,9 +1254,6 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	if (input_collector)
 		input_collector->set_process(true);
 
-	//Array stream_queue; // std::shared_ptr<GRPacketImageData>
-	std::vector<std::shared_ptr<GRPacketImageData> > stream_queue; // std::shared_ptr<GRPacketImageData>
-
 	uint64_t time64 = os->get_ticks_usec();
 	uint64_t prev_send_input_time = time64;
 	uint64_t prev_ping_sending_time = time64;
@@ -1372,27 +1369,17 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 				switch (type) {
 					// Stream Data
-					case GRPacket::PacketType::ImageData: {
-						shared_cast_def(GRPacketImageData, data, pack);
+					case GRPacket::PacketType::StreamDataImage:
+					case GRPacket::PacketType::StreamDataH264: {
+						shared_cast_def(GRPacketStreamData, data, pack);
 						if (!data) {
-							_log("Incorrect GRPacketImageData", LogLevel::LL_ERROR);
+							_log("Incorrect GRPacketStreamData", LogLevel::LL_ERROR);
 							continue;
 						}
 
 						_push_pack_to_decoder(data);
 						break;
 					}
-					case GRPacket::PacketType::H264Data: {
-						shared_cast_def(GRPacketH264, data, pack);
-						if (!data) {
-							_log("Incorrect GRPacketH264", LogLevel::LL_ERROR);
-							continue;
-						}
-
-						_push_pack_to_decoder(data);
-						break;
-					}
-
 					// Other
 					case GRPacket::PacketType::SyncTime: {
 						shared_cast_def(GRPacketSyncTime, data, pack);

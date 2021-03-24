@@ -47,7 +47,7 @@ public:
 	void commit_image(Ref<Image> img, uint64_t frametime);
 	void commit_stream_end();
 	bool has_data_to_send();
-	std::shared_ptr<GRPacket> pop_data_to_send();
+	std::shared_ptr<GRPacketStreamData> pop_data_to_send();
 	void set_threads_count(int count);
 	int get_threads_count();
 	void set_active(bool state);
@@ -98,7 +98,7 @@ public:
 	void commit_image(Ref<Image> img, uint64_t frametime);
 	virtual void commit_stream_end(){};
 	virtual bool has_data_to_send() { return false; }
-	virtual std::shared_ptr<GRPacket> pop_data_to_send() { return std::shared_ptr<GRPacket>(); }
+	virtual std::shared_ptr<GRPacketStreamData> pop_data_to_send() { return std::shared_ptr<GRPacketStreamData>(); }
 	virtual int get_max_queued_frames() { return 16; }
 	virtual void start_encoder_threads(int count){};
 	virtual void stop_encoder_threads(){};

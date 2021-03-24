@@ -172,7 +172,7 @@ private:
 
 	void _stop_decoder();
 	void _update_stream_manager();
-	void _push_pack_to_decoder(std::shared_ptr<GRPacket> pack);
+	void _push_pack_to_decoder(std::shared_ptr<GRPacketStreamData> pack);
 	void _image_lost();
 	void _display_new_image(Ref<Image> img, uint64_t delay);
 

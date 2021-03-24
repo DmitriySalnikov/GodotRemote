@@ -147,12 +147,12 @@ bool GRStreamEncodersManager::has_data_to_send() {
 	return false;
 }
 
-std::shared_ptr<GRPacket> GRStreamEncodersManager::pop_data_to_send() {
+std::shared_ptr<GRPacketStreamData> GRStreamEncodersManager::pop_data_to_send() {
 	Scoped_lock(ts_lock);
 	if (encoder) {
 		return encoder->pop_data_to_send();
 	}
-	return std::shared_ptr<GRPacket>();
+	return std::shared_ptr<GRPacketStreamData>();
 }
 
 void GRStreamEncodersManager::set_threads_count(int count) {

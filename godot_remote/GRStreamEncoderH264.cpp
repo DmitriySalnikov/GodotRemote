@@ -87,11 +87,11 @@ void GRStreamEncoderH264::commit_stream_end() {
 		images.pop();
 
 	auto b = std::make_shared<BufferedImage>();
-	auto p = std::make_shared<GRPacketImageData>();
+	auto p = std::make_shared<GRPacketStreamDataH264>();
 	p->set_is_stream_end(true);
 
 	b->is_ready = true;
-	shared_cast_var(GRPacket, b->pack, p);
+	shared_cast_var(GRPacketStreamDataH264, b->pack, p);
 	buffer.push(b);
 }
 
@@ -100,7 +100,7 @@ bool GRStreamEncoderH264::has_data_to_send() {
 	return buffer.size() && buffer.front()->is_ready;
 }
 
-std::shared_ptr<GRPacket> GRStreamEncoderH264::pop_data_to_send() {
+std::shared_ptr<GRPacketStreamData> GRStreamEncoderH264::pop_data_to_send() {
 	Scoped_lock(ts_lock);
 	auto buf_img = buffer.front();
 	buffer.pop();
@@ -320,7 +320,7 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 		}
 
 		if (buffer.size()) {
-			shared_cast_def(GRPacketH264, im, buffer.front()->pack);
+			shared_cast_def(GRPacketStreamDataH264, im, buffer.front()->pack);
 			if (im && im->get_is_stream_end()) {
 				ts_lock.unlock();
 				continue;
@@ -331,7 +331,7 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 		buffer.push(buf_img);
 
 		Ref<Image> img = com_image.img;
-		auto pack = shared_new(GRPacketH264);
+		auto pack = shared_new(GRPacketStreamDataH264);
 		int bytes_in_color = img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
 
 		GRServer *srv = cast_to<GRServer>(GodotRemote::get_singleton()->get_device());

@@ -996,10 +996,6 @@ void GRServer::_thread_connection(Variant p_userdata) {
 						ERR_PRINT("NOT IMPLEMENTED");
 						break;
 					}
-					case GRPacket::PacketType::ImageData: {
-						ERR_PRINT("NOT IMPLEMENTED");
-						break;
-					}
 					case GRPacket::PacketType::InputData: {
 						shared_cast_def(GRPacketInputData, data, pack);
 						if (!data) {

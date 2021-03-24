@@ -39,7 +39,7 @@ src_files = [
     'GRResources.cpp',
     'GRServer.cpp',
     'GRStreamDecoders.cpp',
-	'GRStreamDecoderH264.cpp',
+    'GRStreamDecoderH264.cpp',
     'GRStreamDecoderImageSequence.cpp',
     'GRStreamEncoders.cpp',
     'GRStreamEncoderH264.cpp',

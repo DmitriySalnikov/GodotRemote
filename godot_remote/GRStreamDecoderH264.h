@@ -69,7 +69,7 @@ protected:
 	void _notification(int p_notification);
 
 public:
-	virtual void push_packet_to_decode(std::shared_ptr<GRPacket> packet) override;
+	virtual void push_packet_to_decode(std::shared_ptr<GRPacketStreamData> packet) override;
 	virtual void update() override;
 	virtual int get_max_queued_frames() override;
 	virtual void start_decoder_threads(int count) override;

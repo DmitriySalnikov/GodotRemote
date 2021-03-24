@@ -29,7 +29,7 @@ class GRStreamEncoderImageSequence : public GRStreamEncoder {
 private:
 	class BufferedImage {
 	public:
-		std::shared_ptr<GRPacket> pack;
+		std::shared_ptr<GRPacketStreamDataImage> pack;
 		bool is_ready = false;
 	};
 
@@ -56,7 +56,7 @@ protected:
 public:
 	virtual void commit_stream_end() override;
 	virtual bool has_data_to_send() override;
-	virtual std::shared_ptr<GRPacket> pop_data_to_send() override;
+	virtual std::shared_ptr<GRPacketStreamData> pop_data_to_send() override;
 	virtual int get_max_queued_frames() override;
 	virtual void start_encoder_threads(int count) override;
 	virtual void stop_encoder_threads() override;

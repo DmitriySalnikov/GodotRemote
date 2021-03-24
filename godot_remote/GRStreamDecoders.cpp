@@ -60,10 +60,10 @@ void GRStreamDecodersManager::_notification(int p_notification) {
 	}
 }
 
-void GRStreamDecodersManager::_start_decoder(std::shared_ptr<GRPacket> packet) {
+void GRStreamDecodersManager::_start_decoder(std::shared_ptr<GRPacketStreamData> packet) {
 	active = true;
 
-	shared_cast_def(GRPacketImageData, pid, packet);
+	shared_cast_def(GRPacketStreamDataImage, pid, packet);
 	if (pid) {
 		GRStreamDecoderImageSequence *tmp_en = decoder ? cast_to<GRStreamDecoderImageSequence>(decoder) : nullptr;
 		if (tmp_en) {
@@ -81,7 +81,7 @@ void GRStreamDecodersManager::_start_decoder(std::shared_ptr<GRPacket> packet) {
 		return;
 	}
 
-	shared_cast_def(GRPacketH264, ph264, packet);
+	shared_cast_def(GRPacketStreamDataH264, ph264, packet);
 	if (ph264) {
 		GRStreamDecoderH264 *tmp_en = decoder ? cast_to<GRStreamDecoderH264>(decoder) : nullptr;
 		if (tmp_en) {
@@ -118,7 +118,7 @@ void GRStreamDecodersManager::set_gr_client(GRClient *client) {
 	gr_client = client;
 }
 
-void GRStreamDecodersManager::push_packet_to_decode(std::shared_ptr<GRPacket> packet) {
+void GRStreamDecodersManager::push_packet_to_decode(std::shared_ptr<GRPacketStreamData> packet) {
 	Scoped_lock(ts_lock);
 	_start_decoder(packet);
 	if (decoder) {
@@ -205,7 +205,7 @@ void GRStreamDecoder::set_gr_client(GRClient *client) {
 	gr_client = client;
 }
 
-void GRStreamDecoder::push_packet_to_decode(std::shared_ptr<GRPacket> packet) {
+void GRStreamDecoder::push_packet_to_decode(std::shared_ptr<GRPacketStreamData> packet) {
 	if (packet) {
 		Scoped_lock(ts_lock);
 		while (images.size() > get_max_queued_frames()) {

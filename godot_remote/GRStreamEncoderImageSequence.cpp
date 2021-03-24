@@ -69,11 +69,11 @@ void GRStreamEncoderImageSequence::commit_stream_end() {
 
 	
 	auto b = shared_new(BufferedImage);
-	auto p = shared_new(GRPacketImageData);
+	auto p = shared_new(GRPacketStreamDataImage);
 	p->set_is_stream_end(true);
 
 	b->is_ready = true;
-	shared_cast_var(GRPacket, b->pack, p);
+	shared_cast_var(GRPacketStreamDataImage, b->pack, p);
 	buffer.push(b);
 }
 
@@ -82,7 +82,7 @@ bool GRStreamEncoderImageSequence::has_data_to_send() {
 	return buffer.size() && buffer.front()->is_ready;
 }
 
-std::shared_ptr<GRPacket> GRStreamEncoderImageSequence::pop_data_to_send() {
+std::shared_ptr<GRPacketStreamData> GRStreamEncoderImageSequence::pop_data_to_send() {
 	Scoped_lock(ts_lock);
 	auto buf_img = buffer.front();
 	buffer.pop();
@@ -177,7 +177,7 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		}
 
 		if (buffer.size()) {
-			shared_cast_def(GRPacketImageData, im, buffer.front()->pack);
+			shared_cast_def(GRPacketStreamDataImage, im, buffer.front()->pack);
 			if (im && im->get_is_stream_end()) {
 				ts_lock.unlock();
 				continue;
@@ -191,7 +191,7 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 
 		Ref<Image> img = com_image.img;
 		PoolByteArray img_data;
-		std::shared_ptr<GRPacketImageData> pack = shared_new(GRPacketImageData);
+		auto pack = shared_new(GRPacketStreamDataImage);
 		int bytes_in_color = img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
 
 		pack->set_compression_type(compression_type);

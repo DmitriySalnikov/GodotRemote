@@ -60,11 +60,11 @@ void GRStreamDecoderH264::_notification(int p_notification) {
 	}
 }
 
-void GRStreamDecoderH264::push_packet_to_decode(std::shared_ptr<GRPacket> packet) {
+void GRStreamDecoderH264::push_packet_to_decode(std::shared_ptr<GRPacketStreamData> packet) {
 	ZoneScopedNC("Push packet to decode", tracy::Color::Ivory);
 	GRStreamDecoder::push_packet_to_decode(packet);
 
-	shared_cast_def(GRPacketImageData, img_data, packet);
+	shared_cast_def(GRPacketStreamDataH264, img_data, packet);
 	if (img_data) {
 		if (img_data->get_is_stream_end()) {
 			Scoped_lock(ts_lock);
@@ -259,7 +259,7 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 		}
 
 		Error err = Error::OK;
-		shared_cast_def(GRPacketH264, image_pack, images.front());
+		shared_cast_def(GRPacketStreamDataH264, image_pack, images.front());
 		images.pop();
 
 		if (image_pack) {

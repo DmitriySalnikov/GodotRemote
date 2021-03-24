@@ -26,7 +26,7 @@ public:
 	enum PacketType : int {
 		NonePacket = 0,
 		SyncTime = 1,
-		ImageData = 2,
+		StreamDataImage = 2,
 		InputData = 3,
 		ServerSettings = 4,
 		MouseModeSync = 5,
@@ -34,7 +34,8 @@ public:
 		ClientStreamOrientation = 7,
 		ClientStreamAspect = 8,
 		CustomUserData = 9,
-		H264Data = 10,
+		StreamDataH264 = 10,
+		StreamData = 11, // abstract
 
 		// Requests
 		Ping = 128,
@@ -82,16 +83,11 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// IMAGE DATA
-class GRPacketImageData : public GRPacket {
+// STREAM DATA
+class GRPacketStreamData : public GRPacket {
 	friend GRPacket;
 
 	/*GRDevice::ImageCompressionType*/ int compression = 1 /*GRDevice::ImageCompressionType::JPG*/;
-	Size2 size;
-	int format = 0;
-	PoolByteArray img_data;
-	uint64_t start_time = 0;
-	uint64_t frametime = 0;
 	bool is_stream_end = false;
 
 protected:
@@ -99,13 +95,43 @@ protected:
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
 public:
-	virtual PacketType get_type() override { return PacketType::ImageData; };
+	virtual PacketType get_type() override { return PacketType::StreamData; };
+
+	int get_compression_type() {
+		return (int)compression;
+	}
+	bool get_is_stream_end() {
+		return is_stream_end;
+	}
+
+	void set_compression_type(int type) {
+		compression = type;
+	}
+	void set_is_stream_end(bool _empty) {
+		is_stream_end = _empty;
+	}
+};
+
+//////////////////////////////////////////////////////////////////////////
+// STREAM DATA IMAGE
+class GRPacketStreamDataImage : public GRPacketStreamData {
+	friend GRPacket;
+
+	Size2 size;
+	int format = 0;
+	PoolByteArray img_data;
+	uint64_t start_time = 0;
+	uint64_t frametime = 0;
+
+protected:
+	virtual Ref<StreamPeerBuffer> _get_data() override;
+	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+
+public:
+	virtual PacketType get_type() override { return PacketType::StreamDataImage; };
 
 	PoolByteArray get_image_data() {
 		return img_data;
-	}
-	int get_compression_type() {
-		return (int)compression;
 	}
 	Size2 get_size() {
 		return size;
@@ -119,15 +145,9 @@ public:
 	uint64_t get_start_time() {
 		return start_time;
 	}
-	bool get_is_stream_end() {
-		return is_stream_end;
-	}
 
 	void set_image_data(PoolByteArray &buf) {
 		img_data = buf;
-	}
-	void set_compression_type(int type) {
-		compression = type;
 	}
 	void set_size(Size2 _size) {
 		size = _size;
@@ -141,27 +161,23 @@ public:
 	void set_start_time(uint64_t _start_time) {
 		start_time = _start_time;
 	}
-	void set_is_stream_end(bool _empty) {
-		is_stream_end = _empty;
-	}
 };
 
 //////////////////////////////////////////////////////////////////////////
-// H264 DATA
-class GRPacketH264 : public GRPacket {
+// STREAM DATA H264
+class GRPacketStreamDataH264 : public GRPacketStreamData {
 	friend GRPacket;
 
 	uint64_t data_size = 0;
 	uint8_t *img_data = nullptr;
 	uint64_t start_time = 0;
-	bool is_stream_end = false;
 
 protected:
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
 public:
-	virtual PacketType get_type() override { return PacketType::H264Data; };
+	virtual PacketType get_type() override { return PacketType::StreamDataH264; };
 
 	uint64_t get_image_data_size() {
 		return data_size;
@@ -171,9 +187,6 @@ public:
 	}
 	uint64_t get_start_time() {
 		return start_time;
-	}
-	bool get_is_stream_end() {
-		return is_stream_end;
 	}
 
 	void set_image_data(uint8_t *buf, uint64_t size) {
@@ -188,11 +201,8 @@ public:
 	void set_start_time(uint64_t _start_time) {
 		start_time = _start_time;
 	}
-	void set_is_stream_end(bool _empty) {
-		is_stream_end = _empty;
-	}
 
-	~GRPacketH264() {
+	~GRPacketStreamDataH264() {
 		if (img_data) {
 			delete img_data;
 			img_data = nullptr;
