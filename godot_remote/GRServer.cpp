@@ -375,7 +375,7 @@ void GRServer::_internal_call_only_deffered_start() {
 	set_status(WorkingStatus::STATUS_WORKING);
 	call_deferred(NAMEOF(_load_settings), true);
 
-	GRNotifications::add_notification("Godot Remote Server Status", "Server started", GRNotifications::GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
+	GRNotifications::add_notification_or_update_line("Godot Remote Server", "1status", "Server started", GRNotifications::GRNotifications::NotificationIcon::ICON_SUCCESS, 1.f);
 }
 
 void GRServer::_internal_call_only_deffered_stop() {
@@ -407,7 +407,7 @@ void GRServer::_internal_call_only_deffered_stop() {
 
 	set_status(WorkingStatus::STATUS_STOPPED);
 
-	GRNotifications::add_notification("Godot Remote Server Status", "Server stopped", GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
+	GRNotifications::add_notification_or_update_line("Godot Remote Server", "1status", "Server stopped", GRNotifications::NotificationIcon::ICON_FAIL, 1.f);
 }
 
 void GRServer::_remove_resize_viewport(Node *node) {
@@ -673,7 +673,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 				continue;
 			} else {
 				_log("Start listening port " + str(port), LogLevel::LL_NORMAL);
-				GRNotifications::add_notification("Start listening", "Start listening on port: " + str(port), GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
+				GRNotifications::add_notification_or_update_line("Godot Remote Server", "2listening", "Start listening on port: " + str(port), GRNotifications::NotificationIcon::ICON_SUCCESS, 1.f);
 			}
 		}
 		listening_error_notification_shown = false;

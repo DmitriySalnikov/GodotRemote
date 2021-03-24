@@ -426,6 +426,12 @@ void set_gyroscope(const Vector3 &p_gyroscope) {
 #endif
 }
 
+Ref<_Thread> utils_thread_create(Object *instance, String func_name, const Variant &user_data) {
+	Ref<_Thread> t = newref(_Thread);
+	t->start(instance, func_name, user_data);
+	return t;
+}
+
 #ifndef GDNATIVE_LIBRARY
 Vector<Variant> vec_args(const std::vector<Variant> &args) {
 	Vector<Variant> res;
@@ -434,12 +440,6 @@ Vector<Variant> vec_args(const std::vector<Variant> &args) {
 	}
 
 	return res;
-}
-
-Ref<_Thread> _utils_thread_create(Object *instance, String func_name, const Variant &user_data) {
-	Ref<_Thread> t = newref(_Thread);
-	t->start(instance, func_name, user_data);
-	return t;
 }
 
 #else
@@ -488,12 +488,6 @@ Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx) {
 	Variant r = v[idx];
 	v.clear();
 	return r;
-}
-
-Ref<Thread> _utils_thread_create(Object *instance, String func_name, const Variant &user_data) {
-	Ref<Thread> t = newref(Thread);
-	t->start(instance, func_name, user_data);
-	return t;
 }
 
 Variant _GLOBAL_DEF(const String &p_var, const Variant &p_default, bool p_restart_if_changed) {

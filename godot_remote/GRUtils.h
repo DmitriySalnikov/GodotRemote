@@ -76,9 +76,6 @@ using namespace godot;
 #define file_open(var, path, flags) \
 	auto var = FileAccess::open(path, flags);
 
-#define Thread_define_type Ref<_Thread>
-#define Thread_define(_var) Ref<_Thread> _var
-
 #else
 
 enum Margin : int {
@@ -88,9 +85,7 @@ enum Margin : int {
 	MARGIN_BOTTOM
 };
 
-#define Thread_define_type Ref<Thread>
-#define Thread_define(_var) Ref<Thread> _var
-
+typedef Thread _Thread;
 // THREAD SAFE END
 
 #define VARIANT_OBJ_CAST_TO(var, to) ((to *)var)
@@ -187,13 +182,13 @@ enum Margin : int {
 		return;
 
 #define t_wait_to_finish(thread) thread->wait_to_finish()
-#define Thread_start(_var, inst, function, data_to_send) _var = _utils_thread_create(inst, #function, data_to_send)
-#define Thread_start_string(_var, inst, function_string, data_to_send) _var = _utils_thread_create(inst, function_string, data_to_send)
+#define Thread_start(_var, inst, function, data_to_send) Thread_start_string(_var, inst, #function, data_to_send)
+#define Thread_start_string(_var, inst, function_string, data_to_send) _var = utils_thread_create(inst, function_string, data_to_send)
 #define Thread_close(_name)                       \
 	if (_name.is_valid() && _name->is_active()) { \
 		t_wait_to_finish(_name);                  \
 		_name.unref();                            \
-		_name = Thread_define_type();             \
+		_name = Ref<_Thread>();                   \
 	}
 
 #define shared_cast(type, from) std::dynamic_pointer_cast<type>(from)
@@ -292,6 +287,8 @@ extern void set_gravity(const Vector3 &p_gravity);
 extern void set_accelerometer(const Vector3 &p_accel);
 extern void set_magnetometer(const Vector3 &p_magnetometer);
 extern void set_gyroscope(const Vector3 &p_gyroscope);
+
+extern Ref<_Thread> utils_thread_create(Object *instance, String func_name, const Variant &user_data);
 
 // IMPLEMENTATINS
 
@@ -472,7 +469,6 @@ static std::vector<V> arr_to_vec(Array a) {
 
 #ifndef GDNATIVE_LIBRARY
 extern Vector<Variant> vec_args(const std::vector<Variant> &args);
-extern Ref<class _Thread> _utils_thread_create(Object *instance, String func_name, const Variant &user_data);
 
 #else
 extern Array vec_args(const std::vector<Variant> &args);
@@ -482,7 +478,6 @@ extern void _gdn_convert_array_to_native_pointer_array(uint8_t *pDst, const Arra
 extern String _gdn_get_file_as_string(String path, Error *ret_err);
 extern Variant _gdn_dictionary_get_key_at_index(Dictionary d, int idx);
 extern Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx);
-extern Ref<Thread> _utils_thread_create(Object *instance, String func_name, const Variant &user_data);
 extern Variant _GLOBAL_DEF(const String &p_var, const Variant &p_default, bool p_restart_if_changed = false);
 #endif
 

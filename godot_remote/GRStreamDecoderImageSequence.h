@@ -41,14 +41,17 @@ private:
 		}
 	};
 
-	std::vector<Thread_define_type> threads;
+	std::vector<Ref<_Thread> > threads;
+	Ref<_Thread> update_thread;
 	GRUtils::iterable_queue<std::shared_ptr<BufferedImage> > buffer;
 
 	PoolByteArray ret_data;
 	bool is_threads_active = true;
+	bool is_update_thread_active = true;
 	bool video_stream_enabled = true;
 	uint64_t prev_shown_frame_time = 0;
 
+	void _update_thread(Variant p_userdata);
 	void _processing_thread(Variant p_userdata);
 
 protected:
@@ -65,7 +68,6 @@ protected:
 
 public:
 	virtual void push_packet_to_decode(std::shared_ptr<GRPacketStreamData> packet) override;
-	virtual void update() override;
 	virtual int get_max_queued_frames() override;
 	virtual void start_decoder_threads(int count) override;
 	virtual void stop_decoder_threads() override;

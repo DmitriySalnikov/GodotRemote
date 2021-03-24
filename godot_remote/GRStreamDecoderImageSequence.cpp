@@ -32,6 +32,7 @@ using namespace GRUtils;
 
 void GRStreamDecoderImageSequence::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(_processing_thread), "user_data"), &GRStreamDecoderImageSequence::_processing_thread);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_update_thread), "user_data"), &GRStreamDecoderImageSequence::_update_thread);
 	//ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
 	//ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
 }
@@ -40,6 +41,7 @@ void GRStreamDecoderImageSequence::_bind_methods() {
 
 void GRStreamDecoderImageSequence::_register_methods() {
 	METHOD_REG(GRStreamDecoderImageSequence, _processing_thread);
+	METHOD_REG(GRStreamDecoderImageSequence, _update_thread);
 	//register_property<GRStreamDecoders, String>("password", &GRStreamDecoders::set_password, &GRStreamDecoders::get_password, "");
 	//register_signal<GRStreamDecoders>("client_connected", "device_id", GODOT_VARIANT_TYPE_STRING);
 }
@@ -79,57 +81,6 @@ void GRStreamDecoderImageSequence::push_packet_to_decode(std::shared_ptr<GRPacke
 
 			buffer.push(img);
 		}
-	}
-}
-
-// TODO add a way to calculate delay of stream. based on sync time mb
-
-void GRStreamDecoderImageSequence::update() {
-	ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
-	Scoped_lock(ts_lock);
-	auto os = OS::get_singleton();
-
-	if (buffer.size()) {
-		int count = 0;
-		for (auto d : buffer) {
-			if (d->is_ready)
-				count++;
-			else
-				break;
-		}
-
-		while (count > 1) {
-			buffer.pop();
-			count--;
-		}
-
-		auto buf = buffer.front();
-
-		if (buf->is_ready) {
-			uint64_t time = os->get_ticks_usec();
-			// TODO check for correctness. it looks like the fps changes in a wave
-			uint64_t next_frame = prev_shown_frame_time + buf->frametime - 1_ms;
-			if (buf->is_end) {
-				gr_client->_image_lost();
-			} else if (time > next_frame) {
-				buffer.pop();
-
-				prev_shown_frame_time = time;
-
-				if (buf->img.is_valid() && !img_is_empty(buf->img)) {
-					// TODO does not work
-					gr_client->_display_new_image(buf->img, buf->frame_send_time - abs(int64_t(gr_client->sync_time_server) - int64_t(gr_client->sync_time_client)));
-				} else {
-					gr_client->_image_lost();
-				}
-				return;
-			}
-		}
-	}
-
-	// check if image displayed less then few seconds ago. if not then remove texture
-	if (os->get_ticks_usec() > int64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
-		gr_client->_image_lost();
 	}
 }
 
@@ -184,13 +135,71 @@ void GRStreamDecoderImageSequence::_init() {
 #else
 	GRStreamDecoder::_init();
 #endif
+	is_update_thread_active = true;
+	Thread_start(update_thread, this, _update_thread, Variant());
 }
 
 void GRStreamDecoderImageSequence::_deinit() {
 	LEAVE_IF_EDITOR();
 	stop_decoder_threads();
-	while (buffer.size())
-		buffer.pop();
+	is_update_thread_active = false;
+	Thread_close(update_thread);
+}
+
+// TODO add a way to calculate delay of stream. based on sync time mb
+void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
+	auto os = OS::get_singleton();
+	while (is_update_thread_active) {
+		ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
+		ts_lock.lock();
+
+		if (buffer.size()) {
+			int count = 0;
+			for (auto d : buffer) {
+				if (d->is_ready)
+					count++;
+				else
+					break;
+			}
+
+			while (count > 1) {
+				buffer.pop();
+				count--;
+			}
+
+			auto buf = buffer.front();
+
+			if (buf->is_ready) {
+				uint64_t time = os->get_ticks_usec();
+				// TODO check for correctness. it looks like the fps changes in a wave
+				uint64_t next_frame = prev_shown_frame_time + buf->frametime - 1_ms;
+				if (buf->is_end) {
+					gr_client->_image_lost();
+				} else if (time > next_frame) {
+					buffer.pop();
+
+					prev_shown_frame_time = time;
+
+					if (buf->img.is_valid() && !img_is_empty(buf->img)) {
+						// TODO does not work
+						gr_client->_display_new_image(buf->img, buf->frame_send_time - abs(int64_t(gr_client->sync_time_server) - int64_t(gr_client->sync_time_client)));
+					} else {
+						gr_client->_image_lost();
+					}
+					ts_lock.unlock();
+					sleep_usec(1_ms);
+					continue;
+				}
+			}
+		}
+		ts_lock.unlock();
+		sleep_usec(1_ms);
+
+		// check if image displayed less then few seconds ago. if not then remove texture
+		if (os->get_ticks_usec() > int64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
+			gr_client->_image_lost();
+		}
+	}
 }
 
 void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {

@@ -240,7 +240,7 @@ void _get_encoder_params(ISVCEncoder *h264_encoder, SEncParamExt *p_param, GRStr
 	GET_PARAM_FROM_CFG(p_param->iComplexityMode, ECOMPLEXITY_MODE::MEDIUM_COMPLEXITY, (ECOMPLEXITY_MODE)(int));
 	GET_PARAM_FROM_CFG(p_param->eSpsPpsIdStrategy, EParameterSetStrategy::INCREASING_ID, (EParameterSetStrategy)(int)); ///< different strategy in adjust ID in SPS/PPS: 0- constant ID, 1-additional ID, 6-mapping and additional
 	GET_PARAM_FROM_CFG(p_param->bPrefixNalAddingCtrl, false, (bool)); ///< false:not use Prefix NAL; true: use Prefix NAL
-	GET_PARAM_FROM_CFG(p_param->bEnableSSEI, true, (bool)); ///< false:not use SSEI; true: use SSEI -- TODO: planning to remove the interface of SSEI
+	GET_PARAM_FROM_CFG(p_param->bEnableSSEI, true, (bool)); ///< false:not use SSEI; true: use SSEI -- todo: planning to remove the interface of SSEI
 	GET_PARAM_FROM_CFG(p_param->bSimulcastAVC, false, (bool)); ///< (when encoding more than 1 spatial layer) false: use SVC syntax for higher layers; true: use Simulcast AVC
 	GET_PARAM_FROM_CFG(p_param->iPaddingFlag, 0, (int)); ///< 0:disable padding;1:padding
 	GET_PARAM_FROM_CFG(p_param->iEntropyCodingModeFlag, 0, (int)); ///< 0:CAVLC  1:CABAC.
@@ -254,7 +254,7 @@ void _get_encoder_params(ISVCEncoder *h264_encoder, SEncParamExt *p_param, GRStr
 
 	// LTR settings
 	GET_PARAM_FROM_CFG(p_param->bEnableLongTermReference, 0, (int)); ///< 1: on, 0: off
-	GET_PARAM_FROM_CFG(p_param->iLTRRefNum, 0, (int)); ///< the number of LTR(long term reference),TODO: not supported to set it arbitrary yet
+	GET_PARAM_FROM_CFG(p_param->iLTRRefNum, 0, (int)); ///< the number of LTR(long term reference),todo: not supported to set it arbitrary yet
 	GET_PARAM_FROM_CFG(p_param->iLtrMarkPeriod, props->max_frame_rate / 2, (int)); ///< the LTR marked period that is used in feedback.
 
 	// multi-thread settings

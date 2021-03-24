@@ -33,7 +33,7 @@ private:
 		bool is_ready = false;
 	};
 
-	std::vector<Thread_define_type> threads;
+	std::vector<Ref<_Thread>> threads;
 	std::queue<std::shared_ptr<BufferedImage> > buffer;
 
 	PoolByteArray ret_data;

@@ -67,7 +67,6 @@ void GRStreamEncoderImageSequence::commit_stream_end() {
 	while (images.size())
 		images.pop();
 
-	
 	auto b = shared_new(BufferedImage);
 	auto p = shared_new(GRPacketStreamDataImage);
 	p->set_is_stream_end(true);

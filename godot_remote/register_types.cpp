@@ -98,11 +98,17 @@ using namespace godot;
 
 /** GDNative Initialize **/
 extern "C" void GDN_EXPORT godot_gdnative_init(godot_gdnative_init_options *o) {
+#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
+	tracy::StartupProfiler();
+#endif
 	Godot::gdnative_init(o);
 }
 
 /** GDNative Terminate **/
 extern "C" void GDN_EXPORT godot_gdnative_terminate(godot_gdnative_terminate_options *o) {
+#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
+	tracy::ShutdownProfiler();
+#endif
 	Godot::gdnative_terminate(o);
 }
 
@@ -144,7 +150,6 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 	register_class<GRStreamDecoderImageSequence>();
 	register_class<GRStreamDecoderH264>();
 #endif
-
 	//register_class<GRPacket>();
 }
 #endif

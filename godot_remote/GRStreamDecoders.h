@@ -45,7 +45,6 @@ protected:
 	void _start_decoder(std::shared_ptr<GRPacketStreamData> packet);
 
 public:
-	void update();
 	void set_gr_client(GRClient *client);
 	void push_packet_to_decode(std::shared_ptr<GRPacketStreamData> packet);
 	void set_threads_count(int count);
@@ -84,8 +83,6 @@ public:
 	void set_gr_client(GRClient *client);
 	void set_decoders_manager(GRStreamDecodersManager *manager) { decoders_manager = manager; };
 	virtual void push_packet_to_decode(std::shared_ptr<GRPacketStreamData> packet);
-	// TODO move to separate thread to stabilize fps
-	virtual void update(){};
 	virtual int get_max_queued_frames() { return 16; }
 	virtual void start_decoder_threads(int count){};
 	virtual void stop_decoder_threads(){};

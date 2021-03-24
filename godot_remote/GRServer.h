@@ -40,7 +40,7 @@ public:
 		GD_CLASS(ListenerThreadParamsServer, Object);
 
 	public:
-		Thread_define(thread_ref);
+		Ref<_Thread> thread_ref;
 
 		bool stop_thread = false;
 		bool finished = false;
@@ -66,7 +66,7 @@ public:
 		String device_id = "";
 		Ref<PacketPeerStream> ppeer;
 
-		Thread_define(thread_ref);
+		Ref<_Thread> thread_ref;
 
 		bool break_connection = false;
 		bool finished = false;

@@ -39,13 +39,15 @@ private:
 		}
 	};
 
-	Thread_define(thread);
+	Ref<_Thread> thread;
+	Ref<_Thread> update_thread;
 	std::queue<BufferedImage> buffer;
 
 	PoolByteArray ret_data;
 	bool video_stream_enabled = true;
 	uint64_t prev_shown_frame_time = 0;
 	bool is_thread_active = false;
+	bool is_update_thread_active = true;
 	int threads_number = 2;
 
 	float en_max_frame_rate = 0;
@@ -54,6 +56,8 @@ private:
 	int en_target_bitrate = 0;
 	int en_threads_count = 0;
 	void FlushFrames(ISVCDecoder *h264_decoder, int64_t &iTotal, uint64_t &uiTimeStamp, int32_t &iWidth, int32_t &iHeight, uint64_t start_time);
+
+	void _update_thread(Variant p_userdata);
 	void _processing_thread(Variant p_userdata);
 
 protected:
@@ -70,7 +74,6 @@ protected:
 
 public:
 	virtual void push_packet_to_decode(std::shared_ptr<GRPacketStreamData> packet) override;
-	virtual void update() override;
 	virtual int get_max_queued_frames() override;
 	virtual void start_decoder_threads(int count) override;
 	virtual void stop_decoder_threads() override;

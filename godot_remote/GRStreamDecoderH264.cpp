@@ -81,39 +81,6 @@ void GRStreamDecoderH264::push_packet_to_decode(std::shared_ptr<GRPacketStreamDa
 	}
 }
 
-// TODO add a way to calculate delay of stream. based on sync time mb
-
-void GRStreamDecoderH264::update() {
-	ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
-	Scoped_lock(ts_lock);
-	auto os = OS::get_singleton();
-
-	if (buffer.size()) {
-		auto buf = buffer.front();
-
-		uint64_t time = os->get_ticks_usec();
-		if (buf.is_end) {
-			gr_client->_image_lost();
-		} else {
-			buffer.pop();
-
-			prev_shown_frame_time = time;
-
-			if (buf.img.is_valid() && !img_is_empty(buf.img)) {
-				gr_client->_display_new_image(buf.img, buf.frame_send_time - abs(int64_t(gr_client->sync_time_server) - int64_t(gr_client->sync_time_client)));
-			} else {
-				gr_client->_image_lost();
-			}
-			return;
-		}
-	}
-
-	// check if image displayed less then few seconds ago. if not then remove texture
-	if (os->get_ticks_usec() > int64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
-		gr_client->_image_lost();
-	}
-}
-
 int GRStreamDecoderH264::get_max_queued_frames() {
 	return 8;
 }
@@ -161,13 +128,51 @@ void GRStreamDecoderH264::_init() {
 #else
 	GRStreamDecoder::_init();
 #endif
+	is_update_thread_active = true;
+	Thread_start(update_thread, this, _update_thread, Variant());
 }
 
 void GRStreamDecoderH264::_deinit() {
 	LEAVE_IF_EDITOR();
 	stop_decoder_threads();
-	while (buffer.size())
-		buffer.pop();
+	is_update_thread_active = false;
+	Thread_close(update_thread);
+}
+
+// TODO add a way to calculate delay of stream. based on sync time mb
+void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
+	auto os = OS::get_singleton();
+	while (is_update_thread_active) {
+		ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
+		Scoped_lock(ts_lock);
+
+		if (buffer.size()) {
+			auto buf = buffer.front();
+
+			uint64_t time = os->get_ticks_usec();
+			if (buf.is_end) {
+				gr_client->_image_lost();
+			} else {
+				buffer.pop();
+
+				prev_shown_frame_time = time;
+
+				if (buf.img.is_valid() && !img_is_empty(buf.img)) {
+					gr_client->_display_new_image(buf.img, buf.frame_send_time - abs(int64_t(gr_client->sync_time_server) - int64_t(gr_client->sync_time_client)));
+				} else {
+					gr_client->_image_lost();
+				}
+				sleep_usec(1_ms);
+				continue;
+			}
+		}
+
+		sleep_usec(1_ms);
+		// check if image displayed less then few seconds ago. if not then remove texture
+		if (os->get_ticks_usec() > int64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
+			gr_client->_image_lost();
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

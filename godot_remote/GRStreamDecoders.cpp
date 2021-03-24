@@ -91,7 +91,7 @@ void GRStreamDecodersManager::_start_decoder(std::shared_ptr<GRPacketStreamData>
 				memdelete(decoder);
 				decoder = nullptr;
 			}
-			
+
 			decoder = memnew(GRStreamDecoderH264);
 			decoder->set_gr_client(gr_client);
 			decoder->start_decoder_threads(threads_count);
@@ -104,13 +104,6 @@ void GRStreamDecodersManager::_start_decoder(std::shared_ptr<GRPacketStreamData>
 		memdelete(decoder);
 		decoder = nullptr;
 		_log("Decoder got not supported packet", LogLevel::LL_ERROR);
-	}
-}
-
-void GRStreamDecodersManager::update() {
-	Scoped_lock(ts_lock);
-	if (decoder) {
-		return decoder->update();
 	}
 }
 

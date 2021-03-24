@@ -52,7 +52,7 @@ private:
 	};
 
 	EncoderProperties encoder_props;
-	Thread_define(thread);
+	Ref<_Thread> thread;
 	std::queue<std::shared_ptr<BufferedImage> > buffer;
 
 	bool is_thread_active = false;

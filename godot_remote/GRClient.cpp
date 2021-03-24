@@ -483,13 +483,6 @@ void GRClient::_stop_decoder() {
 	}
 }
 
-void GRClient::_update_stream_manager() {
-	Scoped_lock(stream_mutex);
-	if (stream_manager) {
-		stream_manager->update();
-	}
-}
-
 void GRClient::_push_pack_to_decoder(std::shared_ptr<GRPacketStreamData> pack) {
 	Scoped_lock(stream_mutex);
 	if (stream_manager) {
@@ -1457,9 +1450,6 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 			}
 		}
 	end_recv:
-
-		// Update stream image
-		_update_stream_manager();
 
 		if (!connection->is_connected_to_host()) {
 			_log("Lost connection after receiving!", LogLevel::LL_ERROR);

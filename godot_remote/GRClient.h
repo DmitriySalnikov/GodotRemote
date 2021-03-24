@@ -91,7 +91,7 @@ public:
 		Ref<StreamPeerTCP> peer;
 		Ref<PacketPeerStream> ppeer;
 
-		Thread_define(thread_ref);
+		Ref<_Thread> thread_ref;
 
 		bool break_connection = false;
 		bool stop_thread = false;
@@ -171,7 +171,6 @@ private:
 	String custom_input_scene_tmp_pck_file = "user://custom_input_scene.pck";
 
 	void _stop_decoder();
-	void _update_stream_manager();
 	void _push_pack_to_decoder(std::shared_ptr<GRPacketStreamData> pack);
 	void _image_lost();
 	void _display_new_image(Ref<Image> img, uint64_t delay);
@@ -186,7 +185,6 @@ private:
 	void _update_stream_texture_state(ENUM_ARG(StreamState) _stream_state);
 
 	void _update_avg_delay(uint64_t delay);
-	static float _delay_calc_modifier(double i);
 	virtual void _reset_counters() override;
 
 	void _thread_connection(Variant p_userdata);
