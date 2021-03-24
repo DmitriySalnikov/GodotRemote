@@ -28,12 +28,12 @@ PoolVector3Array GRInputDeviceSensorsData::get_sensors() {
 	return data->get_var();
 }
 
-Ref<GRInputData> GRInputData::create(const PoolByteArray &buf) {
-#define CREATE(_d)                     \
-	{                                  \
-		Ref<_d> id(memnew(_d));        \
-		id->data->set_data_array(buf); \
-		return id;                     \
+std::shared_ptr<GRInputData> GRInputData::create(const PoolByteArray &buf) {
+#define CREATE(_d)                               \
+	{                                            \
+		std::shared_ptr<_d> id = shared_new(_d); \
+		id->data->set_data_array(buf);           \
+		return id;                               \
 	}
 
 	InputType type = (InputType)((PoolByteArray)buf)[0];
@@ -78,21 +78,20 @@ Ref<GRInputData> GRInputData::create(const PoolByteArray &buf) {
 #undef CREATE
 
 	ERR_PRINT("Can't create unsupported GRInputData! Type index: " + str((int)type));
-	return Ref<GRInputData>();
+	return std::shared_ptr<GRInputData>();
 }
 
-Ref<GRInputDataEvent> GRInputDataEvent::parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) {
-	if (ev.is_null())
-		ERR_FAIL_COND_V(ev.is_null(), Ref<GRInputDataEvent>());
+std::shared_ptr<GRInputDataEvent> GRInputDataEvent::parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) {
+	ERR_FAIL_COND_V(ev.is_null(), std::shared_ptr<GRInputDataEvent>());
 
-#define PARSE(_i, _d)                     \
-	{                                     \
-		Ref<_i> ie = ev;                  \
-		if (ie.is_valid()) {              \
-			Ref<_d> data(memnew(_d));     \
-			data->_parse_event(ie, rect); \
-			return data;                  \
-		}                                 \
+#define PARSE(_i, _d)                                  \
+	{                                                  \
+		Ref<_i> ie = ev;                               \
+		if (ie.is_valid()) {                           \
+			std::shared_ptr<_d> data = shared_new(_d); \
+			data->_parse_event(ie, rect);              \
+			return data;                               \
+		}                                              \
 	}
 
 	PARSE(InputEventKey, GRIEDataKey);
@@ -110,7 +109,7 @@ Ref<GRInputDataEvent> GRInputDataEvent::parse_event(const Ref<InputEvent> &ev, c
 #undef PARSE
 
 	ERR_PRINT("Not supported InputEvent type: " + str(ev));
-	return Ref<GRInputDataEvent>();
+	return std::shared_ptr<GRInputDataEvent>();
 }
 
 Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
@@ -118,12 +117,12 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 
 #define CONSTRUCT(_i)                         \
 	{                                         \
-		Ref<_i> ev(memnew(_i));               \
+		Ref<_i> ev = newref(_i);              \
 		return _construct_event(ev, vp_size); \
 	}
 
 	InputType type = _get_type();
-	ERR_FAIL_COND_V_MSG(type < InputType::_InputEvent || type >= InputType::_InputEventMAX, Ref<GRInputDataEvent>(), "Not InputEvent");
+	ERR_FAIL_COND_V_MSG(type < InputType::_InputEvent || type >= InputType::_InputEventMAX, Ref<InputEvent>(), "Not InputEvent");
 
 	Rect2 vp_size = rect;
 	if (vp_size.size.x == 0 && vp_size.size.y == 0 &&

@@ -1,6 +1,7 @@
 /* GRDevice.h */
 #pragma once
 
+#include "GRAVGCounter.h"
 #include "GRInputData.h"
 #include "GRPacket.h"
 #include "GRProfiler.h"
@@ -63,24 +64,21 @@ private:
 
 protected:
 	template <class T>
-	T _find_queued_packet_by_type() {
+	std::shared_ptr<T> _find_queued_packet_by_type() {
 		for (int i = 0; i < send_queue.size(); i++) {
-			T o = send_queue[i];
-			if (o.is_valid()) {
-				return o;
+			shared_cast_def(T, o, send_queue[i]);
+			if (o) {
+				return shared_cast(T, o);
 			}
 		}
-		return T();
+		return std::shared_ptr<T>();
 	}
 
-	GRUtils::iterable_queue<uint64_t> fps_queue;
-	GRUtils::iterable_queue<uint64_t> ping_queue;
-	float avg_ping = 0, min_ping = 0, max_ping = 0;
-	float avg_fps = 0, min_fps = 0, max_fps = 0;
-	uint32_t avg_ping_max_count = 100;
+	GRAVGCounter<uint64_t, float> fps_counter = GRAVGCounter<uint64_t, float>([](float i) -> float { if (i > 0) return float(1000000.0 / i); else return 0; });
+	GRAVGCounter<uint64_t, float> ping_counter = GRAVGCounter<uint64_t, float>([](float i) -> float { return float(i * 0.001); }, 20);
 
 	Mutex_define(send_queue_mutex, "Device Send Queue Lock");
-	std::vector<Ref<GRPacket> > send_queue;
+	std::vector<std::shared_ptr<GRPacket> > send_queue;
 
 	void set_status(WorkingStatus status);
 	void _update_avg_ping(uint64_t ping);
@@ -88,7 +86,7 @@ protected:
 	static float _ping_calc_modifier(double i);
 	static float _fps_calc_modifier(double i);
 	void _send_queue_resize(int new_size);
-	Ref<GRPacket> _send_queue_pop_front();
+	std::shared_ptr<GRPacket> _send_queue_pop_front();
 
 	virtual void _reset_counters();
 	virtual void _internal_call_only_deffered_start(){};
@@ -117,7 +115,7 @@ public:
 	uint16_t get_port();
 	void set_port(uint16_t _port);
 
-	void send_packet(Ref<GRPacket> packet);
+	void send_packet(std::shared_ptr<GRPacket> packet);
 	void send_user_data(Variant packet_id, Variant user_data, bool full_objects = false);
 
 	void start();

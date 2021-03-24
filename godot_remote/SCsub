@@ -11,6 +11,7 @@ opts.Add(BoolVariable("godot_remote_libjpeg_turbo_enabled", "Godot Remote. Enabl
 opts.Add(BoolVariable("godot_remote_no_default_resources", "Godot Remote. Remove default resources.", False))
 opts.Add(BoolVariable("godot_remote_disable_server", "Godot Remote. Remove server.", False))
 opts.Add(BoolVariable("godot_remote_disable_client", "Godot Remote. Remove client.", False))
+#opts.Add(BoolVariable("godot_remote_livepp", "Godot Remote. Live++ support... Windows only", False))
 opts.Update(module_env)
 Help(opts.GenerateHelpText(module_env))
 
@@ -28,6 +29,7 @@ module_env.Append(CPPPATH=[module_dir])
 
 src_files = [
     'GodotRemote.cpp',
+    'GRAVGCounter.cpp',
     'GRClient.cpp',
     'GRDevice.cpp',
     'GRInputData.cpp',
@@ -37,7 +39,11 @@ src_files = [
     'GRResources.cpp',
     'GRServer.cpp',
     'GRStreamDecoders.cpp',
+	'GRStreamDecoderH264.cpp',
+    'GRStreamDecoderImageSequence.cpp',
     'GRStreamEncoders.cpp',
+    'GRStreamEncoderH264.cpp',
+    'GRStreamEncoderImageSequence.cpp',
     'GRUtils.cpp',
     'GRUtilsH264Codec.cpp',
     'GRUtilsJPGCodec.cpp',
@@ -47,6 +53,12 @@ src_files = [
 
 def get_sources():
     return [module_dir + file for file in src_files]
+
+# 'CXXFLAGS' 'CCFLAGS' 'LINKFLAGS' and others
+def remove_flag_cxx(flags_group : str, flags : []):
+    for f in flags:
+        if f in module_env[flags_group]:
+            module_env[flags_group].remove(f)
 
 # Tracy
 if module_env['godot_remote_tracy_enabled']:
@@ -68,7 +80,20 @@ else:
 # env.Append(RPATH=["."])
 
 # platform specific
-if env['platform'] == 'windows':
+if module_env['platform'] == 'windows':
+    #if module_env['godot_remote_livepp']:
+    #    module_env.Append(CPPDEFINES=['GODOTREMOTE_LIVEPP'])
+    #    module_env.AppendUnique(LINKFLAGS=['/OPT:NOREF', '/FUNCTIONPADMIN', '/Zi', '/FS'])
+
+    #    if '/OPT:REF' in module_env['LINKFLAGS']:
+    #        module_env['LINKFLAGS'].remove('/OPT:REF')     
+    #    if '/GL' in module_env['LINKFLAGS']:
+    #        module_env['LINKFLAGS'].remove('/GL')
+    
+    if module_env['target'] == 'release_debug':
+        remove_flag_cxx('CCFLAGS', ['/O2', '/O1'])
+        module_env.AppendUnique(CCFLAGS=['/Zi', '/FS'])
+    
     module_env.Append(CXXFLAGS=['/std:c++14'])
     module_env.add_source_files(env.modules_sources, get_sources())
 

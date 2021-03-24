@@ -68,12 +68,11 @@ using namespace GRUtils;
 
 #ifndef GDNATIVE_LIBRARY
 void GRClient::_bind_methods() {
-
 	ClassDB::bind_method(D_METHOD(NAMEOF(_update_texture_from_image), "image"), &GRClient::_update_texture_from_image);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_update_stream_texture_state), "state"), &GRClient::_update_stream_texture_state);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_force_update_stream_viewport_signals)), &GRClient::_force_update_stream_viewport_signals);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_viewport_size_changed)), &GRClient::_viewport_size_changed);
-	ClassDB::bind_method(D_METHOD(NAMEOF(_load_custom_input_scene), "_data"), &GRClient::_load_custom_input_scene);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_load_custom_input_scene), "path", "pck_data", "orig_size", "is_compressed", "compression_type"), &GRClient::_load_custom_input_scene);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_custom_input_scene)), &GRClient::_remove_custom_input_scene);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_on_node_deleting), "var_name"), &GRClient::_on_node_deleting);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_connection), "user_data"), &GRClient::_thread_connection);
@@ -491,7 +490,7 @@ void GRClient::_update_stream_manager() {
 	}
 }
 
-void GRClient::_push_pack_to_decoder(Ref<GRPacket> pack) {
+void GRClient::_push_pack_to_decoder(std::shared_ptr<GRPacket> pack) {
 	Scoped_lock(stream_mutex);
 	if (stream_manager) {
 		stream_manager->push_packet_to_decode(pack);
@@ -507,6 +506,7 @@ void GRClient::_image_lost() {
 
 void GRClient::_display_new_image(Ref<Image> img, uint64_t delay) {
 	call_deferred(NAMEOF(_update_texture_from_image), img);
+	TracyPlot("FPS", int64_t(float(1000000.0 / (OS::get_singleton()->get_ticks_usec() - prev_shown_frame_time))));
 	_update_avg_delay(delay);
 	_update_avg_fps(OS::get_singleton()->get_ticks_usec() - prev_shown_frame_time);
 	prev_shown_frame_time = OS::get_singleton()->get_ticks_usec();
@@ -685,15 +685,15 @@ void GRClient::set_input_buffer_size(int mb) {
 }
 
 float GRClient::get_avg_delay() {
-	return avg_delay;
+	return delay_counter.get_avg();
 }
 
 float GRClient::get_min_delay() {
-	return min_delay;
+	return delay_counter.get_min();
 }
 
 float GRClient::get_max_delay() {
-	return max_delay;
+	return delay_counter.get_max();
 }
 
 void GRClient::set_viewport_orientation_syncing(bool is_syncing) {
@@ -765,12 +765,12 @@ void GRClient::_force_update_stream_viewport_signals() {
 	call_deferred(NAMEOF(_viewport_size_changed)); // force update screen aspect ratio
 }
 
-void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
+void GRClient::_load_custom_input_scene(String path, PoolByteArray pck_data, int orig_size, bool is_compressed, int compression_type) {
 	ZoneScopedNC("Load Custom Input Scene", tracy::Color::Cornsilk2);
 
 	_remove_custom_input_scene();
 
-	if (_data->get_scene_path().empty() || _data->get_scene_data().size() == 0) {
+	if (path.empty() || pck_data.size() == 0) {
 		_log("Scene not specified or data is empty. Removing custom input scene", LogLevel::LL_DEBUG);
 		return;
 	}
@@ -787,15 +787,16 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 	File *file = memnew(File);
 	err = file->open(custom_input_scene_tmp_pck_file, File::ModeFlags::WRITE);
 #endif
+
 	if ((int)err) {
 		_log("Can't open temp file to store custom input scene: " + custom_input_scene_tmp_pck_file + ", code: " + str((int)err), LogLevel::LL_ERROR);
 	} else {
 
 		PoolByteArray scene_data;
-		if (_data->is_compressed()) {
-			err = decompress_bytes(_data->get_scene_data(), _data->get_original_size(), scene_data, _data->get_compression_type());
+		if (is_compressed) {
+			err = decompress_bytes(pck_data, orig_size, scene_data, compression_type);
 		} else {
-			scene_data = _data->get_scene_data();
+			scene_data = pck_data;
 		}
 
 		if ((int)err) {
@@ -830,18 +831,18 @@ void GRClient::_load_custom_input_scene(Ref<GRPacketCustomInputScene> _data) {
 			} else {
 
 #ifndef GDNATIVE_LIBRARY
-				Ref<PackedScene> pck = ResourceLoader::load(_data->get_scene_path(), "", false, &err);
+				Ref<PackedScene> pck = ResourceLoader::load(path, "", false, &err);
 #else
-				Ref<PackedScene> pck = ResourceLoader::get_singleton()->load(_data->get_scene_path(), "", false);
+				Ref<PackedScene> pck = ResourceLoader::get_singleton()->load(path, "", false);
 				err = pck->can_instance() ? Error::OK : Error::FAILED;
 #endif
 				if ((int)err) {
-					_log("Can't load scene file: " + _data->get_scene_path() + ", code: " + str((int)err), LogLevel::LL_ERROR);
+					_log("Can't load scene file: " + path + ", code: " + str((int)err), LogLevel::LL_ERROR);
 				} else {
 
 					custom_input_scene = pck->instance();
 					if (!custom_input_scene) {
-						_log("Can't instance scene from PCK file: " + custom_input_scene_tmp_pck_file + ", scene: " + _data->get_scene_path(), LogLevel::LL_ERROR);
+						_log("Can't instance scene from PCK file: " + custom_input_scene_tmp_pck_file + ", scene: " + path, LogLevel::LL_ERROR);
 					} else {
 
 						control_to_show_in->add_child(custom_input_scene);
@@ -903,16 +904,16 @@ void GRClient::_viewport_size_changed() {
 		if (tmp_vert != is_vertical) {
 			is_vertical = tmp_vert;
 			send_queue_mutex.lock();
-			Ref<GRPacketClientStreamOrientation> packet = _find_queued_packet_by_type<Ref<GRPacketClientStreamOrientation> >();
-			if (packet.is_valid()) {
+			std::shared_ptr<GRPacketClientStreamOrientation> packet = _find_queued_packet_by_type<GRPacketClientStreamOrientation>();
+			if (packet) {
 				packet->set_vertical(is_vertical == ScreenOrientation::VERTICAL);
 				send_queue_mutex.unlock();
 				goto ratio_sync;
 			}
 			send_queue_mutex.unlock();
 
-			if (packet.is_null()) {
-				packet.instance();
+			if (!packet) {
+				packet = shared_new(GRPacketClientStreamOrientation);
 				packet->set_vertical(is_vertical == ScreenOrientation::VERTICAL);
 				send_packet(packet);
 			}
@@ -925,16 +926,16 @@ ratio_sync:
 		Vector2 size = control_to_show_in->get_size();
 
 		send_queue_mutex.lock();
-		Ref<GRPacketClientStreamAspect> packet = _find_queued_packet_by_type<Ref<GRPacketClientStreamAspect> >();
-		if (packet.is_valid()) {
+		std::shared_ptr<GRPacketClientStreamAspect> packet = _find_queued_packet_by_type<GRPacketClientStreamAspect>();
+		if (packet) {
 			packet->set_aspect(size.x / size.y);
 			send_queue_mutex.unlock();
 			return;
 		}
 		send_queue_mutex.unlock();
 
-		if (packet.is_null()) {
-			packet.instance();
+		if (!packet) {
+			packet = shared_new(GRPacketClientStreamAspect);
 			packet->set_aspect(size.x / size.y);
 			send_packet(packet);
 		}
@@ -1016,36 +1017,28 @@ void GRClient::_update_stream_texture_state(ENUM_ARG(StreamState) _stream_state)
 }
 
 void GRClient::_update_avg_delay(uint64_t delay) {
-	delay_queue.add_value_limited(delay, (int)round(Engine::get_singleton()->get_frames_per_second()));
-	calculate_avg_min_max_values(delay_queue, &avg_delay, &min_delay, &max_delay, &GRClient::_delay_calc_modifier);
-}
-
-float GRClient::_delay_calc_modifier(double i) {
-	if (i > 0)
-		return float(1000000.0 / i);
-	else
-		return 0;
+	delay_counter.update(delay, (int)round(Engine::get_singleton()->get_frames_per_second()));
 }
 
 void GRClient::_reset_counters() {
 	GRDevice::_reset_counters();
 	sync_time_client = 0;
 	sync_time_server = 0;
-	avg_delay = min_delay = max_delay = 0;
+	delay_counter.reset();
 }
 
 void GRClient::set_server_setting(ENUM_ARG(TypesOfServerSettings) param, Variant value) {
 	send_queue_mutex.lock();
-	Ref<GRPacketServerSettings> packet = _find_queued_packet_by_type<Ref<GRPacketServerSettings> >();
-	if (packet.is_valid()) {
+	std::shared_ptr<GRPacketServerSettings> packet = _find_queued_packet_by_type<GRPacketServerSettings>();
+	if (packet) {
 		packet->add_setting(param, value);
 		send_queue_mutex.unlock();
 		return;
 	}
 	send_queue_mutex.unlock();
 
-	if (packet.is_null()) {
-		packet.instance();
+	if (!packet) {
+		packet = shared_new(GRPacketServerSettings);
 		packet->add_setting(param, value);
 		send_packet(packet);
 	}
@@ -1261,8 +1254,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	if (input_collector)
 		input_collector->set_process(true);
 
-	//Array stream_queue; // Ref<GRPacketImageData>
-	std::vector<Ref<GRPacketImageData> > stream_queue; // Ref<GRPacketImageData>
+	//Array stream_queue; // std::shared_ptr<GRPacketImageData>
+	std::vector<std::shared_ptr<GRPacketImageData> > stream_queue; // std::shared_ptr<GRPacketImageData>
 
 	uint64_t time64 = os->get_ticks_usec();
 	uint64_t prev_send_input_time = time64;
@@ -1293,9 +1286,9 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 				if (input_collector) {
 					ZoneScopedNC("Send Collected Input", tracy::Color::DarkGoldenrod);
-					Ref<GRPacketInputData> pack = input_collector->get_collected_input_data();
+					std::shared_ptr<GRPacketInputData> pack = input_collector->get_collected_input_data();
 
-					if (pack.is_valid()) {
+					if (pack) {
 						err = ppeer->put_var(pack->get_data());
 						if ((int)err) {
 							_log("Put input data failed with code: " + str((int)err), LogLevel::LL_ERROR);
@@ -1314,7 +1307,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 				nothing_happens = false;
 				ping_sended = true;
 
-				Ref<GRPacketPing> pack(memnew(GRPacketPing));
+				auto pack = shared_new(GRPacketPing);
 				err = ppeer->put_var(pack->get_data());
 				prev_ping_sending_time = time64;
 
@@ -1328,9 +1321,9 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 			start_while_time = os->get_ticks_usec();
 			while (!send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
 				ZoneScopedNC("Send Queued Data", tracy::Color::DarkOliveGreen1);
-				Ref<GRPacket> packet = _send_queue_pop_front();
+				std::shared_ptr<GRPacket> packet = _send_queue_pop_front();
 
-				if (packet.is_valid()) {
+				if (packet) {
 					err = ppeer->put_var(packet->get_data());
 
 					if ((int)err) {
@@ -1369,8 +1362,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 				if ((int)err)
 					goto end_recv;
 
-				Ref<GRPacket> pack = GRPacket::create(buf);
-				if (pack.is_null()) {
+				std::shared_ptr<GRPacket> pack = GRPacket::create(buf);
+				if (!pack) {
 					_log("Incorrect GRPacket", LogLevel::LL_ERROR);
 					continue;
 				}
@@ -1378,9 +1371,32 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 				GRPacket::PacketType type = pack->get_type();
 
 				switch (type) {
+					// Stream Data
+					case GRPacket::PacketType::ImageData: {
+						shared_cast_def(GRPacketImageData, data, pack);
+						if (!data) {
+							_log("Incorrect GRPacketImageData", LogLevel::LL_ERROR);
+							continue;
+						}
+
+						_push_pack_to_decoder(data);
+						break;
+					}
+					case GRPacket::PacketType::H264Data: {
+						shared_cast_def(GRPacketH264, data, pack);
+						if (!data) {
+							_log("Incorrect GRPacketH264", LogLevel::LL_ERROR);
+							continue;
+						}
+
+						_push_pack_to_decoder(data);
+						break;
+					}
+
+					// Other
 					case GRPacket::PacketType::SyncTime: {
-						Ref<GRPacketSyncTime> data = pack;
-						if (data.is_null()) {
+						shared_cast_def(GRPacketSyncTime, data, pack);
+						if (!data) {
 							_log("Incorrect GRPacketSyncTime", LogLevel::LL_ERROR);
 							continue;
 						}
@@ -1390,23 +1406,13 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 						break;
 					}
-					case GRPacket::PacketType::ImageData: {
-						Ref<GRPacketImageData> data = pack;
-						if (data.is_null()) {
-							_log("Incorrect GRPacketImageData", LogLevel::LL_ERROR);
-							continue;
-						}
-
-						_push_pack_to_decoder(data);
-						break;
-					}
 					case GRPacket::PacketType::ServerSettings: {
 						if (!_server_settings_syncing) {
 							continue;
 						}
 
-						Ref<GRPacketServerSettings> data = pack;
-						if (data.is_null()) {
+						shared_cast_def(GRPacketServerSettings, data, pack);
+						if (!data) {
 							_log("Incorrect GRPacketServerSettings", LogLevel::LL_ERROR);
 							continue;
 						}
@@ -1415,8 +1421,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 						break;
 					}
 					case GRPacket::PacketType::MouseModeSync: {
-						Ref<GRPacketMouseModeSync> data = pack;
-						if (data.is_null()) {
+						shared_cast_def(GRPacketMouseModeSync, data, pack);
+						if (!data) {
 							_log("Incorrect GRPacketMouseModeSync", LogLevel::LL_ERROR);
 							continue;
 						}
@@ -1425,18 +1431,18 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 						break;
 					}
 					case GRPacket::PacketType::CustomInputScene: {
-						Ref<GRPacketCustomInputScene> data = pack;
-						if (data.is_null()) {
+						shared_cast_def(GRPacketCustomInputScene, data, pack);
+						if (!data) {
 							_log("Incorrect GRPacketCustomInputScene", LogLevel::LL_ERROR);
 							continue;
 						}
 
-						call_deferred(NAMEOF(_load_custom_input_scene), data);
+						call_deferred(NAMEOF(_load_custom_input_scene), data->get_scene_path(), data->get_scene_data(), data->get_original_size(), data->is_compressed(), data->get_compression_type());
 						break;
 					}
 					case GRPacket::PacketType::CustomUserData: {
-						Ref<GRPacketCustomUserData> data = pack;
-						if (data.is_null()) {
+						shared_cast_def(GRPacketCustomUserData, data, pack);
+						if (!data) {
 							_log("Incorrect GRPacketCustomUserData", LogLevel::LL_ERROR);
 							continue;
 						}
@@ -1444,7 +1450,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 						break;
 					}
 					case GRPacket::PacketType::Ping: {
-						Ref<GRPacketPong> pack(memnew(GRPacketPong));
+						auto pack = shared_new(GRPacketPong);
 						err = ppeer->put_var(pack->get_data());
 						if ((int)err) {
 							_log("Send pong failed with code: " + str((int)err), LogLevel::LL_NORMAL);
@@ -1633,8 +1639,8 @@ void GRInputCollector::_update_stream_rect() {
 }
 
 void GRInputCollector::_collect_input(Ref<InputEvent> ie) {
-	Ref<GRInputDataEvent> data = GRInputDataEvent::parse_event(ie, stream_rect);
-	if (data.is_valid()) {
+	std::shared_ptr<GRInputDataEvent> data = GRInputDataEvent::parse_event(ie, stream_rect);
+	if (data) {
 		Scoped_lock(ts_lock);
 		collected_input_data.push_back(data);
 	}
@@ -1645,7 +1651,7 @@ void GRInputCollector::_release_pointers() {
 		auto buttons = mouse_buttons.keys();
 		for (int i = 0; i < buttons.size(); i++) {
 			if (mouse_buttons[buttons[i]]) {
-				Ref<InputEventMouseButton> iemb(memnew(InputEventMouseButton));
+				Ref<InputEventMouseButton> iemb = newref(InputEventMouseButton);
 				iemb->set_button_index(buttons[i]);
 				iemb->set_pressed(false);
 				buttons[i] = false;
@@ -1659,7 +1665,7 @@ void GRInputCollector::_release_pointers() {
 		auto touches = screen_touches.keys();
 		for (int i = 0; i < touches.size(); i++) {
 			if (screen_touches[touches[i]]) {
-				Ref<InputEventScreenTouch> iest(memnew(InputEventScreenTouch));
+				Ref<InputEventScreenTouch> iest = newref(InputEventScreenTouch);
 				iest->set_index(touches[i]);
 				iest->set_pressed(false);
 				touches[i] = false;
@@ -1719,7 +1725,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 
 	{
 		Scoped_lock(ts_lock);
-		if (collected_input_data.size() >= 256) {
+		if (collected_input_data.size() >= 512) {
 			collected_input_data.resize(0);
 		}
 	}
@@ -1877,10 +1883,10 @@ void GRInputCollector::set_tex_rect(TextureRect *tr) {
 	texture_rect = tr;
 }
 
-Ref<GRPacketInputData> GRInputCollector::get_collected_input_data() {
+std::shared_ptr<GRPacketInputData> GRInputCollector::get_collected_input_data() {
 	ZoneScopedNC("Get Input Collector Data", tracy::Color::Goldenrod3);
-	Ref<GRPacketInputData> res(memnew(GRPacketInputData));
-	Ref<GRInputDeviceSensorsData> s(memnew(GRInputDeviceSensorsData));
+	auto res = shared_new(GRPacketInputData);
+	auto s = shared_new(GRInputDeviceSensorsData);
 
 	Scoped_lock(ts_lock);
 

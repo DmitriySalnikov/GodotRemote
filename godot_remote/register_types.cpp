@@ -5,14 +5,28 @@
 #include "GRClient.h"
 #include "GRDevice.h"
 #include "GRNotifications.h"
-#include "GRPacket.h"
 #include "GRServer.h"
+#include "GRStreamEncoderH264.h"
+#include "GRStreamEncoderImageSequence.h"
 #include "GRStreamEncoders.h"
-#include "GRUtils.h"
+#include "GRStreamDecoderH264.h"
+#include "GRStreamDecoderImageSequence.h"
+#include "GRStreamDecoders.h"
 #include "GodotRemote.h"
 
 // clumsy settings to test
 // outbound and ip.DstAddr >= 127.0.0.1 and ip.DstAddr <= 127.255.255.255 and (tcp.DstPort == 52341 or tcp.SrcPort == 52341)
+
+/*
+* // TODO livepp needs more work. Like sync points lpp::lppSyncPoint(moduleReturnedFromLoadLibraryFunction); where i can restart server.
+#ifdef GODOTREMOTE_LIVEPP
+#include "windows.h"
+
+#include "LivePP/LPP_API.h"
+HMODULE livePP = NULL;
+
+#endif
+*/
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/class_db.h"
@@ -21,8 +35,7 @@
 
 void register_godot_remote_types() {
 	ClassDB::register_class<GodotRemote>();
-	ClassDB::register_class<GRUtilsData>();
-	Engine::get_singleton()->add_singleton(Engine::Singleton("GodotRemote", memnew(GodotRemote)));
+	Engine::get_singleton()->add_singleton(Engine::Singleton(NAMEOF(GodotRemote), memnew(GodotRemote)));
 	//GRUtils::init();
 
 	ClassDB::register_class<GRNotifications>();
@@ -39,6 +52,7 @@ void register_godot_remote_types() {
 	ClassDB::register_class<GRStreamEncodersManager>();
 	ClassDB::register_class<GRStreamEncoder>();
 	ClassDB::register_class<GRStreamEncoderImageSequence>();
+	ClassDB::register_class<GRStreamEncoderH264>();
 #endif
 
 #ifndef NO_GODOTREMOTE_CLIENT
@@ -47,46 +61,33 @@ void register_godot_remote_types() {
 	ClassDB::register_class<GRTextureRect>();
 #endif
 
-	// Packets
-	ClassDB::register_virtual_class<GRPacket>();
-	ClassDB::register_class<GRPacketClientStreamAspect>();
-	ClassDB::register_class<GRPacketClientStreamOrientation>();
-	ClassDB::register_class<GRPacketCustomInputScene>();
-	ClassDB::register_class<GRPacketImageData>();
-	ClassDB::register_class<GRPacketInputData>();
-	ClassDB::register_class<GRPacketMouseModeSync>();
-	ClassDB::register_class<GRPacketServerSettings>();
-	ClassDB::register_class<GRPacketSyncTime>();
-	ClassDB::register_class<GRPacketCustomUserData>();
-
-	ClassDB::register_class<GRPacketPing>();
-	ClassDB::register_class<GRPacketPong>();
-
-	// Input Data
-	ClassDB::register_virtual_class<GRInputData>();
-	ClassDB::register_class<GRInputDeviceSensorsData>();
-	ClassDB::register_class<GRInputDataEvent>();
-
-	ClassDB::register_class<GRIEDataWithModifiers>();
-	ClassDB::register_class<GRIEDataMouse>();
-	ClassDB::register_class<GRIEDataGesture>();
-
-	ClassDB::register_class<GRIEDataAction>();
-	ClassDB::register_class<GRIEDataJoypadButton>();
-	ClassDB::register_class<GRIEDataJoypadMotion>();
-	ClassDB::register_class<GRIEDataKey>();
-	ClassDB::register_class<GRIEDataMagnifyGesture>();
-	ClassDB::register_class<GRIEDataMIDI>();
-	ClassDB::register_class<GRIEDataMouseButton>();
-	ClassDB::register_class<GRIEDataMouseMotion>();
-	ClassDB::register_class<GRIEDataPanGesture>();
-	ClassDB::register_class<GRIEDataScreenDrag>();
-	ClassDB::register_class<GRIEDataScreenTouch>();
+/*
+* // TODO move to GodotRemote class because here it's breaks everything
+* 
+#ifdef GODOTREMOTE_LIVEPP
+	auto args = OS::get_singleton()->get_cmdline_args();
+	for (int i = 0; i < args.size(); i++) {
+		if (args[i] == "--livepp") {
+			livePP = lpp::lppLoadAndRegister(L"LivePP", "GodotRemote");
+			if (livePP) {
+				lpp::lppEnableAllCallingModulesSync(livePP);
+			}
+		}
+	}
+#endif
+*/
 }
 
 void unregister_godot_remote_types() {
 	memdelete(GodotRemote::get_singleton());
 	GRUtils::deinit();
+
+/*
+#ifdef GODOTREMOTE_LIVEPP
+	if (livePP)
+		lpp::lppShutdown(livePP);
+#endif
+*/
 }
 
 #else
@@ -96,21 +97,20 @@ void unregister_godot_remote_types() {
 using namespace godot;
 
 /** GDNative Initialize **/
-extern "C" void GDN_EXPORT godot_gdnative_init(godot_gdnative_init_options * o) {
+extern "C" void GDN_EXPORT godot_gdnative_init(godot_gdnative_init_options *o) {
 	Godot::gdnative_init(o);
 }
 
 /** GDNative Terminate **/
-extern "C" void GDN_EXPORT godot_gdnative_terminate(godot_gdnative_terminate_options * o) {
+extern "C" void GDN_EXPORT godot_gdnative_terminate(godot_gdnative_terminate_options *o) {
 	Godot::gdnative_terminate(o);
 }
 
 /** NativeScript Initialize **/
-extern "C" void GDN_EXPORT godot_nativescript_init(void* handle) {
+extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 	Godot::nativescript_init(handle);
 
 	register_class<GodotRemote>();
-	register_class<GRUtilsData>();
 	//Engine::get_singleton()->add_singleton(Engine::Singleton("GodotRemote", memnew(GodotRemote)));
 	//GRUtils::init(); // moved to GodotRemote::init()
 
@@ -121,49 +121,6 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void* handle) {
 
 	register_class<GRDevice>();
 
-	///////////////////////////////////////
-	///////////////////////////////////////
-	// must be registered to instantiate
-
-	// Packets
-	register_class<GRPacket>();
-	register_class<GRPacketClientStreamAspect>();
-	register_class<GRPacketClientStreamOrientation>();
-	register_class<GRPacketCustomInputScene>();
-	register_class<GRPacketImageData>();
-	register_class<GRPacketInputData>();
-	register_class<GRPacketMouseModeSync>();
-	register_class<GRPacketServerSettings>();
-	register_class<GRPacketSyncTime>();
-	register_class<GRPacketCustomUserData>();
-
-	register_class<GRPacketPing>();
-	register_class<GRPacketPong>();
-
-	// Input Data
-	register_class<GRInputData>();
-	register_class<GRInputDeviceSensorsData>();
-	register_class<GRInputDataEvent>();
-
-	register_class<GRIEDataWithModifiers>();
-	register_class<GRIEDataMouse>();
-	register_class<GRIEDataGesture>();
-
-	register_class<GRIEDataAction>();
-	register_class<GRIEDataJoypadButton>();
-	register_class<GRIEDataJoypadMotion>();
-	register_class<GRIEDataKey>();
-	register_class<GRIEDataMagnifyGesture>();
-	register_class<GRIEDataMIDI>();
-	register_class<GRIEDataMouseButton>();
-	register_class<GRIEDataMouseMotion>();
-	register_class<GRIEDataPanGesture>();
-	register_class<GRIEDataScreenDrag>();
-	register_class<GRIEDataScreenTouch>();
-
-	//////////////////////////////////////
-	//////////////////////////////////////
-
 #ifndef NO_GODOTREMOTE_SERVER
 	register_class<GRServer>();
 	register_class<GRServer::ListenerThreadParamsServer>();
@@ -173,6 +130,7 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void* handle) {
 	register_class<GRStreamEncodersManager>();
 	register_class<GRStreamEncoder>();
 	register_class<GRStreamEncoderImageSequence>();
+	register_class<GRStreamEncoderH264>();
 #endif
 
 #ifndef NO_GODOTREMOTE_CLIENT
@@ -181,6 +139,10 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void* handle) {
 	register_class<GRClient::ImgProcessingStorageClient>();
 	register_class<GRInputCollector>();
 	register_class<GRTextureRect>();
+	register_class<GRStreamDecodersManager>();
+	register_class<GRStreamDecoder>();
+	register_class<GRStreamDecoderImageSequence>();
+	register_class<GRStreamDecoderH264>();
 #endif
 
 	//register_class<GRPacket>();

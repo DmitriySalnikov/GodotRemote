@@ -249,40 +249,6 @@ void GodotRemote::_register_methods() {
 	CONST_REG(GRNotifications, NotificationsPosition, BOTTOM_CENTER);
 	CONST_REG(GRNotifications, NotificationsPosition, BOTTOM_RIGHT);
 
-	// GRInputData
-	CONST_REG(GRInputData, InputType, _NoneIT);
-	CONST_REG(GRInputData, InputType, _InputDeviceSensors);
-	CONST_REG(GRInputData, InputType, _InputEvent);
-	CONST_REG(GRInputData, InputType, _InputEventAction);
-	CONST_REG(GRInputData, InputType, _InputEventGesture);
-	CONST_REG(GRInputData, InputType, _InputEventJoypadButton);
-	CONST_REG(GRInputData, InputType, _InputEventJoypadMotion);
-	CONST_REG(GRInputData, InputType, _InputEventKey);
-	CONST_REG(GRInputData, InputType, _InputEventMagnifyGesture);
-	CONST_REG(GRInputData, InputType, _InputEventMIDI);
-	CONST_REG(GRInputData, InputType, _InputEventMouse);
-	CONST_REG(GRInputData, InputType, _InputEventMouseButton);
-	CONST_REG(GRInputData, InputType, _InputEventMouseMotion);
-	CONST_REG(GRInputData, InputType, _InputEventPanGesture);
-	CONST_REG(GRInputData, InputType, _InputEventScreenDrag);
-	CONST_REG(GRInputData, InputType, _InputEventScreenTouch);
-	CONST_REG(GRInputData, InputType, _InputEventWithModifiers);
-	CONST_REG(GRInputData, InputType, _InputEventMAX);
-
-	// GRPacket
-	CONST_REG(GRPacket, PacketType, NonePacket);
-	CONST_REG(GRPacket, PacketType, SyncTime);
-	CONST_REG(GRPacket, PacketType, ImageData);
-	CONST_REG(GRPacket, PacketType, InputData);
-	CONST_REG(GRPacket, PacketType, ServerSettings);
-	CONST_REG(GRPacket, PacketType, MouseModeSync);
-	CONST_REG(GRPacket, PacketType, CustomInputScene);
-	CONST_REG(GRPacket, PacketType, ClientStreamOrientation);
-	CONST_REG(GRPacket, PacketType, ClientStreamAspect);
-	CONST_REG(GRPacket, PacketType, CustomUserData);
-	CONST_REG(GRPacket, PacketType, Ping);
-	CONST_REG(GRPacket, PacketType, Pong);
-
 	// GRDevice
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_USE_INTERNAL);
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_VIDEO_STREAM_ENABLED);
@@ -292,9 +258,7 @@ void GodotRemote::_register_methods() {
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_RENDER_SCALE);
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_TARGET_FPS);
 
-	CONST_REG(GRDevice, ImageCompressionType, COMPRESSION_UNCOMPRESSED);
 	CONST_REG(GRDevice, ImageCompressionType, COMPRESSION_JPG);
-	CONST_REG(GRDevice, ImageCompressionType, COMPRESSION_PNG);
 	CONST_REG(GRDevice, ImageCompressionType, COMPRESSION_H264);
 
 	CONST_REG(GRDevice, WorkingStatus, STATUS_STARTING);
@@ -486,7 +450,7 @@ void GodotRemote::register_and_load_settings() {
 	DEF_(ps_server_stream_enabled_name, true, Variant::BOOL, PROPERTY_HINT_NONE, "");
 	DEF_(ps_server_compression_type_name, 1 /*GRDevice::ImageCompressionType::JPG*/, Variant::INT, PROPERTY_HINT_ENUM, "Uncompressed,JPG,PNG (deprecated),H264");
 	DEF_(ps_server_stream_skip_frames_name, 0, Variant::INT, PROPERTY_HINT_RANGE, "0,1000");
-	DEF_(ps_server_scale_of_sending_stream_name, 0.5f, Variant::REAL, PROPERTY_HINT_RANGE, "0,1,0.01");
+	DEF_(ps_server_scale_of_sending_stream_name, 0.75f, Variant::REAL, PROPERTY_HINT_RANGE, "0,1,0.01");
 	DEF_(ps_server_jpg_quality_name, 90, Variant::INT, PROPERTY_HINT_RANGE, "0,100");
 	DEF_(ps_server_auto_adjust_scale_name, false, Variant::BOOL, PROPERTY_HINT_NONE, "");
 

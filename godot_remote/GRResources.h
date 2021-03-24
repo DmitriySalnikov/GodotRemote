@@ -1,8 +1,6 @@
 /* GRBinResources.h */
+#pragma once
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
-
-#ifndef GRRESOURCES_H
-#define GRRESOURCES_H
 
 #ifndef GDNATIVE_LIBRARY
 #define GetPoolVectorFromBin(to_var, res)         \
@@ -49,5 +47,3 @@ extern const unsigned char Bin_WarningIconPNG[];
 } // namespace GRResources
 
 #endif // !GRRESOURCES_H
-
-#endif

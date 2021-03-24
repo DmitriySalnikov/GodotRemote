@@ -362,7 +362,7 @@ margin_bottom = 730.0
 margin_right = 370.0
 margin_bottom = 46.0
 size_flags_horizontal = 3
-text = "Output FPS"
+text = "Output Frequency"
 valign = 1
 __meta__ = {
 "_edit_use_anchors_": false
@@ -855,9 +855,9 @@ margin_right = 744.0
 margin_bottom = 46.0
 rect_min_size = Vector2( 0, 32 )
 size_flags_horizontal = 3
-text = "JPG"
+text = "H264"
 align = 1
-items = [ "Uncompressed", null, false, 0, null, "JPG", null, false, 1, null, "H264", null, false, 3, null ]
+items = [ "JPG", null, false, 1, null, "H264", null, false, 3, null ]
 selected = 1
 
 [node name="Empty3" type="Control" parent="Scroll/H/Grid"]
@@ -885,7 +885,6 @@ script = SubResource( 3 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
-
 [connection signal="resized" from="." to="." method="_on_GRSettings_resized"]
 [connection signal="visibility_changed" from="." to="." method="_on_GRSettings_visibility_changed"]
 [connection signal="timeout" from="Timer" to="." method="_on_button_disable_Timer_timeout"]

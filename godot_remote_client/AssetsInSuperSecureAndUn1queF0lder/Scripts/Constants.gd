@@ -23,38 +23,6 @@ var GRNotifications_NOTIFICATIONS_POSITION_BOTTOM_LEFT : int
 var GRNotifications_NOTIFICATIONS_POSITION_BOTTOM_CENTER : int
 var GRNotifications_NOTIFICATIONS_POSITION_BOTTOM_RIGHT : int
 
-var GRInputData_InputTypeNone : int
-var GRInputData_InputDeviceSensors : int
-var GRInputData_InputEvent : int
-var GRInputData_InputEventAction : int
-var GRInputData_InputEventGesture : int
-var GRInputData_InputEventJoypadButton : int
-var GRInputData_InputEventJoypadMotion : int
-var GRInputData_InputEventKey : int
-var GRInputData_InputEventMagnifyGesture : int
-var GRInputData_InputEventMIDI : int
-var GRInputData_InputEventMouse : int
-var GRInputData_InputEventMouseButton : int
-var GRInputData_InputEventMouseMotion : int
-var GRInputData_InputEventPanGesture : int
-var GRInputData_InputEventScreenDrag : int
-var GRInputData_InputEventScreenTouch : int
-var GRInputData_InputEventWithModifiers : int
-var GRInputData_InputEventMAX : int
-
-var GRPacket_NonePacket : int
-var GRPacket_SyncTime : int
-var GRPacket_ImageData : int
-var GRPacket_InputData : int
-var GRPacket_ServerSettings : int
-var GRPacket_MouseModeSync : int
-var GRPacket_CustomInputScene : int
-var GRPacket_ClientStreamOrientation : int
-var GRPacket_ClientStreamAspect : int
-var GRPacket_CustomUserData : int
-var GRPacket_Ping : int
-var GRPacket_Pong : int
-
 var GRDevice_STATUS_STARTING : int
 var GRDevice_STATUS_STOPPING : int
 var GRDevice_STATUS_WORKING : int
@@ -110,38 +78,6 @@ func _setup_constants():
 	GRNotifications_NOTIFICATIONS_POSITION_BOTTOM_CENTER = get_enum_constant("GRNotifications", "NotificationsPosition", "BOTTOM_CENTER");
 	GRNotifications_NOTIFICATIONS_POSITION_BOTTOM_RIGHT = get_enum_constant("GRNotifications", "NotificationsPosition", "BOTTOM_RIGHT");
 
-	GRInputData_InputTypeNone = get_enum_constant("GRInputData", "InputType", "_NoneIT");
-	GRInputData_InputDeviceSensors = get_enum_constant("GRInputData", "InputType", "_InputDeviceSensors");
-	GRInputData_InputEvent = get_enum_constant("GRInputData", "InputType", "_InputEvent");
-	GRInputData_InputEventAction = get_enum_constant("GRInputData", "InputType", "_InputEventAction");
-	GRInputData_InputEventGesture = get_enum_constant("GRInputData", "InputType", "_InputEventGesture");
-	GRInputData_InputEventJoypadButton = get_enum_constant("GRInputData", "InputType", "_InputEventJoypadButton");
-	GRInputData_InputEventJoypadMotion = get_enum_constant("GRInputData", "InputType", "_InputEventJoypadMotion");
-	GRInputData_InputEventKey = get_enum_constant("GRInputData", "InputType", "_InputEventKey");
-	GRInputData_InputEventMagnifyGesture = get_enum_constant("GRInputData", "InputType", "_InputEventMagnifyGesture");
-	GRInputData_InputEventMIDI = get_enum_constant("GRInputData", "InputType", "_InputEventMIDI");
-	GRInputData_InputEventMouse = get_enum_constant("GRInputData", "InputType", "_InputEventMouse");
-	GRInputData_InputEventMouseButton = get_enum_constant("GRInputData", "InputType", "_InputEventMouseButton");
-	GRInputData_InputEventMouseMotion = get_enum_constant("GRInputData", "InputType", "_InputEventMouseMotion");
-	GRInputData_InputEventPanGesture = get_enum_constant("GRInputData", "InputType", "_InputEventPanGesture");
-	GRInputData_InputEventScreenDrag = get_enum_constant("GRInputData", "InputType", "_InputEventScreenDrag");
-	GRInputData_InputEventScreenTouch = get_enum_constant("GRInputData", "InputType", "_InputEventScreenTouch");
-	GRInputData_InputEventWithModifiers = get_enum_constant("GRInputData", "InputType", "_InputEventWithModifiers");
-	GRInputData_InputEventMAX = get_enum_constant("GRInputData", "InputType", "_InputEventMAX");
-
-	GRPacket_NonePacket = get_enum_constant("GRPacket", "PacketType", "NonePacket");
-	GRPacket_SyncTime = get_enum_constant("GRPacket", "PacketType", "SyncTime");
-	GRPacket_ImageData = get_enum_constant("GRPacket", "PacketType", "ImageData");
-	GRPacket_InputData = get_enum_constant("GRPacket", "PacketType", "InputData");
-	GRPacket_ServerSettings = get_enum_constant("GRPacket", "PacketType", "ServerSettings");
-	GRPacket_MouseModeSync = get_enum_constant("GRPacket", "PacketType", "MouseModeSync");
-	GRPacket_CustomInputScene = get_enum_constant("GRPacket", "PacketType", "CustomInputScene");
-	GRPacket_ClientStreamOrientation = get_enum_constant("GRPacket", "PacketType", "ClientStreamOrientation");
-	GRPacket_ClientStreamAspect = get_enum_constant("GRPacket", "PacketType", "ClientStreamAspect");
-	GRPacket_CustomUserData = get_enum_constant("GRPacket", "PacketType", "CustomUserData");
-	GRPacket_Ping = get_enum_constant("GRPacket", "PacketType", "Ping");
-	GRPacket_Pong = get_enum_constant("GRPacket", "PacketType", "Pong");
-
 	GRDevice_USE_INTERNAL_SERVER_SETTINGS = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_USE_INTERNAL");
 	GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_VIDEO_STREAM_ENABLED");
 	GRDevice_SERVER_PARAM_COMPRESSION_TYPE = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_COMPRESSION_TYPE");
@@ -150,9 +86,7 @@ func _setup_constants():
 	GRDevice_SERVER_PARAM_RENDER_SCALE = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_RENDER_SCALE");
 	GRDevice_SERVER_PARAM_TARGET_FPS = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_TARGET_FPS");
 
-	GRDevice_IMAGE_COMPRESSION_UNCOMPRESSED = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_UNCOMPRESSED");
 	GRDevice_IMAGE_COMPRESSION_JPG = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_JPG");
-	GRDevice_IMAGE_COMPRESSION_PNG = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_PNG");
 	GRDevice_IMAGE_COMPRESSION_H264 = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_H264");
 
 	GRDevice_STATUS_STARTING = get_enum_constant("GRDevice", "WorkingStatus", "STATUS_STARTING");

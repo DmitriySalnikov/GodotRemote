@@ -1,6 +1,5 @@
 /* GRProfiler.h */
-#ifndef GRPROFILER_H
-#define GRPROFILER_H
+#pragma once
 
 #ifdef GODOTREMOTE_TRACY_ENABLED
 
@@ -115,5 +114,3 @@
 #define TracyIsConnected false
 
 #endif // GODOTREMOTE_TRACY_ENABLED
-
-#endif // GRPROFILER_H

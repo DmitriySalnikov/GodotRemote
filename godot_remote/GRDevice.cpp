@@ -52,9 +52,7 @@ void GRDevice::_bind_methods() {
 	BIND_ENUM_CONSTANT(SERVER_SETTINGS_RENDER_SCALE);
 	BIND_ENUM_CONSTANT(SERVER_SETTINGS_TARGET_FPS);
 
-	BIND_ENUM_CONSTANT(COMPRESSION_UNCOMPRESSED);
 	BIND_ENUM_CONSTANT(COMPRESSION_JPG);
-	BIND_ENUM_CONSTANT(COMPRESSION_PNG);
 	BIND_ENUM_CONSTANT(COMPRESSION_H264);
 }
 
@@ -107,35 +105,21 @@ void GRDevice::_notification(int p_notification) {
 }
 
 void GRDevice::_reset_counters() {
-	avg_fps = min_fps = max_fps = 0;
-	avg_ping = min_ping = max_ping = 0;
-	fps_queue = ping_queue = iterable_queue<uint64_t>();
+	fps_counter.reset();
+	ping_counter.reset();
 }
 
 void GRDevice::_update_avg_ping(uint64_t ping) {
-	ping_queue.add_value_limited(ping, avg_ping_max_count);
-	calculate_avg_min_max_values(ping_queue, &avg_ping, &min_ping, &max_ping, &GRDevice::_ping_calc_modifier);
+	ping_counter.update(ping);
 }
 
 void GRDevice::_update_avg_fps(uint64_t frametime) {
-	fps_queue.add_value_limited(frametime, (int)round(Engine::get_singleton()->get_frames_per_second()));
-	calculate_avg_min_max_values(fps_queue, &avg_fps, &min_fps, &max_fps, &GRDevice::_fps_calc_modifier);
-}
-
-float GRDevice::_ping_calc_modifier(double i) {
-	return float(i * 0.001);
-}
-
-float GRDevice::_fps_calc_modifier(double i) {
-	if (i > 0)
-		return float(1000000.0 / i);
-	else
-		return 0;
+	fps_counter.update(frametime, (int)round(Engine::get_singleton()->get_frames_per_second()));
 }
 
 void GRDevice::send_user_data(Variant packet_id, Variant user_data, bool full_objects) {
 	Scoped_lock(send_queue_mutex);
-	Ref<GRPacketCustomUserData> packet = newref(GRPacketCustomUserData);
+	auto packet = shared_new(GRPacketCustomUserData);
 	send_packet(packet);
 
 	packet->set_packet_id(packet_id);
@@ -148,9 +132,9 @@ void GRDevice::_send_queue_resize(int new_size) {
 	send_queue.resize(new_size);
 }
 
-Ref<GRPacket> GRDevice::_send_queue_pop_front() {
+std::shared_ptr<GRPacket> GRDevice::_send_queue_pop_front() {
 	Scoped_lock(send_queue_mutex);
-	Ref<GRPacket> packet;
+	std::shared_ptr<GRPacket> packet;
 	if (send_queue.size() > 0) {
 		packet = send_queue.front();
 		send_queue.erase(send_queue.begin());
@@ -164,27 +148,27 @@ void GRDevice::set_status(WorkingStatus status) {
 }
 
 float GRDevice::get_avg_ping() {
-	return avg_ping;
+	return ping_counter.get_avg();
 }
 
 float GRDevice::get_min_ping() {
-	return min_ping;
+	return ping_counter.get_min();
 }
 
 float GRDevice::get_max_ping() {
-	return max_ping;
+	return ping_counter.get_max();
 }
 
 float GRDevice::get_avg_fps() {
-	return avg_fps;
+	return fps_counter.get_avg();
 }
 
 float GRDevice::get_min_fps() {
-	return min_fps;
+	return fps_counter.get_min();
 }
 
 float GRDevice::get_max_fps() {
-	return max_fps;
+	return fps_counter.get_max();
 }
 
 uint16_t GRDevice::get_port() {
@@ -196,8 +180,8 @@ void GRDevice::set_port(uint16_t _port) {
 	restart();
 }
 
-void GRDevice::send_packet(Ref<GRPacket> packet) {
-	ERR_FAIL_COND(packet.is_null());
+void GRDevice::send_packet(std::shared_ptr<GRPacket> packet) {
+	ERR_FAIL_COND(!packet);
 	Scoped_lock(send_queue_mutex);
 	if (send_queue.size() > 10000)
 		send_queue.resize(0);

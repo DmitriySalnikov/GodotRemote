@@ -33,7 +33,7 @@ var connection_type : int = 0 setget set_con_type
 var ip : String = "127.0.0.1" setget set_ip
 var port : int = 52341 setget set_port
 var stretch_mode : int = 0 setget set_stretch_mode
-var target_send_fps : int = 60 setget set_target_send_fps
+var target_send_fps : int = 120 setget set_target_send_fps
 var texture_filtering : bool = true setget set_texture_filtering
 var password : String = "" setget set_password
 var sync_viewport_orientation : bool = true setget set_sync_viewport_orientation
@@ -253,7 +253,8 @@ func _check_for_outdated_values() -> void:
 
 func _safe_get_from_dict(dict:Dictionary, val, def):
 	if dict.has(val):
-		return dict[val]
+		var r = dict[val]
+		return r if r != null else def
 	return def
 
 func get_version() -> String:

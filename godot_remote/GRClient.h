@@ -29,6 +29,7 @@ class GRClient : public GRDevice {
 
 	friend class GRTextureRect;
 	friend class GRStreamDecoderImageSequence;
+	friend class GRStreamDecoderH264;
 
 	enum class ScreenOrientation : int {
 		NONE = 0,
@@ -151,8 +152,7 @@ private:
 
 	uint64_t sync_time_client = 0;
 	uint64_t sync_time_server = 0;
-	float avg_delay = 0, min_delay = 0, max_delay = 0;
-	GRUtils::iterable_queue<uint64_t> delay_queue;
+	GRAVGCounter<uint64_t, float> delay_counter = GRAVGCounter<uint64_t, float>([](float i) -> float {if (i > 0) return float(1000000.0 / i); else return 0; });
 
 	// NO SIGNAL screen
 	uint64_t prev_valid_connection_time = 0;
@@ -172,12 +172,12 @@ private:
 
 	void _stop_decoder();
 	void _update_stream_manager();
-	void _push_pack_to_decoder(Ref<GRPacket> pack);
+	void _push_pack_to_decoder(std::shared_ptr<GRPacket> pack);
 	void _image_lost();
 	void _display_new_image(Ref<Image> img, uint64_t delay);
 
 	void _force_update_stream_viewport_signals();
-	void _load_custom_input_scene(Ref<class GRPacketCustomInputScene> _data);
+	void _load_custom_input_scene(String path, PoolByteArray scene_data, int orig_size, bool is_compressed, int compression_type);
 	void _remove_custom_input_scene();
 	void _viewport_size_changed();
 	void _on_node_deleting(int var_name);
@@ -279,8 +279,7 @@ private:
 	GRInputCollector **this_in_client = nullptr; //somebody help
 
 	class TextureRect *texture_rect = nullptr;
-	//Array collected_input_data; // Ref<GRInputData>
-	std::vector<Ref<GRInputData> > collected_input_data;
+	std::vector<std::shared_ptr<GRInputData> > collected_input_data;
 	class Control *parent;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
@@ -321,7 +320,7 @@ public:
 
 	void set_tex_rect(class TextureRect *tr);
 
-	Ref<class GRPacketInputData> get_collected_input_data();
+	std::shared_ptr<GRPacketInputData> get_collected_input_data();
 
 	void _init();
 	void _deinit();

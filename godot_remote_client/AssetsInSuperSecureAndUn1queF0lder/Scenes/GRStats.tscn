@@ -46,6 +46,7 @@ columns = 3
 margin_right = 89.0
 margin_bottom = 22.0
 size_flags_vertical = 1
+custom_colors/font_color = Color( 0.827451, 0.941176, 1, 1 )
 text = "FPS:231"
 
 [node name="FPS_min" type="Label" parent="Grid"]
@@ -53,6 +54,7 @@ margin_left = 93.0
 margin_right = 115.0
 margin_bottom = 22.0
 size_flags_vertical = 1
+custom_colors/font_color = Color( 0.737255, 1, 0.713726, 1 )
 text = "21"
 
 [node name="FPS_max" type="Label" parent="Grid"]
@@ -60,6 +62,7 @@ margin_left = 119.0
 margin_right = 152.0
 margin_bottom = 22.0
 size_flags_vertical = 1
+custom_colors/font_color = Color( 1, 0.709804, 0.709804, 1 )
 text = "124"
 
 [node name="Ping" type="Label" parent="Grid"]
@@ -67,6 +70,7 @@ margin_top = 22.0
 margin_right = 89.0
 margin_bottom = 44.0
 size_flags_vertical = 1
+custom_colors/font_color = Color( 0.827451, 0.941176, 1, 1 )
 text = "PING:321"
 
 [node name="Ping_min" type="Label" parent="Grid"]
@@ -75,6 +79,7 @@ margin_top = 22.0
 margin_right = 115.0
 margin_bottom = 44.0
 size_flags_vertical = 1
+custom_colors/font_color = Color( 0.737255, 1, 0.713726, 1 )
 text = "12"
 
 [node name="Ping_max" type="Label" parent="Grid"]
@@ -83,6 +88,7 @@ margin_top = 22.0
 margin_right = 152.0
 margin_bottom = 44.0
 size_flags_vertical = 1
+custom_colors/font_color = Color( 1, 0.709804, 0.709804, 1 )
 text = "333"
 
 [node name="Delay" type="Label" parent="Grid"]
@@ -90,6 +96,7 @@ margin_top = 44.0
 margin_right = 89.0
 margin_bottom = 66.0
 size_flags_vertical = 1
+custom_colors/font_color = Color( 0.827451, 0.941176, 1, 1 )
 text = "Delay:321"
 
 [node name="Delay_min" type="Label" parent="Grid"]
@@ -98,6 +105,7 @@ margin_top = 44.0
 margin_right = 115.0
 margin_bottom = 66.0
 size_flags_vertical = 1
+custom_colors/font_color = Color( 0.737255, 1, 0.713726, 1 )
 text = "12"
 
 [node name="Delay_max" type="Label" parent="Grid"]
@@ -106,4 +114,5 @@ margin_top = 44.0
 margin_right = 152.0
 margin_bottom = 66.0
 size_flags_vertical = 1
+custom_colors/font_color = Color( 1, 0.709804, 0.709804, 1 )
 text = "333"

@@ -13,12 +13,12 @@
 using namespace godot;
 #endif
 
-GRUtilsData *GRUtils::_grutils_data = nullptr;
+std::shared_ptr<GRUtilsData> GRUtils::_grutils_data = nullptr;
 
 namespace GRUtils {
 void init() {
 	LEAVE_IF_EDITOR();
-	_grutils_data = memnew(GRUtilsData);
+	_grutils_data = shared_new(GRUtilsData);
 	_grutils_data->current_loglevel = LogLevel::LL_NORMAL;
 
 	GR_PACKET_HEADER('G', 'R', 'H', 'D');
@@ -32,8 +32,6 @@ void deinit() {
 	if (_grutils_data) {
 		_grutils_data->internal_PACKET_HEADER.resize(0);
 		_grutils_data->internal_VERSION.resize(0);
-		memdelete(_grutils_data);
-		_grutils_data = nullptr;
 	}
 }
 
@@ -447,6 +445,20 @@ Ref<_Thread> _utils_thread_create(Object *instance, String func_name, const Vari
 #else
 Array vec_args(const std::vector<Variant> &args) {
 	return vec_to_arr(args);
+}
+
+PoolByteArray _gdn_convert_native_pointer_array_to_pba(uint8_t *p, int64_t size) {
+	PoolByteArray a;
+	a.resize(size);
+	auto w = a.write();
+	memcpy(w.ptr(), p, size);
+	return a;
+}
+
+void _gdn_convert_array_to_native_pointer_array(uint8_t *pDst, const Array &pSrc, int64_t size) {
+	PoolByteArray a = PoolByteArray(pSrc);
+	auto r = a.read();
+	memcpy(pDst, r.ptr(), size);
 }
 
 String _gdn_get_file_as_string(String path, Error *ret_err) {

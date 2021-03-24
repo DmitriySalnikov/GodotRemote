@@ -141,40 +141,6 @@ public:
 	CONST_GET(GRNotifications, NotificationsPosition, BOTTOM_CENTER);
 	CONST_GET(GRNotifications, NotificationsPosition, BOTTOM_RIGHT);
 
-	// GRInputData
-	CONST_GET(GRInputData, InputType, _NoneIT);
-	CONST_GET(GRInputData, InputType, _InputDeviceSensors);
-	CONST_GET(GRInputData, InputType, _InputEvent);
-	CONST_GET(GRInputData, InputType, _InputEventAction);
-	CONST_GET(GRInputData, InputType, _InputEventGesture);
-	CONST_GET(GRInputData, InputType, _InputEventJoypadButton);
-	CONST_GET(GRInputData, InputType, _InputEventJoypadMotion);
-	CONST_GET(GRInputData, InputType, _InputEventKey);
-	CONST_GET(GRInputData, InputType, _InputEventMagnifyGesture);
-	CONST_GET(GRInputData, InputType, _InputEventMIDI);
-	CONST_GET(GRInputData, InputType, _InputEventMouse);
-	CONST_GET(GRInputData, InputType, _InputEventMouseButton);
-	CONST_GET(GRInputData, InputType, _InputEventMouseMotion);
-	CONST_GET(GRInputData, InputType, _InputEventPanGesture);
-	CONST_GET(GRInputData, InputType, _InputEventScreenDrag);
-	CONST_GET(GRInputData, InputType, _InputEventScreenTouch);
-	CONST_GET(GRInputData, InputType, _InputEventWithModifiers);
-	CONST_GET(GRInputData, InputType, _InputEventMAX);
-
-	// GRPacket
-	CONST_GET(GRPacket, PacketType, NonePacket);
-	CONST_GET(GRPacket, PacketType, SyncTime);
-	CONST_GET(GRPacket, PacketType, ImageData);
-	CONST_GET(GRPacket, PacketType, InputData);
-	CONST_GET(GRPacket, PacketType, ServerSettings);
-	CONST_GET(GRPacket, PacketType, MouseModeSync);
-	CONST_GET(GRPacket, PacketType, CustomInputScene);
-	CONST_GET(GRPacket, PacketType, ClientStreamOrientation);
-	CONST_GET(GRPacket, PacketType, ClientStreamAspect);
-	CONST_GET(GRPacket, PacketType, CustomUserData);
-	CONST_GET(GRPacket, PacketType, Ping);
-	CONST_GET(GRPacket, PacketType, Pong);
-
 	// GRDevice
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_USE_INTERNAL);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_VIDEO_STREAM_ENABLED);
@@ -182,10 +148,10 @@ public:
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_JPG_QUALITY);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_SKIP_FRAMES);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_RENDER_SCALE);
+	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_TARGET_FPS);
 
-	CONST_GET(GRDevice, ImageCompressionType, COMPRESSION_UNCOMPRESSED);
 	CONST_GET(GRDevice, ImageCompressionType, COMPRESSION_JPG);
-	CONST_GET(GRDevice, ImageCompressionType, COMPRESSION_PNG);
+	CONST_GET(GRDevice, ImageCompressionType, COMPRESSION_H264);
 
 	CONST_GET(GRDevice, WorkingStatus, STATUS_STOPPED);
 	CONST_GET(GRDevice, WorkingStatus, STATUS_WORKING);

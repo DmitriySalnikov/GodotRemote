@@ -1,6 +1,5 @@
 /* GRUtilsH264Codec.h */
-#ifndef GRHUTILS264CODEC_H
-#define GRHUTILS264CODEC_H
+#pragma once
 
 #include "GRUtils.h"
 
@@ -16,7 +15,7 @@
 class GRUtilsH264Codec {
 private:
 	// DLL Name
-	static String lib_name;
+	static const wchar_t *lib_name;
 
 	// Encoder
 	typedef int(__stdcall *WelsCreateSVCEncoderFunc)(ISVCEncoder **ppEncoder);
@@ -39,5 +38,3 @@ public:
 	static Error _decoder_create(ISVCDecoder **decoder);
 	static Error _decoder_free(ISVCDecoder *decoder);
 };
-
-#endif // GRHUTILS264CODEC_H

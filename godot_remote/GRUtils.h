@@ -1,6 +1,5 @@
 /* GRUtils.h */
-#ifndef GRUTILS_H
-#define GRUTILS_H
+#pragma once
 
 #include <algorithm>
 #include <deque>
@@ -61,19 +60,21 @@ using namespace godot;
 // Bind constant with custom name
 //ClassDB::bind_integer_constant(get_class_static(), __constant_get_enum_name(m_constant, #m_constant), #m_constant, m_constant);
 #define BIND_ENUM_CONSTANT_CUSTOM(m_enum, m_const, m_name) ClassDB::bind_integer_constant(get_class_static(), #m_enum, m_name, ((int)(m_enum::m_const)));
-#define GDNATIVE_BASIC_REGISTER
-#define GDNATIVE_BASIC_REGISTER_NO_INIT
 
 #define queue_del queue_delete
 #define img_is_empty(img) img->empty()
 #define is_valid_ip is_valid
 #define release_pva_read(pva) pva.release()
 #define release_pva_write(pva) pva.release()
+#define put_data_from_array_pointer(p, size) p, size
+#define get_data_from_stream(_stream, pDst, size) _stream->get_data(pDst, size)
 
 #define dict_get_key_at_index(dict, i) dict.get_key_at_index(i)
 #define dict_get_value_at_index(dict, i) dict.get_value_at_index(i)
 
 #define file_get_as_string(path, err) FileAccess::get_file_as_string(path, err);
+#define file_open(var, path, flags) \
+	auto var = FileAccess::open(path, flags);
 
 #define Thread_define_type Ref<_Thread>
 #define Thread_define(_var) Ref<_Thread> _var
@@ -125,27 +126,19 @@ enum Margin : int {
 #define img_is_empty(img) img->is_empty()
 #define release_pva_read(pva)
 #define release_pva_write(pva)
+#define put_data_from_array_pointer(p, size) _gdn_convert_native_pointer_array_to_pba(p, size)
+#define get_data_from_stream(_stream, pDst, size) _gdn_convert_array_to_native_pointer_array(pDst, _stream->get_data(size), size)
 
 #define dict_get_key_at_index(dict, i) _gdn_dictionary_get_key_at_index(dict, i)
 #define dict_get_value_at_index(dict, i) _gdn_dictionary_get_value_at_index(dict, i)
 
 #define file_get_as_string(path, err) _gdn_get_file_as_string(path, err)
+#define file_open(var, path, flags) \
+	File *var = memnew(File);       \
+	var->open(path, flags);
 
 #define memnew(obj) obj::_new()
 #define memdelete(obj) obj->free()
-
-#define GDNATIVE_BASIC_REGISTER        \
-public:                                \
-	void _init(){};                    \
-	static void _register_methods(){}; \
-                                       \
-protected:
-
-#define GDNATIVE_BASIC_REGISTER_NO_INIT \
-public:                                 \
-	static void _register_methods(){};  \
-                                        \
-protected:
 
 #define ERR_FAIL_V_MSG(m_retval, m_msg)                                              \
 	{                                                                                \
@@ -203,6 +196,11 @@ protected:
 		_name = Thread_define_type();             \
 	}
 
+#define shared_cast(type, from) std::dynamic_pointer_cast<type>(from)
+#define shared_cast_var(type, var, from) var = std::dynamic_pointer_cast<type>(from)
+#define shared_cast_def(type, var, from) std::shared_ptr<type> var = std::dynamic_pointer_cast<type>(from)
+#define shared_new(type, ...) std::make_shared<type>(__VA_ARGS__)
+
 #define newref(_class) Ref<_class>(memnew(_class))
 #define is_vector_contains(vec, val) (std::find(vec.begin(), vec.end(), val) != vec.end())
 
@@ -259,28 +257,16 @@ public:
 	iterator end() { return this->c.end(); }
 	const_iterator begin() const { return this->c.begin(); }
 	const_iterator end() const { return this->c.end(); }
-	void add_value_limited(T value, uint32_t limit) {
-		if (value > 10000_ms)
-			this->push(10000_ms);
-		else
-			this->push(value);
-		while (this->size() > limit) {
-			this->pop();
-		}
-	}
 };
 
-class GRUtilsData : public Object {
-	GD_CLASS(GRUtilsData, Object);
-	GDNATIVE_BASIC_REGISTER;
-
+class GRUtilsData {
 public:
 	int current_loglevel;
 	PoolByteArray internal_PACKET_HEADER;
 	PoolByteArray internal_VERSION;
 };
 
-extern GRUtilsData *_grutils_data;
+extern std::shared_ptr<GRUtilsData> _grutils_data;
 
 extern void init();
 extern void deinit();
@@ -437,30 +423,6 @@ static void set_log_level(int lvl) {
 	_grutils_data->current_loglevel = lvl;
 }
 
-template <typename T>
-inline void calculate_avg_min_max_values(const iterable_queue<T> &v, float *avg_val, float *min_val, float *max_val, float(modifier)(double)) {
-	if (v.size() > 0) {
-		double sum = 0;
-		*min_val = (float)v.back();
-		*max_val = (float)v.back();
-
-		for (T i : v) {
-			sum += i;
-			if (i < *min_val)
-				*min_val = (float)i;
-			else if (i > *max_val)
-				*max_val = (float)i;
-		}
-		*avg_val = modifier(sum / v.size());
-		*min_val = modifier(*min_val);
-		*max_val = modifier(*max_val);
-	} else {
-		*avg_val = 0;
-		*min_val = 0;
-		*max_val = 0;
-	}
-}
-
 template <class T>
 inline void vec_remove_idx(std::vector<T> &v, const T &item) {
 	v.erase(std::remove(v.begin(), v.end(), item), v.end());
@@ -515,6 +477,8 @@ extern Ref<class _Thread> _utils_thread_create(Object *instance, String func_nam
 #else
 extern Array vec_args(const std::vector<Variant> &args);
 
+extern PoolByteArray _gdn_convert_native_pointer_array_to_pba(uint8_t *p, int64_t size);
+extern void _gdn_convert_array_to_native_pointer_array(uint8_t *pDst, const Array &pSrc, int64_t size);
 extern String _gdn_get_file_as_string(String path, Error *ret_err);
 extern Variant _gdn_dictionary_get_key_at_index(Dictionary d, int idx);
 extern Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx);
@@ -523,5 +487,3 @@ extern Variant _GLOBAL_DEF(const String &p_var, const Variant &p_default, bool p
 #endif
 
 }; // namespace GRUtils
-
-#endif // GRUTILS_H

@@ -40,7 +40,7 @@ using namespace GRUtils;
 #ifndef GDNATIVE_LIBRARY
 
 void GRServer::_bind_methods() {
-	ClassDB::bind_method(D_METHOD(NAMEOF(_load_settings)), &GRServer::_load_settings);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_load_settings), "force_hide_notifications"), &GRServer::_load_settings, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_resize_viewport), "vp"), &GRServer::_remove_resize_viewport);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_listen), "user_data"), &GRServer::_thread_listen);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_connection), "user_data"), &GRServer::_thread_connection);
@@ -54,6 +54,7 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_jpg_quality), "quality"), &GRServer::set_jpg_quality);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_render_scale), "scale"), &GRServer::set_render_scale);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_password), "password"), &GRServer::set_password);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_target_fps), "fps"), &GRServer::set_target_fps);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_input_scene), "_scn"), &GRServer::set_custom_input_scene);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_input_scene_compressed), "_is_compressed"), &GRServer::set_custom_input_scene_compressed);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_input_scene_compression_type), "_type"), &GRServer::set_custom_input_scene_compression_type);
@@ -67,6 +68,7 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_jpg_quality)), &GRServer::get_jpg_quality);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_render_scale)), &GRServer::get_render_scale);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_password)), &GRServer::get_password);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_target_fps)), &GRServer::get_target_fps);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_custom_input_scene)), &GRServer::get_custom_input_scene);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_custom_input_scene_compressed)), &GRServer::is_custom_input_scene_compressed);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_custom_input_scene_compression_type)), &GRServer::get_custom_input_scene_compression_type);
@@ -106,6 +108,7 @@ void GRServer::_register_methods() {
 	METHOD_REG(GRServer, set_jpg_quality);
 	METHOD_REG(GRServer, set_render_scale);
 	METHOD_REG(GRServer, set_password);
+	METHOD_REG(GRServer, set_target_fps);
 	METHOD_REG(GRServer, set_custom_input_scene);
 	METHOD_REG(GRServer, set_custom_input_scene_compressed);
 	METHOD_REG(GRServer, set_custom_input_scene_compression_type);
@@ -119,6 +122,7 @@ void GRServer::_register_methods() {
 	METHOD_REG(GRServer, get_jpg_quality);
 	METHOD_REG(GRServer, get_render_scale);
 	METHOD_REG(GRServer, get_password);
+	METHOD_REG(GRServer, get_target_fps);
 	METHOD_REG(GRServer, get_custom_input_scene);
 	METHOD_REG(GRServer, is_custom_input_scene_compressed);
 	METHOD_REG(GRServer, get_custom_input_scene_compression_type);
@@ -369,7 +373,7 @@ void GRServer::_internal_call_only_deffered_start() {
 	Thread_start(server_thread_listen->thread_ref, this, _thread_listen, server_thread_listen);
 
 	set_status(WorkingStatus::STATUS_WORKING);
-	call_deferred(NAMEOF(_load_settings));
+	call_deferred(NAMEOF(_load_settings), true);
 
 	GRNotifications::add_notification("Godot Remote Server Status", "Server started", GRNotifications::GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 }
@@ -439,9 +443,9 @@ void GRServer::_adjust_viewport_scale() {
 	}
 
 	if (prev_avg_fps == 0) {
-		prev_avg_fps = avg_fps;
+		prev_avg_fps = fps_counter.get_avg();
 	} else {
-		prev_avg_fps = (prev_avg_fps * smooth) + (avg_fps * (1.f - smooth));
+		prev_avg_fps = (prev_avg_fps * smooth) + (fps_counter.get_avg() * (1.f - smooth));
 	}
 	_log(prev_avg_fps, LogLevel::LL_NORMAL);
 
@@ -462,11 +466,13 @@ end:
 	resize_viewport->call_deferred(NAMEOF(_update_size));
 }
 
-void GRServer::_load_settings() {
+void GRServer::_load_settings(bool force_hide_notifications) {
+#define IS_NOTIF_SHOWING if (!force_hide_notifications)
+
 	using_client_settings = false;
 
 	const String title = "Server settings updated";
-	GRNotifications::add_notification_or_update_line(title, "title", "Loaded default server settings", GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+	IS_NOTIF_SHOWING GRNotifications::add_notification_or_update_line(title, "title", "Loaded default server settings", GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 
 	// only updated by server itself
 	password = GET_PS(GodotRemote::ps_server_password_name);
@@ -476,16 +482,18 @@ void GRServer::_load_settings() {
 	set_custom_input_scene_compression_type(ENUM_CONV(Compression::Mode)(int) GET_PS(GodotRemote::ps_server_custom_input_scene_compression_type_name));
 #endif
 
-	GRNotifications::add_notification_or_update_line(title, "cis", "Custom input scene: " + str(get_custom_input_scene()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+	IS_NOTIF_SHOWING GRNotifications::add_notification_or_update_line(title, "cis", "Custom input scene: " + str(get_custom_input_scene()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 	if (!get_custom_input_scene().empty()) {
-		GRNotifications::add_notification_or_update_line(title, "cisc", "Scene compressed: " + str(is_custom_input_scene_compressed()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
-		GRNotifications::add_notification_or_update_line(title, "cisct", "Scene compression type: " + str(get_custom_input_scene_compression_type()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+		IS_NOTIF_SHOWING {
+			GRNotifications::add_notification_or_update_line(title, "cisc", "Scene compressed: " + str(is_custom_input_scene_compressed()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+			GRNotifications::add_notification_or_update_line(title, "cisct", "Scene compression type: " + str(get_custom_input_scene_compression_type()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+		}
 	}
 
 	// can be updated by client
 	auto_adjust_scale = GET_PS(GodotRemote::ps_server_auto_adjust_scale_name); // TODO move to viewport
 
-	GRNotifications::add_notification_or_update_line(title, "auto_scale", "Auto adjust scale: " + str(auto_adjust_scale), GRNotifications::NotificationIcon::ICON_NONE, 1.f); // TODO not completed
+	IS_NOTIF_SHOWING GRNotifications::add_notification_or_update_line(title, "auto_scale", "Auto adjust scale: " + str(auto_adjust_scale), GRNotifications::NotificationIcon::ICON_NONE, 1.f); // TODO not completed
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
 		set_video_stream_enabled((bool)GET_PS(GodotRemote::ps_server_stream_enabled_name));
 		set_compression_type((ImageCompressionType)(int)GET_PS(GodotRemote::ps_server_compression_type_name));
@@ -494,22 +502,28 @@ void GRServer::_load_settings() {
 		set_skip_frames(GET_PS(GodotRemote::ps_server_stream_skip_frames_name));
 		set_target_fps(GET_PS(GodotRemote::ps_server_target_fps_name));
 
-		GRNotifications::add_notification_or_update_line(title, "stream", "Stream enabled: " + str(is_video_stream_enabled()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
-		GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str(get_compression_type()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
-		GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(get_jpg_quality()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
-		GRNotifications::add_notification_or_update_line(title, "skip", "Skip Frames: " + str(get_skip_frames()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
-		GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(get_render_scale()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
-		GRNotifications::add_notification_or_update_line(title, "fps", "Target FPS: " + str(get_target_fps()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+		IS_NOTIF_SHOWING {
+			GRNotifications::add_notification_or_update_line(title, "stream", "Stream enabled: " + str(is_video_stream_enabled()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+			GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str(get_compression_type()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+			GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(get_jpg_quality()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+			GRNotifications::add_notification_or_update_line(title, "skip", "Skip Frames: " + str(get_skip_frames()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+			GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(get_render_scale()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+			GRNotifications::add_notification_or_update_line(title, "fps", "Target FPS: " + str(get_target_fps()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+		}
 	} else {
 		_log("Resize viewport not found!", LogLevel::LL_ERROR);
 		GRNotifications::add_notification("Critical Error", "Resize viewport not found!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 	}
 
-	// notification
-	GRNotificationPanelUpdatable *np = cast_to<GRNotificationPanelUpdatable>(GRNotifications::get_notification(title));
-	if (np) {
-		np->clear_lines();
+	// clear prev notification?
+	IS_NOTIF_SHOWING {
+		GRNotificationPanelUpdatable *np = cast_to<GRNotificationPanelUpdatable>(GRNotifications::get_notification(title));
+		if (np) {
+			np->clear_lines();
+		}
 	}
+
+#undef IS_NOTIF_SHOWING
 }
 
 void GRServer::_update_settings_from_client(const std::map<int, Variant> settings) {
@@ -682,7 +696,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 			con->set_no_delay(true);
 			String address = CONNECTION_ADDRESS(con);
 
-			Ref<PacketPeerStream> ppeer(memnew(PacketPeerStream));
+			Ref<PacketPeerStream> ppeer = newref(PacketPeerStream);
 			ppeer->set_stream_peer(con);
 			ppeer->set_output_buffer_max_size((1024 * 1024) * ((int)GET_PS(GodotRemote::ps_server_jpg_buffer_mb_size_name)));
 
@@ -808,7 +822,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			time_synced = true;
 			nothing_happens = false;
 			//prev_send_sync_time = time;
-			Ref<GRPacketSyncTime> pack(memnew(GRPacketSyncTime));
+			auto pack = shared_new(GRPacketSyncTime);
 			err = ppeer->put_var(pack->get_data());
 			if ((int)err) {
 				_log("Can't send sync time data! Code: " + str((int)err), LogLevel::LL_ERROR);
@@ -824,8 +838,8 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			ZoneScopedNC("Send Buffered Image Data", tracy::Color::Gray71);
 			nothing_happens = false;
 
-			Ref<GRPacket> pack = resize_viewport->pop_data_to_send();
-			if (pack.is_valid()) {
+			std::shared_ptr<GRPacket> pack = resize_viewport->pop_data_to_send();
+			if (pack) {
 				// avg fps
 				_update_avg_fps(time64 - prev_send_image_time);
 				_adjust_viewport_scale();
@@ -856,7 +870,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 				ZoneScopedNC("Send server settings", tracy::Color::Yellow4);
 				nothing_happens = false;
 
-				Ref<GRPacketServerSettings> pack(memnew(GRPacketServerSettings));
+				auto pack = shared_new(GRPacketServerSettings);
 				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_VIDEO_STREAM_ENABLED, is_video_stream_enabled());
 				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_COMPRESSION_TYPE, get_compression_type());
 				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_JPG_QUALITY, get_jpg_quality());
@@ -877,7 +891,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			nothing_happens = false;
 			mouse_mode = input->get_mouse_mode();
 
-			Ref<GRPacketMouseModeSync> pack(memnew(GRPacketMouseModeSync));
+			auto pack = shared_new(GRPacketMouseModeSync);
 			pack->set_mouse_mode(mouse_mode);
 
 			err = ppeer->put_var(pack->get_data());
@@ -894,7 +908,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			nothing_happens = false;
 			ping_sended = true;
 
-			Ref<GRPacketPing> pack(memnew(GRPacketPing));
+			auto pack = shared_new(GRPacketPing);
 			err = ppeer->put_var(pack->get_data());
 
 			prev_ping_sending_time = time64;
@@ -909,11 +923,11 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			ZoneScopedNC("Send Custom Input Scene", tracy::Color::Moccasin);
 			custom_input_scene_was_updated = true;
 
-			Ref<GRPacketCustomInputScene> pack;
+			std::shared_ptr<GRPacketCustomInputScene> pack;
 			if (!custom_input_scene.empty()) {
 				pack = _create_custom_input_pack(custom_input_scene, custom_input_pck_compressed, custom_input_pck_compression_type);
 			} else {
-				pack.instance();
+				pack = shared_new(GRPacketCustomInputScene);
 			}
 
 			err = ppeer->put_var(pack->get_data());
@@ -927,9 +941,9 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		// SEND QUEUE
 		while (!send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
 			ZoneScopedNC("Send Queued Data", tracy::Color::Burlywood1);
-			Ref<GRPacket> packet = _send_queue_pop_front();
+			std::shared_ptr<GRPacket> packet = _send_queue_pop_front();
 
-			if (packet.is_valid()) {
+			if (packet) {
 				err = ppeer->put_var(packet->get_data());
 
 				if ((int)err) {
@@ -969,8 +983,8 @@ void GRServer::_thread_connection(Variant p_userdata) {
 					continue;
 				}
 
-				Ref<GRPacket> pack = GRPacket::create(res);
-				if (pack.is_null()) {
+				std::shared_ptr<GRPacket> pack = GRPacket::create(res);
+				if (!pack) {
 					_log("Received packet was NULL", LogLevel::LL_ERROR);
 					continue;
 				}
@@ -987,20 +1001,20 @@ void GRServer::_thread_connection(Variant p_userdata) {
 						break;
 					}
 					case GRPacket::PacketType::InputData: {
-						Ref<GRPacketInputData> data = pack;
-						if (data.is_null()) {
+						shared_cast_def(GRPacketInputData, data, pack);
+						if (!data) {
 							_log("Incorrect GRPacketInputData", LogLevel::LL_ERROR);
 							break;
 						}
 						ZoneScopedNC("Parce Input Data", tracy::Color::MediumOrchid3);
 
 						for (int i = 0; i < data->get_inputs_count(); i++) {
-							Ref<GRInputData> id = data->get_input_data(i);
+							std::shared_ptr<GRInputData> id = data->get_input_data(i);
 							GRInputData::InputType ev_type = id->get_type();
 
 							if (ev_type >= GRInputData::InputType::_InputEvent) {
-								Ref<GRInputDataEvent> ied = id;
-								if (ied.is_null()) {
+								shared_cast_def(GRInputDataEvent, ied, id);
+								if (!ied) {
 									_log("GRInputDataEvent is null", LogLevel::LL_ERROR);
 									continue;
 								}
@@ -1016,8 +1030,8 @@ void GRServer::_thread_connection(Variant p_userdata) {
 										break;
 									}
 									case GRInputData::InputType::_InputDeviceSensors: {
-										Ref<GRInputDeviceSensorsData> sd = id;
-										if (sd.is_null()) {
+										shared_cast_def(GRInputDeviceSensorsData, sd, id);
+										if (!sd) {
 											_log("GRInputDeviceSensorsData is null", LogLevel::LL_ERROR);
 											continue;
 										}
@@ -1041,8 +1055,8 @@ void GRServer::_thread_connection(Variant p_userdata) {
 						break;
 					}
 					case GRPacket::PacketType::ServerSettings: {
-						Ref<GRPacketServerSettings> data = pack;
-						if (data.is_null()) {
+						shared_cast_def(GRPacketServerSettings, data, pack);
+						if (!data) {
 							_log("Incorrect GRPacketServerSettings", LogLevel::LL_ERROR);
 							continue;
 						}
@@ -1050,8 +1064,8 @@ void GRServer::_thread_connection(Variant p_userdata) {
 						break;
 					}
 					case GRPacket::PacketType::ClientStreamOrientation: {
-						Ref<GRPacketClientStreamOrientation> data = pack;
-						if (data.is_null()) {
+						shared_cast_def(GRPacketClientStreamOrientation, data, pack);
+						if (!data) {
 							_log("Incorrect GRPacketClientStreamOrientation", LogLevel::LL_ERROR);
 							continue;
 						}
@@ -1059,8 +1073,8 @@ void GRServer::_thread_connection(Variant p_userdata) {
 						break;
 					}
 					case GRPacket::PacketType::ClientStreamAspect: {
-						Ref<GRPacketClientStreamAspect> data = pack;
-						if (data.is_null()) {
+						shared_cast_def(GRPacketClientStreamAspect, data, pack);
+						if (!data) {
 							_log("Incorrect GRPacketClientStreamAspect", LogLevel::LL_ERROR);
 							continue;
 						}
@@ -1068,8 +1082,8 @@ void GRServer::_thread_connection(Variant p_userdata) {
 						break;
 					}
 					case GRPacket::PacketType::CustomUserData: {
-						Ref<GRPacketCustomUserData> data = pack;
-						if (data.is_null()) {
+						shared_cast_def(GRPacketCustomUserData, data, pack);
+						if (!data) {
 							_log("Incorrect GRPacketCustomUserData", LogLevel::LL_ERROR);
 							continue;
 						}
@@ -1077,7 +1091,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 						break;
 					}
 					case GRPacket::PacketType::Ping: {
-						Ref<GRPacketPong> pack(memnew(GRPacketPong));
+						auto pack = shared_new(GRPacketPong);
 						err = ppeer->put_var(pack->get_data());
 
 						if ((int)err) {
@@ -1132,7 +1146,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	Engine::get_singleton()->set_target_fps(default_target_fps);
 	_send_queue_resize(0);
 
-	call_deferred(NAMEOF(_load_settings));
+	//call_deferred(NAMEOF(_load_settings));
 	call_deferred("emit_signal", "client_disconnected", thread_info->device_id);
 
 	thread_info->finished = true;
@@ -1254,10 +1268,10 @@ timeout:
 #undef packet_error_check
 }
 
-Ref<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_path, bool compress, ENUM_ARG(Compression::Mode) compression_type) {
+std::shared_ptr<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(String _scene_path, bool compress, ENUM_ARG(Compression::Mode) compression_type) {
 	ZoneScopedNC("Create Custom Input Scene Pack", tracy::Color::LimeGreen);
 
-	Ref<GRPacketCustomInputScene> pack = memnew(GRPacketCustomInputScene);
+	auto pack = shared_new(GRPacketCustomInputScene);
 	std::vector<String> files;
 	_scan_resource_for_dependencies_recursive(_scene_path, files);
 #ifndef GDNATIVE_LIBRARY
@@ -1554,17 +1568,17 @@ void GRSViewport::_update_size() {
 		width = width - (int)width % 4;
 		height = height - (int)height % 4;
 
-		if (width < 8)
-			width = 8;
+		if (width < 16)
+			width = 16;
 		else if (width > Image::MAX_WIDTH)
 			width = Image::MAX_WIDTH;
 
-		if (height < 8)
-			height = 8;
+		if (height < 16)
+			height = 16;
 		else if (height > Image::MAX_HEIGHT)
 			height = Image::MAX_HEIGHT;
 
-		set_size(Size2(width, height));
+		set_size(Size2(real_t(width), real_t(height)));
 	}
 }
 
@@ -1579,11 +1593,11 @@ bool GRSViewport::has_data_to_send() {
 	return false;
 }
 
-Ref<GRPacket> GRSViewport::pop_data_to_send() {
+std::shared_ptr<GRPacket> GRSViewport::pop_data_to_send() {
 	Scoped_lock(stream_mutex);
 	if (stream_manager)
 		return stream_manager->pop_data_to_send();
-	return Ref<GRPacket>();
+	return std::shared_ptr<GRPacket>();
 }
 
 void GRSViewport::set_video_stream_enabled(bool val) {

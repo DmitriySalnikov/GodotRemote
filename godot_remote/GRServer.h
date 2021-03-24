@@ -113,7 +113,7 @@ private:
 	float prev_avg_fps = 0;
 	void _adjust_viewport_scale();
 
-	void _load_settings();
+	void _load_settings(bool force_hide_notifications = false);
 	void _update_settings_from_client(const std::map<int, Variant> settings);
 	void _remove_resize_viewport(Node *vp);
 
@@ -124,7 +124,7 @@ private:
 
 	AuthResult _auth_client(Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection DEF_ARG(= false));
 
-	Ref<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress DEF_ARG(= true), ENUM_ARG(Compression::Mode) compression_type DEF_ARG(= ENUM_CONV(Compression::Mode) 0));
+	std::shared_ptr<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress DEF_ARG(= true), ENUM_ARG(Compression::Mode) compression_type DEF_ARG(= ENUM_CONV(Compression::Mode) 0));
 	void _scan_resource_for_dependencies_recursive(String _dir, std::vector<String> &_arr);
 
 protected:
@@ -183,8 +183,8 @@ class GRSViewport : public Viewport {
 	GD_CLASS(GRSViewport, Viewport);
 	friend GRServer;
 	friend GRStreamEncoder;
-	friend GRStreamEncoderImageSequence;
-	friend GRStreamEncoderH264;
+	friend class GRStreamEncoderImageSequence;
+	friend class GRStreamEncoderH264;
 
 	Mutex_define(stream_mutex, "Stream Manager Mutex");
 
@@ -222,7 +222,7 @@ protected:
 public:
 	void force_get_image();
 	bool has_data_to_send();
-	Ref<GRPacket> pop_data_to_send();
+	std::shared_ptr<GRPacket> pop_data_to_send();
 
 	void set_video_stream_enabled(bool val);
 	bool is_video_stream_enabled();

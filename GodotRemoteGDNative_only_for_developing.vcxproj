@@ -89,7 +89,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
     <IncludePath>$(ProjectDir)godot-cpp\include;$(ProjectDir)godot-cpp\godot-headers;$(ProjectDir)godot-cpp\include\gen;$(ProjectDir)godot-cpp\include\core;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)godot-cpp\bin;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)godot-cpp\bin;C:\My\Projects\GE\GodotRemote\godot_remote\libjpeg-turbo\lib\win\x64;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)\bin\</OutDir>
     <TargetName>godot_remote.windows.$(Configuration).$(PlatformArchitecture)</TargetName>
     <IntDir>$(SolutionDir)obj\$(PlatformTarget)\</IntDir>
@@ -142,7 +142,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>WIN64;_DEBUG;GDNATIVE_LIBRARY;TOOLS_ENABLED;DEBUG_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;_DEBUG;GDNATIVE_LIBRARY;TOOLS_ENABLED;DEBUG_ENABLED;GODOTREMOTE_LIBJPEG_TURBO_ENABLED;GODOTREMOTE_TRACY_ENABLED;TRACY_ENABLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ExceptionHandling>Sync</ExceptionHandling>
       <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -152,7 +152,7 @@
     <Link>
       <SubSystem>NotSet</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libgodot-cpp.windows.$(Configuration).$(PlatformArchitecture).lib;</AdditionalDependencies>
+      <AdditionalDependencies>libgodot-cpp.windows.$(Configuration).$(PlatformArchitecture).lib;turbojpeg-static.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
@@ -180,34 +180,61 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="godot_remote\GodotRemote.cpp" />
+    <ClCompile Include="godot_remote\GRAVGCounter.cpp" />
     <ClCompile Include="godot_remote\GRClient.cpp" />
     <ClCompile Include="godot_remote\GRDevice.cpp" />
     <ClCompile Include="godot_remote\GRInputData.cpp" />
     <ClCompile Include="godot_remote\GRNotifications.cpp" />
     <ClCompile Include="godot_remote\GRPacket.cpp" />
+    <ClCompile Include="godot_remote\GRProfiler.cpp" />
     <ClCompile Include="godot_remote\GRResources.cpp" />
     <ClCompile Include="godot_remote\GRServer.cpp" />
+    <ClCompile Include="godot_remote\GRStreamDecoderH264.cpp" />
+    <ClCompile Include="godot_remote\GRStreamDecoderImageSequence.cpp" />
+    <ClCompile Include="godot_remote\GRStreamDecoders.cpp" />
+    <ClCompile Include="godot_remote\GRStreamEncoderH264.cpp" />
+    <ClCompile Include="godot_remote\GRStreamEncoderImageSequence.cpp" />
     <ClCompile Include="godot_remote\GRStreamEncoders.cpp" />
     <ClCompile Include="godot_remote\GRUtils.cpp" />
+    <ClCompile Include="godot_remote\GRUtilsH264Codec.cpp" />
+    <ClCompile Include="godot_remote\GRUtilsJPGCodec.cpp" />
     <ClCompile Include="godot_remote\jpge.cpp" />
     <ClCompile Include="godot_remote\register_types.cpp" />
+    <ClCompile Include="godot_remote\tracy\TracyClient.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="godot_remote\GodotRemote.h" />
+    <ClInclude Include="godot_remote\GRAVGCounter.h" />
     <ClInclude Include="godot_remote\GRClient.h" />
     <ClInclude Include="godot_remote\GRDevice.h" />
     <ClInclude Include="godot_remote\GRInputData.h" />
     <ClInclude Include="godot_remote\GRNotifications.h" />
     <ClInclude Include="godot_remote\GRPacket.h" />
+    <ClInclude Include="godot_remote\GRProfiler.h" />
     <ClInclude Include="godot_remote\GRResources.h" />
     <ClInclude Include="godot_remote\GRServer.h" />
+    <ClInclude Include="godot_remote\GRStreamDecoderH264.h" />
+    <ClInclude Include="godot_remote\GRStreamDecoderImageSequence.h" />
+    <ClInclude Include="godot_remote\GRStreamDecoders.h" />
+    <ClInclude Include="godot_remote\GRStreamEncoderH264.h" />
+    <ClInclude Include="godot_remote\GRStreamEncoderImageSequence.h" />
     <ClInclude Include="godot_remote\GRStreamEncoders.h" />
     <ClInclude Include="godot_remote\GRUtils.h" />
+    <ClInclude Include="godot_remote\GRUtilsH264Codec.h" />
+    <ClInclude Include="godot_remote\GRUtilsJPGCodec.h" />
     <ClInclude Include="godot_remote\GRVersion.h" />
     <ClInclude Include="godot_remote\jpge.h" />
+    <ClInclude Include="godot_remote\libjpeg-turbo\include\turbojpeg.h" />
+    <ClInclude Include="godot_remote\openh264\include\codec_api.h" />
+    <ClInclude Include="godot_remote\openh264\include\codec_app_def.h" />
+    <ClInclude Include="godot_remote\openh264\include\codec_def.h" />
+    <ClInclude Include="godot_remote\openh264\include\codec_ver.h" />
     <ClInclude Include="godot_remote\register_types.h" />
+    <ClInclude Include="godot_remote\tracy\Tracy.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="godot_remote\config.py" />
+    <None Include="godot_remote\SCsub" />
     <None Include="README.md" />
     <None Include="SConstruct" />
   </ItemGroup>

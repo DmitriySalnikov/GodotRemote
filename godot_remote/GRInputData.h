@@ -37,8 +37,7 @@ using namespace godot;
 // BASE CLASS
 
 // GodotRemoteInputData
-class GRInputData : public Reference {
-	GD_CLASS(GRInputData, Reference);
+class GRInputData {
 	friend class GRInputDeviceSensorsData;
 
 public:
@@ -67,42 +66,12 @@ public:
 	};
 
 protected:
-#ifndef GDNATIVE_LIBRARY
-	static void _bind_methods() {
-		BIND_ENUM_CONSTANT(_NoneIT);
-		BIND_ENUM_CONSTANT(_InputDeviceSensors);
-
-		BIND_ENUM_CONSTANT(_InputEvent);
-		BIND_ENUM_CONSTANT(_InputEventAction);
-		BIND_ENUM_CONSTANT(_InputEventGesture);
-		BIND_ENUM_CONSTANT(_InputEventJoypadButton);
-		BIND_ENUM_CONSTANT(_InputEventJoypadMotion);
-		BIND_ENUM_CONSTANT(_InputEventKey);
-		BIND_ENUM_CONSTANT(_InputEventMagnifyGesture);
-		BIND_ENUM_CONSTANT(_InputEventMIDI);
-		BIND_ENUM_CONSTANT(_InputEventMouse);
-		BIND_ENUM_CONSTANT(_InputEventMouseButton);
-		BIND_ENUM_CONSTANT(_InputEventMouseMotion);
-		BIND_ENUM_CONSTANT(_InputEventPanGesture);
-		BIND_ENUM_CONSTANT(_InputEventScreenDrag);
-		BIND_ENUM_CONSTANT(_InputEventScreenTouch);
-		BIND_ENUM_CONSTANT(_InputEventWithModifiers);
-		BIND_ENUM_CONSTANT(_InputEventMAX);
-	}
-#else
-public:
-	void _init(){};
-	static void _register_methods(){};
-
-protected:
-#endif
-
 	Ref<StreamPeerBuffer> data;
 	virtual InputType _get_type() { return InputType::_NoneIT; };
 
 public:
 	GRInputData() {
-		data = Ref<StreamPeerBuffer>(memnew(StreamPeerBuffer));
+		data = newref(StreamPeerBuffer);
 	}
 
 	~GRInputData() {
@@ -123,7 +92,7 @@ public:
 			return _get_type();
 		}
 	};
-	static Ref<GRInputData> create(const PoolByteArray &buf);
+	static std::shared_ptr<GRInputData> create(const PoolByteArray &buf);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -135,11 +104,7 @@ public:
 
 // Device Sensors
 class GRInputDeviceSensorsData : public GRInputData {
-	GD_CLASS(GRInputDeviceSensorsData, GRInputData);
-
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual InputType _get_type() override { return InputType::_InputDeviceSensors; };
 
 public:
@@ -152,11 +117,7 @@ public:
 
 // GodotRemoteInputEventData
 class GRInputDataEvent : public GRInputData {
-	GD_CLASS(GRInputDataEvent, GRInputData);
-
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2 &rect) {
 		data->seek(0);
 		data->get_8();
@@ -172,18 +133,15 @@ protected:
 
 public:
 	Ref<InputEvent> construct_event(const Rect2 &rect = Rect2());
-	static Ref<GRInputDataEvent> parse_event(const Ref<InputEvent> &ev, const Rect2 &rect);
+	static std::shared_ptr<GRInputDataEvent> parse_event(const Ref<InputEvent> &ev, const Rect2 &rect);
 };
 
 #define INPUT_EVENT_DATA(__class, _parent, _type)                                                 \
 	class __class : public _parent {                                                              \
-		GD_CLASS(__class, _parent);                                                               \
 		friend GRInputDataEvent;                                                                  \
 		friend GRInputData;                                                                       \
                                                                                                   \
 	protected:                                                                                    \
-		GDNATIVE_BASIC_REGISTER;                                                                  \
-                                                                                                  \
 		virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2 &rect) override; \
 		virtual void _parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) override;         \
 		virtual InputType _get_type() override { return _type; };                                 \
@@ -208,7 +166,3 @@ INPUT_EVENT_DATA(GRIEDataAction, GRInputDataEvent, InputType::_InputEventAction)
 INPUT_EVENT_DATA(GRIEDataMIDI, GRInputDataEvent, InputType::_InputEventMIDI);
 
 #undef INPUT_EVENT_DATA
-
-#ifndef GDNATIVE_LIBRARY
-VARIANT_ENUM_CAST(GRInputData::InputType)
-#endif

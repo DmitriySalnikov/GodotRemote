@@ -20,8 +20,7 @@
 #include <String.hpp>
 #endif
 
-class GRPacket : public Reference {
-	GD_CLASS(GRPacket, Reference);
+class GRPacket {
 
 public:
 	enum PacketType : int {
@@ -45,36 +44,8 @@ public:
 	};
 
 protected:
-#ifndef GDNATIVE_LIBRARY
-	static void _bind_methods() {
-		BIND_ENUM_CONSTANT(NonePacket);
-		BIND_ENUM_CONSTANT(SyncTime);
-		BIND_ENUM_CONSTANT(ImageData);
-		BIND_ENUM_CONSTANT(InputData);
-		BIND_ENUM_CONSTANT(ServerSettings);
-		BIND_ENUM_CONSTANT(MouseModeSync);
-		BIND_ENUM_CONSTANT(CustomInputScene);
-		BIND_ENUM_CONSTANT(ClientStreamOrientation);
-		BIND_ENUM_CONSTANT(ClientStreamAspect);
-		BIND_ENUM_CONSTANT(CustomUserData);
-		BIND_ENUM_CONSTANT(H264Data);
-
-		// Requests
-		BIND_ENUM_CONSTANT(Ping);
-
-		// Responses
-		BIND_ENUM_CONSTANT(Pong);
-	}
-#else
-public:
-	void _init(){};
-	static void _register_methods(){};
-
-protected:
-#endif
-
 	virtual Ref<StreamPeerBuffer> _get_data() {
-		Ref<StreamPeerBuffer> buf(memnew(StreamPeerBuffer));
+		Ref<StreamPeerBuffer> buf = newref(StreamPeerBuffer);
 		buf->put_8((uint8_t)get_type());
 		return buf;
 	};
@@ -85,7 +56,7 @@ protected:
 
 public:
 	virtual PacketType get_type() { return PacketType::NonePacket; };
-	static Ref<GRPacket> create(const PoolByteArray &bytes);
+	static std::shared_ptr<GRPacket> create(const PoolByteArray &bytes);
 	PoolByteArray get_data() {
 		return _get_data()->get_data_array();
 	};
@@ -94,14 +65,11 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // SyncTime
 class GRPacketSyncTime : public GRPacket {
-	GD_CLASS(GRPacketSyncTime, GRPacket);
 	friend GRPacket;
 
 	uint64_t time = 0;
 
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
@@ -116,7 +84,6 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // IMAGE DATA
 class GRPacketImageData : public GRPacket {
-	GD_CLASS(GRPacketImageData, GRPacket);
 	friend GRPacket;
 
 	/*GRDevice::ImageCompressionType*/ int compression = 1 /*GRDevice::ImageCompressionType::JPG*/;
@@ -128,8 +95,6 @@ class GRPacketImageData : public GRPacket {
 	bool is_stream_end = false;
 
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
@@ -184,76 +149,65 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // H264 DATA
 class GRPacketH264 : public GRPacket {
-	GD_CLASS(GRPacketH264, GRPacket);
 	friend GRPacket;
 
-	/*GRDevice::ImageCompressionType*/ int compression = 1 /*GRDevice::ImageCompressionType::JPG*/;
-	Size2 size;
-	int format = 0;
-	PoolByteArray img_data;
+	uint64_t data_size = 0;
+	uint8_t *img_data = nullptr;
 	uint64_t start_time = 0;
-	uint64_t frametime = 0;
 	bool is_stream_end = false;
 
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::H264Data; };
 
-	PoolByteArray get_image_data() {
+	uint64_t get_image_data_size() {
+		return data_size;
+	}
+	uint8_t *get_image_data() {
 		return img_data;
 	}
-	int get_compression_type() {
-		return (int)compression;
-	}
-	Size2 get_size() {
-		return size;
-	}
-	int get_format() {
-		return format;
-	}
-	uint64_t get_frametime() {
-		return frametime;
+	uint64_t get_start_time() {
+		return start_time;
 	}
 	bool get_is_stream_end() {
 		return is_stream_end;
 	}
 
-	void set_image_data(PoolByteArray &buf) {
-		img_data = buf;
+	void set_image_data(uint8_t *buf, uint64_t size) {
+		if (img_data) {
+			delete img_data;
+			img_data = nullptr;
+		}
+		data_size = size;
+		img_data = new uint8_t[size];
+		memcpy(img_data, buf, size);
 	}
-	void set_compression_type(int type) {
-		compression = type;
-	}
-	void set_size(Size2 _size) {
-		size = _size;
-	}
-	void set_format(int _format) {
-		format = _format;
-	}
-	void set_frametime(uint64_t _frametime) {
-		frametime = _frametime;
+	void set_start_time(uint64_t _start_time) {
+		start_time = _start_time;
 	}
 	void set_is_stream_end(bool _empty) {
 		is_stream_end = _empty;
+	}
+
+	~GRPacketH264() {
+		if (img_data) {
+			delete img_data;
+			img_data = nullptr;
+		}
 	}
 };
 
 //////////////////////////////////////////////////////////////////////////
 // INPUT DATA
 class GRPacketInputData : public GRPacket {
-	GD_CLASS(GRPacketInputData, GRPacket);
 	friend GRPacket;
 
-	std::vector<Ref<GRInputData> > inputs;
+	std::vector<std::shared_ptr<GRInputData> > inputs;
 
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
@@ -264,8 +218,8 @@ public:
 		return (int)inputs.size();
 	}
 
-	Ref<class GRInputData> get_input_data(int idx) {
-		ERR_FAIL_INDEX_V(idx, (int)inputs.size(), Ref<GRInputData>());
+	std::shared_ptr<GRInputData> get_input_data(int idx) {
+		ERR_FAIL_INDEX_V(idx, (int)inputs.size(), std::shared_ptr<GRInputData>());
 		return inputs[idx];
 	}
 
@@ -274,11 +228,11 @@ public:
 		inputs.erase(inputs.begin() + idx);
 	}
 
-	void add_input_data(Ref<GRInputData> &input) {
+	void add_input_data(std::shared_ptr<GRInputData> &input) {
 		inputs.push_back(input);
 	}
 
-	void set_input_data(std::vector<Ref<GRInputData> > &_inputs) {
+	void set_input_data(std::vector<std::shared_ptr<GRInputData> > &_inputs) {
 		inputs = _inputs;
 	}
 };
@@ -286,14 +240,11 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // SERVER SETTINGS
 class GRPacketServerSettings : public GRPacket {
-	GD_CLASS(GRPacketServerSettings, GRPacket);
 	friend GRPacket;
 
 	std::map<int, Variant> settings;
 
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
@@ -316,14 +267,11 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // MOUSE MODE SYNC
 class GRPacketMouseModeSync : public GRPacket {
-	GD_CLASS(GRPacketMouseModeSync, GRPacket);
 	friend GRPacket;
 
 	Input::MouseMode mouse_mode;
 
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
@@ -342,7 +290,6 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // CUSTOM INPUT SCENE
 class GRPacketCustomInputScene : public GRPacket {
-	GD_CLASS(GRPacketCustomInputScene, GRPacket);
 	friend GRPacket;
 
 	String scene_path;
@@ -352,8 +299,6 @@ class GRPacketCustomInputScene : public GRPacket {
 	PoolByteArray scene_data;
 
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
@@ -396,14 +341,11 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // CLIENT DEVICE ROTATION
 class GRPacketClientStreamOrientation : public GRPacket {
-	GD_CLASS(GRPacketClientStreamOrientation, GRPacket);
 	friend GRPacket;
 
 	bool vertical;
 
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
@@ -422,14 +364,11 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // CLIENT SCREEN ASCPECT
 class GRPacketClientStreamAspect : public GRPacket {
-	GD_CLASS(GRPacketClientStreamAspect, GRPacket);
 	friend GRPacket;
 
 	float stream_aspect;
 
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
@@ -448,7 +387,6 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // CUSTOM USER DATA
 class GRPacketCustomUserData : public GRPacket {
-	GD_CLASS(GRPacketCustomUserData, GRPacket);
 	friend GRPacket;
 
 	Variant packet_id;
@@ -456,8 +394,6 @@ class GRPacketCustomUserData : public GRPacket {
 	Variant user_data;
 
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual Ref<StreamPeerBuffer> _get_data() override;
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
@@ -496,11 +432,9 @@ public:
 
 #define BASIC_PACKET(_name, _type)                                                            \
 	class _name : public GRPacket {                                                           \
-		GD_CLASS(_name, GRPacket);                                                            \
 		friend GRPacket;                                                                      \
                                                                                               \
 	protected:                                                                                \
-		GDNATIVE_BASIC_REGISTER;                                                              \
 		virtual Ref<StreamPeerBuffer> _get_data() override { return GRPacket::_get_data(); }; \
 		virtual bool _create(Ref<StreamPeerBuffer> buf) override { return true; };            \
                                                                                               \
@@ -512,7 +446,3 @@ BASIC_PACKET(GRPacketPing, PacketType::Ping);
 BASIC_PACKET(GRPacketPong, PacketType::Pong);
 
 #undef BASIC_PACKET
-
-#ifndef GDNATIVE_LIBRARY
-VARIANT_ENUM_CAST(GRPacket::PacketType)
-#endif

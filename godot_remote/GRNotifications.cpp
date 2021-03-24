@@ -506,9 +506,9 @@ void GRNotificationPanel::_update_style() {
 }
 
 Ref<GRNotificationStyle> GRNotificationPanel::generate_default_style() {
-	Ref<GRNotificationStyle> res_style(memnew(GRNotificationStyle));
+	Ref<GRNotificationStyle> res_style = newref(GRNotificationStyle);
 
-	Ref<StyleBoxFlat> panel(memnew(StyleBoxFlat));
+	Ref<StyleBoxFlat> panel = newref(StyleBoxFlat);
 	panel->set_bg_color(Color(0.172549f, 0.188235f, 0.305882f, 0.300588f));
 	panel->set_corner_detail(1);
 	panel->set_border_width_all(1);
@@ -521,19 +521,19 @@ Ref<GRNotificationStyle> GRNotificationPanel::generate_default_style() {
 	panel->set_default_margin(MARGIN_TOP, 5);
 	res_style->set_panel_style(panel);
 
-	Ref<StyleBoxEmpty> btn_nrm(memnew(StyleBoxEmpty));
+	Ref<StyleBoxEmpty> btn_nrm = newref(StyleBoxEmpty);
 	btn_nrm->set_default_margin(MARGIN_BOTTOM, 1);
 	btn_nrm->set_default_margin(MARGIN_LEFT, 1);
 	btn_nrm->set_default_margin(MARGIN_RIGHT, 1);
 	btn_nrm->set_default_margin(MARGIN_TOP, 1);
 
-	Ref<StyleBoxEmpty> btn_prsd(memnew(StyleBoxEmpty));
+	Ref<StyleBoxEmpty> btn_prsd = newref(StyleBoxEmpty);
 	btn_prsd->set_default_margin(MARGIN_BOTTOM, 0);
 	btn_prsd->set_default_margin(MARGIN_LEFT, 1);
 	btn_prsd->set_default_margin(MARGIN_RIGHT, 1);
 	btn_prsd->set_default_margin(MARGIN_TOP, 2);
 
-	Ref<Theme> close_btn_theme(memnew(Theme));
+	Ref<Theme> close_btn_theme = newref(Theme);
 	close_btn_theme->set_stylebox("hover", "Button", btn_nrm);
 	close_btn_theme->set_stylebox("normal", "Button", btn_nrm);
 	close_btn_theme->set_stylebox("pressed", "Button", btn_prsd);
