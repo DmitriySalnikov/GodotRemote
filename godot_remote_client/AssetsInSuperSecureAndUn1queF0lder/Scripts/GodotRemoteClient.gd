@@ -33,9 +33,9 @@ func _ready():
 	
 	G.connect("touches_to_open_settings_changed", self, "_touches_to_open_settings_changed")
 	connect("item_rect_changed", self, "viewport_size_changed")
-	if G.TotalAppRuns == 1:
-		popup_welcome_screen()
 	_touches_to_open_settings_changed(G.TouchesToOpenSettings)
+	if !G.FirstRunAgreementAccepted:
+		popup_welcome_screen()
 
 func _touches_to_open_settings_changed(count : int) -> void:
 	$OpenSettingsWithoutSignal/SettingsHint.text = orig_hint_text % count
@@ -134,7 +134,12 @@ func _input(e):
 					if TIM.IsVisible:
 						TIM.hide()
 					else:
-						_toggle_settings()
+						if $FirstLaunchHint.visible:
+							$FirstLaunchHint.hide();
+							if !G.FirstRunAgreementAccepted:
+								G.FirstRunAgreementAccepted = true
+						else:
+							_toggle_settings()
 	
 	if e is InputEventScreenTouch:
 		touches[e.index] = e.pressed

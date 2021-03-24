@@ -42,6 +42,8 @@ script/source = "extends Button
 
 func _pressed() -> void:
 	get_parent().get_parent().get_parent().hide()
+	if !G.FirstRunAgreementAccepted:
+		G.FirstRunAgreementAccepted = true
 "
 
 [node name="GodotRemote" type="Control"]
@@ -473,6 +475,7 @@ margin_bottom = 64.0
 rect_min_size = Vector2( 0, 64 )
 text = "NO!!! THIS IS A GAME!"
 script = SubResource( 5 )
+
 [connection signal="pressed" from="OpenSettingsWithoutSignal/OpenSettings" to="." method="_on_open_settings_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button2" to="PlsSupportPopup" method="_on_Button2_pressed"]

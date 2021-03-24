@@ -25,6 +25,7 @@ var VersionChanged : bool = false
 var PreviousVersion : String = ""
 var AppRuns : int = 0
 var TotalAppRuns : int = 0
+var FirstRunAgreementAccepted : bool = false setget set_first_run_agreement_accepted
 var TouchesToOpenSettings : int = 5 setget set_touches_to_open_settings
 var UserRateState : int = RateState.NotNow setget set_user_rate_state
 
@@ -154,6 +155,7 @@ func _save_settings():
 	var d = Dictionary()
 	
 	d["m_version"] = get_version()
+	d["first_run_accepted"] = FirstRunAgreementAccepted
 	d["app_runs"] = AppRuns
 	d["total_app_runs"] = TotalAppRuns
 	d["touches_to_open_settings"] = TouchesToOpenSettings
@@ -215,6 +217,7 @@ func _load_settings():
 			else:
 				AppRuns = _safe_get_from_dict(d, "app_runs", AppRuns)
 			
+			FirstRunAgreementAccepted = _safe_get_from_dict(d, "first_run_accepted", FirstRunAgreementAccepted) 
 			TotalAppRuns = _safe_get_from_dict(d, "total_app_runs", TotalAppRuns)
 			TouchesToOpenSettings = _safe_get_from_dict(d, "touches_to_open_settings", TouchesToOpenSettings)
 			UserRateState = _safe_get_from_dict(d, "user_rate_state", UserRateState)
@@ -259,6 +262,10 @@ func _safe_get_from_dict(dict:Dictionary, val, def):
 
 func get_version() -> String:
 	return "%s.%d" % [GodotRemote.get_version(), CLIENT_VERSION]
+
+func set_first_run_agreement_accepted(val : bool):
+	FirstRunAgreementAccepted = val
+	_save_settings()
 
 func set_touches_to_open_settings(val : int):
 	TouchesToOpenSettings = val
