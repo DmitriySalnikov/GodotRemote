@@ -92,8 +92,7 @@ private:
 #ifndef GDNATIVE_LIBRARY
 #endif
 
-	void _create_notification_manager();
-	void _remove_notifications_manager();
+	void _create_autoload_nodes();
 
 #ifndef GDNATIVE_LIBRARY
 #ifdef TOOLS_ENABLED

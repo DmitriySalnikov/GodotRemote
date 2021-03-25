@@ -21,6 +21,10 @@
 using namespace godot;
 #endif
 
+#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE)
+#include "GRProfilerViewportMiniPreview.h"
+#endif
+
 GodotRemote *GodotRemote::singleton = nullptr;
 bool GodotRemote::is_init_completed = false;
 
@@ -63,7 +67,7 @@ void GodotRemote::_init() {
 
 	GRUtils::init();
 
-	call_deferred(NAMEOF(_create_notification_manager));
+	call_deferred(NAMEOF(_create_autoload_nodes));
 	if (is_autostart)
 		call_deferred(NAMEOF(create_and_start_device), DeviceType::DEVICE_AUTO);
 
@@ -77,7 +81,6 @@ void GodotRemote::_init() {
 void GodotRemote::_deinit() {
 	LEAVE_IF_EDITOR();
 	remove_remote_device();
-	_remove_notifications_manager();
 
 #ifndef GDNATIVE_LIBRARY
 #ifdef TOOLS_ENABLED
@@ -93,7 +96,7 @@ void GodotRemote::_deinit() {
 #ifndef GDNATIVE_LIBRARY
 
 void GodotRemote::_bind_methods() {
-	ClassDB::bind_method(D_METHOD(NAMEOF(_create_notification_manager)), &GodotRemote::_create_notification_manager);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_create_autoload_nodes)), &GodotRemote::_create_autoload_nodes);
 #ifdef TOOLS_ENABLED
 	ClassDB::bind_method(D_METHOD(NAMEOF(_adb_port_forwarding)), &GodotRemote::_adb_port_forwarding);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_run_emitted)), &GodotRemote::_run_emitted);
@@ -170,7 +173,7 @@ void GodotRemote::_bind_methods() {
 void GodotRemote::_register_methods() {
 	METHOD_REG(GodotRemote, _notification);
 
-	METHOD_REG(GodotRemote, _create_notification_manager);
+	METHOD_REG(GodotRemote, _create_autoload_nodes);
 
 	METHOD_REG(GodotRemote, create_and_start_device);
 	METHOD_REG(GodotRemote, create_remote_device);
@@ -459,19 +462,16 @@ void GodotRemote::register_and_load_settings() {
 #undef DEF_
 }
 
-void GodotRemote::_create_notification_manager() {
+void GodotRemote::_create_autoload_nodes() {
 	if (ST()) {
 		GRNotifications *notif = memnew(GRNotifications);
 		ST()->get_root()->add_child(notif);
 		ST()->get_root()->move_child(notif, 0);
-	}
-}
 
-void GodotRemote::_remove_notifications_manager() {
-	GRNotificationPanel::clear_styles();
-	if (GRNotifications::get_singleton() && !GRNotifications::get_singleton()->is_queued_for_deletion()) {
-		ST()->get_root()->remove_child(GRNotifications::get_singleton());
-		memdelete(GRNotifications::get_singleton());
+#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE)
+		GRProfilerViewportMiniPreview *mini_profiler_preview = memnew(GRProfilerViewportMiniPreview);
+		ST()->get_root()->add_child(mini_profiler_preview);
+#endif
 	}
 }
 

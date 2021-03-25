@@ -15,7 +15,7 @@
 class GRUtilsH264Codec {
 private:
 	// DLL Name
-	static const wchar_t *lib_name;
+	static const char *lib_name;
 
 	// Encoder
 	typedef int(__stdcall *WelsCreateSVCEncoderFunc)(ISVCEncoder **ppEncoder);

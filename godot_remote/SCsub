@@ -36,6 +36,7 @@ src_files = [
     'GRNotifications.cpp',
     'GRPacket.cpp',
     'GRProfiler.cpp',
+    'GRProfilerViewportMiniPreview.cpp',
     'GRResources.cpp',
     'GRServer.cpp',
     'GRStreamDecoders.cpp',

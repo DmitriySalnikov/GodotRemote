@@ -173,6 +173,12 @@ typedef Thread _Thread;
 // =================================================================
 // GLOBAL DEFINES
 
+#ifndef NO_SAFE_CAST
+#define shared_ptr_cast_type dynamic_pointer_cast
+#else
+#define shared_ptr_cast_type static_pointer_cast
+#endif
+
 #define sleep_usec(usec) OS::get_singleton()->delay_usec(usec)
 #define Mutex_define(_var, _description) TracyLockableN(std::recursive_mutex, _var, _description)
 #define Scoped_lock(_mutex_name) std::lock_guard<LockableBase(std::recursive_mutex)> _scoped_lock_guard(_mutex_name)
@@ -191,9 +197,9 @@ typedef Thread _Thread;
 		_name = Ref<_Thread>();                   \
 	}
 
-#define shared_cast(type, from) std::dynamic_pointer_cast<type>(from)
-#define shared_cast_var(type, var, from) var = std::dynamic_pointer_cast<type>(from)
-#define shared_cast_def(type, var, from) std::shared_ptr<type> var = std::dynamic_pointer_cast<type>(from)
+#define shared_cast(type, from) std::shared_ptr_cast_type<type>(from)
+#define shared_cast_var(type, var, from) var = std::shared_ptr_cast_type<type>(from)
+#define shared_cast_def(type, var, from) std::shared_ptr<type> var = std::shared_ptr_cast_type<type>(from)
 #define shared_new(type, ...) std::make_shared<type>(__VA_ARGS__)
 
 #define newref(_class) Ref<_class>(memnew(_class))

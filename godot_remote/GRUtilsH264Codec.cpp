@@ -4,19 +4,18 @@
 using namespace GRUtils;
 
 #if defined(_MSC_VER)
-#define LIB_PREFIX L""
+#define LIB_PREFIX ""
 #else
-#define LIB_PREFIX L"lib"
+#define LIB_PREFIX "lib"
 #endif
 // when updating just need to replace this string                              \/
-#define OPENH264_LIB const wchar_t *GRUtilsH264Codec::lib_name = LIB_PREFIX L"openh264-2.1.1-"
+#define OPENH264_LIB const char *GRUtilsH264Codec::lib_name = LIB_PREFIX "openh264-2.1.1-"
 
 #if defined(_MSC_VER)
-#include "windows.h"
 #if _WIN64
-OPENH264_LIB L"win64.dll";
+OPENH264_LIB "win64.dll";
 #else
-OPENH264_LIB L"win32.dll";
+OPENH264_LIB "win32.dll";
 #endif
 // TODO mb that branches needed only on windows. Need tests.
 #elif defined(__ANDROID__)
@@ -44,7 +43,19 @@ OPENH264_LIB "linux-arm64.6.so";
 #undef OPENH264_LIB
 #undef LIB_PREFIX
 
-HMODULE openh264_handle_DLL;
+#if defined(_MSC_VER)
+#include "windows.h"
+HMODULE openh264_handle_DLL = nullptr;
+#define load_lib(name, flags) LoadLibraryA(name)
+#define lib_free() FreeLibrary(openh264_handle_DLL)
+#define lib_get_proc(name) GetProcAddress(openh264_handle_DLL, name)
+#else
+#include <dlfcn.h>
+void *openh264_handle_DLL = nullptr;
+#define load_lib(name, flags) dlopen(name, flags)
+#define lib_free() dlclose(openh264_handle_DLL)
+#define lib_get_proc(name) dlsym(openh264_handle_DLL, name)
+#endif
 
 GRUtilsH264Codec::WelsCreateSVCEncoderFunc GRUtilsH264Codec::CreateEncoderFunc = nullptr;
 GRUtilsH264Codec::WelsDestroySVCEncoderFunc GRUtilsH264Codec::DestroyEncoderFunc = nullptr;
@@ -57,18 +68,18 @@ Error GRUtilsH264Codec::_encoder_create(ISVCEncoder **encoder) {
 	*encoder = nullptr;
 	int err = 0;
 
-	openh264_handle_DLL = LoadLibraryW(lib_name);
+	openh264_handle_DLL = load_lib(lib_name, RTLD_NOW | RTLD_LOCAL);
 	if (openh264_handle_DLL == NULL) {
 		error_str = "";
 		goto failed;
 	}
 
-	CreateEncoderFunc = (WelsCreateSVCEncoderFunc)GetProcAddress(openh264_handle_DLL, "WelsCreateSVCEncoder");
+	CreateEncoderFunc = (WelsCreateSVCEncoderFunc)lib_get_proc("WelsCreateSVCEncoder");
 	if (CreateEncoderFunc == NULL) {
 		error_str = "\"WelsCreateSVCEncoder\" not found.";
 		goto failed;
 	}
-	DestroyEncoderFunc = (WelsDestroySVCEncoderFunc)GetProcAddress(openh264_handle_DLL, "WelsDestroySVCEncoder");
+	DestroyEncoderFunc = (WelsDestroySVCEncoderFunc)lib_get_proc("WelsDestroySVCEncoder");
 	if (DestroyEncoderFunc == NULL) {
 		error_str = "\"WelsDestroySVCEncoder\" not found.";
 		goto failed;
@@ -108,18 +119,18 @@ Error GRUtilsH264Codec::_decoder_create(ISVCDecoder **decoder) {
 	*decoder = nullptr;
 	int err = 0;
 
-	openh264_handle_DLL = LoadLibraryW(lib_name);
+	openh264_handle_DLL = load_lib(lib_name, RTLD_NOW | RTLD_LOCAL);
 	if (openh264_handle_DLL == NULL) {
 		error_str = "";
 		goto failed;
 	}
 
-	CreateDecoderFunc = (WelsCreateDecoderFunc)GetProcAddress(openh264_handle_DLL, "WelsCreateDecoder");
+	CreateDecoderFunc = (WelsCreateDecoderFunc)lib_get_proc("WelsCreateDecoder");
 	if (CreateDecoderFunc == NULL) {
 		error_str = "\"WelsCreateSVCEncoder\" not found.";
 		goto failed;
 	}
-	DestroyDecoderFunc = (WelsDestroyDecoderFunc)GetProcAddress(openh264_handle_DLL, "WelsDestroyDecoder");
+	DestroyDecoderFunc = (WelsDestroyDecoderFunc)lib_get_proc("WelsDestroyDecoder");
 	if (DestroyDecoderFunc == NULL) {
 		error_str = "\"WelsDestroySVCEncoder\" not found.";
 		goto failed;
@@ -160,6 +171,6 @@ void GRUtilsH264Codec::_clear() {
 	DestroyDecoderFunc = nullptr;
 
 	if (openh264_handle_DLL != NULL)
-		FreeLibrary(openh264_handle_DLL);
+		lib_free();
 	openh264_handle_DLL = NULL;
 }

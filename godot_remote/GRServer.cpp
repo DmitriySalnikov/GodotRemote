@@ -1682,7 +1682,7 @@ void GRSViewport::_init() {
 	set_keep_3d_linear(true);
 	set_usage(Viewport::USAGE_2D);
 	set_update_mode(Viewport::UPDATE_ALWAYS);
-	set_transparent_background(true);
+	set_transparent_background(false);
 	set_disable_input(true);
 	set_shadow_atlas_quadrant_subdiv(0, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
 	set_shadow_atlas_quadrant_subdiv(1, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
