@@ -98,7 +98,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(ProjectDir)godot-cpp\include;$(ProjectDir)godot-cpp\godot-headers;$(ProjectDir)godot-cpp\include\gen;$(ProjectDir)godot-cpp\include\core;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)godot-cpp\bin;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)godot-cpp\bin;C:\My\Projects\GE\GodotRemote\godot_remote\libjpeg-turbo\lib\win\x64;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)\bin\</OutDir>
     <TargetName>godot_remote.windows.$(Configuration).$(PlatformArchitecture)</TargetName>
     <IntDir>$(SolutionDir)obj\$(PlatformTarget)\</IntDir>
@@ -142,12 +142,13 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>WIN64;_DEBUG;GDNATIVE_LIBRARY;TOOLS_ENABLED;DEBUG_ENABLED;GODOTREMOTE_LIBJPEG_TURBO_ENABLED;GODOTREMOTE_TRACY_ENABLED;TRACY_ENABLE;TRACY_DELAYED_INIT;TRACY_MANUAL_LIFETIME;TRACY_ON_DEMAND;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;_DEBUG;GDNATIVE_LIBRARY;TOOLS_ENABLED;DEBUG_ENABLED;GODOTREMOTE_LIBJPEG_TURBO_ENABLED2;GODOTREMOTE_TRACY_ENABLED;TRACY_ENABLE;TRACY_DELAYED_INIT;TRACY_MANUAL_LIFETIME;GODOT_REMOTE_USE_SSE2;TRACY_ON_DEMAND;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ExceptionHandling>Sync</ExceptionHandling>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <LanguageStandard>stdcpp14</LanguageStandard>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -164,10 +165,11 @@
       </FunctionLevelLinking>
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>WIN64;GDNATIVE_LIBRARY;TOOLS_ENABLED;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;GDNATIVE_LIBRARY;TOOLS_ENABLED;NDEBUG;GODOT_REMOTE_USE_SSE2;GODOTREMOTE_LIBJPEG_TURBO_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ExceptionHandling>Sync</ExceptionHandling>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -187,6 +189,7 @@
     <ClCompile Include="godot_remote\GRNotifications.cpp" />
     <ClCompile Include="godot_remote\GRPacket.cpp" />
     <ClCompile Include="godot_remote\GRProfiler.cpp" />
+    <ClCompile Include="godot_remote\GRProfilerViewportMiniPreview.cpp" />
     <ClCompile Include="godot_remote\GRResources.cpp" />
     <ClCompile Include="godot_remote\GRServer.cpp" />
     <ClCompile Include="godot_remote\GRStreamDecoderH264.cpp" />
@@ -211,6 +214,7 @@
     <ClInclude Include="godot_remote\GRNotifications.h" />
     <ClInclude Include="godot_remote\GRPacket.h" />
     <ClInclude Include="godot_remote\GRProfiler.h" />
+    <ClInclude Include="godot_remote\GRProfilerViewportMiniPreview.h" />
     <ClInclude Include="godot_remote\GRResources.h" />
     <ClInclude Include="godot_remote\GRServer.h" />
     <ClInclude Include="godot_remote\GRStreamDecoderH264.h" />

@@ -55,7 +55,7 @@ private:
 	int en_pic_height = 0;
 	int en_target_bitrate = 0;
 	int en_threads_count = 0;
-	void FlushFrames(ISVCDecoder *h264_decoder, int64_t &iTotal, uint64_t &uiTimeStamp, int32_t &iWidth, int32_t &iHeight, uint64_t start_time);
+	void FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_time);
 
 	void _update_thread(Variant p_userdata);
 	void _processing_thread(Variant p_userdata);

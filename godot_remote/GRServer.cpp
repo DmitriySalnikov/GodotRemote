@@ -1224,11 +1224,11 @@ GRServer::AuthResult GRServer::_auth_client(Ref<PacketPeerStream> &ppeer, Dictio
 
 			if (!validate_version(ver)) {
 				_log("Version mismatch", LogLevel::LL_ERROR);
+				ppeer->put_var((int)GRDevice::AuthResult::VersionMismatch); // just try to send and forget
 				return GRDevice::AuthResult::VersionMismatch;
 			}
 
 			// TODO thread safe password...
-
 			if (!password.empty()) {
 				dict_get(String, tmp_pass, "password",
 						tmp_pass != password, "Incorrect password. " + address,

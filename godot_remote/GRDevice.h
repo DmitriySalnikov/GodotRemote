@@ -64,10 +64,10 @@ private:
 
 protected:
 	template <class T>
-	std::shared_ptr<T> _find_queued_packet_by_type() {
+	std::shared_ptr<T> _find_queued_packet_by_type(GRPacket::PacketType type) {
 		for (int i = 0; i < send_queue.size(); i++) {
-			shared_cast_def(T, o, send_queue[i]);
-			if (o) {
+			auto o = send_queue[i];
+			if (o->get_type() == type) {
 				return shared_cast(T, o);
 			}
 		}
@@ -83,8 +83,6 @@ protected:
 	void set_status(WorkingStatus status);
 	void _update_avg_ping(uint64_t ping);
 	void _update_avg_fps(uint64_t frametime);
-	static float _ping_calc_modifier(double i);
-	static float _fps_calc_modifier(double i);
 	void _send_queue_resize(int new_size);
 	std::shared_ptr<GRPacket> _send_queue_pop_front();
 

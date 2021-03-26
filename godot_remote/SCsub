@@ -8,11 +8,17 @@ opts = Variables([], ARGUMENTS)
 
 opts.Add(BoolVariable("godot_remote_tracy_enabled", "Godot Remote. Enable tracy profiler.", False))
 opts.Add(BoolVariable("godot_remote_libjpeg_turbo_enabled", "Godot Remote. Enable libjpeg-turbo.", True))
+opts.Add(BoolVariable("godot_remote_h264_enabled", "Godot Remote. Enable OpenH264 codec.", True))
 opts.Add(BoolVariable("godot_remote_no_default_resources", "Godot Remote. Remove default resources.", False))
 opts.Add(BoolVariable("godot_remote_disable_server", "Godot Remote. Remove server.", False))
 opts.Add(BoolVariable("godot_remote_disable_client", "Godot Remote. Remove client.", False))
+opts.Add(BoolVariable("godot_remote_use_sse2", "Godot Remote. Use SSE2 to convert YUV to RGB for the H264 codec. Only on PC.", True))
 #opts.Add(BoolVariable("godot_remote_livepp", "Godot Remote. Live++ support... Windows only", False))
 opts.Update(module_env)
+
+if module_env['platform'] not in ['windows', 'x11', 'linuxbsd', 'osx']:
+    module_env['godot_remote_use_sse2'] = False
+
 Help(opts.GenerateHelpText(module_env))
 
 if module_env['godot_remote_no_default_resources']:
@@ -23,6 +29,8 @@ if module_env['godot_remote_disable_server']:
     module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_SERVER'])
 if module_env['godot_remote_disable_client']:
     module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_CLIENT'])
+if module_env['godot_remote_use_sse2']:
+    module_env.Append(CPPDEFINES=['GODOT_REMOTE_USE_SSE2'])
 
 module_dir = "#modules/godot_remote/"
 module_env.Append(CPPPATH=[module_dir])
@@ -64,18 +72,21 @@ def remove_flag_cxx(flags_group : str, flags : []):
 # Tracy
 if module_env['godot_remote_tracy_enabled']:
 	src_files.append('tracy/TracyClient.cpp')
-	module_env.Append(CPPDEFINES=['GODOTREMOTE_TRACY_ENABLED', 'TRACY_ENABLE', 'TRACY_ON_DEMAND'])
+	module_env.Append(CPPDEFINES=['GODOTREMOTE_TRACY_ENABLED', 'TRACY_ENABLE', 'TRACY_ON_DEMAND', 'TRACY_DELAYED_INIT', 'TRACY_MANUAL_LIFETIME'])
 	#module_env.Append(CPPDEFINES=['TRACY_CALLSTACK'])
 
 # libturbo-jpeg
 if module_env['godot_remote_libjpeg_turbo_enabled']:
     # an absolutely stupid system that doesn't allow me to link libraries 
     # inside this module without 'LIBSUFFIX' required this hack
-    lib_utils.prepare_lib(env)
+    lib_utils.prepare_turbo_jpeg(env)
 else:
-    src.append('jpge.cpp')
+    src_files.append('jpge.cpp')
 
 # OpenH264
+if module_env['godot_remote_h264_enabled']:
+    module_env.Append(CPPDEFINES=['GODOTREMOTE_H264_ENABLED'])
+    lib_utils.prepare_h264(env)
 
 # RPATH can be used to specify a list of paths to shared find libs
 # env.Append(RPATH=["."])

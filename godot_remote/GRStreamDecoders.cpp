@@ -63,13 +63,13 @@ void GRStreamDecodersManager::_notification(int p_notification) {
 void GRStreamDecodersManager::_start_decoder(std::shared_ptr<GRPacketStreamData> packet) {
 	active = true;
 
-	shared_cast_def(GRPacketStreamDataImage, pid, packet);
-	if (pid) {
+	if (packet->get_compression_type() == GRDevice::ImageCompressionType::COMPRESSION_JPG) {
 		GRStreamDecoderImageSequence *tmp_en = decoder ? cast_to<GRStreamDecoderImageSequence>(decoder) : nullptr;
 		if (tmp_en) {
 			tmp_en->start_decoder_threads(threads_count);
 		} else {
 			if (decoder) {
+				decoder->stop_decoder_threads();
 				memdelete(decoder);
 				decoder = nullptr;
 			}
@@ -81,13 +81,13 @@ void GRStreamDecodersManager::_start_decoder(std::shared_ptr<GRPacketStreamData>
 		return;
 	}
 
-	shared_cast_def(GRPacketStreamDataH264, ph264, packet);
-	if (ph264) {
+	if (packet->get_compression_type() == GRDevice::ImageCompressionType::COMPRESSION_H264) {
 		GRStreamDecoderH264 *tmp_en = decoder ? cast_to<GRStreamDecoderH264>(decoder) : nullptr;
 		if (tmp_en) {
 			tmp_en->start_decoder_threads(threads_count);
 		} else {
 			if (decoder) {
+				decoder->stop_decoder_threads();
 				memdelete(decoder);
 				decoder = nullptr;
 			}
@@ -120,7 +120,6 @@ void GRStreamDecodersManager::push_packet_to_decode(std::shared_ptr<GRPacketStre
 }
 
 void GRStreamDecodersManager::set_threads_count(int count) {
-	ERR_FAIL_COND(count < 1 || count > GR_STREAM_DECODER_IMAGE_SEQUENCE_MAX_THREADS);
 	Scoped_lock(ts_lock);
 	if (threads_count != count) {
 		threads_count = count;
@@ -141,7 +140,7 @@ void GRStreamDecodersManager::set_active(bool state) {
 				decoder->start_decoder_threads(threads_count);
 		} else {
 			if (decoder)
-				decoder->start_decoder_threads(0);
+				decoder->start_decoder_threads(-1);
 		}
 	}
 }

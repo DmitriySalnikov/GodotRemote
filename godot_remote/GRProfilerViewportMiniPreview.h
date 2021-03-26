@@ -23,7 +23,13 @@ protected:
 	Viewport *main_vp = nullptr;
 	Node2D *renderer = nullptr;
 	Vector2 max_viewport_size = Vector2(128 * 3, 128 * 3);
+
+// by default it will disabled for mobile
+#if defined(__ANDROID__)
+	bool is_enabled = false;
+#else
 	bool is_enabled = true;
+#endif
 
 #ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();

@@ -67,14 +67,18 @@ void GRStreamEncodersManager::start(int compression, GRSViewport *vp) {
 	GRDevice::ImageCompressionType comp = (GRDevice::ImageCompressionType)compression;
 	switch (comp) {
 		case GRDevice::COMPRESSION_JPG: {
-			if (encoder)
+			if (encoder) {
+				encoder->stop_encoder_threads();
 				memdelete(encoder);
+			}
 			encoder = memnew(GRStreamEncoderImageSequence);
 			break;
 		}
 		case GRDevice::COMPRESSION_H264: {
-			if (encoder)
+			if (encoder) {
+				encoder->stop_encoder_threads();
 				memdelete(encoder);
+			}
 			encoder = memnew(GRStreamEncoderH264);
 			break;
 		}
@@ -156,7 +160,6 @@ std::shared_ptr<GRPacketStreamData> GRStreamEncodersManager::pop_data_to_send() 
 }
 
 void GRStreamEncodersManager::set_threads_count(int count) {
-	ERR_FAIL_COND(count < 1 || count > GR_STREAM_ENCODER_IMAGE_SEQUENCE_MAX_THREADS);
 	Scoped_lock(ts_lock);
 	if (threads_count != count) {
 		threads_count = count;
@@ -177,7 +180,7 @@ void GRStreamEncodersManager::set_active(bool state) {
 				encoder->start_encoder_threads(threads_count);
 		} else {
 			if (encoder)
-				encoder->start_encoder_threads(0);
+				encoder->start_encoder_threads(-1);
 		}
 	}
 }

@@ -67,7 +67,7 @@ void GRStreamDecoderImageSequence::push_packet_to_decode(std::shared_ptr<GRPacke
 	GRStreamDecoder::push_packet_to_decode(packet);
 
 	shared_cast_def(GRPacketStreamDataImage, img_data, packet);
-	if (img_data) {
+	if (img_data && packet->get_type() == GRPacket::StreamDataImage) {
 		if (img_data->get_is_stream_end()) {
 			Scoped_lock(ts_lock);
 			images.pop();
@@ -89,7 +89,7 @@ int GRStreamDecoderImageSequence::get_max_queued_frames() {
 	return (int)threads.size() * 2;
 }
 
-// TODO 0 - auto mode
+// TODO 0 - auto mode. for next version mb
 void GRStreamDecoderImageSequence::start_decoder_threads(int count) {
 	if (threads.size() == count)
 		return;
@@ -112,6 +112,10 @@ void GRStreamDecoderImageSequence::start_decoder_threads(int count) {
 	for (int i = 0; i < count; i++) {
 		Thread_start(threads[i], this, _processing_thread, i);
 	}
+	if (count > 0) {
+		is_update_thread_active = true;
+		Thread_start(update_thread, this, _update_thread, Variant());
+	}
 }
 
 void GRStreamDecoderImageSequence::stop_decoder_threads() {
@@ -120,6 +124,9 @@ void GRStreamDecoderImageSequence::stop_decoder_threads() {
 	for (int i = 0; i < threads.size(); i++) {
 		Thread_close(threads[i]);
 	}
+	is_update_thread_active = false;
+	Thread_close(update_thread);
+
 	threads.resize(0);
 
 	while (buffer.size())
@@ -135,19 +142,16 @@ void GRStreamDecoderImageSequence::_init() {
 #else
 	GRStreamDecoder::_init();
 #endif
-	is_update_thread_active = true;
-	Thread_start(update_thread, this, _update_thread, Variant());
 }
 
 void GRStreamDecoderImageSequence::_deinit() {
 	LEAVE_IF_EDITOR();
 	stop_decoder_threads();
-	is_update_thread_active = false;
-	Thread_close(update_thread);
 }
 
 // TODO add a way to calculate delay of stream. based on sync time mb
 void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
+	Thread_set_name("Image Sequence Update Thread");
 	auto os = OS::get_singleton();
 	while (is_update_thread_active) {
 		ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
@@ -223,7 +227,8 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 		shared_cast_def(GRPacketStreamDataImage, image_pack, images.front());
 		images.pop();
 
-		if (image_pack) {
+		//                                       \/ this needed for static_cast
+		if (image_pack && image_pack->get_type() == GRPacket::StreamDataImage) {
 			ZoneScopedNC("Image Decode", tracy::Color::Aquamarine4);
 
 			while (buffer.size() > get_max_queued_frames())

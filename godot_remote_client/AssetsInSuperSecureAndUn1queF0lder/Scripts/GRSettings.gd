@@ -53,6 +53,7 @@ onready var line_edits_to_touch_input = [
 	[fps.get_line_edit(), "Output data FPS:"],
 	[password, "Server password:"],
 	[skip_frames.get_line_edit(), "Skip frames:"],
+	[target_server_fps.get_line_edit(), "Server target FPS:"],
 	]
 
 var updated_by_code := false

@@ -897,7 +897,7 @@ void GRClient::_viewport_size_changed() {
 		if (tmp_vert != is_vertical) {
 			is_vertical = tmp_vert;
 			send_queue_mutex.lock();
-			std::shared_ptr<GRPacketClientStreamOrientation> packet = _find_queued_packet_by_type<GRPacketClientStreamOrientation>();
+			std::shared_ptr<GRPacketClientStreamOrientation> packet = _find_queued_packet_by_type<GRPacketClientStreamOrientation>(GRPacket::PacketType::ClientStreamOrientation);
 			if (packet) {
 				packet->set_vertical(is_vertical == ScreenOrientation::VERTICAL);
 				send_queue_mutex.unlock();
@@ -919,7 +919,7 @@ ratio_sync:
 		Vector2 size = control_to_show_in->get_size();
 
 		send_queue_mutex.lock();
-		std::shared_ptr<GRPacketClientStreamAspect> packet = _find_queued_packet_by_type<GRPacketClientStreamAspect>();
+		std::shared_ptr<GRPacketClientStreamAspect> packet = _find_queued_packet_by_type<GRPacketClientStreamAspect>(GRPacket::PacketType::ClientStreamAspect);
 		if (packet) {
 			packet->set_aspect(size.x / size.y);
 			send_queue_mutex.unlock();
@@ -1022,7 +1022,7 @@ void GRClient::_reset_counters() {
 
 void GRClient::set_server_setting(ENUM_ARG(TypesOfServerSettings) param, Variant value) {
 	send_queue_mutex.lock();
-	std::shared_ptr<GRPacketServerSettings> packet = _find_queued_packet_by_type<GRPacketServerSettings>();
+	std::shared_ptr<GRPacketServerSettings> packet = _find_queued_packet_by_type<GRPacketServerSettings>(GRPacket::PacketType::ServerSettings);
 	if (packet) {
 		packet->add_setting(param, value);
 		send_queue_mutex.unlock();

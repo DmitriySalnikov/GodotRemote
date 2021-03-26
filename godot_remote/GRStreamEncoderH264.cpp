@@ -28,7 +28,6 @@
 #else
 
 #ifdef DEBUG_H264
-#include <Directory.hpp>
 #include <File.hpp>
 #include <JSON.hpp>
 #include <JSONParseResult.hpp>
@@ -89,9 +88,10 @@ void GRStreamEncoderH264::commit_stream_end() {
 	auto b = std::make_shared<BufferedImage>();
 	auto p = std::make_shared<GRPacketStreamDataH264>();
 	p->set_is_stream_end(true);
+	p->set_start_time(OS::get_singleton()->get_ticks_usec());
 
 	b->is_ready = true;
-	shared_cast_var(GRPacketStreamDataH264, b->pack, p);
+	b->pack = p;
 	buffer.push(b);
 }
 
@@ -104,11 +104,12 @@ std::shared_ptr<GRPacketStreamData> GRStreamEncoderH264::pop_data_to_send() {
 	Scoped_lock(ts_lock);
 	auto buf_img = buffer.front();
 	buffer.pop();
+	_log(buf_img->pack->get_start_time(), LogLevel::LL_NORMAL);
 	return buf_img->pack;
 }
 
 int GRStreamEncoderH264::get_max_queued_frames() {
-	return 8;
+	return 32;
 }
 
 void GRStreamEncoderH264::start_encoder_threads(int count) {
@@ -295,10 +296,10 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 #ifdef DEBUG_H264
 	auto d = memnew(_Directory);
 	d->remove("stream.264");
-	file_open(f, "stream.264", _File::ModeFlags::WRITE);
+	auto file_open(f, "stream.264", _File::ModeFlags::WRITE);
 #ifdef DEBUG_H264_WRITE_RAW
 	d->remove("stream.yuv");
-	file_open(f_yuv, "stream.yuv", _File::ModeFlags::WRITE);
+	auto file_open(f_yuv, "stream.yuv", _File::ModeFlags::WRITE);
 #endif
 #endif
 
@@ -347,22 +348,27 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 
 		pack->set_is_stream_end(false);
 		pack->set_start_time(com_image.time_added);
+		pack->set_compression_type(GRDevice::ImageCompressionType::COMPRESSION_H264);
 
 		if (img->get_data().size() == 0)
 			goto end;
 
-		{
+		if (h264_encoder) {
 			ZoneScopedNC("Working with encoder", tracy::Color::VioletRed2);
 			ts_lock.lock();
 			// Update params
 			if (encoder_props != current_props) {
 #ifdef DEBUG_H264
+				commit_stream_end(); // clear all buffers and send first packet with reset data
+				buffer.push(buf_img); // then add current editing buffer to queue again
+
 				f->close();
 				memdelete(f);
 				d->remove("stream.264");
 				file_open(f, "stream.264", _File::ModeFlags::WRITE);
 #ifdef DEBUG_H264_WRITE_RAW
 				f_yuv->close();
+				memdelete(f_yuv);
 				d->remove("stream.yuv");
 				file_open(f_yuv, "stream.yuv", _File::ModeFlags::WRITE);
 #endif // DEBUG_H264_WRITE_RAW
@@ -412,12 +418,12 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 				ts_lock.unlock();
 			}
 
-			if (h264_encoder && is_encoder_inited) {
+			if (is_encoder_inited) {
 				if (GRUtilsJPGCodec::_encode_image_to_yuv(img, width, height, bytes_in_color, yuv_buffer.buf) == Error::OK) {
 #if defined(DEBUG_H264) && defined(DEBUG_H264_WRITE_RAW)
-					f_yuv->store_buffer(put_data_from_array_pointer(yuv_buffer.buf[0], yuv_buffer.y_size));
-					f_yuv->store_buffer(put_data_from_array_pointer(yuv_buffer.buf[1], yuv_buffer.u_size));
-					f_yuv->store_buffer(put_data_from_array_pointer(yuv_buffer.buf[2], yuv_buffer.v_size));
+					f_yuv->store_buffer(store_data_to_file(yuv_buffer.buf[0], yuv_buffer.y_size));
+					f_yuv->store_buffer(store_data_to_file(yuv_buffer.buf[1], yuv_buffer.u_size));
+					f_yuv->store_buffer(store_data_to_file(yuv_buffer.buf[2], yuv_buffer.v_size));
 #endif
 
 					h264_encoder_pic.uiTimeStamp = (int32_t)(0.5 + (frames_encoded * (1000 / current_props.max_frame_rate)));
@@ -443,9 +449,9 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 								} while (iNalIdx >= 0);
 								iFrameSize += iLayerSize;
 
-								pack->set_image_data(pLayerBsInfo->pBsBuf, iLayerSize);
+								pack->add_image_data(pLayerBsInfo->pBsBuf, iLayerSize);
 #ifdef DEBUG_H264
-								f->store_buffer(put_data_from_array_pointer(pLayerBsInfo->pBsBuf, iLayerSize));
+								f->store_buffer(put_data_from_array_pointer(pack->get_image_data()[pack->get_image_data().size() - 1]));
 #endif
 							}
 							++iLayer;
@@ -473,9 +479,12 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 					error_shown = true;
 				}
 			}
+		} else {
+			sleep_usec(25_ms);
+			// just wait thread closing...
 		}
 	end:
-		if (pack->get_image_data_size()) {
+		if (pack->get_image_data().size()) {
 			ZoneScopedNC("Push Image to Buffer", tracy::Color::Violet);
 			buf_img->pack = pack;
 			buf_img->is_ready = true;

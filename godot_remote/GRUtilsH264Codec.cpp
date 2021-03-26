@@ -19,15 +19,7 @@ OPENH264_LIB "win32.dll";
 #endif
 // TODO mb that branches needed only on windows. Need tests.
 #elif defined(__ANDROID__)
-#if defined(__arm__) && defined(__ARM_ARCH_7A__)
-OPENH264_LIB "android-arm.so";
-#elif defined(__aarch64__)
-OPENH264_LIB "android-arm64.so";
-#elif defined(__i386__)
-OPENH264_LIB "android-x86.so";
-#elif defined(__x86_64__)
-OPENH264_LIB "android-x64.so";
-#endif
+const char *GRUtilsH264Codec::lib_name = "libopenh264.so";
 #elif defined(__linux__)
 #if defined(__i386__)
 OPENH264_LIB "linux32.6.so";

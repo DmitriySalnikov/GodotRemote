@@ -32,6 +32,7 @@ std::shared_ptr<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 
 	switch (type) {
 		case PacketType::NonePacket:
+		case PacketType::StreamData:
 			ERR_FAIL_V_MSG(std::shared_ptr<GRPacket>(), "Can't create abstract GRPacket!");
 		case PacketType::SyncTime:
 			CREATE(GRPacketSyncTime);
@@ -110,21 +111,26 @@ bool GRPacketStreamDataImage::_create(Ref<StreamPeerBuffer> buf) {
 // STREAM DATA H264
 Ref<StreamPeerBuffer> GRPacketStreamDataH264::_get_data() {
 	auto buf = GRPacketStreamData::_get_data();
-	buf->put_64(start_time);
-	buf->put_64(data_size);
-	if (data_size > 0) {
-		buf->put_data(put_data_from_array_pointer(img_data, data_size));
+	buf->put_var(start_time);
+
+	// store array size
+	buf->put_var(int(data_layers.size()));
+	// store all arrays data if exists
+	for (auto i : data_layers) {
+		buf->put_var(i);
 	}
 	return buf;
 }
 
 bool GRPacketStreamDataH264::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacketStreamData::_create(buf);
-	start_time = buf->get_64();
-	data_size = buf->get_64();
-	if (data_size > 0) {
-		img_data = new uint8_t[data_size];
-		get_data_from_stream(buf, img_data, data_size);
+	start_time = buf->get_var();
+
+	// get array size
+	int count = buf->get_var();
+	// get array data if count > 0
+	for (int i = 0; i < count; i++) {
+		data_layers.push_back(buf->get_var());
 	}
 	return true;
 }

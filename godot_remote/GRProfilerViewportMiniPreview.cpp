@@ -5,6 +5,7 @@
 
 #ifndef GDNATIVE_LIBRARY
 #else
+#include <SceneTree.hpp>
 using namespace godot;
 #endif
 
@@ -69,9 +70,13 @@ void GRProfilerViewportMiniPreview::_notification(int p_notification) {
 
 			if (renderer) {
 				remove_child(renderer);
-				renderer->queue_del();
+				memdelete(renderer);
 			}
 			renderer = nullptr;
+			if (get_parent()) {
+				get_parent()->call_deferred("remove_child", this);
+			}
+
 			if (!is_queued_for_deletion())
 				queue_del();
 			break;

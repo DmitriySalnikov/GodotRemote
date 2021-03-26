@@ -20,6 +20,8 @@
 #include <String.hpp>
 #endif
 
+// TODO checking the checksum would be a good idea
+
 class GRPacket {
 
 public:
@@ -168,8 +170,7 @@ public:
 class GRPacketStreamDataH264 : public GRPacketStreamData {
 	friend GRPacket;
 
-	uint64_t data_size = 0;
-	uint8_t *img_data = nullptr;
+	std::vector<PoolByteArray> data_layers;
 	uint64_t start_time = 0;
 
 protected:
@@ -179,34 +180,26 @@ protected:
 public:
 	virtual PacketType get_type() override { return PacketType::StreamDataH264; };
 
-	uint64_t get_image_data_size() {
-		return data_size;
-	}
-	uint8_t *get_image_data() {
-		return img_data;
+	std::vector<PoolByteArray> get_image_data() {
+		return data_layers;
 	}
 	uint64_t get_start_time() {
 		return start_time;
 	}
 
-	void set_image_data(uint8_t *buf, uint64_t size) {
-		if (img_data) {
-			delete img_data;
-			img_data = nullptr;
-		}
-		data_size = size;
-		img_data = new uint8_t[size];
-		memcpy(img_data, buf, size);
+	void add_image_data(uint8_t *buf, uint64_t size) {
+		PoolByteArray img_data;
+		img_data.resize(size);
+		auto w = img_data.write();
+		memcpy(w.ptr(), buf, size);
+		data_layers.push_back(img_data);
+	}
+
+	void add_image_data(PoolByteArray buf) {
+		data_layers.push_back(buf);
 	}
 	void set_start_time(uint64_t _start_time) {
 		start_time = _start_time;
-	}
-
-	~GRPacketStreamDataH264() {
-		if (img_data) {
-			delete img_data;
-			img_data = nullptr;
-		}
 	}
 };
 

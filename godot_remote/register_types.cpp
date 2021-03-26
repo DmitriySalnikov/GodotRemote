@@ -6,13 +6,14 @@
 #include "GRDevice.h"
 #include "GRNotifications.h"
 #include "GRServer.h"
-#include "GRStreamEncoderH264.h"
-#include "GRStreamEncoderImageSequence.h"
-#include "GRStreamEncoders.h"
 #include "GRStreamDecoderH264.h"
 #include "GRStreamDecoderImageSequence.h"
 #include "GRStreamDecoders.h"
+#include "GRStreamEncoderH264.h"
+#include "GRStreamEncoderImageSequence.h"
+#include "GRStreamEncoders.h"
 #include "GodotRemote.h"
+#include "GRProfilerViewportMiniPreview.h"
 
 // clumsy settings to test
 // outbound and ip.DstAddr >= 127.0.0.1 and ip.DstAddr <= 127.255.255.255 and (tcp.DstPort == 52341 or tcp.SrcPort == 52341)
@@ -82,7 +83,7 @@ void unregister_godot_remote_types() {
 	memdelete(GodotRemote::get_singleton());
 	GRUtils::deinit();
 
-/*
+	/*
 #ifdef GODOTREMOTE_LIVEPP
 	if (livePP)
 		lpp::lppShutdown(livePP);
@@ -98,17 +99,11 @@ using namespace godot;
 
 /** GDNative Initialize **/
 extern "C" void GDN_EXPORT godot_gdnative_init(godot_gdnative_init_options *o) {
-#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
-	tracy::StartupProfiler();
-#endif
 	Godot::gdnative_init(o);
 }
 
 /** GDNative Terminate **/
 extern "C" void GDN_EXPORT godot_gdnative_terminate(godot_gdnative_terminate_options *o) {
-#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
-	tracy::ShutdownProfiler();
-#endif
 	Godot::gdnative_terminate(o);
 }
 
@@ -124,6 +119,7 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 	register_class<GRNotificationPanel>();
 	register_class<GRNotificationPanelUpdatable>();
 	register_class<GRNotificationStyle>();
+	register_class<GRProfilerViewportMiniPreview>();
 
 	register_class<GRDevice>();
 

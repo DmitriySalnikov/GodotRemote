@@ -27,6 +27,7 @@
 #include <Dictionary.hpp>
 #include <Engine.hpp>
 #include <File.hpp>
+#include <Directory.hpp>
 #include <Godot.hpp>
 #include <Image.hpp>
 #include <InputDefault.hpp>
@@ -66,7 +67,8 @@ using namespace godot;
 #define is_valid_ip is_valid
 #define release_pva_read(pva) pva.release()
 #define release_pva_write(pva) pva.release()
-#define put_data_from_array_pointer(p, size) p, size
+#define store_data_to_file(p, size) p, size
+#define put_data_from_array_pointer(buf) buf.read().ptr(), buf.size()
 #define get_data_from_stream(_stream, pDst, size) _stream->get_data(pDst, size)
 
 #define dict_get_key_at_index(dict, i) dict.get_key_at_index(i)
@@ -74,7 +76,7 @@ using namespace godot;
 
 #define file_get_as_string(path, err) FileAccess::get_file_as_string(path, err);
 #define file_open(var, path, flags) \
-	auto var = FileAccess::open(path, flags);
+	var = FileAccess::open(path, flags);
 
 #else
 
@@ -86,6 +88,8 @@ enum Margin : int {
 };
 
 typedef Thread _Thread;
+typedef File _File;
+typedef Directory _Directory;
 // THREAD SAFE END
 
 #define VARIANT_OBJ_CAST_TO(var, to) ((to *)var)
@@ -121,7 +125,8 @@ typedef Thread _Thread;
 #define img_is_empty(img) img->is_empty()
 #define release_pva_read(pva)
 #define release_pva_write(pva)
-#define put_data_from_array_pointer(p, size) _gdn_convert_native_pointer_array_to_pba(p, size)
+#define store_data_to_file(p, size) _gdn_convert_native_pointer_array_to_pba(p, size)
+#define put_data_from_array_pointer(p) p
 #define get_data_from_stream(_stream, pDst, size) _gdn_convert_array_to_native_pointer_array(pDst, _stream->get_data(size), size)
 
 #define dict_get_key_at_index(dict, i) _gdn_dictionary_get_key_at_index(dict, i)
@@ -129,7 +134,7 @@ typedef Thread _Thread;
 
 #define file_get_as_string(path, err) _gdn_get_file_as_string(path, err)
 #define file_open(var, path, flags) \
-	File *var = memnew(File);       \
+	var = memnew(File);       \
 	var->open(path, flags);
 
 #define memnew(obj) obj::_new()

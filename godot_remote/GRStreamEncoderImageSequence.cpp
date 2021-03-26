@@ -72,7 +72,7 @@ void GRStreamEncoderImageSequence::commit_stream_end() {
 	p->set_is_stream_end(true);
 
 	b->is_ready = true;
-	shared_cast_var(GRPacketStreamDataImage, b->pack, p);
+	b->pack = p;
 	buffer.push(b);
 }
 
@@ -95,6 +95,7 @@ int GRStreamEncoderImageSequence::get_max_queued_frames() {
 
 // TODO 0 - auto mode
 void GRStreamEncoderImageSequence::start_encoder_threads(int count) {
+	Scoped_lock(ts_lock);
 	if (threads.size() == count)
 		return;
 
@@ -119,6 +120,7 @@ void GRStreamEncoderImageSequence::start_encoder_threads(int count) {
 }
 
 void GRStreamEncoderImageSequence::stop_encoder_threads() {
+	Scoped_lock(ts_lock);
 	ZoneScopedNC("Stop Encoder Threads", tracy::Color::Firebrick3);
 	is_threads_active = false;
 	for (int i = 0; i < threads.size(); i++) {
