@@ -35,6 +35,10 @@ HMODULE livePP = NULL;
 #include "core/project_settings.h"
 
 void register_godot_remote_types() {
+#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
+	tracy::StartupProfiler();
+#endif
+
 	ClassDB::register_class<GodotRemote>();
 	Engine::get_singleton()->add_singleton(Engine::Singleton(NAMEOF(GodotRemote), memnew(GodotRemote)));
 	//GRUtils::init();
@@ -83,6 +87,10 @@ void unregister_godot_remote_types() {
 	memdelete(GodotRemote::get_singleton());
 	GRUtils::deinit();
 
+#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
+	tracy::ShutdownProfiler();
+#endif
+
 	/*
 #ifdef GODOTREMOTE_LIVEPP
 	if (livePP)
@@ -105,10 +113,17 @@ extern "C" void GDN_EXPORT godot_gdnative_init(godot_gdnative_init_options *o) {
 /** GDNative Terminate **/
 extern "C" void GDN_EXPORT godot_gdnative_terminate(godot_gdnative_terminate_options *o) {
 	Godot::gdnative_terminate(o);
+#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
+	tracy::ShutdownProfiler();
+#endif
 }
 
 /** NativeScript Initialize **/
 extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
+#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
+	tracy::StartupProfiler();
+#endif
+
 	Godot::nativescript_init(handle);
 
 	register_class<GodotRemote>();

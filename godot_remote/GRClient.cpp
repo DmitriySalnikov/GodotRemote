@@ -89,6 +89,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_avg_delay)), &GRClient::get_avg_delay);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_min_delay)), &GRClient::get_min_delay);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_max_delay)), &GRClient::get_max_delay);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_stream_aspect_ratio)), &GRClient::get_stream_aspect_ratio);
 
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_custom_input_scene)), &GRClient::get_custom_input_scene);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_address)), &GRClient::get_address);
@@ -102,6 +103,7 @@ void GRClient::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("custom_input_scene_removed"));
 
 	ADD_SIGNAL(MethodInfo("stream_state_changed", PropertyInfo(Variant::INT, "state", PROPERTY_HINT_ENUM)));
+	ADD_SIGNAL(MethodInfo("stream_aspect_ratio_changed", PropertyInfo(Variant::REAL, "ratio")));
 	ADD_SIGNAL(MethodInfo("connection_state_changed", PropertyInfo(Variant::BOOL, "is_connected")));
 	ADD_SIGNAL(MethodInfo("mouse_mode_changed", PropertyInfo(Variant::INT, "mouse_mode")));
 	ADD_SIGNAL(MethodInfo("server_settings_received", PropertyInfo(Variant::DICTIONARY, "settings")));
@@ -191,6 +193,7 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, get_avg_delay);
 	METHOD_REG(GRClient, get_min_delay);
 	METHOD_REG(GRClient, get_max_delay);
+	METHOD_REG(GRClient, get_stream_aspect_ratio);
 
 	METHOD_REG(GRClient, set_decoder_threads_count);
 	METHOD_REG(GRClient, get_decoder_threads_count);
@@ -199,6 +202,7 @@ void GRClient::_register_methods() {
 	register_signal<GRClient>("custom_input_scene_removed", Dictionary::make());
 
 	register_signal<GRClient>("stream_state_changed", "state", GODOT_VARIANT_TYPE_INT);
+	register_signal<GRClient>("stream_aspect_ratio_changed", "ratio", GODOT_VARIANT_TYPE_REAL);
 	register_signal<GRClient>("connection_state_changed", "is_connected", GODOT_VARIANT_TYPE_BOOL);
 	register_signal<GRClient>("mouse_mode_changed", "mouse_mode", GODOT_VARIANT_TYPE_INT);
 	register_signal<GRClient>("server_settings_received", "settings", GODOT_VARIANT_TYPE_DICTIONARY);
@@ -689,6 +693,10 @@ float GRClient::get_max_delay() {
 	return delay_counter.get_max();
 }
 
+float GRClient::get_stream_aspect_ratio() {
+	return _prev_stream_aspect_ratio;
+}
+
 void GRClient::set_viewport_orientation_syncing(bool is_syncing) {
 	_viewport_orientation_syncing = is_syncing;
 	if (is_syncing) {
@@ -919,7 +927,7 @@ ratio_sync:
 		Vector2 size = control_to_show_in->get_size();
 
 		send_queue_mutex.lock();
-		std::shared_ptr<GRPacketClientStreamAspect> packet = _find_queued_packet_by_type<GRPacketClientStreamAspect>(GRPacket::PacketType::ClientStreamAspect);
+		std::shared_ptr<GRPacketStreamAspectRatio> packet = _find_queued_packet_by_type<GRPacketStreamAspectRatio>(GRPacket::PacketType::StreamAspectRatio);
 		if (packet) {
 			packet->set_aspect(size.x / size.y);
 			send_queue_mutex.unlock();
@@ -928,7 +936,7 @@ ratio_sync:
 		send_queue_mutex.unlock();
 
 		if (!packet) {
-			packet = shared_new(GRPacketClientStreamAspect);
+			packet = shared_new(GRPacketStreamAspectRatio);
 			packet->set_aspect(size.x / size.y);
 			send_packet(packet);
 		}
@@ -1420,6 +1428,16 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 						call_deferred(NAMEOF(_load_custom_input_scene), data->get_scene_path(), data->get_scene_data(), data->get_original_size(), data->is_compressed(), data->get_compression_type());
 						break;
 					}
+					case GRPacket::PacketType::StreamAspectRatio: {
+						shared_cast_def(GRPacketStreamAspectRatio, data, pack);
+						if (!data) {
+							_log("Incorrect GRPacketStreamAspectRatio", LogLevel::LL_ERROR);
+							continue;
+						}
+						_prev_stream_aspect_ratio = data->get_aspect();
+						call_deferred("emit_signal", "stream_aspect_ratio_changed", data->get_aspect());
+						break;
+					}
 					case GRPacket::PacketType::CustomUserData: {
 						shared_cast_def(GRPacketCustomUserData, data, pack);
 						if (!data) {
@@ -1464,6 +1482,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	if (input_collector)
 		input_collector->set_process(false);
 
+	_prev_stream_aspect_ratio = 0;
 	_stop_decoder();
 	_send_queue_resize(0);
 

@@ -74,6 +74,7 @@ void GRStreamEncodersManager::start(int compression, GRSViewport *vp) {
 			encoder = memnew(GRStreamEncoderImageSequence);
 			break;
 		}
+#ifdef GODOTREMOTE_H264_ENABLED
 		case GRDevice::COMPRESSION_H264: {
 			if (encoder) {
 				encoder->stop_encoder_threads();
@@ -82,6 +83,7 @@ void GRStreamEncodersManager::start(int compression, GRSViewport *vp) {
 			encoder = memnew(GRStreamEncoderH264);
 			break;
 		}
+#endif
 		default: {
 			active = false;
 			_log("Attempt to run an unsupported encoder type. Encoder type: " + str(compression), LogLevel::LL_ERROR);
@@ -115,6 +117,7 @@ void GRStreamEncodersManager::set_compression_type(int compression, GRSViewport 
 			}
 			break;
 		}
+#ifdef GODOTREMOTE_H264_ENABLED
 		case GRDevice::COMPRESSION_H264: {
 			GRStreamEncoderH264 *tmp_en = encoder ? cast_to<GRStreamEncoderH264>(encoder) : nullptr;
 			if (!tmp_en) {
@@ -122,6 +125,7 @@ void GRStreamEncodersManager::set_compression_type(int compression, GRSViewport 
 			}
 			break;
 		}
+#endif
 		default: {
 			_log("Not supported encoder type: " + str(compression), LogLevel::LL_ERROR);
 			break;

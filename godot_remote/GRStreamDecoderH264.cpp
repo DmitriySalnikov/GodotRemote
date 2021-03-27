@@ -1,8 +1,8 @@
 /* GRStreamDecoderH264.cpp */
 
-#ifndef NO_GODOTREMOTE_CLIENT
+#if !defined(NO_GODOTREMOTE_CLIENT) && defined(GODOTREMOTE_H264_ENABLED)
 
-#define DEBUG_H264
+//#define DEBUG_H264
 
 #include "GRStreamDecoderH264.h"
 #include "GRClient.h"
@@ -208,27 +208,33 @@ void GRStreamDecoderH264::FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_
 		sDstBufInfo.uiInBsTimeStamp = OS::get_singleton()->get_ticks_usec();
 		h264_decoder->FlushFrame(pData, &sDstBufInfo);
 
-		if (sDstBufInfo.iBufferStatus == 1) {
-			Ref<Image> img = newref(Image);
-			Error e = GRUtilsH264Codec::_decode_yuv_to_image(img, sDstBufInfo.UsrData.sSystemBuffer.iWidth, sDstBufInfo.UsrData.sSystemBuffer.iHeight, sDstBufInfo.pDst[0], sDstBufInfo.pDst[1], sDstBufInfo.pDst[2], sDstBufInfo.UsrData.sSystemBuffer.iStride);
-			if (e != Error::OK) {
-				_log("Can't decode image from YUV", LogLevel::LL_ERROR);
-				continue;
-			}
-
-			Scoped_lock(ts_lock);
-			while (buffer.size() > get_max_queued_frames())
-				buffer.pop();
-
-			if (buffer.size() && buffer.front().is_end && img_is_empty(img)) {
-				continue;
-			}
-
-			auto buf_img = BufferedImage(start_time);
-			buf_img.img = img;
-			buffer.push(buf_img);
-		}
+		ProcessFrame(&sDstBufInfo, start_time);
 	}
+}
+
+bool GRStreamDecoderH264::ProcessFrame(SBufferInfo *info, uint64_t start_time) {
+	if (info->iBufferStatus == 1) {
+		Ref<Image> img = newref(Image);
+
+		Error e = GRUtilsH264Codec::_decode_yuv_to_image(img, info->UsrData.sSystemBuffer.iWidth, info->UsrData.sSystemBuffer.iHeight, info->pDst[0], info->pDst[1], info->pDst[2], info->UsrData.sSystemBuffer.iStride);
+		if (e != Error::OK) {
+			_log("Can't decode image from YUV", LogLevel::LL_ERROR);
+			return false;
+		}
+
+		Scoped_lock(ts_lock);
+		while (buffer.size() > get_max_queued_frames())
+			buffer.pop();
+
+		if (buffer.size() && buffer.front().is_end && img_is_empty(img)) {
+			return false;
+		}
+
+		auto buf_img = BufferedImage(start_time);
+		buf_img.img = img;
+		buffer.push(buf_img);
+	}
+	return true;
 }
 
 void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
@@ -245,6 +251,7 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 	int32_t iLastSpsByteCount = 0;
 	int32_t iSliceSize;
 	uint8_t *pData[3] = { NULL }; // WTF IS THIS??
+	bool is_decode_with_error = false;
 
 #ifdef DEBUG_H264
 	auto d = memnew(_Directory);
@@ -302,6 +309,12 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 						continue;
 					}
 
+					if (is_decode_with_error && image_pack->get_frame_type() != EVideoFrameType::videoFrameTypeIDR) {
+						// wait next IDR
+						continue;
+					}
+					is_decode_with_error = false;
+
 					ZoneScopedNC("Image Decode", tracy::Color::Aquamarine4);
 					std::vector<PoolByteArray> img_layers = image_pack->get_image_data();
 					for (auto buf : img_layers) {
@@ -337,30 +350,11 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 						sDstBufInfo.uiInBsTimeStamp = image_pack->get_start_time();
 						int err = h264_decoder->DecodeFrameNoDelay(wb.ptr(), buf.size(), pData, &sDstBufInfo);
 						if (err != 0) {
-							_log("OpenH264 Decode error. Code: " + str(err), LogLevel::LL_ERROR);
+							_log("OpenH264 Decode error. Code: " + str(err) + ". Waiting next IDR frame.", LogLevel::LL_ERROR);
+							is_decode_with_error = true;
 						}
 
-						if (sDstBufInfo.iBufferStatus == 1) {
-							Ref<Image> img = newref(Image);
-
-							Error e = GRUtilsH264Codec::_decode_yuv_to_image(img, sDstBufInfo.UsrData.sSystemBuffer.iWidth, sDstBufInfo.UsrData.sSystemBuffer.iHeight, sDstBufInfo.pDst[0], sDstBufInfo.pDst[1], sDstBufInfo.pDst[2], sDstBufInfo.UsrData.sSystemBuffer.iStride);
-							if (e != Error::OK) {
-								_log("Can't decode image from YUV", LogLevel::LL_ERROR);
-								continue;
-							}
-
-							Scoped_lock(ts_lock);
-							while (buffer.size() > get_max_queued_frames())
-								buffer.pop();
-
-							if (buffer.size() && buffer.front().is_end && img_is_empty(img)) {
-								continue;
-							}
-
-							auto buf_img = BufferedImage(image_pack->get_start_time());
-							buf_img.img = img;
-							buffer.push(buf_img);
-						}
+						ProcessFrame(&sDstBufInfo, image_pack->get_start_time());
 					}
 				} else {
 					_log("Wrong image package for this stream", LogLevel::LL_DEBUG);

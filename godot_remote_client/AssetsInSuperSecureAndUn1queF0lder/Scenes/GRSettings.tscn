@@ -855,10 +855,10 @@ margin_right = 744.0
 margin_bottom = 46.0
 rect_min_size = Vector2( 0, 32 )
 size_flags_horizontal = 3
-text = "H264"
+text = "JPG"
 align = 1
 items = [ "JPG", null, false, 1, null, "H264", null, false, 3, null ]
-selected = 1
+selected = 0
 
 [node name="Empty3" type="Control" parent="Scroll/H/Grid"]
 margin_top = 2380.0

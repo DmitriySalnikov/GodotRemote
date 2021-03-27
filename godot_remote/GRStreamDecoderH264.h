@@ -1,7 +1,7 @@
 /* GRStreamDecoderH264.h */
 #pragma once
 
-#ifndef NO_GODOTREMOTE_CLIENT
+#if !defined(NO_GODOTREMOTE_CLIENT) && defined(GODOTREMOTE_H264_ENABLED)
 
 #include "GRPacket.h"
 #include "GRProfiler.h"
@@ -56,6 +56,7 @@ private:
 	int en_target_bitrate = 0;
 	int en_threads_count = 0;
 	void FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_time);
+	bool ProcessFrame(SBufferInfo *info, uint64_t start_time);
 
 	void _update_thread(Variant p_userdata);
 	void _processing_thread(Variant p_userdata);

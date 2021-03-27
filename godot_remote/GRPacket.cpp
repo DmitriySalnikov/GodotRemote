@@ -48,8 +48,8 @@ std::shared_ptr<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 			CREATE(GRPacketCustomInputScene);
 		case PacketType::ClientStreamOrientation:
 			CREATE(GRPacketClientStreamOrientation);
-		case PacketType::ClientStreamAspect:
-			CREATE(GRPacketClientStreamAspect);
+		case PacketType::StreamAspectRatio:
+			CREATE(GRPacketStreamAspectRatio);
 		case PacketType::CustomUserData:
 			CREATE(GRPacketCustomUserData);
 		case PacketType::StreamDataH264:
@@ -112,6 +112,7 @@ bool GRPacketStreamDataImage::_create(Ref<StreamPeerBuffer> buf) {
 Ref<StreamPeerBuffer> GRPacketStreamDataH264::_get_data() {
 	auto buf = GRPacketStreamData::_get_data();
 	buf->put_var(start_time);
+	buf->put_var(frame_type);
 
 	// store array size
 	buf->put_var(int(data_layers.size()));
@@ -125,6 +126,7 @@ Ref<StreamPeerBuffer> GRPacketStreamDataH264::_get_data() {
 bool GRPacketStreamDataH264::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacketStreamData::_create(buf);
 	start_time = buf->get_var();
+	frame_type = buf->get_var();
 
 	// get array size
 	int count = buf->get_var();
@@ -255,13 +257,13 @@ bool GRPacketClientStreamOrientation::_create(Ref<StreamPeerBuffer> buf) {
 //////////////////////////////////////////////////////////////////////////
 // CLIENT SCREEN ASCPECT
 
-Ref<StreamPeerBuffer> GRPacketClientStreamAspect::_get_data() {
+Ref<StreamPeerBuffer> GRPacketStreamAspectRatio::_get_data() {
 	auto buf = GRPacket::_get_data();
 	buf->put_float(stream_aspect);
 	return buf;
 }
 
-bool GRPacketClientStreamAspect::_create(Ref<StreamPeerBuffer> buf) {
+bool GRPacketStreamAspectRatio::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
 	stream_aspect = buf->get_float();
 	return true;

@@ -15,11 +15,10 @@ opts.Add(BoolVariable("godot_remote_disable_client", "Godot Remote. Remove clien
 opts.Add(BoolVariable("godot_remote_use_sse2", "Godot Remote. Use SSE2 to convert YUV to RGB for the H264 codec. Only on PC.", True))
 #opts.Add(BoolVariable("godot_remote_livepp", "Godot Remote. Live++ support... Windows only", False))
 opts.Update(module_env)
+Help(opts.GenerateHelpText(module_env))
 
 if module_env['platform'] not in ['windows', 'x11', 'linuxbsd', 'osx']:
     module_env['godot_remote_use_sse2'] = False
-
-Help(opts.GenerateHelpText(module_env))
 
 if module_env['godot_remote_no_default_resources']:
     module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_DEFAULT_RESOURCES'])

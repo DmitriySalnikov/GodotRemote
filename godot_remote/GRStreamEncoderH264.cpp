@@ -1,8 +1,8 @@
 /* GRStreamEncoderH264.cpp */
 
-#ifndef NO_GODOTREMOTE_SERVER
+#if !defined(NO_GODOTREMOTE_SERVER) && defined(GODOTREMOTE_H264_ENABLED)
 
-#define DEBUG_H264
+//#define DEBUG_H264
 //#define DEBUG_H264_WRITE_RAW
 
 #include "GRStreamEncoderH264.h"
@@ -433,7 +433,8 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 						continue;
 					}
 
-					if (h264_stream_info.eFrameType != videoFrameTypeSkip) {
+					if (h264_stream_info.eFrameType != EVideoFrameType::videoFrameTypeSkip) {
+						pack->set_frame_type(h264_stream_info.eFrameType);
 						int iFrameSize = 0;
 						int iLayer = 0;
 						while (iLayer < h264_stream_info.iLayerNum) {

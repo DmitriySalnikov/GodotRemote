@@ -366,6 +366,7 @@ void GRServer::_internal_call_only_deffered_start() {
 
 	if (!resize_viewport) {
 		resize_viewport = memnew(GRSViewport);
+		resize_viewport->server = this;
 		add_child(resize_viewport);
 	}
 
@@ -413,6 +414,7 @@ void GRServer::_internal_call_only_deffered_stop() {
 void GRServer::_remove_resize_viewport(Node *node) {
 	GRSViewport *vp = cast_to<GRSViewport>(node);
 	if (vp && !vp->is_queued_for_deletion()) {
+		vp->server = nullptr;
 		remove_child(vp);
 		memdelete(vp);
 		vp = nullptr;
@@ -1068,10 +1070,10 @@ void GRServer::_thread_connection(Variant p_userdata) {
 						call_deferred("emit_signal", "client_viewport_orientation_changed", data->is_vertical());
 						break;
 					}
-					case GRPacket::PacketType::ClientStreamAspect: {
-						shared_cast_def(GRPacketClientStreamAspect, data, pack);
+					case GRPacket::PacketType::StreamAspectRatio: {
+						shared_cast_def(GRPacketStreamAspectRatio, data, pack);
 						if (!data) {
-							_log("Incorrect GRPacketClientStreamAspect", LogLevel::LL_ERROR);
+							_log("Incorrect GRPacketStreamAspectRatio", LogLevel::LL_ERROR);
 							continue;
 						}
 						call_deferred("emit_signal", "client_viewport_aspect_ratio_changed", data->get_aspect());
@@ -1518,6 +1520,19 @@ void GRSViewport::_notification(int p_notification) {
 					stream_manager->commit_stream_end();
 				}
 			}
+
+			Size2 size = OS::get_singleton()->get_window_size();
+			float aspect = size.x / size.y;
+			if (aspect != prev_screen_aspect_ratio) {
+				prev_screen_aspect_ratio = aspect;
+
+				if (server) {
+					auto asp_pck = std::make_shared<GRPacketStreamAspectRatio>();
+					asp_pck->set_aspect(aspect);
+					server->send_packet(asp_pck);
+				}
+			}
+
 			break;
 		}
 		case NOTIFICATION_ENTER_TREE: {
@@ -1643,22 +1658,26 @@ int GRSViewport::get_skip_frames() {
 
 void GRSViewport::set_encoder_threads_count(int count) {
 	Scoped_lock(stream_mutex);
-	if (stream_manager)
+	if (stream_manager) {
 		stream_manager->set_threads_count(count);
+	}
 }
 
 int GRSViewport::get_encoder_threads_count() {
 	Scoped_lock(stream_mutex);
-	if (stream_manager)
+	if (stream_manager) {
 		return stream_manager->get_threads_count();
+	}
 	return GET_PS(GodotRemote::ps_server_image_encoder_threads_count_name);
 }
 
 void GRSViewport::_start_encoder() {
 	Scoped_lock(stream_mutex);
 	set_process(true);
-	if (stream_manager)
+	if (stream_manager) {
 		stream_manager->start(compression_type, this);
+	}
+	prev_screen_aspect_ratio = 0.000001f;
 }
 
 void GRSViewport::_stop_encoder() {
@@ -1667,6 +1686,7 @@ void GRSViewport::_stop_encoder() {
 	if (stream_manager) {
 		stream_manager->set_active(false);
 	}
+	prev_screen_aspect_ratio = 0.000001f;
 }
 
 void GRSViewport::_init() {

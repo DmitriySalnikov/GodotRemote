@@ -76,10 +76,6 @@ void GodotRemote::_init() {
 	call_deferred(NAMEOF(_prepare_editor));
 #endif
 #endif
-
-#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
-	tracy::StartupProfiler();
-#endif
 }
 
 void GodotRemote::_deinit() {
@@ -95,10 +91,6 @@ void GodotRemote::_deinit() {
 		singleton = nullptr;
 	}
 	GRUtils::deinit();
-
-#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
-	tracy::ShutdownProfiler();
-#endif
 }
 
 #ifndef GDNATIVE_LIBRARY

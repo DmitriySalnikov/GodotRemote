@@ -21,6 +21,7 @@ func _ready():
 	GodotRemote.get_device().connect("custom_input_scene_removed", self, "_custom_input_scene_removed")
 	GodotRemote.get_device().connect("stream_state_changed", self, "_stream_state_changed")
 	GodotRemote.get_device().connect("mouse_mode_changed", self, "_mouse_mode_changed")
+	GodotRemote.get_device().connect("stream_aspect_ratio_changed", self, "_stream_aspect_ratio_changed")
 	GodotRemote.connect("device_removed", self, "_device_removed")
 	
 	$Stats.visible = false
@@ -53,6 +54,18 @@ func _mouse_mode_changed(_mode):
 	if not $GRSettings.visible:
 		Input.set_mouse_mode(mouse_mode)
 
+func _stream_aspect_ratio_changed(_ratio):
+	if _ratio == 0:
+		$BackgroundTouchHint.rect_size = rect_size
+		$BackgroundTouchHint.rect_position = Vector2.ZERO
+	else:
+		$BackgroundTouchHint.rect_size = Vector2(rect_size.y * _ratio, rect_size.y)
+		$BackgroundTouchHint.rect_position = Vector2((rect_size.x - $BackgroundTouchHint.rect_size.x) / 2,0)
+		if $BackgroundTouchHint.rect_size.x < 256 or $BackgroundTouchHint.rect_size.y < 256:
+			$BackgroundTouchHint/Panel/TextureRect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		else:
+			$BackgroundTouchHint/Panel/TextureRect.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+
 func _custom_input_scene_added():
 	$BackgroundTouchHint/Panel/TextureRect.visible = false
 	GodotRemote.get_device().capture_pointer = G.capture_input_when_custom_scene
@@ -69,6 +82,7 @@ func _stream_state_changed(_is_connected):
 			$Stats.visible = false
 			$BackgroundTouchHint.visible = false
 			$OpenSettingsWithoutSignal.visible = true && !$GRSettings.visible
+			_stream_aspect_ratio_changed(0)
 			
 		C.GRClient_STREAM_ACTIVE:
 			OS.keep_screen_on = true
@@ -81,6 +95,7 @@ func _stream_state_changed(_is_connected):
 			$BackgroundTouchHint.visible = true
 			$BackgroundTouchHint/Panel/TextureRect.visible = GodotRemote.get_device().get_custom_input_scene() == null
 			$OpenSettingsWithoutSignal.visible = false
+			_stream_aspect_ratio_changed(GodotRemote.get_device().get_stream_aspect_ratio())
 
 func _device_removed():
 	$Stats.visible = false

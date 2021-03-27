@@ -149,6 +149,7 @@ private:
 	Mutex_define(stream_mutex, "Stream Manager Mutex");
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
+	float _prev_stream_aspect_ratio = 0;
 
 	uint64_t sync_time_client = 0;
 	uint64_t sync_time_server = 0;
@@ -255,6 +256,7 @@ public:
 	float get_avg_delay();
 	float get_min_delay();
 	float get_max_delay();
+	float get_stream_aspect_ratio();
 
 	void set_decoder_threads_count(int count);
 	int get_decoder_threads_count();

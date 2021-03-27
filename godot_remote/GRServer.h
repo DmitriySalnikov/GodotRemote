@@ -189,6 +189,9 @@ class GRSViewport : public Viewport {
 	Mutex_define(stream_mutex, "Stream Manager Mutex");
 
 private:
+	float prev_screen_aspect_ratio = 0.0000001f;
+	GRServer *server = nullptr;
+
 	void _on_renderer_deleting();
 	void _start_encoder();
 	void _stop_encoder();

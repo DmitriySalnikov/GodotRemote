@@ -34,7 +34,7 @@ public:
 		MouseModeSync = 5,
 		CustomInputScene = 6,
 		ClientStreamOrientation = 7,
-		ClientStreamAspect = 8,
+		StreamAspectRatio = 8,
 		CustomUserData = 9,
 		StreamDataH264 = 10,
 		StreamData = 11, // abstract
@@ -172,6 +172,7 @@ class GRPacketStreamDataH264 : public GRPacketStreamData {
 
 	std::vector<PoolByteArray> data_layers;
 	uint64_t start_time = 0;
+	uint8_t frame_type = 0;
 
 protected:
 	virtual Ref<StreamPeerBuffer> _get_data() override;
@@ -185,6 +186,9 @@ public:
 	}
 	uint64_t get_start_time() {
 		return start_time;
+	}
+	uint8_t get_frame_type() {
+		return frame_type;
 	}
 
 	void add_image_data(uint8_t *buf, uint64_t size) {
@@ -200,6 +204,9 @@ public:
 	}
 	void set_start_time(uint64_t _start_time) {
 		start_time = _start_time;
+	}
+	void set_frame_type(uint8_t type) {
+		frame_type = type;
 	}
 };
 
@@ -366,7 +373,7 @@ public:
 
 //////////////////////////////////////////////////////////////////////////
 // CLIENT SCREEN ASCPECT
-class GRPacketClientStreamAspect : public GRPacket {
+class GRPacketStreamAspectRatio : public GRPacket {
 	friend GRPacket;
 
 	float stream_aspect;
@@ -376,7 +383,7 @@ protected:
 	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
 
 public:
-	virtual PacketType get_type() override { return PacketType::ClientStreamAspect; };
+	virtual PacketType get_type() override { return PacketType::StreamAspectRatio; };
 
 	float get_aspect() {
 		return stream_aspect;
