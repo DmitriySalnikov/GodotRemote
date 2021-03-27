@@ -11,7 +11,6 @@
 #include "GRServer.h"
 #include "GRStreamEncoders.h"
 #include "GRUtilsH264Codec.h"
-#include "GRUtilsJPGCodec.h"
 #include "GodotRemote.h"
 
 #ifndef GDNATIVE_LIBRARY
@@ -104,7 +103,6 @@ std::shared_ptr<GRPacketStreamData> GRStreamEncoderH264::pop_data_to_send() {
 	Scoped_lock(ts_lock);
 	auto buf_img = buffer.front();
 	buffer.pop();
-	_log(buf_img->pack->get_start_time(), LogLevel::LL_NORMAL);
 	return buf_img->pack;
 }
 
@@ -285,7 +283,7 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 	ISVCEncoder *h264_encoder = nullptr;
 	SSourcePicture h264_encoder_pic;
 	SFrameBSInfo h264_stream_info;
-	GRUtilsJPGCodec::yuv_buffer_data_to_encoder yuv_buffer;
+	GRUtilsH264Codec::yuv_buffer_data_to_encoder yuv_buffer;
 	EncoderProperties current_props;
 	GRUtilsH264Codec::_encoder_create(&h264_encoder);
 	// TODO check if encoder created
@@ -419,7 +417,7 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 			}
 
 			if (is_encoder_inited) {
-				if (GRUtilsJPGCodec::_encode_image_to_yuv(img, width, height, bytes_in_color, yuv_buffer.buf) == Error::OK) {
+				if (GRUtilsH264Codec::_encode_image_to_yuv(img, width, height, bytes_in_color, yuv_buffer.buf) == Error::OK) {
 #if defined(DEBUG_H264) && defined(DEBUG_H264_WRITE_RAW)
 					f_yuv->store_buffer(store_data_to_file(yuv_buffer.buf[0], yuv_buffer.y_size));
 					f_yuv->store_buffer(store_data_to_file(yuv_buffer.buf[1], yuv_buffer.u_size));
@@ -457,17 +455,7 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 							++iLayer;
 						}
 
-						String sss = "";
-						switch (h264_stream_info.eFrameType) {
-							case videoFrameTypeInvalid: sss = "Invalid"; break;
-							case videoFrameTypeIDR: sss = "IDR"; break;
-							case videoFrameTypeI: sss = "I"; break;
-							case videoFrameTypeP: sss = "P"; break;
-							case videoFrameTypeSkip: sss = "Skip"; break;
-							case videoFrameTypeIPMixed: sss = "IPMixed"; break;
-						}
-
-						_log("H264 Encoder buffered image size: " + str(iFrameSize) + "\tType: " + str(sss), LogLevel::LL_NORMAL);
+						_log("H264 Encoder buffered image size: " + str(iFrameSize) + "\tType: " + str(h264_stream_info.eFrameType), LogLevel::LL_DEBUG);
 					}
 				} else {
 					_log("Can't encode RGB Image to YUV buffer", LogLevel::LL_ERROR);

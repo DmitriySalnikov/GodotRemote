@@ -20,6 +20,7 @@ __pycache__
 *.ipdb
 *.ilk
 *.exe
+*.264
 *.exp
 #*.lib
 *.vcxproj.filters

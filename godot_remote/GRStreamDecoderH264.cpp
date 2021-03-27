@@ -8,7 +8,6 @@
 #include "GRClient.h"
 #include "GRNotifications.h"
 #include "GRPacket.h"
-#include "GRUtilsJPGCodec.h"
 #include "GodotRemote.h"
 
 #ifndef GDNATIVE_LIBRARY
@@ -70,8 +69,6 @@ void GRStreamDecoderH264::push_packet_to_decode(std::shared_ptr<GRPacketStreamDa
 
 	shared_cast_def(GRPacketStreamDataH264, img_data, packet);
 	if (img_data && packet->get_type() == GRPacket::StreamDataH264) {
-		_log(img_data->get_start_time(), LogLevel::LL_NORMAL);
-
 		if (img_data->get_is_stream_end()) {
 			Scoped_lock(ts_lock);
 			images.pop();
@@ -213,7 +210,7 @@ void GRStreamDecoderH264::FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_
 
 		if (sDstBufInfo.iBufferStatus == 1) {
 			Ref<Image> img = newref(Image);
-			Error e = GRUtilsJPGCodec::_decode_yuv_to_image(img, sDstBufInfo.UsrData.sSystemBuffer.iWidth, sDstBufInfo.UsrData.sSystemBuffer.iHeight, sDstBufInfo.pDst[0], sDstBufInfo.pDst[1], sDstBufInfo.pDst[2]);
+			Error e = GRUtilsH264Codec::_decode_yuv_to_image(img, sDstBufInfo.UsrData.sSystemBuffer.iWidth, sDstBufInfo.UsrData.sSystemBuffer.iHeight, sDstBufInfo.pDst[0], sDstBufInfo.pDst[1], sDstBufInfo.pDst[2], sDstBufInfo.UsrData.sSystemBuffer.iStride);
 			if (e != Error::OK) {
 				_log("Can't decode image from YUV", LogLevel::LL_ERROR);
 				continue;
@@ -346,7 +343,7 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 						if (sDstBufInfo.iBufferStatus == 1) {
 							Ref<Image> img = newref(Image);
 
-							Error e = GRUtilsJPGCodec::_decode_yuv_to_image(img, sDstBufInfo.UsrData.sSystemBuffer.iWidth, sDstBufInfo.UsrData.sSystemBuffer.iHeight, sDstBufInfo.pDst[0], sDstBufInfo.pDst[1], sDstBufInfo.pDst[2]);
+							Error e = GRUtilsH264Codec::_decode_yuv_to_image(img, sDstBufInfo.UsrData.sSystemBuffer.iWidth, sDstBufInfo.UsrData.sSystemBuffer.iHeight, sDstBufInfo.pDst[0], sDstBufInfo.pDst[1], sDstBufInfo.pDst[2], sDstBufInfo.UsrData.sSystemBuffer.iStride);
 							if (e != Error::OK) {
 								_log("Can't decode image from YUV", LogLevel::LL_ERROR);
 								continue;
