@@ -3,6 +3,7 @@
 #include "GRUtils.h"
 #include "GRProfiler.h"
 #include "GodotRemote.h"
+#include <chrono>
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/io/compression.h"
@@ -164,6 +165,10 @@ String str_arr(const uint8_t *data, const int size, const bool force_full, const
 
 	return res + " ]";
 };
+
+uint64_t get_time_usec() {
+	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+}
 
 Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type) {
 #ifndef GDNATIVE_LIBRARY

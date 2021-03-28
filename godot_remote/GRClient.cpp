@@ -503,10 +503,10 @@ void GRClient::_image_lost() {
 
 void GRClient::_display_new_image(Ref<Image> img, uint64_t delay) {
 	call_deferred(NAMEOF(_update_texture_from_image), img);
-	TracyPlot("FPS", int64_t(float(1000000.0 / (OS::get_singleton()->get_ticks_usec() - prev_shown_frame_time))));
+	TracyPlot("FPS", int64_t(float(1000000.0 / (get_time_usec() - prev_shown_frame_time))));
 	_update_avg_delay(delay);
-	_update_avg_fps(OS::get_singleton()->get_ticks_usec() - prev_shown_frame_time);
-	prev_shown_frame_time = OS::get_singleton()->get_ticks_usec();
+	_update_avg_fps(get_time_usec() - prev_shown_frame_time);
+	prev_shown_frame_time = get_time_usec();
 
 	if (signal_connection_state != StreamState::STREAM_ACTIVE) {
 		call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_ACTIVE);
@@ -1059,7 +1059,6 @@ void GRClient::_thread_connection(Variant p_userdata) {
 	ConnectionThreadParamsClient *con_thread = VARIANT_OBJ_CAST_TO(p_userdata, ConnectionThreadParamsClient);
 	Ref<StreamPeerTCP> con = con_thread->peer;
 
-	OS *os = OS::get_singleton();
 	GRDevice::AuthResult prev_auth_error = GRDevice::AuthResult::OK;
 
 	const String con_error_title = "Connection Error";
@@ -1067,7 +1066,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 	while (!con_thread->stop_thread) {
 		FrameMarkNamed("Client Connection Waiting Loop");
 
-		if (os->get_ticks_usec() - prev_valid_connection_time > 1000_ms) {
+		if (get_time_usec() - prev_valid_connection_time > 1000_ms) {
 			call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_SIGNAL);
 			call_deferred(NAMEOF(_remove_custom_input_scene));
 		}
@@ -1247,7 +1246,6 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	Ref<StreamPeerTCP> connection = con_thread->peer;
 	Ref<PacketPeerStream> ppeer = con_thread->ppeer;
 
-	OS *os = OS::get_singleton();
 	Error err = Error::OK;
 	String address = CONNECTION_ADDRESS(connection);
 
@@ -1255,7 +1253,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	if (input_collector)
 		input_collector->set_process(true);
 
-	uint64_t time64 = os->get_ticks_usec();
+	uint64_t time64 = get_time_usec();
 	uint64_t prev_send_input_time = time64;
 	uint64_t prev_ping_sending_time = time64;
 
@@ -1265,7 +1263,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 		ZoneScopedNC("Client Loop", tracy::Color::OrangeRed4);
 		Scoped_lock(connection_mutex);
 
-		uint64_t cycle_start_time = os->get_ticks_usec();
+		uint64_t cycle_start_time = get_time_usec();
 
 		bool nothing_happens = true;
 		uint64_t start_while_time = 0;
@@ -1277,7 +1275,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 		{
 			ZoneScopedNC("Send Data", tracy::Color::IndianRed);
 			// INPUT
-			time64 = os->get_ticks_usec();
+			time64 = get_time_usec();
 			if ((time64 - prev_send_input_time) > send_data_time_us) {
 				prev_send_input_time = time64;
 				nothing_happens = false;
@@ -1299,7 +1297,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 			}
 
 			// PING
-			time64 = os->get_ticks_usec();
+			time64 = get_time_usec();
 			if ((time64 - prev_ping_sending_time) > 100_ms && !ping_sended) {
 				ZoneScopedNC("Send Ping", tracy::Color::CadetBlue);
 				nothing_happens = false;
@@ -1316,8 +1314,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 			}
 
 			// SEND QUEUE
-			start_while_time = os->get_ticks_usec();
-			while (!send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
+			start_while_time = get_time_usec();
+			while (!send_queue.empty() && (get_time_usec() - start_while_time) <= send_data_time_us / 2) {
 				ZoneScopedNC("Send Queued Data", tracy::Color::DarkOliveGreen1);
 				std::shared_ptr<GRPacket> packet = _send_queue_pop_front();
 
@@ -1345,8 +1343,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 			ZoneScopedNC("Receive Data", tracy::Color::IndianRed1);
 
 			// Get some packets
-			start_while_time = os->get_ticks_usec();
-			while (ppeer->get_available_packet_count() > 0 && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
+			start_while_time = get_time_usec();
+			while (ppeer->get_available_packet_count() > 0 && (get_time_usec() - start_while_time) <= send_data_time_us / 2) {
 				ZoneScopedNC("Get Available Packet", tracy::Color::IndianRed4);
 				nothing_happens = false;
 
@@ -1389,7 +1387,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 							continue;
 						}
 
-						sync_time_client = os->get_ticks_usec();
+						sync_time_client = get_time_usec();
 						sync_time_server = data->get_time();
 
 						break;
@@ -1457,7 +1455,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 						break;
 					}
 					case GRPacket::PacketType::Pong: {
-						_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
+						_update_avg_ping(get_time_usec() - prev_ping_sending_time);
 						ping_sended = false;
 						break;
 					}

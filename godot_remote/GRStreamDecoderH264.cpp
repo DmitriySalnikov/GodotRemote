@@ -158,7 +158,7 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 		if (buffer.size()) {
 			auto buf = buffer.front();
 
-			uint64_t time = os->get_ticks_usec();
+			uint64_t time = get_time_usec();
 			if (buf.is_end) {
 				gr_client->_image_lost();
 			} else {
@@ -180,7 +180,7 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 
 		sleep_usec(1_ms);
 		// check if image displayed less then few seconds ago. if not then remove texture
-		if (os->get_ticks_usec() > int64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
+		if (get_time_usec() > int64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
 			gr_client->_image_lost();
 		}
 	}
@@ -205,7 +205,7 @@ void GRStreamDecoderH264::FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_
 		pData[1] = NULL;
 		pData[2] = NULL;
 		memset(&sDstBufInfo, 0, sizeof(SBufferInfo));
-		sDstBufInfo.uiInBsTimeStamp = OS::get_singleton()->get_ticks_usec();
+		sDstBufInfo.uiInBsTimeStamp = get_time_usec();
 		h264_decoder->FlushFrame(pData, &sDstBufInfo);
 
 		ProcessFrame(&sDstBufInfo, start_time);

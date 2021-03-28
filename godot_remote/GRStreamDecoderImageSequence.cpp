@@ -152,7 +152,6 @@ void GRStreamDecoderImageSequence::_deinit() {
 // TODO add a way to calculate delay of stream. based on sync time mb
 void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 	Thread_set_name("Image Sequence Update Thread");
-	auto os = OS::get_singleton();
 	while (is_update_thread_active) {
 		ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
 		ts_lock.lock();
@@ -174,7 +173,7 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 			auto buf = buffer.front();
 
 			if (buf->is_ready) {
-				uint64_t time = os->get_ticks_usec();
+				uint64_t time = get_time_usec();
 				// TODO check for correctness. it looks like the fps changes in a wave
 				uint64_t next_frame = prev_shown_frame_time + buf->frametime - 1_ms;
 				if (buf->is_end) {
@@ -200,7 +199,7 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 		sleep_usec(1_ms);
 
 		// check if image displayed less then few seconds ago. if not then remove texture
-		if (os->get_ticks_usec() > int64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
+		if (get_time_usec() > int64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
 			gr_client->_image_lost();
 		}
 	}
@@ -209,7 +208,6 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 	int thread_idx = p_userdata;
 	Thread_set_name(("Stream Decoder: Image Sequence " + str(thread_idx)).ascii().get_data());
-	OS *os = OS::get_singleton();
 
 	PoolByteArray jpg_buffer;
 	jpg_buffer.resize((1024 * 1024) * 4);

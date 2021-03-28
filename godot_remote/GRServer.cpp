@@ -768,7 +768,6 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	_send_queue_resize(0);
 
 	GodotRemote *gr = GodotRemote::get_singleton();
-	OS *os = OS::get_singleton();
 	Input *input = Input::get_singleton();
 	Error err = Error::OK;
 
@@ -780,7 +779,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	String address = CONNECTION_ADDRESS(connection);
 	Thread_set_name(("Server Connection: " + address).ascii().get_data());
 
-	uint64_t time64 = os->get_ticks_usec();
+	uint64_t time64 = get_time_usec();
 	uint64_t prev_send_settings_time = time64;
 	uint64_t prev_send_image_time = time64;
 	uint64_t prev_ping_sending_time = time64;
@@ -814,7 +813,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 
 		///////////////////////////////////////////////////////////////////
 		// SENDING
-		uint64_t start_while_time = os->get_ticks_usec();
+		uint64_t start_while_time = get_time_usec();
 
 		// TIME SYNC
 		//time = os->get_ticks_usec();
@@ -833,7 +832,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		}
 
 		// IMAGE
-		time64 = os->get_ticks_usec();
+		time64 = get_time_usec();
 		// if image compressed and data is ready
 		if (resize_viewport && !resize_viewport->is_queued_for_deletion() &&
 				resize_viewport->has_data_to_send()) {
@@ -863,7 +862,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		}
 
 		// SERVER SETTINGS
-		time64 = os->get_ticks_usec();
+		time64 = get_time_usec();
 		if (time64 - prev_send_settings_time > 1000_ms && using_client_settings) {
 			prev_send_settings_time = time64;
 			if (using_client_settings_recently_updated) {
@@ -904,7 +903,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		}
 
 		// PING
-		time64 = os->get_ticks_usec();
+		time64 = get_time_usec();
 		if ((time64 - prev_ping_sending_time) > 100_ms && !ping_sended) {
 			ZoneScopedNC("Send Ping", tracy::Color::CadetBlue);
 			nothing_happens = false;
@@ -941,7 +940,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		}
 
 		// SEND QUEUE
-		while (!send_queue.empty() && (os->get_ticks_usec() - start_while_time) <= send_data_time_us / 2) {
+		while (!send_queue.empty() && (get_time_usec() - start_while_time) <= send_data_time_us / 2) {
 			ZoneScopedNC("Send Queued Data", tracy::Color::Burlywood1);
 			std::shared_ptr<GRPacket> packet = _send_queue_pop_front();
 
@@ -967,9 +966,9 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		// RECEIVING
 		{
 			ZoneScopedNC("Receive Data", tracy::Color::IndianRed1);
-			uint64_t recv_start_time = os->get_ticks_usec();
+			uint64_t recv_start_time = get_time_usec();
 			while (connection->is_connected_to_host() && ppeer->get_available_packet_count() > 0 &&
-					(os->get_ticks_usec() - recv_start_time) < send_data_time_us / 2) {
+					(get_time_usec() - recv_start_time) < send_data_time_us / 2) {
 				ZoneScopedNC("Get Available Packet", tracy::Color::MintCream);
 				nothing_happens = false;
 				Variant res;
@@ -1099,7 +1098,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 						break;
 					}
 					case GRPacket::PacketType::Pong: {
-						_update_avg_ping(os->get_ticks_usec() - prev_ping_sending_time);
+						_update_avg_ping(get_time_usec() - prev_ping_sending_time);
 						ping_sended = false;
 						break;
 					}

@@ -252,7 +252,7 @@ void GRStreamEncoder::commit_image(Ref<Image> img, uint64_t frametime) {
 		}
 
 		if (img->get_format() == Image::FORMAT_RGBA8 || img->get_format() == Image::FORMAT_RGB8) {
-			images.push(CommitedImage(img, OS::get_singleton()->get_ticks_usec(), frametime));
+			images.push(CommitedImage(img, get_time_usec(), frametime));
 		} else {
 			_log("Committed image to StreamEncoder has a wrong format. Format of image: " + str(img->get_format()), LogLevel::LL_ERROR);
 		}

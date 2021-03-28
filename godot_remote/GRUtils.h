@@ -277,6 +277,8 @@ extern std::shared_ptr<GRUtilsData> _grutils_data;
 extern void init();
 extern void deinit();
 
+extern uint64_t get_time_usec();
+
 extern Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type);
 extern Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolByteArray &res, int type);
 #ifdef DEBUG_ENABLED

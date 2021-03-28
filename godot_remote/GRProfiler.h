@@ -8,9 +8,9 @@
 
 // CUSTOM MACROS
 
-#define TracyPlotExecTimeStart(name) int64_t _tracy_plot_time_##name = (int64_t)OS::get_singleton()->get_ticks_usec()
-#define TracyPlotExecTimeEnd(name)                                                              \
-	TracyPlot(#name, (int64_t)OS::get_singleton()->get_ticks_usec() - _tracy_plot_time_##name); \
+#define TracyPlotExecTimeStart(name) int64_t _tracy_plot_time_##name = (int64_t)get_time_usec()
+#define TracyPlotExecTimeEnd(name)                                        \
+	TracyPlot(#name, (int64_t)get_time_usec() - _tracy_plot_time_##name); \
 	TracyPlotConfig(#name, tracy::PlotFormatType::Number);
 
 #else

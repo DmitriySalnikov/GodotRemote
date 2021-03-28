@@ -141,7 +141,7 @@ bool GRPacketStreamDataH264::_create(Ref<StreamPeerBuffer> buf) {
 // SYNC TIME
 Ref<StreamPeerBuffer> GRPacketSyncTime::_get_data() {
 	auto buf = GRPacket::_get_data();
-	buf->put_var(OS::get_singleton()->get_ticks_usec());
+	buf->put_var(get_time_usec());
 	return buf;
 }
 
