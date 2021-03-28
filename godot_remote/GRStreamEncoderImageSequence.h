@@ -54,7 +54,9 @@ protected:
 	void _notification(int p_notification);
 
 public:
+	virtual void clear_buffers() override;
 	virtual void commit_stream_end() override;
+	virtual std::shared_ptr<GRPacketStreamData> create_stream_end_pack() override;
 	virtual bool has_data_to_send() override;
 	virtual std::shared_ptr<GRPacketStreamData> pop_data_to_send() override;
 	virtual int get_max_queued_frames() override;

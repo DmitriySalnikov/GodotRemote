@@ -60,6 +60,17 @@ void GRStreamEncodersManager::_notification(int p_notification) {
 	}
 }
 
+void GRStreamEncodersManager::_delete_encoder() {
+	GRDevice *dev = GodotRemote::get_singleton()->get_device();
+	if (encoder) {
+		if (dev) dev->send_packet(encoder->create_stream_end_pack());
+		encoder->clear_buffers();
+		encoder->stop_encoder_threads();
+		memdelete(encoder);
+		encoder = nullptr;
+	}
+}
+
 void GRStreamEncodersManager::start(int compression, GRSViewport *vp) {
 	Scoped_lock(ts_lock);
 	active = true;
@@ -67,19 +78,13 @@ void GRStreamEncodersManager::start(int compression, GRSViewport *vp) {
 	GRDevice::ImageCompressionType comp = (GRDevice::ImageCompressionType)compression;
 	switch (comp) {
 		case GRDevice::COMPRESSION_JPG: {
-			if (encoder) {
-				encoder->stop_encoder_threads();
-				memdelete(encoder);
-			}
+			_delete_encoder();
 			encoder = memnew(GRStreamEncoderImageSequence);
 			break;
 		}
 #ifdef GODOTREMOTE_H264_ENABLED
 		case GRDevice::COMPRESSION_H264: {
-			if (encoder) {
-				encoder->stop_encoder_threads();
-				memdelete(encoder);
-			}
+			_delete_encoder();
 			encoder = memnew(GRStreamEncoderH264);
 			break;
 		}

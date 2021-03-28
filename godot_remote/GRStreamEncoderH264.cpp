@@ -31,8 +31,6 @@
 #include <JSON.hpp>
 #include <JSONParseResult.hpp>
 typedef JSON _JSON;
-typedef File _File;
-typedef Directory _Directory;
 #endif
 
 #include <Node.hpp>
@@ -77,21 +75,28 @@ void GRStreamEncoderH264::_notification(int p_notification) {
 	}
 }
 
-void GRStreamEncoderH264::commit_stream_end() {
+void GRStreamEncoderH264::clear_buffers() {
 	Scoped_lock(ts_lock);
 	while (buffer.size())
 		buffer.pop();
 	while (images.size())
 		images.pop();
+}
 
-	auto b = std::make_shared<BufferedImage>();
-	auto p = std::make_shared<GRPacketStreamDataH264>();
-	p->set_is_stream_end(true);
-	p->set_start_time(OS::get_singleton()->get_ticks_usec());
+void GRStreamEncoderH264::commit_stream_end() {
+	Scoped_lock(ts_lock);
+	clear_buffers();
 
+	auto b = shared_new(BufferedImage);
 	b->is_ready = true;
-	b->pack = p;
+	b->pack = shared_cast(GRPacketStreamDataH264, create_stream_end_pack());
 	buffer.push(b);
+}
+
+std::shared_ptr<GRPacketStreamData> GRStreamEncoderH264::create_stream_end_pack() {
+	auto p = shared_new(GRPacketStreamDataH264);
+	p->set_is_stream_end(true);
+	return p;
 }
 
 bool GRStreamEncoderH264::has_data_to_send() {
@@ -135,11 +140,7 @@ void GRStreamEncoderH264::stop_encoder_threads() {
 	ZoneScopedNC("Stop Encoder Threads", tracy::Color::Firebrick3);
 	is_thread_active = false;
 	Thread_close(thread);
-
-	while (buffer.size())
-		buffer.pop();
-	while (images.size())
-		images.pop();
+	clear_buffers();
 }
 
 void GRStreamEncoderH264::_init() {
@@ -286,7 +287,6 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 	GRUtilsH264Codec::yuv_buffer_data_to_encoder yuv_buffer;
 	EncoderProperties current_props;
 	GRUtilsH264Codec::_encoder_create(&h264_encoder);
-	// TODO check if encoder created
 
 	bool is_encoder_inited = false;
 	bool error_shown = false;
@@ -356,10 +356,10 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 			ts_lock.lock();
 			// Update params
 			if (encoder_props != current_props) {
-#ifdef DEBUG_H264
 				commit_stream_end(); // clear all buffers and send first packet with reset data
 				buffer.push(buf_img); // then add current editing buffer to queue again
 
+#ifdef DEBUG_H264
 				f->close();
 				memdelete(f);
 				d->remove("stream.264");
@@ -481,8 +481,10 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 	}
 
 	is_encoder_inited = false;
-	h264_encoder->Uninitialize();
-	GRUtilsH264Codec::_encoder_free(h264_encoder);
+	if (h264_encoder) {
+		h264_encoder->Uninitialize();
+		GRUtilsH264Codec::_encoder_free(h264_encoder);
+	}
 	h264_encoder = nullptr;
 
 #ifdef DEBUG_H264

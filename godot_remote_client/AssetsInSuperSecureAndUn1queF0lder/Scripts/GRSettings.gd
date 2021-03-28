@@ -1,5 +1,7 @@
 extends Control
 
+signal stretch_mode_changed
+
 var button_red_theme = preload("res://AssetsInSuperSecureAndUn1queF0lder/Styles/ButtonRed.tres")
 var button_green_theme = preload("res://AssetsInSuperSecureAndUn1queF0lder/Styles/ButtonGreen.tres")
 
@@ -311,6 +313,7 @@ func _on_con_Type_item_selected(index):
 func _on_stretch_Type_item_selected(index):
 	GodotRemote.get_device().stretch_mode = index
 	G.stretch_mode = index
+	emit_signal("stretch_mode_changed")
 
 func _on_stats_State_selected_id(id : int):
 	G.show_stats = id

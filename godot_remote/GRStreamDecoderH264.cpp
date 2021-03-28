@@ -259,9 +259,7 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 	auto file_open(f, "stream.264", _File::ModeFlags::WRITE);
 #endif
 
-	// TODO check if decoder created
 	GRUtilsH264Codec::_decoder_create(&h264_decoder);
-	h264_decoder->SetOption(DECODER_OPTION_NUM_OF_THREADS, &iThreadCountInit);
 
 	sDecParam = { 0 };
 	sDecParam.sVideoProperty.size = sizeof(sDecParam.sVideoProperty);
@@ -286,6 +284,8 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 		if (h264_decoder) {
 			if (!is_decoder_inited) {
 				is_decoder_inited = true;
+				h264_decoder->SetOption(DECODER_OPTION_NUM_OF_THREADS, &iThreadCountInit);
+
 				int err = h264_decoder->Initialize(&sDecParam);
 				if (err != 0) {
 					_log("Failed to initialize decoder. Code: " + str(err), LogLevel::LL_ERROR);
@@ -306,6 +306,7 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 						d->remove("stream.264");
 						file_open(f, "stream.264", _File::ModeFlags::WRITE);
 #endif
+						is_decode_with_error = true;
 						continue;
 					}
 
@@ -366,8 +367,10 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 		}
 	}
 
-	h264_decoder->Uninitialize();
-	GRUtilsH264Codec::_decoder_free(h264_decoder);
+	if (h264_decoder) {
+		h264_decoder->Uninitialize();
+		GRUtilsH264Codec::_decoder_free(h264_decoder);
+	}
 	h264_decoder = nullptr;
 
 #ifdef DEBUG_H264

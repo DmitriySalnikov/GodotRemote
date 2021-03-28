@@ -60,20 +60,28 @@ void GRStreamEncoderImageSequence::_notification(int p_notification) {
 	}
 }
 
-void GRStreamEncoderImageSequence::commit_stream_end() {
+void GRStreamEncoderImageSequence::clear_buffers() {
 	Scoped_lock(ts_lock);
 	while (buffer.size())
 		buffer.pop();
 	while (images.size())
 		images.pop();
+}
+
+void GRStreamEncoderImageSequence::commit_stream_end() {
+	Scoped_lock(ts_lock);
+	clear_buffers();
 
 	auto b = shared_new(BufferedImage);
+	b->is_ready = true;
+	b->pack = shared_cast(GRPacketStreamDataImage, create_stream_end_pack());
+	buffer.push(b);
+}
+
+std::shared_ptr<GRPacketStreamData> GRStreamEncoderImageSequence::create_stream_end_pack() {
 	auto p = shared_new(GRPacketStreamDataImage);
 	p->set_is_stream_end(true);
-
-	b->is_ready = true;
-	b->pack = p;
-	buffer.push(b);
+	return p;
 }
 
 bool GRStreamEncoderImageSequence::has_data_to_send() {
@@ -127,11 +135,7 @@ void GRStreamEncoderImageSequence::stop_encoder_threads() {
 		Thread_close(threads[i]);
 	}
 	threads.resize(0);
-
-	while (buffer.size())
-		buffer.pop();
-	while (images.size())
-		images.pop();
+	clear_buffers();
 }
 
 void GRStreamEncoderImageSequence::_init() {
@@ -146,9 +150,7 @@ void GRStreamEncoderImageSequence::_init() {
 void GRStreamEncoderImageSequence::_deinit() {
 	LEAVE_IF_EDITOR();
 	stop_encoder_threads();
-	while (buffer.size()) {
-		buffer.pop();
-	}
+	clear_buffers();
 }
 
 void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {

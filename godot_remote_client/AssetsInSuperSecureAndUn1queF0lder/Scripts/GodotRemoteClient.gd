@@ -1,5 +1,13 @@
 extends Control
 
+onready var settings = $GRSettings
+onready var stats = $Stats
+onready var bg_touch_hint = $BackgroundTouchHint
+onready var bg_touch_hint_tex = $BackgroundTouchHint/Panel/TextureRect
+onready var first_launch_hint = $FirstLaunchHint
+onready var no_signal_hint = $OpenSettingsWithoutSignal
+onready var no_signal_hint_text = $OpenSettingsWithoutSignal/SettingsHint
+
 var touches : Dictionary = {}
 var mouse_mode : = Input.MOUSE_MODE_VISIBLE
 var support : Control = null
@@ -23,14 +31,15 @@ func _ready():
 	GodotRemote.get_device().connect("mouse_mode_changed", self, "_mouse_mode_changed")
 	GodotRemote.get_device().connect("stream_aspect_ratio_changed", self, "_stream_aspect_ratio_changed")
 	GodotRemote.connect("device_removed", self, "_device_removed")
+	settings.connect("stretch_mode_changed", self, "_settings_stretch_mode_changed")
 	
-	$Stats.visible = false
-	$BackgroundTouchHint.visible = false
+	stats.visible = false
+	bg_touch_hint.visible = false
 	_hide_settings()
 	
 	GodotRemote.get_device().start()
 	
-	orig_hint_text = $OpenSettingsWithoutSignal/SettingsHint.text
+	orig_hint_text = no_signal_hint_text.text
 	
 	G.connect("touches_to_open_settings_changed", self, "_touches_to_open_settings_changed")
 	connect("item_rect_changed", self, "viewport_size_changed")
@@ -39,39 +48,58 @@ func _ready():
 		popup_welcome_screen()
 
 func _touches_to_open_settings_changed(count : int) -> void:
-	$OpenSettingsWithoutSignal/SettingsHint.text = orig_hint_text % count
+	no_signal_hint_text.text = orig_hint_text % count
+
+func _settings_stretch_mode_changed() -> void:
+	_stream_aspect_ratio_changed(GodotRemote.get_device().get_stream_aspect_ratio())
 
 func popup_welcome_screen() -> void:
-	$FirstLaunchHint.popup_centered(get_viewport_rect().size)
+	first_launch_hint.popup_centered(get_viewport_rect().size)
 
 func viewport_size_changed() -> void:
-	if $FirstLaunchHint.visible:
-		$FirstLaunchHint.rect_size = get_viewport_rect().size
+	if first_launch_hint.visible:
+		first_launch_hint.rect_size = get_viewport_rect().size
+	_stream_aspect_ratio_changed(GodotRemote.get_device().get_stream_aspect_ratio())
 
 func _mouse_mode_changed(_mode):
 	mouse_mode = _mode
 	
-	if not $GRSettings.visible:
+	if not settings.visible:
 		Input.set_mouse_mode(mouse_mode)
 
 func _stream_aspect_ratio_changed(_ratio):
-	if _ratio == 0:
-		$BackgroundTouchHint.rect_size = rect_size
-		$BackgroundTouchHint.rect_position = Vector2.ZERO
+	if _ratio == 0 or GodotRemote.get_device().stretch_mode == C.GRClient_STRETCH_FILL:
+		bg_touch_hint.rect_size = rect_size
+		bg_touch_hint.rect_position = Vector2.ZERO
 	else:
-		$BackgroundTouchHint.rect_size = Vector2(rect_size.y * _ratio, rect_size.y)
-		$BackgroundTouchHint.rect_position = Vector2((rect_size.x - $BackgroundTouchHint.rect_size.x) / 2,0)
-		if $BackgroundTouchHint.rect_size.x < 256 or $BackgroundTouchHint.rect_size.y < 256:
-			$BackgroundTouchHint/Panel/TextureRect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		var s = Vector2(rect_size.x, rect_size.y / _ratio)
+		if (_ratio >= (rect_size.x / rect_size.y)):
+			s.x = rect_size.x
+			s.y = s.x / _ratio
+			bg_touch_hint.rect_size = s
+			bg_touch_hint.rect_position = Vector2(0, (rect_size.y - bg_touch_hint.rect_size.y) / 2)
 		else:
-			$BackgroundTouchHint/Panel/TextureRect.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+			s.y = rect_size.y
+			s.x = s.y * _ratio
+			var a2 = s.x / s.y
+			if s.x > rect_size.x:
+				s.x = rect_size.x
+				s.y = s.x * a2
+			bg_touch_hint.rect_size = s
+			bg_touch_hint.rect_position = Vector2((rect_size.x - bg_touch_hint.rect_size.x) / 2, 0)
+		
+		
+		if (bg_touch_hint_tex.rect_size.x < bg_touch_hint_tex.texture.get_width()) or (bg_touch_hint_tex.rect_size.y < bg_touch_hint_tex.texture.get_height()):
+			bg_touch_hint_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		else:
+			bg_touch_hint_tex.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 
 func _custom_input_scene_added():
-	$BackgroundTouchHint/Panel/TextureRect.visible = false
+	bg_touch_hint_tex.visible = false
 	GodotRemote.get_device().capture_pointer = G.capture_input_when_custom_scene
 
 func _custom_input_scene_removed():
-	$BackgroundTouchHint/Panel/TextureRect.visible = true
+	bg_touch_hint_tex.visible = true
 	GodotRemote.get_device().capture_pointer = true
 
 func _stream_state_changed(_is_connected):
@@ -79,53 +107,53 @@ func _stream_state_changed(_is_connected):
 	match _is_connected:
 		C.GRClient_STREAM_NO_SIGNAL:
 			OS.keep_screen_on = G.keepscreenon
-			$Stats.visible = false
-			$BackgroundTouchHint.visible = false
-			$OpenSettingsWithoutSignal.visible = true && !$GRSettings.visible
+			stats.visible = false
+			bg_touch_hint.visible = false
+			no_signal_hint.visible = true && !settings.visible
 			_stream_aspect_ratio_changed(0)
 			
 		C.GRClient_STREAM_ACTIVE:
 			OS.keep_screen_on = true
-			$Stats.visible = not $GRSettings.visible
-			$BackgroundTouchHint.visible = false
-			$OpenSettingsWithoutSignal.visible = false
+			stats.visible = not settings.visible
+			bg_touch_hint.visible = false
+			no_signal_hint.visible = false
 			
 		C.GRClient_STREAM_NO_IMAGE:
-			$Stats.visible = not $GRSettings.visible
-			$BackgroundTouchHint.visible = true
-			$BackgroundTouchHint/Panel/TextureRect.visible = GodotRemote.get_device().get_custom_input_scene() == null
-			$OpenSettingsWithoutSignal.visible = false
+			stats.visible = not settings.visible
+			bg_touch_hint.visible = true
+			bg_touch_hint_tex.visible = GodotRemote.get_device().get_custom_input_scene() == null
+			no_signal_hint.visible = false
 			_stream_aspect_ratio_changed(GodotRemote.get_device().get_stream_aspect_ratio())
 
 func _device_removed():
-	$Stats.visible = false
-	$BackgroundTouchHint.visible = true
+	stats.visible = false
+	bg_touch_hint.visible = true
 
 func _toggle_settings():
-	$GRSettings.update_values()
-	if $GRSettings.visible:
+	settings.update_values()
+	if settings.visible:
 		_hide_settings()
 	else:
 		_show_settings()
 
 func _show_settings():
-	$GRSettings.visible = true
-	$Stats.visible = false
+	settings.visible = true
+	stats.visible = false
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	$OpenSettingsWithoutSignal.visible = false
+	no_signal_hint.visible = false
 
 func _hide_settings():
-	$GRSettings.visible = false
-	$Stats.visible = GodotRemote.get_device().is_stream_active()
+	settings.visible = false
+	stats.visible = GodotRemote.get_device().is_stream_active()
 	Input.set_mouse_mode(mouse_mode)
 	
 	match prev_stream_state:
 		C.GRClient_STREAM_NO_SIGNAL:
-			$OpenSettingsWithoutSignal.visible = true
+			no_signal_hint.visible = true
 		C.GRClient_STREAM_ACTIVE:
-			$OpenSettingsWithoutSignal.visible = false
+			no_signal_hint.visible = false
 		C.GRClient_STREAM_NO_IMAGE:
-			$OpenSettingsWithoutSignal.visible = false
+			no_signal_hint.visible = false
 
 
 func _count_pressed_touches() -> int:
@@ -149,8 +177,8 @@ func _input(e):
 					if TIM.IsVisible:
 						TIM.hide()
 					else:
-						if $FirstLaunchHint.visible:
-							$FirstLaunchHint.hide();
+						if first_launch_hint.visible:
+							first_launch_hint.hide();
 							if !G.FirstRunAgreementAccepted:
 								G.FirstRunAgreementAccepted = true
 						else:

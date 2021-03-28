@@ -1001,7 +1001,7 @@ void GRClient::_update_stream_texture_state(ENUM_ARG(StreamState) _stream_state)
 				break;
 			}
 			case StreamState::STREAM_NO_IMAGE:
-				tex_shows_stream->set_stretch_mode(TextureRect::STRETCH_SCALE);
+				tex_shows_stream->set_stretch_mode(stretch_mode == StretchMode::STRETCH_KEEP_ASPECT ? TextureRect::STRETCH_KEEP_ASPECT_CENTERED : TextureRect::STRETCH_SCALE);
 				tex_shows_stream->set_material(nullptr);
 				tex_shows_stream->set_texture(nullptr);
 				break;
@@ -1601,23 +1601,46 @@ void GRInputCollector::_update_stream_rect() {
 		switch (dev->get_stretch_mode()) {
 			case GRClient::StretchMode::STRETCH_KEEP_ASPECT: {
 				Ref<Texture> tex = texture_rect->get_texture();
-				if (tex.is_null())
-					goto fill;
+				if (tex.is_valid()) {
+					Vector2 pos = texture_rect->get_global_position();
+					Vector2 outer_size = texture_rect->get_size();
+					Vector2 inner_size = tex->get_size();
+					float asp_rec = outer_size.x / outer_size.y;
+					float asp_tex = inner_size.x / inner_size.y;
 
-				Vector2 pos = texture_rect->get_global_position();
-				Vector2 outer_size = texture_rect->get_size();
-				Vector2 inner_size = tex->get_size();
-				float asp_rec = outer_size.x / outer_size.y;
-				float asp_tex = inner_size.x / inner_size.y;
-
-				if (asp_rec > asp_tex) {
-					float width = outer_size.y * asp_tex;
-					stream_rect = Rect2(Vector2(pos.x + (outer_size.x - width) / 2, pos.y), Vector2(width, outer_size.y));
-					return;
+					if (asp_rec > asp_tex) {
+						float width = outer_size.y * asp_tex;
+						stream_rect = Rect2(Vector2(pos.x + (outer_size.x - width) / 2, pos.y), Vector2(width, outer_size.y));
+						return;
+					} else {
+						float height = outer_size.x / asp_tex;
+						stream_rect = Rect2(Vector2(pos.x, pos.y + (outer_size.y - height) / 2), Vector2(outer_size.x, height));
+						return;
+					}
 				} else {
-					float height = outer_size.x / asp_tex;
-					stream_rect = Rect2(Vector2(pos.x, pos.y + (outer_size.y - height) / 2), Vector2(outer_size.x, height));
-					return;
+					Vector2 rect_size = texture_rect->get_size();
+					float _ratio = dev->get_stream_aspect_ratio();
+					if (_ratio == 0) {
+						goto fill;
+					}
+
+					Vector2 s = Vector2(rect_size.x, rect_size.y / _ratio);
+					if (_ratio >= (rect_size.x / rect_size.y)) {
+						s.x = rect_size.x;
+						s.y = s.x / _ratio;
+						stream_rect = Rect2(Vector2(0, (rect_size.y - s.y) / 2), s);
+						return;
+					} else {
+						s.y = rect_size.y;
+						s.x = s.y * _ratio;
+						float a2 = s.x / s.y;
+						if (s.x > rect_size.x) {
+							s.x = rect_size.x;
+							s.y = s.x * a2;
+						}
+						stream_rect = Rect2(Vector2((rect_size.x - s.x) / 2, 0), s);
+						return;
+					}
 				}
 				break;
 			}

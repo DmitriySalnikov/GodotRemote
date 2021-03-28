@@ -87,6 +87,7 @@ margin_bottom = -33.0
 grow_horizontal = 0
 grow_vertical = 0
 texture = ExtResource( 5 )
+expand = true
 stretch_mode = 4
 __meta__ = {
 "_edit_use_anchors_": false
@@ -109,6 +110,7 @@ __meta__ = {
 anchor_right = 1.0
 anchor_bottom = 1.0
 __meta__ = {
+"_edit_lock_": true,
 "_edit_use_anchors_": false
 }
 

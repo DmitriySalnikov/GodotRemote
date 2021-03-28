@@ -37,6 +37,7 @@ protected:
 	int threads_count = 1;
 	bool active = false;
 
+	void _delete_encoder();
 	void _notification(int p_notification);
 
 public:
@@ -96,7 +97,9 @@ public:
 	void set_compression_type(int comp) { compression_type = comp; };
 	void set_viewport(GRSViewport *vp) { viewport = vp; }
 	void commit_image(Ref<Image> img, uint64_t frametime);
+	virtual void clear_buffers(){};
 	virtual void commit_stream_end(){};
+	virtual std::shared_ptr<GRPacketStreamData> create_stream_end_pack() { return std::shared_ptr<GRPacketStreamData>(); };
 	virtual bool has_data_to_send() { return false; }
 	virtual std::shared_ptr<GRPacketStreamData> pop_data_to_send() { return std::shared_ptr<GRPacketStreamData>(); }
 	virtual int get_max_queued_frames() { return 16; }
