@@ -1608,14 +1608,19 @@ void GRInputCollector::_update_stream_rect() {
 
 					if (asp_rec > asp_tex) {
 						float width = outer_size.y * asp_tex;
+						width = (int)width - (int)width % STREAM_SIZE_STEP;
+						outer_size.y = (int)outer_size.y - (int)outer_size.y % STREAM_SIZE_STEP;
 						stream_rect = Rect2(Vector2(pos.x + (outer_size.x - width) / 2, pos.y), Vector2(width, outer_size.y));
 						return;
 					} else {
 						float height = outer_size.x / asp_tex;
+						height = (int)height - (int)height % STREAM_SIZE_STEP;
+						outer_size.x = (int)outer_size.x - (int)outer_size.x % STREAM_SIZE_STEP;
 						stream_rect = Rect2(Vector2(pos.x, pos.y + (outer_size.y - height) / 2), Vector2(outer_size.x, height));
 						return;
 					}
 				} else {
+					// TODO check if it can be simplified
 					Vector2 rect_size = texture_rect->get_size();
 					float _ratio = dev->get_stream_aspect_ratio();
 					if (_ratio == 0) {
@@ -1626,6 +1631,9 @@ void GRInputCollector::_update_stream_rect() {
 					if (_ratio >= (rect_size.x / rect_size.y)) {
 						s.x = rect_size.x;
 						s.y = s.x / _ratio;
+
+						s.x = (int)s.x - (int)s.x % STREAM_SIZE_STEP;
+						s.y = (int)s.y - (int)s.y % STREAM_SIZE_STEP;
 						stream_rect = Rect2(Vector2(0, (rect_size.y - s.y) / 2), s);
 						return;
 					} else {
@@ -1636,6 +1644,9 @@ void GRInputCollector::_update_stream_rect() {
 							s.x = rect_size.x;
 							s.y = s.x * a2;
 						}
+
+						s.x = (int)s.x - (int)s.x % STREAM_SIZE_STEP;
+						s.y = (int)s.y - (int)s.y % STREAM_SIZE_STEP;
 						stream_rect = Rect2(Vector2((rect_size.x - s.x) / 2, 0), s);
 						return;
 					}

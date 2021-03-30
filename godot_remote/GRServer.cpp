@@ -17,6 +17,7 @@
 #include "core/os/input_event.h"
 #include "core/os/thread_safe.h"
 #include "main/input_default.h"
+#include "scene/2d/node_2d.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
 
@@ -28,6 +29,7 @@
 #include <InputEvent.hpp>
 #include <InputMap.hpp>
 #include <Node.hpp>
+#include <Node2D.hpp>
 #include <PCKPacker.hpp>
 #include <ResourceLoader.hpp>
 #include <SceneTree.hpp>
@@ -1448,8 +1450,7 @@ void GRServer::_scan_resource_for_dependencies_recursive(String _d, std::vector<
 
 void GRSViewport::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(_update_size)), &GRSViewport::_update_size);
-	ClassDB::bind_method(D_METHOD(NAMEOF(_on_renderer_deleting)), &GRSViewport::_on_renderer_deleting);
-
+	ClassDB::bind_method(D_METHOD(NAMEOF(_draw_main_vp)), &GRSViewport::_draw_main_vp);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_rendering_scale)), &GRSViewport::set_rendering_scale);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_rendering_scale)), &GRSViewport::get_rendering_scale);
 
@@ -1460,9 +1461,9 @@ void GRSViewport::_bind_methods() {
 
 void GRSViewport::_register_methods() {
 	METHOD_REG(GRSViewport, _notification);
-	METHOD_REG(GRSViewport, _on_renderer_deleting);
-
 	METHOD_REG(GRSViewport, _update_size);
+	METHOD_REG(GRSViewport, _draw_main_vp);
+
 	METHOD_REG(GRSViewport, set_rendering_scale);
 	METHOD_REG(GRSViewport, get_rendering_scale);
 
@@ -1470,10 +1471,6 @@ void GRSViewport::_register_methods() {
 }
 
 #endif
-
-void GRSViewport::_on_renderer_deleting() {
-	renderer = nullptr;
-}
 
 void GRSViewport::_notification(int p_notification) {
 	switch (p_notification) {
@@ -1490,6 +1487,9 @@ void GRSViewport::_notification(int p_notification) {
 
 			if (video_stream_enabled) {
 				is_empty_image_sended = false;
+				
+				// update resizing viewport
+				renderer->update();
 
 				if (frames_from_prev_image > skip_frames) {
 					frames_from_prev_image = 0;
@@ -1497,6 +1497,7 @@ void GRSViewport::_notification(int p_notification) {
 					if (get_texture().is_null())
 						break;
 
+					// getting 'screenshot'
 					Ref<Image> tmp_image = Ref<Image>();
 					{
 						ZoneScopedNC("Get image data from VisualServer", tracy::Color::OrangeRed4);
@@ -1520,6 +1521,7 @@ void GRSViewport::_notification(int p_notification) {
 				}
 			}
 
+			// update window aspect ratio for client
 			Size2 size = OS::get_singleton()->get_window_size();
 			float aspect = size.x / size.y;
 			if (aspect != prev_screen_aspect_ratio) {
@@ -1539,9 +1541,8 @@ void GRSViewport::_notification(int p_notification) {
 			main_vp->connect("size_changed", this, NAMEOF(_update_size));
 			_update_size();
 
-			renderer = memnew(GRSViewportRenderer);
-			renderer->tex = main_vp->get_texture();
-			renderer->connect("tree_exiting", this, NAMEOF(_on_renderer_deleting));
+			renderer = memnew(Node2D);
+			renderer->connect("draw", this, NAMEOF(_draw_main_vp));
 			add_child(renderer);
 
 			break;
@@ -1575,21 +1576,28 @@ void GRSViewport::_update_size() {
 		int width = (int)size.x;
 		int height = (int)size.y;
 
-		width = width - (int)width % 4;
-		height = height - (int)height % 4;
+		width = width - (int)width % STREAM_SIZE_STEP;
+		height = height - (int)height % STREAM_SIZE_STEP;
 
-		if (width < 16)
-			width = 16;
+		if (width < 32)
+			width = 32;
 		else if (width > Image::MAX_WIDTH)
 			width = Image::MAX_WIDTH;
 
-		if (height < 16)
-			height = 16;
+		if (height < 32)
+			height = 32;
 		else if (height > Image::MAX_HEIGHT)
 			height = Image::MAX_HEIGHT;
 
-		set_size(Size2(real_t(width), real_t(height)));
+		Size2 ns = Size2(real_t(width), real_t(height));
+		if (get_size() != ns) {
+			set_size(ns);
+		}
 	}
+}
+
+void GRSViewport::_draw_main_vp() {
+	renderer->draw_texture_rect(main_vp->get_texture(), Rect2(Vector2(), get_size()), false);
 }
 
 void GRSViewport::force_get_image() {
@@ -1721,64 +1729,4 @@ void GRSViewport::_deinit() {
 	}
 }
 
-//////////////////////////////////////////////
-/////////// GRSViewportRenderer /////////////
-//////////////////////////////////////////////
-
-#ifndef GDNATIVE_LIBRARY
-void GRSViewportRenderer::_bind_methods() {
-}
-
-#else
-
-void GRSViewportRenderer::_register_methods() {
-	METHOD_REG(GRSViewportRenderer, _notification);
-}
-
-#endif
-
-void GRSViewportRenderer::_notification(int p_notification) {
-	switch (p_notification) {
-		case NOTIFICATION_POSTINITIALIZE:
-#ifndef GDNATIVE_LIBRARY
-			_init();
-#endif
-			break;
-		case NOTIFICATION_PREDELETE:
-			_deinit();
-			break;
-		case NOTIFICATION_ENTER_TREE: {
-			vp = get_viewport();
-			break;
-		}
-		case NOTIFICATION_EXIT_TREE: {
-			vp = nullptr;
-			tex.unref();
-			break;
-		}
-		case NOTIFICATION_PROCESS: {
-			update();
-			break;
-		}
-		case NOTIFICATION_DRAW: {
-			// TODO remove
-			draw_texture_rect(tex, Rect2(Vector2(), vp->get_size()), false);
-			break;
-		}
-		default:
-			break;
-	}
-}
-
-void GRSViewportRenderer::_init() {
-	set_name("GRSViewportRenderer");
-	LEAVE_IF_EDITOR();
-	set_process(true);
-
-	set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
-}
-
-void GRSViewportRenderer::_deinit() {
-	LEAVE_IF_EDITOR();
-}
 #endif // NO_GODOTREMOTE_SERVER

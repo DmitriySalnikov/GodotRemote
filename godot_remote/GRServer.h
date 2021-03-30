@@ -192,13 +192,12 @@ private:
 	float prev_screen_aspect_ratio = 0.0000001f;
 	GRServer *server = nullptr;
 
-	void _on_renderer_deleting();
 	void _start_encoder();
 	void _stop_encoder();
 
 protected:
 	Viewport *main_vp = nullptr;
-	class GRSViewportRenderer *renderer = nullptr;
+	class Node2D *renderer = nullptr;
 	bool video_stream_enabled = true;
 	float rendering_scale = 0.3f;
 	float auto_scale = 0.5f;
@@ -221,6 +220,7 @@ protected:
 
 	void _notification(int p_notification);
 	void _update_size();
+	void _draw_main_vp();
 
 public:
 	void force_get_image();
@@ -239,30 +239,6 @@ public:
 	int get_skip_frames();
 	void set_encoder_threads_count(int count);
 	int get_encoder_threads_count();
-
-	void _init();
-	void _deinit();
-};
-
-class GRSViewportRenderer : public Control {
-	GD_CLASS(GRSViewportRenderer, Control);
-
-protected:
-	Viewport *vp = nullptr;
-
-#ifndef GDNATIVE_LIBRARY
-	static void _bind_methods();
-#else
-public:
-	static void _register_methods();
-
-protected:
-#endif
-
-	void _notification(int p_notification);
-
-public:
-	Ref<ViewportTexture> tex;
 
 	void _init();
 	void _deinit();

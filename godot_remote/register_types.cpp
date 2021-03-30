@@ -54,7 +54,6 @@ void register_godot_remote_types() {
 #ifndef NO_GODOTREMOTE_SERVER
 	ClassDB::register_class<GRServer>();
 	ClassDB::register_class<GRSViewport>();
-	ClassDB::register_class<GRSViewportRenderer>();
 	ClassDB::register_class<GRStreamEncodersManager>();
 	ClassDB::register_class<GRStreamEncoder>();
 	ClassDB::register_class<GRStreamEncoderImageSequence>();
@@ -144,7 +143,6 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 	register_class<GRServer::ListenerThreadParamsServer>();
 	register_class<GRServer::ConnectionThreadParamsServer>();
 	register_class<GRSViewport>();
-	register_class<GRSViewportRenderer>();
 	register_class<GRStreamEncodersManager>();
 	register_class<GRStreamEncoder>();
 	register_class<GRStreamEncoderImageSequence>();

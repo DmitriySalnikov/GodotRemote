@@ -235,6 +235,9 @@ typedef Directory _Directory;
 #define GET_PS_SET(variable_to_store, setting_name) \
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
 
+// TODO with sse2 only 32 working correctly(at this moment)
+#define STREAM_SIZE_STEP 32
+
 enum LogLevel : int {
 	LL_DEBUG = 0,
 	LL_NORMAL = 1,
