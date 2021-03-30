@@ -338,7 +338,7 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 		encoder_props.pic_width = img->get_width();
 		encoder_props.pic_height = img->get_height();
 		// TODO temp
-		encoder_props.target_bitrate = 25000000;
+		encoder_props.target_bitrate = (img->get_width() * img->get_height() * encoder_props.max_frame_rate) * (viewport->get_jpg_quality() / 100.f);
 		ts_lock.unlock();
 
 		int width = img->get_width();
@@ -420,8 +420,8 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 				if (GRUtilsH264Codec::_encode_image_to_yuv(img, width, height, bytes_in_color, yuv_buffer.buf) == Error::OK) {
 #if defined(DEBUG_H264) && defined(DEBUG_H264_WRITE_RAW)
 					f_yuv->store_buffer(store_data_to_file(yuv_buffer.buf[0], yuv_buffer.y_size));
-					f_yuv->store_buffer(store_data_to_file(yuv_buffer.buf[1], yuv_buffer.u_size));
-					f_yuv->store_buffer(store_data_to_file(yuv_buffer.buf[2], yuv_buffer.v_size));
+					f_yuv->store_buffer(store_data_to_file(yuv_buffer.buf[1], yuv_buffer.uv_size));
+					f_yuv->store_buffer(store_data_to_file(yuv_buffer.buf[2], yuv_buffer.uv_size));
 #endif
 
 					h264_encoder_pic.uiTimeStamp = (int32_t)(0.5 + (frames_encoded * (1000 / current_props.max_frame_rate)));

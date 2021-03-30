@@ -221,9 +221,9 @@ void rgb32_yuv420(uint32_t width, uint32_t height, const uint8_t *rgba, uint32_t
 Error GRUtilsH264Codec::_encode_image_to_yuv(Ref<Image> img, const int width, const int height, const int bytes_in_color, uint8_t *buf[3]) {
 	auto img_data = img->get_data().read();
 	if (bytes_in_color == 3) {
-		rgb24_yuv420(width, height, img_data.ptr(), width * bytes_in_color, buf[0], buf[1], buf[2], width, (width + 1) / 2);
+		rgb24_yuv420(width, height, img_data.ptr(), width * bytes_in_color, buf[0], buf[1], buf[2], tjPlaneWidth(0, width), tjPlaneWidth(1, width));
 	} else {
-		rgb32_yuv420(width, height, img_data.ptr(), width * bytes_in_color, buf[0], buf[1], buf[2], width, (width + 1) / 2);
+		rgb32_yuv420(width, height, img_data.ptr(), width * bytes_in_color, buf[0], buf[1], buf[2], tjPlaneWidth(0, width), tjPlaneWidth(1, width));
 	}
 
 	return Error::OK;

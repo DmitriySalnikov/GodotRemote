@@ -5,6 +5,7 @@
 #include "GRClient.h"
 #include "GRDevice.h"
 #include "GRNotifications.h"
+#include "GRProfilerViewportMiniPreview.h"
 #include "GRServer.h"
 #include "GRStreamDecoderH264.h"
 #include "GRStreamDecoderImageSequence.h"
@@ -12,8 +13,12 @@
 #include "GRStreamEncoderH264.h"
 #include "GRStreamEncoderImageSequence.h"
 #include "GRStreamEncoders.h"
+#include "GRToolMenuPlugin.h"
 #include "GodotRemote.h"
-#include "GRProfilerViewportMiniPreview.h"
+
+#if !defined(GDNATIVE_LIBRARY) && defined(TOOLS_ENABLED)
+#include "editor/editor_plugin.h"
+#endif
 
 // clumsy settings to test
 // outbound and ip.DstAddr >= 127.0.0.1 and ip.DstAddr <= 127.255.255.255 and (tcp.DstPort == 52341 or tcp.SrcPort == 52341)
@@ -35,10 +40,6 @@ HMODULE livePP = NULL;
 #include "core/project_settings.h"
 
 void register_godot_remote_types() {
-#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
-	tracy::StartupProfiler();
-#endif
-
 	ClassDB::register_class<GodotRemote>();
 	Engine::get_singleton()->add_singleton(Engine::Singleton(NAMEOF(GodotRemote), memnew(GodotRemote)));
 	//GRUtils::init();
@@ -66,6 +67,10 @@ void register_godot_remote_types() {
 	ClassDB::register_class<GRTextureRect>();
 #endif
 
+#ifdef TOOLS_ENABLED
+	EditorPlugins::add_by_type<GRToolMenuPlugin>();
+#endif
+
 /*
 * // TODO move to GodotRemote class because here it's breaks everything
 * 
@@ -86,10 +91,6 @@ void register_godot_remote_types() {
 void unregister_godot_remote_types() {
 	memdelete(GodotRemote::get_singleton());
 	GRUtils::deinit();
-
-#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
-	tracy::ShutdownProfiler();
-#endif
 
 	/*
 #ifdef GODOTREMOTE_LIVEPP

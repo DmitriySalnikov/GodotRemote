@@ -103,7 +103,6 @@ int GRStreamEncoderImageSequence::get_max_queued_frames() {
 
 // TODO 0 - auto mode
 void GRStreamEncoderImageSequence::start_encoder_threads(int count) {
-	Scoped_lock(ts_lock);
 	if (threads.size() == count)
 		return;
 
@@ -128,7 +127,6 @@ void GRStreamEncoderImageSequence::start_encoder_threads(int count) {
 }
 
 void GRStreamEncoderImageSequence::stop_encoder_threads() {
-	Scoped_lock(ts_lock);
 	ZoneScopedNC("Stop Encoder Threads", tracy::Color::Firebrick3);
 	is_threads_active = false;
 	for (int i = 0; i < threads.size(); i++) {
@@ -240,10 +238,8 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		pack->set_image_data(img_data);
 	end:
 		ZoneScopedNC("Push Image to Buffer", tracy::Color::Violet);
-		ts_lock.lock();
 		buf_img->pack = pack;
 		buf_img->is_ready = true;
-		ts_lock.unlock();
 	}
 }
 

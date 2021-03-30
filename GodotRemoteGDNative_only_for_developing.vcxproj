@@ -142,7 +142,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>WIN64;_DEBUG;GDNATIVE_LIBRARY;TOOLS_ENABLED;GODOTREMOTE_H264_ENABLED;DEBUG_ENABLED;GODOTREMOTE_LIBJPEG_TURBO_ENABLED2;GODOTREMOTE_TRACY_ENABLED;TRACY_ENABLE;TRACY_DELAYED_INIT;TRACY_MANUAL_LIFETIME;GODOT_REMOTE_USE_SSE2;TRACY_ON_DEMAND;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;_DEBUG;GDNATIVE_LIBRARY;GODOTREMOTE_H264_ENABLED;DEBUG_ENABLED;GODOTREMOTE_LIBJPEG_TURBO_ENABLED2;GODOTREMOTE_TRACY_ENABLED;TRACY_ENABLE;TRACY_DELAYED_INIT;TRACY_MANUAL_LIFETIME;GODOT_REMOTE_USE_SSE2;TRACY_ON_DEMAND;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ExceptionHandling>Sync</ExceptionHandling>
       <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -198,6 +198,7 @@
     <ClCompile Include="godot_remote\GRStreamEncoderH264.cpp" />
     <ClCompile Include="godot_remote\GRStreamEncoderImageSequence.cpp" />
     <ClCompile Include="godot_remote\GRStreamEncoders.cpp" />
+    <ClCompile Include="godot_remote\GRToolMenuPlugin.cpp" />
     <ClCompile Include="godot_remote\GRUtils.cpp" />
     <ClCompile Include="godot_remote\GRUtilsH264Codec.cpp" />
     <ClCompile Include="godot_remote\GRUtilsJPGCodec.cpp" />
@@ -223,6 +224,7 @@
     <ClInclude Include="godot_remote\GRStreamEncoderH264.h" />
     <ClInclude Include="godot_remote\GRStreamEncoderImageSequence.h" />
     <ClInclude Include="godot_remote\GRStreamEncoders.h" />
+    <ClInclude Include="godot_remote\GRToolMenuPlugin.h" />
     <ClInclude Include="godot_remote\GRUtils.h" />
     <ClInclude Include="godot_remote\GRUtilsH264Codec.h" />
     <ClInclude Include="godot_remote\GRUtilsJPGCodec.h" />

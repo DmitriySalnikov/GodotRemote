@@ -1761,6 +1761,7 @@ void GRSViewportRenderer::_notification(int p_notification) {
 			break;
 		}
 		case NOTIFICATION_DRAW: {
+			// TODO remove
 			draw_texture_rect(tex, Rect2(Vector2(), vp->get_size()), false);
 			break;
 		}
