@@ -25,9 +25,9 @@
 
 #include <Array.hpp>
 #include <Dictionary.hpp>
+#include <Directory.hpp>
 #include <Engine.hpp>
 #include <File.hpp>
-#include <Directory.hpp>
 #include <Godot.hpp>
 #include <Image.hpp>
 #include <InputDefault.hpp>
@@ -35,6 +35,7 @@
 #include <Mutex.hpp>
 #include <OS.hpp>
 #include <Object.hpp>
+#include <PoolArrays.hpp>
 #include <ProjectSettings.hpp>
 #include <String.hpp>
 #include <Thread.hpp>
@@ -134,7 +135,7 @@ typedef Directory _Directory;
 
 #define file_get_as_string(path, err) _gdn_get_file_as_string(path, err)
 #define file_open(var, path, flags) \
-	var = memnew(File);       \
+	var = memnew(File);             \
 	var->open(path, flags);
 
 #define memnew(obj) obj::_new()
@@ -235,9 +236,6 @@ typedef Directory _Directory;
 #define GET_PS_SET(variable_to_store, setting_name) \
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
 
-// TODO with sse2 only 32 working correctly(at this moment)
-#define STREAM_SIZE_STEP 32
-
 enum LogLevel : int {
 	LL_DEBUG = 0,
 	LL_NORMAL = 1,
@@ -255,18 +253,6 @@ constexpr uint32_t operator"" _ms(unsigned long long val) {
 }
 
 // CLASSES
-
-template <typename T, typename Container = std::deque<T> >
-class iterable_queue : public std::queue<T, Container> {
-public:
-	typedef typename Container::iterator iterator;
-	typedef typename Container::const_iterator const_iterator;
-
-	iterator begin() { return this->c.begin(); }
-	iterator end() { return this->c.end(); }
-	const_iterator begin() const { return this->c.begin(); }
-	const_iterator end() const { return this->c.end(); }
-};
 
 class GRUtilsData {
 public:

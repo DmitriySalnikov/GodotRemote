@@ -16,7 +16,6 @@
 
 #include <Node.hpp>
 #include <PacketPeerStream.hpp>
-#include <Shader.hpp>
 #include <ShaderMaterial.hpp>
 #include <StreamPeerTCP.hpp>
 #include <TextureRect.hpp>

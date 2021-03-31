@@ -4,7 +4,6 @@
 
 #ifndef GDNATIVE_LIBRARY
 #else
-#include <ClassDB.hpp>
 using namespace godot;
 #endif
 

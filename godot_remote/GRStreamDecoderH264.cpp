@@ -11,15 +11,8 @@
 #include "GodotRemote.h"
 
 #ifndef GDNATIVE_LIBRARY
-
-#include "core/os/os.h"
 #include "core/os/thread_safe.h"
-#include "scene/main/node.h"
-
 #else
-
-#include <Node.hpp>
-#include <OS.hpp>
 
 using namespace godot;
 #endif
@@ -180,7 +173,7 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 
 		sleep_usec(1_ms);
 		// check if image displayed less then few seconds ago. if not then remove texture
-		if (get_time_usec() > int64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
+		if (get_time_usec() > uint64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
 			gr_client->_image_lost();
 		}
 	}

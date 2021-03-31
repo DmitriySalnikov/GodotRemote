@@ -3,7 +3,6 @@
 #include "GRToolMenuPlugin.h"
 
 #if !defined(GDNATIVE_LIBRARY) && defined(TOOLS_ENABLED)
-#include "core/os/os.h"
 #include "scene/gui/popup_menu.h"
 
 void GRToolMenuPlugin::_menu_pressed(int id) {

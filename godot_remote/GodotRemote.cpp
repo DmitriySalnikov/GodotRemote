@@ -4,20 +4,14 @@
 #include "GRServer.h"
 
 #ifndef GDNATIVE_LIBRARY
-#include "core/os/os.h"
-#include "core/project_settings.h"
 #include "editor/editor_node.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/timer.h"
-#include "scene/main/viewport.h"
 #else
-#include <ClassDB.hpp>
 #include <GlobalConstants.hpp>
-#include <OS.hpp>
 #include <ProjectSettings.hpp>
 #include <SceneTree.hpp>
 #include <Timer.hpp>
-#include <Viewport.hpp>
 using namespace godot;
 #endif
 

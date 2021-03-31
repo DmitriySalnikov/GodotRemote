@@ -5,10 +5,7 @@
 #ifndef GDNATIVE_LIBRARY
 #include "core/io/stream_peer.h"
 #include "core/os/input_event.h"
-#include "core/reference.h"
 #else
-#include <Array.hpp>
-#include <Godot.hpp>
 #include <InputEvent.hpp>
 #include <InputEventAction.hpp>
 #include <InputEventGesture.hpp>
@@ -24,12 +21,8 @@
 #include <InputEventScreenDrag.hpp>
 #include <InputEventScreenTouch.hpp>
 #include <InputEventWithModifiers.hpp>
-#include <PoolArrays.hpp>
-#include <Ref.hpp>
-#include <Reference.hpp>
 #include <StreamPeer.hpp>
 #include <StreamPeerBuffer.hpp>
-#include <String.hpp>
 using namespace godot;
 #endif
 

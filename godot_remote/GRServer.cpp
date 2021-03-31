@@ -17,24 +17,26 @@
 #include "core/os/input_event.h"
 #include "core/os/thread_safe.h"
 #include "main/input_default.h"
-#include "scene/2d/node_2d.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
 
 #else
 
-#include <Directory.hpp>
-#include <File.hpp>
 #include <Input.hpp>
 #include <InputEvent.hpp>
 #include <InputMap.hpp>
-#include <Node.hpp>
-#include <Node2D.hpp>
 #include <PCKPacker.hpp>
 #include <ResourceLoader.hpp>
 #include <SceneTree.hpp>
+#include <ViewportTexture.hpp>
 
 using namespace godot;
+#endif
+
+#if !(defined(GODOT_REMOTE_USE_SSE2) && (defined(_M_AMD64) || defined(_M_X64) || _M_IX86_FP == 2))
+#define STREAM_SIZE_STEP 4
+#else
+#define STREAM_SIZE_STEP 32
 #endif
 
 using namespace GRUtils;
@@ -774,7 +776,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	Error err = Error::OK;
 
 	// Store prev target fps of game
-	int default_target_fps = Engine::get_singleton()->get_target_fps();
+	int64_t default_target_fps = Engine::get_singleton()->get_target_fps();
 	Engine::get_singleton()->set_target_fps(target_fps);
 
 	Input::MouseMode mouse_mode = Input::MOUSE_MODE_VISIBLE;
@@ -1487,7 +1489,7 @@ void GRSViewport::_notification(int p_notification) {
 
 			if (video_stream_enabled) {
 				is_empty_image_sended = false;
-				
+
 				// update resizing viewport
 				renderer->update();
 

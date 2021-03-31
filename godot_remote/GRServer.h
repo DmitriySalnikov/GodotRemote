@@ -7,24 +7,22 @@
 #include "GRStreamEncoders.h"
 
 #ifndef GDNATIVE_LIBRARY
-
 #include "core/io/compression.h"
 #include "core/io/stream_peer_tcp.h"
 #include "core/io/tcp_server.h"
 #include "modules/regex/regex.h"
+#include "scene/2d/node_2d.h"
 #include "scene/gui/control.h"
 #include "scene/main/viewport.h"
 #else
-
 #include <Control.hpp>
+#include <Node2D.hpp>
 #include <PacketPeerStream.hpp>
 #include <RegEx.hpp>
 #include <RegExMatch.hpp>
 #include <StreamPeerTCP.hpp>
 #include <TCP_Server.hpp>
-#include <Thread.hpp>
 #include <Viewport.hpp>
-#include <ViewportTexture.hpp>
 using namespace godot;
 #endif
 
@@ -197,7 +195,7 @@ private:
 
 protected:
 	Viewport *main_vp = nullptr;
-	class Node2D *renderer = nullptr;
+	Node2D *renderer = nullptr;
 	bool video_stream_enabled = true;
 	float rendering_scale = 0.3f;
 	float auto_scale = 0.5f;

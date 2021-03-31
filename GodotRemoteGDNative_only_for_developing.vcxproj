@@ -202,6 +202,7 @@
     <ClCompile Include="godot_remote\GRUtils.cpp" />
     <ClCompile Include="godot_remote\GRUtilsH264Codec.cpp" />
     <ClCompile Include="godot_remote\GRUtilsJPGCodec.cpp" />
+    <ClCompile Include="godot_remote\iterable_queue.cpp" />
     <ClCompile Include="godot_remote\jpge.cpp" />
     <ClCompile Include="godot_remote\register_types.cpp" />
     <ClCompile Include="godot_remote\tracy\TracyClient.cpp" />
@@ -229,6 +230,7 @@
     <ClInclude Include="godot_remote\GRUtilsH264Codec.h" />
     <ClInclude Include="godot_remote\GRUtilsJPGCodec.h" />
     <ClInclude Include="godot_remote\GRVersion.h" />
+    <ClInclude Include="godot_remote\iterable_queue.h" />
     <ClInclude Include="godot_remote\jpge.h" />
     <ClInclude Include="godot_remote\libjpeg-turbo\include\turbojpeg.h" />
     <ClInclude Include="godot_remote\openh264\include\codec_api.h" />

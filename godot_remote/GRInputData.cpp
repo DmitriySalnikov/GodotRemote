@@ -3,12 +3,10 @@
 #include "GRPacket.h"
 
 #ifndef GDNATIVE_LIBRARY
-#include "core/os/os.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/viewport.h"
 #else
 
-#include <OS.hpp>
 #include <SceneTree.hpp>
 #include <Viewport.hpp>
 using namespace godot;

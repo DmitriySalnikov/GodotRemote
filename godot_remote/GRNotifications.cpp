@@ -9,8 +9,6 @@
 #define add_s_override add_style_override
 #define set_b_icon set_icon
 
-#include "core/engine.h"
-#include "core/os/input_event.h"
 #include "scene/animation/tween.h"
 #include "scene/gui/box_container.h"
 #include "scene/gui/button.h"
@@ -22,7 +20,6 @@
 #define set_b_icon set_button_icon
 
 #include <BoxContainer.hpp>
-#include <Engine.hpp>
 #include <InputEvent.hpp>
 #include <InputEventAction.hpp>
 #include <InputEventGesture.hpp>

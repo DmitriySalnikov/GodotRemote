@@ -1,17 +1,15 @@
 /* GRAVGCounter.h */
 #pragma once
 
-#include "GRUtils.h"
+#include "iterable_queue.h"
 #include <functional>
-
-using namespace GRUtils;
 
 template <typename TQueue, typename TValue>
 class GRAVGCounter {
 	TValue avg_val = 0, min_val = 0, max_val = 0;
 	uint32_t queue_size;
 	std::function<TValue(TValue)> modifier = nullptr;
-	GRUtils::iterable_queue<TQueue> val_queue;
+	iterable_queue<TQueue> val_queue;
 
 public:
 	inline TValue get_avg() const {
@@ -28,7 +26,7 @@ public:
 
 	void reset() {
 		avg_val = min_val = max_val = 0;
-		val_queue = GRUtils::iterable_queue<TQueue>();
+		val_queue = iterable_queue<TQueue>();
 	}
 
 	void update(TQueue val, uint32_t _max_queue_size = 0) {

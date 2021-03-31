@@ -6,6 +6,7 @@
 #ifndef GDNATIVE_LIBRARY
 #else
 #include <SceneTree.hpp>
+#include <ViewportTexture.hpp>
 using namespace godot;
 #endif
 
@@ -48,7 +49,7 @@ void GRProfilerViewportMiniPreview::_notification(int p_notification) {
 			else {
 
 				auto r = tmp_image->get_data().read();
-				FrameImage(r.ptr(), tmp_image->get_width(), tmp_image->get_height(), 1, false);
+				FrameImage(r.ptr(), uint16_t(tmp_image->get_width()), uint16_t(tmp_image->get_height()), 1, false);
 			}
 			break;
 		}

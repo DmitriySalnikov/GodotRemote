@@ -2,10 +2,7 @@
 #include "GRPacket.h"
 
 #ifndef GDNATIVE_LIBRARY
-
-#include "core/os/os.h"
 #else
-
 using namespace godot;
 #endif
 
@@ -115,7 +112,7 @@ Ref<StreamPeerBuffer> GRPacketStreamDataH264::_get_data() {
 	buf->put_var(frame_type);
 
 	// store array size
-	buf->put_var(int(data_layers.size()));
+	buf->put_var((int)data_layers.size());
 	// store all arrays data if exists
 	for (auto i : data_layers) {
 		buf->put_var(i);

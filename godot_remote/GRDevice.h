@@ -10,13 +10,7 @@
 #ifndef GDNATIVE_LIBRARY
 #include "scene/main/node.h"
 #else
-#include <Array.hpp>
-#include <Godot.hpp>
 #include <Node.hpp>
-#include <PoolArrays.hpp>
-#include <Ref.hpp>
-#include <Reference.hpp>
-#include <String.hpp>
 using namespace godot;
 #endif
 

@@ -9,13 +9,7 @@
 #include "GRUtilsJPGCodec.h"
 
 #ifndef GDNATIVE_LIBRARY
-
-#include "core/image.h"
 #else
-
-#include <Image.hpp>
-#include <Thread.hpp>
-
 using namespace godot;
 #endif
 

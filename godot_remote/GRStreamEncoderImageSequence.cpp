@@ -11,18 +11,13 @@
 #include "GodotRemote.h"
 
 #ifndef GDNATIVE_LIBRARY
-
-#include "core/os/os.h"
 #include "core/os/thread_safe.h"
 #include "scene/main/node.h"
-
 #else
-
 #include <Node.hpp>
-#include <OS.hpp>
-
 using namespace godot;
 #endif
+
 using namespace GRUtils;
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -15,8 +15,6 @@
 #include "core/io/ip.h"
 #include "core/io/resource_loader.h"
 #include "core/io/tcp_server.h"
-#include "core/os/dir_access.h"
-#include "core/os/file_access.h"
 #include "core/os/input_event.h"
 #include "core/os/thread_safe.h"
 #include "main/input_default.h"
@@ -30,10 +28,7 @@
 
 #else
 
-#include <ClassDB.hpp>
 #include <Control.hpp>
-#include <Directory.hpp>
-#include <File.hpp>
 #include <GlobalConstants.hpp>
 #include <IP.hpp>
 #include <Input.hpp>
@@ -45,9 +40,9 @@
 #include <RandomNumberGenerator.hpp>
 #include <ResourceLoader.hpp>
 #include <SceneTree.hpp>
+#include <Shader.hpp>
 #include <TCP_Server.hpp>
 #include <Texture.hpp>
-#include <Thread.hpp>
 #include <Viewport.hpp>
 using namespace godot;
 
@@ -1608,14 +1603,10 @@ void GRInputCollector::_update_stream_rect() {
 
 					if (asp_rec > asp_tex) {
 						float width = outer_size.y * asp_tex;
-						width = (int)width - (int)width % STREAM_SIZE_STEP;
-						outer_size.y = (int)outer_size.y - (int)outer_size.y % STREAM_SIZE_STEP;
 						stream_rect = Rect2(Vector2(pos.x + (outer_size.x - width) / 2, pos.y), Vector2(width, outer_size.y));
 						return;
 					} else {
 						float height = outer_size.x / asp_tex;
-						height = (int)height - (int)height % STREAM_SIZE_STEP;
-						outer_size.x = (int)outer_size.x - (int)outer_size.x % STREAM_SIZE_STEP;
 						stream_rect = Rect2(Vector2(pos.x, pos.y + (outer_size.y - height) / 2), Vector2(outer_size.x, height));
 						return;
 					}
@@ -1627,27 +1618,28 @@ void GRInputCollector::_update_stream_rect() {
 						goto fill;
 					}
 
-					Vector2 s = Vector2(rect_size.x, rect_size.y / _ratio);
+					int n_w = (int)rect_size.x,
+						n_h = (int)(rect_size.y / _ratio);
 					if (_ratio >= (rect_size.x / rect_size.y)) {
-						s.x = rect_size.x;
-						s.y = s.x / _ratio;
+						n_w = (int)rect_size.x;
+						n_h = (int)(n_w / _ratio);
 
-						s.x = (int)s.x - (int)s.x % STREAM_SIZE_STEP;
-						s.y = (int)s.y - (int)s.y % STREAM_SIZE_STEP;
-						stream_rect = Rect2(Vector2(0, (rect_size.y - s.y) / 2), s);
+						n_w = n_w - n_w % 4;
+						n_h = n_h - n_h % 4;
+						stream_rect = Rect2(Vector2(0, (rect_size.y - n_h) / 2), Vector2(float(n_w), float(n_h)));
 						return;
 					} else {
-						s.y = rect_size.y;
-						s.x = s.y * _ratio;
-						float a2 = s.x / s.y;
-						if (s.x > rect_size.x) {
-							s.x = rect_size.x;
-							s.y = s.x * a2;
+						n_h = (int)rect_size.y;
+						n_w = (int)(n_h * _ratio);
+						float a2 = float(n_w) / n_h;
+						if (n_w > rect_size.x) {
+							n_w = (int)rect_size.x;
+							n_h = (int)(n_w * a2);
 						}
 
-						s.x = (int)s.x - (int)s.x % STREAM_SIZE_STEP;
-						s.y = (int)s.y - (int)s.y % STREAM_SIZE_STEP;
-						stream_rect = Rect2(Vector2((rect_size.x - s.x) / 2, 0), s);
+						n_w = n_w - n_w % 4;
+						n_h = n_h - n_h % 4;
+						stream_rect = Rect2(Vector2((rect_size.x - n_w) / 2, 0), Vector2(float(n_w), float(n_h)));
 						return;
 					}
 				}

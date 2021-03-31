@@ -3,7 +3,6 @@
 #include "register_types.h"
 
 #include "GRClient.h"
-#include "GRDevice.h"
 #include "GRNotifications.h"
 #include "GRProfilerViewportMiniPreview.h"
 #include "GRServer.h"
@@ -70,7 +69,7 @@ void register_godot_remote_types() {
 	EditorPlugins::add_by_type<GRToolMenuPlugin>();
 #endif
 
-/*
+	/*
 * // TODO move to GodotRemote class because here it's breaks everything
 * 
 #ifdef GODOTREMOTE_LIVEPP

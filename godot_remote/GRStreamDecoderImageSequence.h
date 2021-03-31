@@ -6,16 +6,10 @@
 #include "GRPacket.h"
 #include "GRProfiler.h"
 #include "GRStreamDecoders.h"
-#include "GRUtils.h"
+#include "iterable_queue.h"
 
 #ifndef GDNATIVE_LIBRARY
-
-#include "core/image.h"
 #else
-
-#include <Image.hpp>
-#include <Thread.hpp>
-
 using namespace godot;
 #endif
 
@@ -43,7 +37,7 @@ private:
 
 	std::vector<Ref<_Thread> > threads;
 	Ref<_Thread> update_thread;
-	GRUtils::iterable_queue<std::shared_ptr<BufferedImage> > buffer;
+	iterable_queue<std::shared_ptr<BufferedImage> > buffer;
 
 	PoolByteArray ret_data;
 	bool is_threads_active = true;

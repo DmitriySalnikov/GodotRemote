@@ -55,6 +55,7 @@ src_files = [
     'GRUtils.cpp',
     'GRUtilsH264Codec.cpp',
     'GRUtilsJPGCodec.cpp',
+    'iterable_queue.cpp',
     'register_types.cpp',
 ]
 

@@ -7,10 +7,8 @@
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/io/compression.h"
-
 #else
 #include <ClassDB.hpp>
-
 using namespace godot;
 #endif
 
@@ -454,7 +452,7 @@ Array vec_args(const std::vector<Variant> &args) {
 
 PoolByteArray _gdn_convert_native_pointer_array_to_pba(uint8_t *p, int64_t size) {
 	PoolByteArray a;
-	a.resize(size);
+	a.resize((int)size);
 	auto w = a.write();
 	memcpy(w.ptr(), p, size);
 	return a;

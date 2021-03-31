@@ -9,13 +9,7 @@
 #include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
-
-#include "core/image.h"
 #else
-
-#include <Image.hpp>
-#include <Thread.hpp>
-
 using namespace godot;
 #endif
 
@@ -33,7 +27,7 @@ private:
 		bool is_ready = false;
 	};
 
-	std::vector<Ref<_Thread>> threads;
+	std::vector<Ref<_Thread> > threads;
 	std::queue<std::shared_ptr<BufferedImage> > buffer;
 
 	PoolByteArray ret_data;

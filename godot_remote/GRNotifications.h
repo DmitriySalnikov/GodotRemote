@@ -4,24 +4,16 @@
 #include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
-#include "core/reference.h"
 #include "scene/gui/panel_container.h"
 #include "scene/main/canvas_layer.h"
 #else
-
-#include <Array.hpp>
 #include <Button.hpp>
 #include <CanvasLayer.hpp>
 #include <Font.hpp>
-#include <Godot.hpp>
 #include <HBoxContainer.hpp>
 #include <ImageTexture.hpp>
 #include <Label.hpp>
 #include <PanelContainer.hpp>
-#include <PoolArrays.hpp>
-#include <Ref.hpp>
-#include <Reference.hpp>
-#include <String.hpp>
 #include <StyleBoxEmpty.hpp>
 #include <StyleBoxFlat.hpp>
 #include <TextureRect.hpp>

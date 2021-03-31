@@ -16,14 +16,10 @@
 #ifndef GDNATIVE_LIBRARY
 
 #ifdef DEBUG_H264
-#include "core/bind/core_bind.h"
 #include "core/io/file_access_pack.h"
 #endif
-
-#include "core/os/os.h"
 #include "core/os/thread_safe.h"
 #include "scene/main/node.h"
-
 #else
 
 #ifdef DEBUG_H264
@@ -32,12 +28,10 @@
 #include <JSONParseResult.hpp>
 typedef JSON _JSON;
 #endif
-
 #include <Node.hpp>
-#include <OS.hpp>
-
 using namespace godot;
 #endif
+
 using namespace GRUtils;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -335,14 +329,14 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 
 		GRServer *srv = cast_to<GRServer>(GodotRemote::get_singleton()->get_device());
 		encoder_props.max_frame_rate = srv ? srv->get_target_fps() : 60;
-		encoder_props.pic_width = img->get_width();
-		encoder_props.pic_height = img->get_height();
+		encoder_props.pic_width = (int)img->get_width();
+		encoder_props.pic_height = (int)img->get_height();
 		// TODO temp
-		encoder_props.target_bitrate = (img->get_width() * img->get_height() * encoder_props.max_frame_rate) * (viewport->get_jpg_quality() / 100.f);
+		encoder_props.target_bitrate = int((img->get_width() * img->get_height() * encoder_props.max_frame_rate) * (viewport->get_jpg_quality() / 100.f));
 		ts_lock.unlock();
 
-		int width = img->get_width();
-		int height = img->get_height();
+		int width = (int)img->get_width();
+		int height = (int)img->get_height();
 
 		pack->set_is_stream_end(false);
 		pack->set_start_time(com_image.time_added);

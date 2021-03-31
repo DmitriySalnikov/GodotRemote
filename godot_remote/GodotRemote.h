@@ -6,20 +6,10 @@
 #include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
-#include "core/image.h"
-#include "core/pool_vector.h"
-#include "core/reference.h"
 
 #else
 #include "GRClient.h"
-
-#include <Array.hpp>
-#include <Godot.hpp>
-#include <Image.hpp>
 #include <Node.hpp>
-#include <PoolArrays.hpp>
-#include <Ref.hpp>
-#include <String.hpp>
 using namespace godot;
 #endif
 

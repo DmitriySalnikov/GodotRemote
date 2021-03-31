@@ -11,7 +11,6 @@
 
 #include <Node2D.hpp>
 #include <Viewport.hpp>
-#include <ViewportTexture.hpp>
 using namespace godot;
 #endif
 

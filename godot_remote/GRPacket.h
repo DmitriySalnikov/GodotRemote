@@ -5,19 +5,10 @@
 #include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
-
 #include "core/io/stream_peer.h"
-#include "core/reference.h"
 #else
-
-#include <Array.hpp>
-#include <Godot.hpp>
-#include <PoolArrays.hpp>
-#include <Ref.hpp>
-#include <Reference.hpp>
 #include <StreamPeer.hpp>
 #include <StreamPeerBuffer.hpp>
-#include <String.hpp>
 #endif
 
 // TODO checking the checksum would be a good idea
@@ -193,7 +184,7 @@ public:
 
 	void add_image_data(uint8_t *buf, uint64_t size) {
 		PoolByteArray img_data;
-		img_data.resize(size);
+		img_data.resize((int)size);
 		auto w = img_data.write();
 		memcpy(w.ptr(), buf, size);
 		data_layers.push_back(img_data);
