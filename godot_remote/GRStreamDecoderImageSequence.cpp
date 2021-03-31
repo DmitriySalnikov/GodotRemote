@@ -244,19 +244,6 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 			GRDevice::ImageCompressionType type = (GRDevice::ImageCompressionType)image_pack->get_compression_type();
 
 			switch (type) {
-				case GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED: {
-#ifndef GDNATIVE_LIBRARY
-					img->create((int)image_pack->get_size().x, (int)image_pack->get_size().y, false, (Image::Format)image_pack->get_format(), image_pack->get_image_data());
-#else
-					img->create_from_data((int)image_pack->get_size().x, (int)image_pack->get_size().y, false, (Image::Format)image_pack->get_format(), image_pack->get_image_data());
-#endif
-					if (img_is_empty(img)) { // is NOT OK
-						err = Error::FAILED;
-						_log("Incorrect uncompressed image data.", LogLevel::LL_ERROR);
-						GRNotifications::add_notification("Stream Error", "Incorrect uncompressed image data.", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-					}
-					break;
-				}
 				case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
 #ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
 					err = GRUtilsJPGCodec::_decompress_jpg_turbo(img_data, jpg_buffer, &img);

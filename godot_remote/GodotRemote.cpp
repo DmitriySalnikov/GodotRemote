@@ -19,10 +19,10 @@ using namespace godot;
 #include "GRProfilerViewportMiniPreview.h"
 #endif
 
+using namespace GRUtils;
+
 GodotRemote *GodotRemote::singleton = nullptr;
 bool GodotRemote::is_init_completed = false;
-
-using namespace GRUtils;
 
 GR_PS_NAME_TYPE GodotRemote::ps_general_autoload_name = "debug/godot_remote/general/autostart";
 GR_PS_NAME_TYPE GodotRemote::ps_general_port_name = "debug/godot_remote/general/port";

@@ -4,7 +4,6 @@
 #ifndef NO_GODOTREMOTE_CLIENT
 
 #include "GRPacket.h"
-#include "GRProfiler.h"
 #include "GRStreamDecoders.h"
 #include "iterable_queue.h"
 

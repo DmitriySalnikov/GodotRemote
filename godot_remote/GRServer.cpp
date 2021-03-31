@@ -1500,7 +1500,7 @@ void GRSViewport::_notification(int p_notification) {
 						break;
 
 					// getting 'screenshot'
-					Ref<Image> tmp_image = Ref<Image>();
+					Ref<Image> tmp_image;
 					{
 						ZoneScopedNC("Get image data from VisualServer", tracy::Color::OrangeRed4);
 						tmp_image = get_texture()->get_data();

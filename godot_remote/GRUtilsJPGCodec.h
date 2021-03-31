@@ -1,7 +1,6 @@
 /* GRUtilsJPGCodec.h */
 #pragma once
 
-#include "GRProfiler.h"
 #include "GRUtils.h"
 
 class GRUtilsJPGCodec {

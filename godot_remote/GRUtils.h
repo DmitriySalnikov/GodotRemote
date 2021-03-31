@@ -8,6 +8,7 @@
 #include <mutex>
 #include <queue>
 #include <vector>
+#include "GRProfiler.h"
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/bind/core_bind.h"

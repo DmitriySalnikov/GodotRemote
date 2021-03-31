@@ -111,7 +111,7 @@ class GRPacketStreamDataImage : public GRPacketStreamData {
 	friend GRPacket;
 
 	Size2 size;
-	int format = 0;
+	int format = 0; // TODO can be removed in next minor version
 	PoolByteArray img_data;
 	uint64_t start_time = 0;
 	uint64_t frametime = 0;
@@ -129,9 +129,6 @@ public:
 	Size2 get_size() {
 		return size;
 	}
-	int get_format() {
-		return format;
-	}
 	uint64_t get_frametime() {
 		return frametime;
 	}
@@ -144,9 +141,6 @@ public:
 	}
 	void set_size(Size2 _size) {
 		size = _size;
-	}
-	void set_format(int _format) {
-		format = _format;
 	}
 	void set_frametime(uint64_t _frametime) {
 		frametime = _frametime;

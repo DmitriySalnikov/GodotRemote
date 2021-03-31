@@ -185,43 +185,34 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 
 		ts_lock.unlock();
 
-		Ref<Image> img = com_image.img;
 		PoolByteArray img_data;
 		auto pack = shared_new(GRPacketStreamDataImage);
-		int bytes_in_color = img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
+		int bytes_in_color = com_image.img_format == Image::FORMAT_RGB8 ? 3 : 4;
 
 		pack->set_compression_type(compression_type);
-		pack->set_size(Size2((float)img->get_width(), (float)img->get_height()));
-		pack->set_format(img->get_format());
+		pack->set_size(Size2((float)com_image.img_width, (float)com_image.img_height));
 		pack->set_frametime(com_image.frametime);
 		pack->set_start_time(com_image.time_added);
 		pack->set_is_stream_end(false);
 
-		if (img->get_data().size() == 0)
+		if (com_image.img_data.size() == 0)
 			goto end;
 
 		switch (pack->get_compression_type()) {
-			case GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED: {
-				ZoneScopedNC("Image processed: Uncompressed", tracy::Color::VioletRed3);
-				img_data = img->get_data();
-				break;
-			}
 			case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
 				ZoneScopedNC("Image processed: JPG", tracy::Color::VioletRed3);
-				if (!img_is_empty(img)) {
-					Error err = Error::OK;
+				Error err = Error::OK;
 
 #ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
-					err = GRUtilsJPGCodec::_compress_jpg_turbo(img_data, img->get_data(), jpg_buffer, (int)img->get_width(), (int)img->get_height(), bytes_in_color, jpg_quality);
+				err = GRUtilsJPGCodec::_compress_jpg_turbo(img_data, com_image.img_data, jpg_buffer, com_image.img_width, com_image.img_height, bytes_in_color, jpg_quality);
 #else
-					err = GRUtilsJPGCodec::_compress_jpg(img_data, img->get_data(), jpg_buffer, (int)img->get_width(), (int)img->get_height(), bytes_in_color, jpg_quality);
+				err = GRUtilsJPGCodec::_compress_jpg(img_data, com_image.img_data, jpg_buffer, com_image.img_width, com_image.img_height, bytes_in_color, jpg_quality);
 #endif
 
-					if ((int)err) {
-						_log("Can't compress stream image JPG. Code: " + str((int)err), LogLevel::LL_ERROR);
-						GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-						goto end;
-					}
+				if ((int)err) {
+					_log("Can't compress stream image JPG. Code: " + str((int)err), LogLevel::LL_ERROR);
+					GRNotifications::add_notification("Stream Error", "Can't compress stream image to JPG. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+					goto end;
 				}
 				break;
 			}

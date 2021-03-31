@@ -1,7 +1,6 @@
 /* GRUtils.cpp */
 
 #include "GRUtils.h"
-#include "GRProfiler.h"
 #include "GodotRemote.h"
 #include <chrono>
 

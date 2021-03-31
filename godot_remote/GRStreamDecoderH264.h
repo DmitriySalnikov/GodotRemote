@@ -4,7 +4,6 @@
 #if !defined(NO_GODOTREMOTE_CLIENT) && defined(GODOTREMOTE_H264_ENABLED)
 
 #include "GRPacket.h"
-#include "GRProfiler.h"
 #include "GRStreamDecoders.h"
 #include "GRUtils.h"
 #include "GRUtilsH264Codec.h"

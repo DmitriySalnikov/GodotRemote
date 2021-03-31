@@ -323,26 +323,25 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 		auto buf_img = std::make_shared<BufferedImage>();
 		buffer.push(buf_img);
 
-		Ref<Image> img = com_image.img;
 		auto pack = shared_new(GRPacketStreamDataH264);
-		int bytes_in_color = img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
+		int bytes_in_color = com_image.img_format == Image::FORMAT_RGB8 ? 3 : 4;
 
 		GRServer *srv = cast_to<GRServer>(GodotRemote::get_singleton()->get_device());
 		encoder_props.max_frame_rate = srv ? srv->get_target_fps() : 60;
-		encoder_props.pic_width = (int)img->get_width();
-		encoder_props.pic_height = (int)img->get_height();
+		encoder_props.pic_width = com_image.img_width;
+		encoder_props.pic_height = com_image.img_height;
 		// TODO temp
-		encoder_props.target_bitrate = int((img->get_width() * img->get_height() * encoder_props.max_frame_rate) * (viewport->get_jpg_quality() / 100.f));
+		encoder_props.target_bitrate = int((com_image.img_width * com_image.img_height * encoder_props.max_frame_rate) * (viewport->get_jpg_quality() / 100.f));
 		ts_lock.unlock();
 
-		int width = (int)img->get_width();
-		int height = (int)img->get_height();
+		int width = encoder_props.pic_width;
+		int height = encoder_props.pic_height;
 
 		pack->set_is_stream_end(false);
 		pack->set_start_time(com_image.time_added);
 		pack->set_compression_type(GRDevice::ImageCompressionType::COMPRESSION_H264);
 
-		if (img->get_data().size() == 0)
+		if (com_image.img_data.size() == 0)
 			goto end;
 
 		if (h264_encoder) {
@@ -411,7 +410,7 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 			}
 
 			if (is_encoder_inited) {
-				if (GRUtilsH264Codec::_encode_image_to_yuv(img, width, height, bytes_in_color, yuv_buffer.buf) == Error::OK) {
+				if (GRUtilsH264Codec::_encode_image_to_yuv(com_image.img_data, width, height, bytes_in_color, yuv_buffer.buf) == Error::OK) {
 #if defined(DEBUG_H264) && defined(DEBUG_H264_WRITE_RAW)
 					f_yuv->store_buffer(store_data_to_file(yuv_buffer.buf[0], yuv_buffer.y_size));
 					f_yuv->store_buffer(store_data_to_file(yuv_buffer.buf[1], yuv_buffer.uv_size));

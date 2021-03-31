@@ -218,30 +218,45 @@ void rgb24_yuv420(uint32_t width, uint32_t height, const uint8_t *rgb, uint32_t 
 void rgb32_yuv420(uint32_t width, uint32_t height, const uint8_t *rgba, uint32_t rgba_stride,
 		uint8_t *y, uint8_t *u, uint8_t *v, uint32_t y_stride, uint32_t uv_stride);
 
-Error GRUtilsH264Codec::_encode_image_to_yuv(Ref<Image> img, const int width, const int height, const int bytes_in_color, uint8_t *buf[3]) {
-	auto img_data = img->get_data().read();
+Error GRUtilsH264Codec::_encode_image_to_yuv(PoolByteArray img_data, const int width, const int height, const int bytes_in_color, uint8_t *buf[3]) {
+#if !(defined(GODOT_REMOTE_USE_SSE2) && (defined(_M_AMD64) || defined(_M_X64) || _M_IX86_FP == 2))
+	ZoneScopedNC("_encode_image_to_yuv std", tracy::Color::LavenderBlush);
+#else
+	ZoneScopedNC("_encode_image_to_yuv SSE2", tracy::Color::LavenderBlush);
+#endif
+
+	auto idr = img_data.read();
 	if (bytes_in_color == 3) {
-		rgb24_yuv420(width, height, img_data.ptr(), width * bytes_in_color, buf[0], buf[1], buf[2], tjPlaneWidth(0, width), tjPlaneWidth(1, width));
+		rgb24_yuv420(width, height, idr.ptr(), width * bytes_in_color, buf[0], buf[1], buf[2], tjPlaneWidth(0, width), tjPlaneWidth(1, width));
 	} else {
-		rgb32_yuv420(width, height, img_data.ptr(), width * bytes_in_color, buf[0], buf[1], buf[2], tjPlaneWidth(0, width), tjPlaneWidth(1, width));
+		rgb32_yuv420(width, height, idr.ptr(), width * bytes_in_color, buf[0], buf[1], buf[2], tjPlaneWidth(0, width), tjPlaneWidth(1, width));
 	}
 
 	return Error::OK;
 }
 
 Error GRUtilsH264Codec::_decode_yuv_to_image(Ref<Image> img, const int width, const int height, uint8_t *buf_y, uint8_t *buf_u, uint8_t *buf_v, int stride[2]) {
+#if !(defined(GODOT_REMOTE_USE_SSE2) && (defined(_M_AMD64) || defined(_M_X64) || _M_IX86_FP == 2))
+	ZoneScopedNC("_decode_yuv_to_image std", tracy::Color::LavenderBlush);
+#else
+	ZoneScopedNC("_decode_yuv_to_image SSE2", tracy::Color::LavenderBlush);
+#endif
+
 	PoolByteArray rgb;
 	rgb.resize(width * height * 3);
 	auto rw = rgb.write();
 
 	yuv420_rgb24(width, height, buf_y, buf_u, buf_v, stride[0], stride[1], rw.ptr(), width * 3);
 
-	release_pva_write(rw);
+	{
+		ZoneScopedNC("Create Image from Data", tracy::Color::DarkOliveGreen);
+		release_pva_write(rw);
 #ifndef GDNATIVE_LIBRARY
-	img->create(width, height, false, Image::Format::FORMAT_RGB8, rgb);
+		img->create(width, height, false, Image::Format::FORMAT_RGB8, rgb);
 #else
-	img->create_from_data(width, height, false, Image::Format::FORMAT_RGB8, rgb);
+		img->create_from_data(width, height, false, Image::Format::FORMAT_RGB8, rgb);
 #endif
+	}
 
 	return img_is_empty(img) ? Error::FAILED : Error::OK;
 }

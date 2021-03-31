@@ -59,9 +59,9 @@ src_files = [
     'register_types.cpp',
 ]
 
-
 def get_sources():
     return [module_dir + file for file in src_files]
+
 
 # 'CXXFLAGS' 'CCFLAGS' 'LINKFLAGS' and others
 def remove_flag_cxx(flags_group : str, flags : []):

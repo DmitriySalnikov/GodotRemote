@@ -4,7 +4,6 @@
 #include "GRAVGCounter.h"
 #include "GRInputData.h"
 #include "GRPacket.h"
-#include "GRProfiler.h"
 #include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY

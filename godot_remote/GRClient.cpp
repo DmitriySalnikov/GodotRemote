@@ -1217,7 +1217,10 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				break;
 		}
 
-		((Ref<StreamPeerTCP>)ppeer->get_stream_peer())->disconnect_from_host();
+		Ref<StreamPeerTCP> tcp_peer = ppeer->get_stream_peer();
+		if (tcp_peer.is_valid()) {
+			tcp_peer->disconnect_from_host();
+		}
 		ppeer->set_output_buffer_max_size(0);
 		ppeer->set_input_buffer_max_size(0);
 

@@ -4,7 +4,6 @@
 #ifndef NO_GODOTREMOTE_SERVER
 
 #include "GRPacket.h"
-#include "GRProfiler.h"
 #include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
@@ -64,11 +63,19 @@ protected:
 
 	class CommitedImage {
 	public:
-		Ref<Image> img;
+		Image::Format img_format = Image::Format::FORMAT_RGB8;
+		int img_width, img_height;
+		PoolByteArray img_data;
+
 		uint64_t time_added;
 		uint64_t frametime;
+
 		CommitedImage(Ref<Image> image, uint64_t _time_added, uint64_t frame_time) {
-			img = image;
+			img_format = image->get_format();
+			img_width = (int)image->get_width();
+			img_height = (int)image->get_height();
+			img_data = image->get_data();
+
 			time_added = _time_added;
 			frametime = frame_time;
 		}

@@ -1,9 +1,9 @@
 from shutil import copyfile
 import os
 import pathlib
-current_dir = '#modules/godot_remote/'
 
 def prepare_turbo_jpeg(env):
+    current_dir = '#modules/godot_remote/'
     base_dir = '#modules/godot_remote/libjpeg-turbo/lib/'
     dir = base_dir
     lib = ''

@@ -186,12 +186,14 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 //////////////////////////////////////////////////////////////////////////
 
 void GRStreamDecoderH264::FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_time) {
+	ZoneScopedNC("Flush Frames", tracy::Color::Blue1);
 	uint8_t *pData[3] = { NULL }; // WTF IS THIS??
 	uint8_t remaining_frames = 0;
 	SBufferInfo sDstBufInfo;
 
 	h264_decoder->GetOption(DECODER_OPTION::DECODER_OPTION_NUM_OF_FRAMES_REMAINING_IN_BUFFER, &remaining_frames);
 	while (remaining_frames > 0) {
+		ZoneScopedNC("Flush Frame", tracy::Color::CadetBlue1);
 		remaining_frames--;
 
 		pData[0] = NULL;
@@ -207,6 +209,7 @@ void GRStreamDecoderH264::FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_
 
 bool GRStreamDecoderH264::ProcessFrame(SBufferInfo *info, uint64_t start_time) {
 	if (info->iBufferStatus == 1) {
+		ZoneScopedNC("Process Frame", tracy::Color::Orange3);
 		Ref<Image> img = newref(Image);
 
 		Error e = GRUtilsH264Codec::_decode_yuv_to_image(img, info->UsrData.sSystemBuffer.iWidth, info->UsrData.sSystemBuffer.iHeight, info->pDst[0], info->pDst[1], info->pDst[2], info->UsrData.sSystemBuffer.iStride);

@@ -1,7 +1,6 @@
 /* GRProfilerViewportMiniPreview.cpp */
 
 #include "GRProfilerViewportMiniPreview.h"
-#include "GRProfiler.h"
 
 #ifndef GDNATIVE_LIBRARY
 #else
