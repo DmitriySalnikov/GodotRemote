@@ -46,6 +46,7 @@ onready var stream_quality = $Scroll/H/Grid/Quality/Quality
 onready var quality_hint = $Scroll/H/Grid/Quality/HBox/QualityHint
 onready var render_scale = $Scroll/H/Grid/RenderScale/Scale
 onready var skip_frames = $Scroll/H/Grid/SkipFrames/SKIP
+onready var scale_hint = $Scroll/H/Grid/RenderScale/HBox/ScaleHint
 onready var target_server_fps = $Scroll/H/Grid/TargetFramerate/fps
 onready var compression = $Scroll/H/Grid/CompressionType/State2
 onready var encoder_threads = $Scroll/H/Grid/EncoderThreadsNumber/threads
@@ -69,6 +70,7 @@ func _ready():
 	scroll.get_h_scrollbar().rect_min_size.y = 24
 	donations.visible = false
 	quality_hint.visible = false
+	_update_scale_hint_text(render_scale.value)
 	#empty_top.visible = true
 	
 	version.text = "GR version: " + GodotRemote.get_version()
@@ -202,9 +204,13 @@ func _connection_changed(connected : bool):
 		game_open_counter = 0
 		_set_all_server_settings()
 	else:
-		quality_hint.visible = true
+		_game_scene_counter_increase()
+		quality_hint.visible = false
 
 func _game_scene_counter_increase():
+	if not G.GameShowAfterConnectionErrors:
+		return
+	
 	game_open_counter += 1
 	if game_open_counter >= 5:
 		game_open_counter = 0
@@ -213,6 +219,9 @@ func _game_scene_counter_increase():
 func _update_quality_hint_text(hint_text):
 	quality_hint.visible = true
 	quality_hint.text = hint_text
+
+func _update_scale_hint_text(scale : float):
+	scale_hint.text = "%.0f %%" % (scale * 100)
 
 func _server_settings_received(_settings : Dictionary):
 	updated_by_code = true
@@ -309,8 +318,6 @@ func _on_wifi_SetAddress_pressed():
 		wifi_ip_line.text = address
 		G.port = wifi_port_line.value
 		G.connection_type = con_type_menu.selected
-		
-		_game_scene_counter_increase()
 
 func _on_adb_SetAddress_pressed():
 	_disable_buttons_by_timer()
@@ -318,8 +325,6 @@ func _on_adb_SetAddress_pressed():
 	GodotRemote.get_device().port = adb_port_line.value
 	G.port = adb_port_line.value
 	G.connection_type = con_type_menu.selected
-	
-	_game_scene_counter_increase()
 
 func _on_con_Type_item_selected(index):
 	match index:
@@ -402,6 +407,7 @@ func _on_server_render_Scale_value_changed(value):
 		if G.override_server_settings:
 			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_RENDER_SCALE, value)
 	G.server_render_scale = value
+	_update_scale_hint_text(value)
 
 func _on_server_skip_frames_value_changed(value):
 	var id = skip_frames.get_item_id(value)

@@ -1057,6 +1057,13 @@ void GRClient::_thread_connection(Variant p_userdata) {
 	Ref<StreamPeerTCP> con = con_thread->peer;
 
 	GRDevice::AuthResult prev_auth_error = GRDevice::AuthResult::OK;
+	bool first_connection_signal_emitted = false;
+	auto emit_first_connection_error = [&]() {
+		if (!first_connection_signal_emitted) {
+			first_connection_signal_emitted = true;
+			call_deferred("emit_signal", "connection_state_changed", false);
+		}
+	};
 
 	const String con_error_title = "Connection Error";
 
@@ -1128,6 +1135,9 @@ void GRClient::_thread_connection(Variant p_userdata) {
 					_log("Socket already in use", LogLevel::LL_ERROR);
 					break;
 			}
+
+			emit_first_connection_error();
+
 			sleep_usec(250_ms);
 			continue;
 		}
@@ -1145,6 +1155,8 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				GRNotifications::add_notification(con_error_title, "Connection timed out: " + address, GRNotifications::NotificationIcon::ICON_WARNING, true, 1.f);
 				prev_auth_error = GRDevice::AuthResult::Timeout;
 			}
+			emit_first_connection_error();
+
 			sleep_usec(200_ms);
 			continue;
 		}
@@ -1169,6 +1181,8 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				con_thread->ppeer = ppeer;
 
 				is_connection_working = true;
+				first_connection_signal_emitted = false;
+
 				call_deferred("emit_signal", "connection_state_changed", true);
 				call_deferred(NAMEOF(_force_update_stream_viewport_signals)); // force update screen aspect ratio and orientation
 				GRNotifications::add_notification("Connected", "Connected to " + address, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
@@ -1216,6 +1230,18 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				if (res != prev_auth_error)
 					GRNotifications::add_notification(con_error_title, "Unknown error code: " + str((int)res) + "\n" + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 				_log("Unknown error code: " + str((int)res) + ". Disconnecting. " + address, LogLevel::LL_NORMAL);
+				break;
+		}
+
+		// check only for errors
+		switch (res) {
+			case GRDevice::AuthResult::Error:
+			case GRDevice::AuthResult::Timeout:
+			case GRDevice::AuthResult::RefuseConnection:
+			case GRDevice::AuthResult::VersionMismatch:
+			case GRDevice::AuthResult::IncorrectPassword:
+			case GRDevice::AuthResult::PasswordRequired:
+				emit_first_connection_error();
 				break;
 		}
 

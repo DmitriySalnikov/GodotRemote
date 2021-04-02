@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=2]
+[gd_scene load_steps=11 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/AndroidAppIconBackground.png" type="Texture" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Game/Player.tscn" type="PackedScene" id=2]
@@ -6,11 +6,12 @@
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/MainTheme.tres" type="Theme" id=4]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Game/PipeHandler.gd" type="Script" id=5]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Game/PipePair.tscn" type="PackedScene" id=6]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NotificationPanelTitleStyle.tres" type="DynamicFont" id=7]
 
-[sub_resource type="RectangleShape2D" id=2]
+[sub_resource type="RectangleShape2D" id=1]
 extents = Vector2( 26.0124, 2204.99 )
 
-[sub_resource type="StyleBoxFlat" id=1]
+[sub_resource type="StyleBoxFlat" id=2]
 content_margin_left = 4.0
 content_margin_right = 4.0
 content_margin_top = 5.0
@@ -22,6 +23,16 @@ border_width_right = 2
 border_width_bottom = 2
 border_color = Color( 0.384314, 0.415686, 0.439216, 0.686275 )
 shadow_size = 2
+
+[sub_resource type="GDScript" id=3]
+script/source = "extends Label
+
+func _ready() -> void:
+	margin_top = OS.get_window_safe_area().position.y
+
+func _on_Score_resized() -> void:
+	margin_top = OS.get_window_safe_area().position.y
+"
 
 [node name="Game" type="Node"]
 script = ExtResource( 3 )
@@ -37,7 +48,7 @@ color = Color( 0.12549, 0.12549, 0.12549, 1 )
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="World/Floor"]
 rotation = 1.57079
-shape = SubResource( 2 )
+shape = SubResource( 1 )
 
 [node name="AndroidAppIconBackground" type="Sprite" parent="World/Floor/CollisionShape2D"]
 modulate = Color( 0.254902, 0.670588, 0.219608, 1 )
@@ -74,17 +85,17 @@ __meta__ = {
 
 [node name="PanelContainer" type="PanelContainer" parent="Control/WindowDialog"]
 margin_left = 144.0
-margin_top = 258.0
+margin_top = 232.0
 margin_right = 656.0
-margin_bottom = 541.0
+margin_bottom = 567.0
 rect_min_size = Vector2( 512, 0 )
-custom_styles/panel = SubResource( 1 )
+custom_styles/panel = SubResource( 2 )
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Control/WindowDialog/PanelContainer"]
 margin_left = 4.0
 margin_top = 5.0
 margin_right = 508.0
-margin_bottom = 279.0
+margin_bottom = 331.0
 
 [node name="Label" type="Label" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
 margin_right = 504.0
@@ -130,12 +141,14 @@ margin_right = 504.0
 margin_bottom = 274.0
 rect_min_size = Vector2( 0, 48 )
 
-[node name="DontShowOnReconnects2" type="CheckButton" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
-visible = false
+[node name="DontShowOnReconnects" type="CheckButton" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
+modulate = Color( 0.886275, 0.886275, 0.886275, 1 )
 margin_top = 278.0
-margin_right = 631.0
+margin_right = 504.0
 margin_bottom = 326.0
-text = "Do not show after 5 failed connections"
+custom_fonts/font = ExtResource( 7 )
+custom_colors/font_color = Color( 0.792157, 0.792157, 0.792157, 1 )
+text = "Don't show this game after failed connections"
 
 [node name="Label" type="Label" parent="Control"]
 visible = false
@@ -146,7 +159,6 @@ align = 1
 valign = 1
 
 [node name="Score" type="Label" parent="Control"]
-visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
 custom_colors/font_color = Color( 1, 1, 1, 1 )
@@ -157,6 +169,12 @@ custom_constants/shadow_offset_y = 1
 custom_constants/shadow_as_outline = 1
 text = "SCORE"
 align = 1
+script = SubResource( 3 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [connection signal="pressed" from="Control/WindowDialog/PanelContainer/VBoxContainer/HBoxContainer/Play" to="." method="_on_Play_pressed"]
 [connection signal="pressed" from="Control/WindowDialog/PanelContainer/VBoxContainer/HBoxContainer/Exit" to="." method="_on_Exit_pressed"]
+[connection signal="toggled" from="Control/WindowDialog/PanelContainer/VBoxContainer/DontShowOnReconnects" to="." method="_on_DontShowOnReconnects_toggled"]
+[connection signal="resized" from="Control/Score" to="Control/Score" method="_on_Score_resized"]

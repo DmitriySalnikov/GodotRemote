@@ -14,6 +14,9 @@ onready var score = $Control/Score
 onready var high_score = $Control/WindowDialog/PanelContainer/VBoxContainer/HighScore
 onready var current_score = $Control/WindowDialog/PanelContainer/VBoxContainer/CurrentScore
 onready var pipe_handler = $World/PipeHandler
+onready var dont_show = $Control/WindowDialog/PanelContainer/VBoxContainer/DontShowOnReconnects
+
+var is_loading_after_error = false
 
 onready var layouts := [
 	game_menu,
@@ -32,6 +35,9 @@ onready var buttons_to_disable = [
 #func _exit_tree() -> void:
 #	ProjectSettings.set_setting("display/window/handheld/orientation", OS.SCREEN_ORIENTATION_SENSOR)
 
+func set_is_loading_after_error(state : bool):
+	is_loading_after_error = state
+
 func _ready() -> void:
 	_center_floor()
 	player.connect("dead", self, "_game_stopped")
@@ -39,6 +45,9 @@ func _ready() -> void:
 	player.connect("score_updated", self, "_score_updated")
 	_update_scoreboard()
 	_switch_layout(UI_LAYOUTS.PlAY_MENU)
+	
+	dont_show.visible = !G.GameShowAfterConnectionErrors or is_loading_after_error
+	dont_show.pressed = !G.GameShowAfterConnectionErrors
 
 func _center_floor():
 	$World/Floor.position = $Control.rect_size * Vector2(0.5, 1)
@@ -103,3 +112,6 @@ func _on_Play_pressed() -> void:
 
 func _on_Exit_pressed() -> void:
 	queue_free()
+
+func _on_DontShowOnReconnects_toggled(button_pressed: bool) -> void:
+	G.GameShowAfterConnectionErrors = !button_pressed

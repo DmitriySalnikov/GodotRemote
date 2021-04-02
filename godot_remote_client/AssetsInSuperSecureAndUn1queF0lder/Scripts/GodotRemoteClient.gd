@@ -209,6 +209,7 @@ func _on_no_this_is_a_game_pressed() -> void:
 func create_game_scene(is_easter_egg = false):
 	game_scene = load("res://AssetsInSuperSecureAndUn1queF0lder/Game/THIS_IS_A_GAME.tscn").instance()
 	game_scene.connect("tree_exiting", self, "_game_scene_exiting")
+	game_scene.set_is_loading_after_error(is_easter_egg)
 	add_child(game_scene)
 
 func _game_scene_exiting():

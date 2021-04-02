@@ -19,6 +19,7 @@ const CLIENT_VERSION := 0
 const SAVE_FILE := "user://settings.json"
 
 var GameHighScore := 0 setget set_game_score
+var GameShowAfterConnectionErrors := true setget set_game_show_after_errors
 
 var IsMobile : bool = false
 var Billings : Node = null
@@ -159,6 +160,7 @@ func _save_settings():
 	var d = Dictionary()
 	
 	d["game_highscore"] = GameHighScore
+	d["game_show_after_errors"] = GameShowAfterConnectionErrors
 	
 	d["m_version"] = get_version()
 	d["first_run_accepted"] = FirstRunAgreementAccepted
@@ -218,6 +220,7 @@ func _load_settings():
 			var d = parse_json(txt)
 			
 			GameHighScore = _safe_get_from_dict(d, "game_highscore", GameHighScore)
+			GameShowAfterConnectionErrors = _safe_get_from_dict(d, "game_show_after_errors", GameShowAfterConnectionErrors)
 			
 			PreviousVersion = _safe_get_from_dict(d, "m_version", get_version())
 			VersionChanged = PreviousVersion != get_version()
@@ -275,6 +278,10 @@ func get_version() -> String:
 
 func set_game_score(val : int):
 	GameHighScore = val
+	_save_settings()
+
+func set_game_show_after_errors(val : bool):
+	GameShowAfterConnectionErrors = val
 	_save_settings()
 
 func set_first_run_agreement_accepted(val : bool):

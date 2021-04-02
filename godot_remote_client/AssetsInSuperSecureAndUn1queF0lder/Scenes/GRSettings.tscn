@@ -775,10 +775,27 @@ margin_right = 744.0
 margin_bottom = 2146.0
 size_flags_horizontal = 3
 
-[node name="Label" type="Label" parent="Scroll/H/Grid/RenderScale"]
+[node name="HBox" type="HBoxContainer" parent="Scroll/H/Grid/RenderScale"]
 margin_right = 744.0
 margin_bottom = 46.0
+size_flags_horizontal = 3
+custom_constants/separation = 0
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/RenderScale/HBox"]
+margin_right = 690.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
 text = "Image Scale"
+valign = 1
+
+[node name="ScaleHint" type="Label" parent="Scroll/H/Grid/RenderScale/HBox"]
+margin_left = 690.0
+margin_top = 4.0
+margin_right = 744.0
+margin_bottom = 41.0
+custom_fonts/font = ExtResource( 9 )
+custom_colors/font_color = Color( 0.501961, 0.501961, 0.501961, 1 )
+text = "50%"
 valign = 1
 
 [node name="Scale" type="HSlider" parent="Scroll/H/Grid/RenderScale" groups=[
