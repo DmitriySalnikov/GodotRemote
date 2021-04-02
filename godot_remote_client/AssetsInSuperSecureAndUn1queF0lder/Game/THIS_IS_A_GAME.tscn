@@ -1,41 +1,142 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=8 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/AndroidAppIconBackground.png" type="Texture" id=1]
-[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Textures/ADB_icon.png" type="Texture" id=2]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Game/Player.tscn" type="PackedScene" id=2]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Game/THIS_IS_A_GAME.gd" type="Script" id=3]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/MainTheme.tres" type="Theme" id=4]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Game/PipePair.tscn" type="PackedScene" id=5]
 
-[node name="Node2D" type="Node2D"]
+[sub_resource type="RectangleShape2D" id=2]
+extents = Vector2( 26.0124, 2204.99 )
 
-[node name="AndroidAppIconBackground" type="Sprite" parent="."]
-position = Vector2( 561.563, 708.396 )
-scale = Vector2( 0.371824, 1 )
+[sub_resource type="StyleBoxFlat" id=1]
+content_margin_left = 4.0
+content_margin_right = 4.0
+content_margin_top = 5.0
+content_margin_bottom = 4.0
+bg_color = Color( 0.509804, 0.72549, 0.890196, 0.282353 )
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0.384314, 0.415686, 0.439216, 0.686275 )
+shadow_size = 2
+
+[node name="Game" type="Node"]
+script = ExtResource( 3 )
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="Floor" type="StaticBody2D" parent="World"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Floor"]
+rotation = 1.57079
+shape = SubResource( 2 )
+
+[node name="AndroidAppIconBackground" type="Sprite" parent="World/Floor/CollisionShape2D"]
+modulate = Color( 0.254902, 0.670588, 0.219608, 1 )
+show_behind_parent = true
+rotation = 3.14159
+scale = Vector2( 0.101225, 10.2613 )
 texture = ExtResource( 1 )
 
-[node name="AndroidAppIconBackground2" type="Sprite" parent="."]
-position = Vector2( 561.563, 30.3961 )
-scale = Vector2( 0.371824, 1 )
-texture = ExtResource( 1 )
+[node name="Pipes" type="Node2D" parent="World"]
 
-[node name="AndroidAppIconBackground3" type="Sprite" parent="."]
-position = Vector2( 937.563, 608.396 )
-scale = Vector2( 0.371824, 1 )
-texture = ExtResource( 1 )
+[node name="PipePair" parent="World/Pipes" instance=ExtResource( 5 )]
+position = Vector2( 312.718, 438.123 )
 
-[node name="AndroidAppIconBackground4" type="Sprite" parent="."]
-position = Vector2( 937.563, -69.6039 )
-scale = Vector2( 0.371824, 1 )
-texture = ExtResource( 1 )
+[node name="Player" parent="World" instance=ExtResource( 2 )]
 
-[node name="AndroidAppIconBackground5" type="Sprite" parent="."]
-position = Vector2( 1363.56, 764.396 )
-scale = Vector2( 0.371824, 1 )
-texture = ExtResource( 1 )
+[node name="Control" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = ExtResource( 4 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
-[node name="AndroidAppIconBackground6" type="Sprite" parent="."]
-position = Vector2( 1363.56, 86.3961 )
-scale = Vector2( 0.371824, 1 )
-texture = ExtResource( 1 )
+[node name="WindowDialog" type="CenterContainer" parent="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+rect_clip_content = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
-[node name="ADB_icon" type="Sprite" parent="."]
-position = Vector2( 33.5627, 458.396 )
-scale = Vector2( 4.375, 4.375 )
-texture = ExtResource( 2 )
+[node name="PanelContainer" type="PanelContainer" parent="Control/WindowDialog"]
+margin_left = 144.0
+margin_top = 258.0
+margin_right = 656.0
+margin_bottom = 541.0
+rect_min_size = Vector2( 512, 0 )
+custom_styles/panel = SubResource( 1 )
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/WindowDialog/PanelContainer"]
+margin_left = 4.0
+margin_top = 5.0
+margin_right = 508.0
+margin_bottom = 279.0
+
+[node name="Label" type="Label" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
+margin_right = 504.0
+margin_bottom = 46.0
+text = "Flappy Droid!"
+align = 1
+
+[node name="CurrentScore" type="Label" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
+margin_top = 50.0
+margin_right = 504.0
+margin_bottom = 96.0
+text = "CURRENT SCORE"
+
+[node name="HighScore" type="Label" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
+margin_top = 100.0
+margin_right = 504.0
+margin_bottom = 146.0
+text = "HIGH SCORE"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
+margin_top = 150.0
+margin_right = 504.0
+margin_bottom = 222.0
+
+[node name="Play" type="Button" parent="Control/WindowDialog/PanelContainer/VBoxContainer/HBoxContainer"]
+margin_right = 250.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
+size_flags_horizontal = 3
+text = "Play Game"
+
+[node name="Exit" type="Button" parent="Control/WindowDialog/PanelContainer/VBoxContainer/HBoxContainer"]
+margin_left = 254.0
+margin_right = 504.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
+size_flags_horizontal = 3
+text = "Exit"
+
+[node name="empty" type="Control" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
+margin_top = 226.0
+margin_right = 504.0
+margin_bottom = 274.0
+rect_min_size = Vector2( 0, 48 )
+
+[node name="DontShowOnReconnects2" type="CheckButton" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
+visible = false
+margin_top = 278.0
+margin_right = 631.0
+margin_bottom = 326.0
+text = "Do not show after 5 failed connections"
+
+[node name="Label" type="Label" parent="Control"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "TAP TO START"
+align = 1
+valign = 1
+
+[connection signal="pressed" from="Control/WindowDialog/PanelContainer/VBoxContainer/HBoxContainer/Play" to="." method="_on_Play_pressed"]
+[connection signal="pressed" from="Control/WindowDialog/PanelContainer/VBoxContainer/HBoxContainer/Exit" to="." method="_on_Exit_pressed"]

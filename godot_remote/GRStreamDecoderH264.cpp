@@ -347,7 +347,7 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 						sDstBufInfo.uiInBsTimeStamp = image_pack->get_start_time();
 						int err = h264_decoder->DecodeFrameNoDelay(wb.ptr(), buf.size(), pData, &sDstBufInfo);
 						if (err != 0) {
-							_log("OpenH264 Decode error. Code: " + str(err) + ". Waiting next IDR frame.", LogLevel::LL_ERROR);
+							_log("OpenH264 Decode error. Code: " + str(err) + ". Waiting for the next IDR frame.", LogLevel::LL_ERROR);
 							is_decode_with_error = true;
 						}
 

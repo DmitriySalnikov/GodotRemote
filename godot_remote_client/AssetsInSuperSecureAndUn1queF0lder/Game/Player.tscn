@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Textures/ADB_icon.png" type="Texture" id=1]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Game/Player.gd" type="Script" id=2]
+
+[sub_resource type="CircleShape2D" id=1]
+radius = 43.2015
+
+[node name="Player" type="KinematicBody2D"]
+script = ExtResource( 2 )
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource( 1 )
+
+[node name="Sprite" type="Sprite" parent="CollisionShape2D"]
+scale = Vector2( 4, 4 )
+texture = ExtResource( 1 )
+offset = Vector2( 0, -1.468 )
+
+[node name="Tween" type="Tween" parent="."]

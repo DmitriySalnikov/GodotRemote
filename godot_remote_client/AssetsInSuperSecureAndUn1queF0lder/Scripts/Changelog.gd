@@ -1,14 +1,18 @@
 extends PopupPanel
 
+const UPD_EDITOR = "force_update_editor"
+
 # 1.0.2.3 means:
 # 1 - major version of module
 # 0 - minor version of module
 # 2 - patch version of module
 # 3 - version of this client
 
+# also 'UPD_EDITOR : true' after "text" key can be used to force show download button
+
 var changelog : Dictionary = {
 "1.0.2.0" : 
-"""Client:
+{ "text" : """Client:
 Added detailed Ping and FPS stats. Added Delay stats in detailed mode.
 Added the ability to change the number of touches to open the settings.
 Changed the 'Welcome' screen to be more clear. Now it can be reopened by clicking on 'Godot Remote' version in the settings.
@@ -22,12 +26,13 @@ Significantly improved JPG compression/decompression performance.
 Exposed all classes in GDScript, but did not expose their methods.
 Custom input scenes now adding '.md5' files from '.import' folder.
 Added 'tracy' profiler.
-""",
+""", },
 }
 
 func _ready() -> void:
 	if G.VersionChanged:
 		var text = "Current version: %s\nPrevious version: %s\n\n" % [G.get_version(), G.PreviousVersion]
+		var force_update_editor : bool = false
 		
 		var prev = _get_version_sum(G.PreviousVersion.split("."))
 		var curr = _get_version_sum(G.get_version().split("."))
@@ -39,14 +44,18 @@ func _ready() -> void:
 		for k in changelog.keys():
 			var v = _get_version_sum(k.split("."))
 			if v > prev and v <= curr:
-				text += "[%s]\n%s\n" % [k, changelog[k]]
+				text += "[%s]\n%s\n" % [k, changelog[k]["text"]]
 				found_logs = true
+				
+				if changelog[k].has(UPD_EDITOR):
+					if changelog[k][UPD_EDITOR] == true:
+						force_update_editor = true
 		
 		if not found_logs:
 			text += "No changes were found between these versions."
 		
 		$HBoxContainer/Control/ListOfChanges.text = text
-		$HBoxContainer/HBoxContainer/Button2.visible = _check_need_update_server(G.PreviousVersion, G.get_version())
+		$HBoxContainer/HBoxContainer/Button2.visible = force_update_editor or _check_need_update_server(G.PreviousVersion, G.get_version())
 		call_deferred("popup_centered_ratio", 1)
 		get_parent().connect("item_rect_changed", self, "viewport_size_changed")
 
