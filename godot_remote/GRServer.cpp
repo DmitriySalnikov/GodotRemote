@@ -55,7 +55,7 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_video_stream_enabled), "value"), &GRServer::set_video_stream_enabled);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_skip_frames), "frames"), &GRServer::set_skip_frames);
 	//ClassDB::bind_method(D_METHOD(NAMEOF(set_auto_adjust_scale)), &GRServer::set_auto_adjust_scale);
-	ClassDB::bind_method(D_METHOD(NAMEOF(set_jpg_quality), "quality"), &GRServer::set_jpg_quality);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_stream_quality), "quality"), &GRServer::set_stream_quality);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_render_scale), "scale"), &GRServer::set_render_scale);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_password), "password"), &GRServer::set_password);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_target_fps), "fps"), &GRServer::set_target_fps);
@@ -69,7 +69,7 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_video_stream_enabled)), &GRServer::is_video_stream_enabled);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_skip_frames)), &GRServer::get_skip_frames);
 	//ClassDB::bind_method(D_METHOD(NAMEOF(is_auto_adjust_scale)), &GRServer::is_auto_adjust_scale);
-	ClassDB::bind_method(D_METHOD(NAMEOF(get_jpg_quality)), &GRServer::get_jpg_quality);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_stream_quality)), &GRServer::get_stream_quality);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_render_scale)), &GRServer::get_render_scale);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_password)), &GRServer::get_password);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_target_fps)), &GRServer::get_target_fps);
@@ -80,7 +80,7 @@ void GRServer::_bind_methods() {
 	//ADD_PROPERTY(PropertyInfo(Variant::BOOL, "video_stream_enabled"), "set_video_stream_enabled", "is_video_stream_enabled");
 	//ADD_PROPERTY(PropertyInfo(Variant::INT, "skip_frames"), "set_skip_frames", "get_skip_frames");
 	////ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "is_auto_adjust_scale");
-	//ADD_PROPERTY(PropertyInfo(Variant::INT, "jpg_quality"), "set_jpg_quality", "get_jpg_quality");
+	//ADD_PROPERTY(PropertyInfo(Variant::INT, "stream_quality"), "set_stream_quality", "get_stream_quality");
 	//ADD_PROPERTY(PropertyInfo(Variant::INT, "render_scale"), "set_render_scale", "get_render_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "custom_input_scene"), "set_custom_input_scene", "get_custom_input_scene");
@@ -109,7 +109,7 @@ void GRServer::_register_methods() {
 	METHOD_REG(GRServer, set_video_stream_enabled);
 	METHOD_REG(GRServer, set_skip_frames);
 	//METHOD_REG(GRServer, set_auto_adjust_scale);
-	METHOD_REG(GRServer, set_jpg_quality);
+	METHOD_REG(GRServer, set_stream_quality);
 	METHOD_REG(GRServer, set_render_scale);
 	METHOD_REG(GRServer, set_password);
 	METHOD_REG(GRServer, set_target_fps);
@@ -123,7 +123,7 @@ void GRServer::_register_methods() {
 	METHOD_REG(GRServer, is_video_stream_enabled);
 	METHOD_REG(GRServer, get_skip_frames);
 	//METHOD_REG(GRServer, is_auto_adjust_scale);
-	METHOD_REG(GRServer, get_jpg_quality);
+	METHOD_REG(GRServer, get_stream_quality);
 	METHOD_REG(GRServer, get_render_scale);
 	METHOD_REG(GRServer, get_password);
 	METHOD_REG(GRServer, get_target_fps);
@@ -134,7 +134,7 @@ void GRServer::_register_methods() {
 	//register_property<GRServer, bool>("video_stream_enabled", &GRServer::set_video_stream_enabled, &GRServer::is_video_stream_enabled, true);
 	//register_property<GRServer, int>("skip_frames", &GRServer::set_skip_frames, &GRServer::get_skip_frames, 0);
 	////register_property<GRServer, bool>("auto_adjust_scale", &GRServer::set_auto_adjust_scale, &GRServer::is_auto_adjust_scale, true);
-	//register_property<GRServer, int>("jpg_quality", &GRServer::set_jpg_quality, &GRServer::get_jpg_quality, 80);
+	//register_property<GRServer, int>("stream_quality", &GRServer::set_stream_quality, &GRServer::get_stream_quality, 80);
 	//register_property<GRServer, int>("render_scale", &GRServer::set_render_scale, &GRServer::get_render_scale, 0.3f);
 	register_property<GRServer, String>("password", &GRServer::set_password, &GRServer::get_password, "");
 	register_property<GRServer, String>("custom_input_scene", &GRServer::set_custom_input_scene, &GRServer::get_custom_input_scene, "");
@@ -244,7 +244,8 @@ int GRServer::get_skip_frames() {
 }
 
 bool GRServer::set_encoder_threads_count(int count) {
-	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
+	if (resize_viewport && !resize_viewport->is_queued_for_deletion() &&
+			resize_viewport->get_encoder_threads_count() != count) {
 		resize_viewport->set_encoder_threads_count(count);
 		return true;
 	}
@@ -257,19 +258,19 @@ int GRServer::get_encoder_threads_count() {
 	return GET_PS(GodotRemote::ps_server_image_encoder_threads_count_name);
 }
 
-bool GRServer::set_jpg_quality(int quality) {
+bool GRServer::set_stream_quality(int quality) {
 	ERR_FAIL_COND_V(quality < 0 || quality > 100, false);
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion() &&
-			resize_viewport->get_jpg_quality() != quality) {
-		resize_viewport->set_jpg_quality(quality);
+			resize_viewport->get_stream_quality() != quality) {
+		resize_viewport->set_stream_quality(quality);
 		return true;
 	}
 	return false;
 }
 
-int GRServer::get_jpg_quality() {
+int GRServer::get_stream_quality() {
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion())
-		return resize_viewport->get_jpg_quality();
+		return resize_viewport->get_stream_quality();
 	return -1;
 }
 
@@ -503,18 +504,20 @@ void GRServer::_load_settings(bool force_hide_notifications) {
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {
 		set_video_stream_enabled((bool)GET_PS(GodotRemote::ps_server_stream_enabled_name));
 		set_compression_type((ImageCompressionType)(int)GET_PS(GodotRemote::ps_server_compression_type_name));
-		set_jpg_quality(GET_PS(GodotRemote::ps_server_jpg_quality_name));
+		set_stream_quality(GET_PS(GodotRemote::ps_server_stream_quality_name));
 		set_render_scale(GET_PS(GodotRemote::ps_server_scale_of_sending_stream_name));
 		set_skip_frames(GET_PS(GodotRemote::ps_server_stream_skip_frames_name));
 		set_target_fps(GET_PS(GodotRemote::ps_server_target_fps_name));
+		set_encoder_threads_count(GET_PS(GodotRemote::ps_server_image_encoder_threads_count_name));
 
 		IS_NOTIF_SHOWING {
 			GRNotifications::add_notification_or_update_line(title, "stream", "Stream enabled: " + str(is_video_stream_enabled()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 			GRNotifications::add_notification_or_update_line(title, "compression", "Compression type: " + str(get_compression_type()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
-			GRNotifications::add_notification_or_update_line(title, "quality", "JPG Quality: " + str(get_jpg_quality()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+			GRNotifications::add_notification_or_update_line(title, "quality", "Stream Quality: " + str(get_stream_quality()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 			GRNotifications::add_notification_or_update_line(title, "skip", "Skip Frames: " + str(get_skip_frames()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 			GRNotifications::add_notification_or_update_line(title, "scale", "Scale of stream: " + str(get_render_scale()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 			GRNotifications::add_notification_or_update_line(title, "fps", "Target FPS: " + str(get_target_fps()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
+			GRNotifications::add_notification_or_update_line(title, "threads", "Encoder Threads: " + str(get_encoder_threads_count()), GRNotifications::NotificationIcon::ICON_NONE, 1.f);
 		}
 	} else {
 		_log("Resize viewport not found!", LogLevel::LL_ERROR);
@@ -580,8 +583,8 @@ void GRServer::_update_settings_from_client(const std::map<int, Variant> setting
 					SET_BODY_CONVERT(set_compression_type, (ImageCompressionType)(int), "compression", "Compression type: ", (int));
 					break;
 				}
-				case TypesOfServerSettings::SERVER_SETTINGS_JPG_QUALITY: {
-					SET_BODY(set_jpg_quality, "quality", "JPG Quality: ", (int));
+				case TypesOfServerSettings::SERVER_SETTINGS_STREAM_QUALITY: {
+					SET_BODY(set_stream_quality, "quality", "Stream Quality: ", (int));
 					break;
 				}
 				case TypesOfServerSettings::SERVER_SETTINGS_SKIP_FRAMES: {
@@ -594,6 +597,10 @@ void GRServer::_update_settings_from_client(const std::map<int, Variant> setting
 				}
 				case TypesOfServerSettings::SERVER_SETTINGS_TARGET_FPS: {
 					SET_BODY(set_target_fps, "fps", "Target FPS: ", (int));
+					break;
+				}
+				case TypesOfServerSettings::SERVER_SETTINGS_THREADS_NUMBER: {
+					SET_BODY(set_encoder_threads_count, "threads", "Encoder Threads: ", (int));
 					break;
 				}
 				default:
@@ -878,7 +885,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 				auto pack = shared_new(GRPacketServerSettings);
 				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_VIDEO_STREAM_ENABLED, is_video_stream_enabled());
 				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_COMPRESSION_TYPE, get_compression_type());
-				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_JPG_QUALITY, get_jpg_quality());
+				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_STREAM_QUALITY, get_stream_quality());
 				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_RENDER_SCALE, get_render_scale());
 				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_SKIP_FRAMES, get_skip_frames());
 
@@ -1648,13 +1655,13 @@ GRDevice::ImageCompressionType GRSViewport::get_compression_type() {
 	return compression_type;
 }
 
-void GRSViewport::set_jpg_quality(int _quality) {
-	ERR_FAIL_COND(_quality < 0 || _quality > 100);
-	jpg_quality = _quality;
+void GRSViewport::set_stream_quality(int _quality) {
+	ERR_FAIL_COND(_quality < 1 || _quality > 100);
+	stream_quality = _quality;
 }
 
-int GRSViewport::get_jpg_quality() {
-	return jpg_quality;
+int GRSViewport::get_stream_quality() {
+	return stream_quality;
 }
 
 void GRSViewport::set_skip_frames(int skip) {

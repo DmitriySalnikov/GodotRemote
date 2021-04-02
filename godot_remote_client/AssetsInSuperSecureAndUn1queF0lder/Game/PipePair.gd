@@ -5,12 +5,13 @@ export(int, 0, 512) var half_height = 192 setget _set_half_height
 export(int, -512, 512) var offset = 64 setget _set_offset
 
 func _ready() -> void:
-	var cs = get_node_or_null("CollisionShape2D")
-	if cs:
-		var s1 = cs.shape
-		if s1 is RectangleShape2D:
-			if (cs.global_position.y + s1.extents.y) < 0:
-				cs.queue_free()
+	if not Engine.editor_hint:
+		var cs = get_node_or_null("CollisionShape2D")
+		if cs:
+			var s1 = cs.shape
+			if s1 is RectangleShape2D:
+				if (cs.global_position.y + s1.extents.y) < 0:
+					cs.queue_free()
 
 func _set_offset(val : int):
 	offset = val

@@ -26,11 +26,11 @@ onready var buttons_to_disable = [
 	$Control/WindowDialog/PanelContainer/VBoxContainer/HBoxContainer/Exit,
 ]
 
-func _enter_tree() -> void:
-	ProjectSettings.set_setting("display/window/handheld/orientation", OS.SCREEN_ORIENTATION_LANDSCAPE)
-
-func _exit_tree() -> void:
-	ProjectSettings.set_setting("display/window/handheld/orientation", OS.SCREEN_ORIENTATION_SENSOR)
+#func _enter_tree() -> void:
+#	ProjectSettings.set_setting("display/window/handheld/orientation", OS.SCREEN_ORIENTATION_LANDSCAPE)
+#
+#func _exit_tree() -> void:
+#	ProjectSettings.set_setting("display/window/handheld/orientation", OS.SCREEN_ORIENTATION_SENSOR)
 
 func _ready() -> void:
 	_center_floor()

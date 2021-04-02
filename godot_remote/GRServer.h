@@ -160,8 +160,8 @@ public:
 	bool is_video_stream_enabled();
 	bool set_compression_type(ImageCompressionType _type);
 	ImageCompressionType get_compression_type();
-	bool set_jpg_quality(int _quality);
-	int get_jpg_quality();
+	bool set_stream_quality(int _quality);
+	int get_stream_quality();
 	bool set_skip_frames(int fps);
 	bool set_render_scale(float _scale);
 	float get_render_scale();
@@ -180,9 +180,6 @@ public:
 class GRSViewport : public Viewport {
 	GD_CLASS(GRSViewport, Viewport);
 	friend GRServer;
-	friend GRStreamEncoder;
-	friend class GRStreamEncoderImageSequence;
-	friend class GRStreamEncoderH264;
 
 	Mutex_define(stream_mutex, "Stream Manager Mutex");
 
@@ -199,7 +196,7 @@ protected:
 	bool video_stream_enabled = true;
 	float rendering_scale = 0.3f;
 	float auto_scale = 0.5f;
-	int jpg_quality = 80;
+	int stream_quality = 80;
 	int skip_frames = 0;
 	GRDevice::ImageCompressionType compression_type = GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED;
 	GRStreamEncodersManager *stream_manager = nullptr;
@@ -231,8 +228,8 @@ public:
 	float get_rendering_scale();
 	void set_compression_type(GRDevice::ImageCompressionType val);
 	GRDevice::ImageCompressionType get_compression_type();
-	void set_jpg_quality(int _quality);
-	int get_jpg_quality();
+	void set_stream_quality(int _quality);
+	int get_stream_quality();
 	void set_skip_frames(int skip);
 	int get_skip_frames();
 	void set_encoder_threads_count(int count);

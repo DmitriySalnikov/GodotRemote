@@ -42,11 +42,13 @@ onready var touches_to_open = $Scroll/H/Grid/TouchesToOpenSettings/Type
 onready var enabled_server_settings = $Scroll/H/Grid/OverrideServerSetting
 onready var sync_server_settings = $Scroll/H/Grid/SyncServerSettings
 onready var video_stream = $Scroll/H/Grid/VideoStream
-onready var jpg_quality = $Scroll/H/Grid/JPG_Quality/Quality
+onready var stream_quality = $Scroll/H/Grid/Quality/Quality
+onready var quality_hint = $Scroll/H/Grid/Quality/HBox/QualityHint
 onready var render_scale = $Scroll/H/Grid/RenderScale/Scale
 onready var skip_frames = $Scroll/H/Grid/SkipFrames/SKIP
 onready var target_server_fps = $Scroll/H/Grid/TargetFramerate/fps
 onready var compression = $Scroll/H/Grid/CompressionType/State2
+onready var encoder_threads = $Scroll/H/Grid/EncoderThreadsNumber/threads
 
 # Names of LineEdits in custom touch input menu
 onready var line_edits_to_touch_input = [
@@ -56,8 +58,8 @@ onready var line_edits_to_touch_input = [
 	[wifi_port_line.get_line_edit(), "Server port:"],
 	[fps.get_line_edit(), "Output data FPS:"],
 	[password, "Server password:"],
-	[skip_frames.get_line_edit(), "Skip frames:"],
 	[target_server_fps.get_line_edit(), "Server target FPS:"],
+	[encoder_threads.get_line_edit(), "Server encoder threads:"],
 	]
 
 var updated_by_code := false
@@ -66,6 +68,7 @@ func _ready():
 	scroll.get_v_scrollbar().rect_min_size.x = 24
 	scroll.get_h_scrollbar().rect_min_size.y = 24
 	donations.visible = false
+	quality_hint.visible = false
 	#empty_top.visible = true
 	
 	version.text = "GR version: " + GodotRemote.get_version()
@@ -73,6 +76,7 @@ func _ready():
 	d.connect("connection_state_changed", self, "_connection_changed")
 	d.connect("status_changed", self, "_status_changed")
 	d.connect("server_settings_received", self, "_server_settings_received")
+	d.connect("server_quality_hint_setting_received", self, "_update_quality_hint_text")
 	update_values()
 	_set_buttons_disabled(false)
 	_update_start_stop()
@@ -166,12 +170,13 @@ func update_values():
 	sync_server_settings.pressed = G.sync_server_settings
 	_server_settings_visibility(G.override_server_settings)
 	
-	jpg_quality.value = G.server_jpg_quality
+	stream_quality.value = G.server_quality
 	render_scale.value = G.server_render_scale
-	skip_frames.value = G.server_skip_fps
+	skip_frames.select(skip_frames.get_item_index(G.server_skip_fps))
 	compression.select(compression.get_item_index(G.server_compression_type))
 	video_stream.pressed = G.server_video_stream
 	target_server_fps.value = G.server_target_fps
+	encoder_threads.value = G.server_threads_number
 	
 	_set_all_server_settings()
 	_on_con_Type_item_selected(con_type_menu.selected)
@@ -179,12 +184,13 @@ func update_values():
 func _set_all_server_settings():
 	var d = GodotRemote.get_device()
 	if G.override_server_settings and d.is_connected_to_host():
-		d.set_server_setting(C.GRDevice_SERVER_PARAM_JPG_QUALITY, jpg_quality.value)
+		d.set_server_setting(C.GRDevice_SERVER_PARAM_STREAM_QUALITY, stream_quality.value)
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_RENDER_SCALE, render_scale.value)
-		d.set_server_setting(C.GRDevice_SERVER_PARAM_SKIP_FRAMES, skip_frames.value)
+		d.set_server_setting(C.GRDevice_SERVER_PARAM_SKIP_FRAMES, skip_frames.get_item_id(skip_frames.selected))
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE, compression.get_item_id(compression.selected))
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED, video_stream.pressed)
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_TARGET_FPS, target_server_fps.value)
+		d.set_server_setting(C.GRDevice_SERVER_SETTINGS_THREADS_NUMBER, encoder_threads.value)
 
 func _status_changed(_status : int):
 	if timer.is_stopped():
@@ -196,13 +202,17 @@ func _connection_changed(connected : bool):
 		game_open_counter = 0
 		_set_all_server_settings()
 	else:
-		pass
+		quality_hint.visible = true
 
 func _game_scene_counter_increase():
 	game_open_counter += 1
 	if game_open_counter >= 5:
 		game_open_counter = 0
 		get_parent().create_game_scene(true)
+
+func _update_quality_hint_text(hint_text):
+	quality_hint.visible = true
+	quality_hint.text = hint_text
 
 func _server_settings_received(_settings : Dictionary):
 	updated_by_code = true
@@ -211,12 +221,13 @@ func _server_settings_received(_settings : Dictionary):
 	for kk in k:
 		var v = _settings[kk]
 		match kk:
-			C.GRDevice_SERVER_PARAM_JPG_QUALITY: jpg_quality.value = v
+			C.GRDevice_SERVER_PARAM_STREAM_QUALITY: stream_quality.value = v
 			C.GRDevice_SERVER_PARAM_RENDER_SCALE: render_scale.value = v 
-			C.GRDevice_SERVER_PARAM_SKIP_FRAMES: skip_frames.value = v
+			C.GRDevice_SERVER_PARAM_SKIP_FRAMES: skip_frames.selected = skip_frames.get_item_index(v)
 			C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE: compression.selected = compression.get_item_index(v)
 			C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED: video_stream.pressed = v
 			C.GRDevice_SERVER_PARAM_TARGET_FPS: target_server_fps.value = v
+			C.GRDevice_SERVER_SETTINGS_THREADS_NUMBER: encoder_threads.value = v
 	
 	updated_by_code = false
 
@@ -383,8 +394,8 @@ func _on_SyncServerSettings_toggled(button_pressed):
 func _on_server_Quality_value_changed(value):
 	if not updated_by_code:
 		if G.override_server_settings:
-			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_JPG_QUALITY, value)
-	G.server_jpg_quality = value
+			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_STREAM_QUALITY, value)
+	G.server_quality = value
 
 func _on_server_render_Scale_value_changed(value):
 	if not updated_by_code:
@@ -392,11 +403,12 @@ func _on_server_render_Scale_value_changed(value):
 			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_RENDER_SCALE, value)
 	G.server_render_scale = value
 
-func _on_server_send_FPS_value_changed(value):
+func _on_server_skip_frames_value_changed(value):
+	var id = skip_frames.get_item_id(value)
 	if not updated_by_code:
 		if G.override_server_settings:
-			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_SKIP_FRAMES, value)
-	G.server_skip_fps = value
+			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_SKIP_FRAMES, id)
+	G.server_skip_fps = id
 
 func _on_compression_type_item_selected(index):
 	var id = compression.get_item_id(index)
@@ -416,3 +428,9 @@ func _on_server_target_fps_value_changed(value: float) -> void:
 		if G.override_server_settings:
 			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_TARGET_FPS, value)
 	G.server_target_fps = int(value)
+
+func _on_server_encoder_threads_value_changed(value: float) -> void:
+	if not updated_by_code:
+		if G.override_server_settings:
+			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_SETTINGS_THREADS_NUMBER, value)
+	G.server_threads_number = int(value)

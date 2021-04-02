@@ -102,6 +102,7 @@ void GRClient::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("connection_state_changed", PropertyInfo(Variant::BOOL, "is_connected")));
 	ADD_SIGNAL(MethodInfo("mouse_mode_changed", PropertyInfo(Variant::INT, "mouse_mode")));
 	ADD_SIGNAL(MethodInfo("server_settings_received", PropertyInfo(Variant::DICTIONARY, "settings")));
+	ADD_SIGNAL(MethodInfo("server_quality_hint_setting_received", PropertyInfo(Variant::STRING, "quality_hint")));
 
 	// SETGET
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_capture_on_focus), "val"), &GRClient::set_capture_on_focus);
@@ -201,6 +202,7 @@ void GRClient::_register_methods() {
 	register_signal<GRClient>("connection_state_changed", "is_connected", GODOT_VARIANT_TYPE_BOOL);
 	register_signal<GRClient>("mouse_mode_changed", "mouse_mode", GODOT_VARIANT_TYPE_INT);
 	register_signal<GRClient>("server_settings_received", "settings", GODOT_VARIANT_TYPE_DICTIONARY);
+	register_signal<GRClient>("server_quality_hint_setting_received", "quality_hint", GODOT_VARIANT_TYPE_STRING);
 
 	// SETGET
 	METHOD_REG(GRClient, set_capture_on_focus);
@@ -1432,6 +1434,15 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 						}
 						_prev_stream_aspect_ratio = data->get_aspect();
 						call_deferred("emit_signal", "stream_aspect_ratio_changed", data->get_aspect());
+						break;
+					}
+					case GRPacket::PacketType::ServerStreamQualityHint: {
+						shared_cast_def(GRPacketServerStreamQualityHint, data, pack);
+						if (!data) {
+							_log("Incorrect GRPacketServerStreamQualityHint", LogLevel::LL_ERROR);
+							continue;
+						}
+						call_deferred("emit_signal", "server_quality_hint_setting_received", data->get_hint());
 						break;
 					}
 					case GRPacket::PacketType::CustomUserData: {

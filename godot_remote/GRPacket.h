@@ -29,6 +29,7 @@ public:
 		CustomUserData = 9,
 		StreamDataH264 = 10,
 		StreamData = 11, // abstract
+		ServerStreamQualityHint = 12,
 
 		// Requests
 		Ping = 128,
@@ -376,6 +377,29 @@ public:
 
 	void set_aspect(float val) {
 		stream_aspect = val;
+	}
+};
+
+//////////////////////////////////////////////////////////////////////////
+// SERVER STREAM QUALITY HINT
+class GRPacketServerStreamQualityHint : public GRPacket {
+	friend GRPacket;
+
+	String quality_hint;
+
+protected:
+	virtual Ref<StreamPeerBuffer> _get_data() override;
+	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+
+public:
+	virtual PacketType get_type() override { return PacketType::ServerStreamQualityHint; };
+
+	String get_hint() {
+		return quality_hint;
+	}
+
+	void set_hint(String val) {
+		quality_hint = val;
 	}
 };
 

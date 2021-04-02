@@ -158,14 +158,14 @@ __meta__ = {
 margin_left = 2.0
 margin_top = 2.0
 margin_right = 758.0
-margin_bottom = 2382.0
+margin_bottom = 2452.0
 grow_horizontal = 0
 grow_vertical = 0
 size_flags_horizontal = 3
 
 [node name="Grid" type="GridContainer" parent="Scroll/H"]
 margin_right = 744.0
-margin_bottom = 2380.0
+margin_bottom = 2450.0
 size_flags_horizontal = 3
 custom_constants/vseparation = 24
 __meta__ = {
@@ -728,19 +728,36 @@ mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 
-[node name="JPG_Quality" type="VBoxContainer" parent="Scroll/H/Grid"]
+[node name="Quality" type="VBoxContainer" parent="Scroll/H/Grid"]
 margin_top = 1926.0
 margin_right = 744.0
 margin_bottom = 2024.0
 size_flags_horizontal = 3
 
-[node name="Label" type="Label" parent="Scroll/H/Grid/JPG_Quality"]
+[node name="HBox" type="HBoxContainer" parent="Scroll/H/Grid/Quality"]
 margin_right = 744.0
 margin_bottom = 46.0
+size_flags_horizontal = 3
+custom_constants/separation = 0
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/Quality/HBox"]
+margin_right = 621.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
 text = "Image Quality"
 valign = 1
 
-[node name="Quality" type="HSlider" parent="Scroll/H/Grid/JPG_Quality" groups=[
+[node name="QualityHint" type="Label" parent="Scroll/H/Grid/Quality/HBox"]
+margin_left = 621.0
+margin_top = 4.0
+margin_right = 744.0
+margin_bottom = 41.0
+custom_fonts/font = ExtResource( 9 )
+custom_colors/font_color = Color( 0.501961, 0.501961, 0.501961, 1 )
+text = "5000 kbps"
+valign = 1
+
+[node name="Quality" type="HSlider" parent="Scroll/H/Grid/Quality" groups=[
 "nodes_that_should_be_higher",
 ]]
 margin_top = 50.0
@@ -816,13 +833,15 @@ size_flags_horizontal = 3
 [node name="Label" type="Label" parent="Scroll/H/Grid/SkipFrames" groups=[
 "nodes_that_should_be_higher",
 ]]
+margin_top = 4.0
 margin_right = 370.0
-margin_bottom = 46.0
+margin_bottom = 41.0
 size_flags_horizontal = 3
-text = "Skip Frames"
+custom_fonts/font = ExtResource( 9 )
+text = "Number of processing frames"
 valign = 1
 
-[node name="SKIP" type="SpinBox" parent="Scroll/H/Grid/SkipFrames" groups=[
+[node name="SKIP" type="OptionButton" parent="Scroll/H/Grid/SkipFrames" groups=[
 "nodes_that_should_be_higher",
 ]]
 margin_left = 374.0
@@ -830,8 +849,10 @@ margin_right = 744.0
 margin_bottom = 46.0
 size_flags_horizontal = 3
 size_flags_vertical = 5
-max_value = 1000.0
+text = "100 %"
 align = 1
+items = [ "100 %", null, false, 0, false, "50 %", null, false, 1, false, "33.3 %", null, false, 2, null, "25 %", null, false, 3, null, "20 %", null, false, 4, null, "16.6 %", null, false, 5, null, "14.3 %", null, false, 6, null, "12.5 %", null, false, 7, null, "11.1 %", null, false, 8, null, "10 %", null, false, 9, null ]
+selected = 0
 
 [node name="CompressionType" type="HBoxContainer" parent="Scroll/H/Grid"]
 margin_top = 2310.0
@@ -860,10 +881,37 @@ align = 1
 items = [ "JPG", null, false, 1, null, "H264", null, false, 3, null ]
 selected = 0
 
-[node name="Empty3" type="Control" parent="Scroll/H/Grid"]
+[node name="EncoderThreadsNumber" type="HBoxContainer" parent="Scroll/H/Grid"]
 margin_top = 2380.0
 margin_right = 744.0
-margin_bottom = 2380.0
+margin_bottom = 2426.0
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="Scroll/H/Grid/EncoderThreadsNumber" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_right = 370.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+text = "Encoder Threads"
+valign = 1
+
+[node name="threads" type="SpinBox" parent="Scroll/H/Grid/EncoderThreadsNumber" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_left = 374.0
+margin_right = 744.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+size_flags_vertical = 5
+max_value = 16.0
+rounded = true
+align = 1
+
+[node name="Empty3" type="Control" parent="Scroll/H/Grid"]
+margin_top = 2450.0
+margin_right = 744.0
+margin_bottom = 2450.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
@@ -871,7 +919,7 @@ size_flags_vertical = 0
 [node name="VSeparator" type="VSeparator" parent="Scroll/H"]
 margin_left = 748.0
 margin_right = 756.0
-margin_bottom = 2380.0
+margin_bottom = 2450.0
 rect_min_size = Vector2( 8, 0 )
 custom_styles/separator = ExtResource( 4 )
 
@@ -912,9 +960,10 @@ __meta__ = {
 [connection signal="toggled" from="Scroll/H/Grid/OverrideServerSetting" to="." method="_on_override_settings_State_toggled"]
 [connection signal="toggled" from="Scroll/H/Grid/SyncServerSettings" to="." method="_on_SyncServerSettings_toggled"]
 [connection signal="toggled" from="Scroll/H/Grid/VideoStream" to="." method="_on_video_stream_Enabled_toggled"]
-[connection signal="value_changed" from="Scroll/H/Grid/JPG_Quality/Quality" to="." method="_on_server_Quality_value_changed"]
+[connection signal="value_changed" from="Scroll/H/Grid/Quality/Quality" to="." method="_on_server_Quality_value_changed"]
 [connection signal="value_changed" from="Scroll/H/Grid/RenderScale/Scale" to="." method="_on_server_render_Scale_value_changed"]
 [connection signal="value_changed" from="Scroll/H/Grid/TargetFramerate/fps" to="." method="_on_server_target_fps_value_changed"]
-[connection signal="value_changed" from="Scroll/H/Grid/SkipFrames/SKIP" to="." method="_on_server_send_FPS_value_changed"]
+[connection signal="item_selected" from="Scroll/H/Grid/SkipFrames/SKIP" to="." method="_on_server_skip_frames_value_changed"]
 [connection signal="item_selected" from="Scroll/H/Grid/CompressionType/State2" to="." method="_on_compression_type_item_selected"]
+[connection signal="value_changed" from="Scroll/H/Grid/EncoderThreadsNumber/threads" to="." method="_on_server_encoder_threads_value_changed"]
 [connection signal="id_pressed" from="LogLevelPopupMenu" to="." method="_on_LogLevelPopupMenu_id_pressed"]

@@ -61,7 +61,7 @@ public:
 	static GR_PS_NAME_TYPE ps_server_stream_skip_frames_name;
 	static GR_PS_NAME_TYPE ps_server_stream_enabled_name;
 	static GR_PS_NAME_TYPE ps_server_compression_type_name;
-	static GR_PS_NAME_TYPE ps_server_jpg_quality_name;
+	static GR_PS_NAME_TYPE ps_server_stream_quality_name;
 	static GR_PS_NAME_TYPE ps_server_jpg_buffer_mb_size_name;
 	static GR_PS_NAME_TYPE ps_server_auto_adjust_scale_name;
 	static GR_PS_NAME_TYPE ps_server_scale_of_sending_stream_name;
@@ -134,10 +134,11 @@ public:
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_USE_INTERNAL);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_VIDEO_STREAM_ENABLED);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_COMPRESSION_TYPE);
-	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_JPG_QUALITY);
+	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_STREAM_QUALITY);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_SKIP_FRAMES);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_RENDER_SCALE);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_TARGET_FPS);
+	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_THREADS_NUMBER);
 
 	CONST_GET(GRDevice, ImageCompressionType, COMPRESSION_JPG);
 	CONST_GET(GRDevice, ImageCompressionType, COMPRESSION_H264);

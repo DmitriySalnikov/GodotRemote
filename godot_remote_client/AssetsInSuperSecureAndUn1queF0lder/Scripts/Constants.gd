@@ -31,10 +31,11 @@ var GRDevice_STATUS_STOPPED : int
 var GRDevice_USE_INTERNAL_SERVER_SETTINGS : int
 var GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED : int
 var GRDevice_SERVER_PARAM_COMPRESSION_TYPE : int
-var GRDevice_SERVER_PARAM_JPG_QUALITY : int
+var GRDevice_SERVER_PARAM_STREAM_QUALITY : int
 var GRDevice_SERVER_PARAM_SKIP_FRAMES : int
 var GRDevice_SERVER_PARAM_TARGET_FPS : int
 var GRDevice_SERVER_PARAM_RENDER_SCALE : int
+var GRDevice_SERVER_SETTINGS_THREADS_NUMBER : int
 
 var GRDevice_IMAGE_COMPRESSION_UNCOMPRESSED : int
 var GRDevice_IMAGE_COMPRESSION_JPG : int
@@ -81,10 +82,11 @@ func _setup_constants():
 	GRDevice_USE_INTERNAL_SERVER_SETTINGS = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_USE_INTERNAL");
 	GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_VIDEO_STREAM_ENABLED");
 	GRDevice_SERVER_PARAM_COMPRESSION_TYPE = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_COMPRESSION_TYPE");
-	GRDevice_SERVER_PARAM_JPG_QUALITY = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_JPG_QUALITY");
+	GRDevice_SERVER_PARAM_STREAM_QUALITY = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_STREAM_QUALITY");
 	GRDevice_SERVER_PARAM_SKIP_FRAMES = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_SKIP_FRAMES");
 	GRDevice_SERVER_PARAM_RENDER_SCALE = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_RENDER_SCALE");
 	GRDevice_SERVER_PARAM_TARGET_FPS = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_TARGET_FPS");
+	GRDevice_SERVER_SETTINGS_THREADS_NUMBER = get_enum_constant("GRDevice", "TypesOfServerSettings", "SERVER_SETTINGS_THREADS_NUMBER");
 
 	GRDevice_IMAGE_COMPRESSION_JPG = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_JPG");
 	GRDevice_IMAGE_COMPRESSION_H264 = get_enum_constant("GRDevice", "ImageCompressionType", "COMPRESSION_H264");

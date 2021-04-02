@@ -284,6 +284,7 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 
 	bool is_encoder_inited = false;
 	bool error_shown = false;
+	bool first_send_quality_hint = false;
 
 #ifdef DEBUG_H264
 	auto d = memnew(_Directory);
@@ -304,7 +305,6 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 			continue;
 		}
 
-		int jpg_quality = viewport->jpg_quality;
 		CommitedImage com_image = images.front();
 		images.pop();
 
@@ -327,11 +327,22 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 		int bytes_in_color = com_image.img_format == Image::FORMAT_RGB8 ? 3 : 4;
 
 		GRServer *srv = cast_to<GRServer>(GodotRemote::get_singleton()->get_device());
-		encoder_props.max_frame_rate = srv ? srv->get_target_fps() : 60;
+
+		encoder_props.max_frame_rate = srv ? srv->get_target_fps() * (1.f / (srv->get_skip_frames() + 1)) : 60;
 		encoder_props.pic_width = com_image.img_width;
 		encoder_props.pic_height = com_image.img_height;
-		// TODO temp
-		encoder_props.target_bitrate = int((com_image.img_width * com_image.img_height * encoder_props.max_frame_rate) * (viewport->get_jpg_quality() / 100.f));
+
+		int new_bitrate = int((com_image.img_width * com_image.img_height * encoder_props.max_frame_rate) * (viewport->get_stream_quality() / 100.f));
+		// Send hint to client
+		if (encoder_props.target_bitrate != new_bitrate || !first_send_quality_hint) {
+			auto quality_hint = shared_new(GRPacketServerStreamQualityHint);
+			quality_hint->set_hint(str(int(new_bitrate / 1024)) + " KBps");
+			if (srv)
+				srv->send_packet(quality_hint);
+			first_send_quality_hint = true;
+		}
+
+		encoder_props.target_bitrate = new_bitrate;
 		ts_lock.unlock();
 
 		int width = encoder_props.pic_width;

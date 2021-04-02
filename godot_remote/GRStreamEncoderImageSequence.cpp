@@ -150,6 +150,8 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 	int thread_idx = p_userdata;
 	OS *os = OS::get_singleton();
 
+	bool first_send_quality_hint = false;
+
 	PoolByteArray jpg_buffer;
 	jpg_buffer.resize((1024 * 1024) * ((int)GET_PS(GodotRemote::ps_server_jpg_buffer_mb_size_name)));
 
@@ -164,7 +166,6 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 			continue;
 		}
 
-		int jpg_quality = viewport->jpg_quality;
 		CommitedImage com_image = images.front();
 		images.pop();
 
@@ -188,6 +189,19 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		PoolByteArray img_data;
 		auto pack = shared_new(GRPacketStreamDataImage);
 		int bytes_in_color = com_image.img_format == Image::FORMAT_RGB8 ? 3 : 4;
+		int stream_quality = viewport->get_stream_quality();
+
+		// Send hint to client
+		if (stream_quality != prev_quality_of_stream || !first_send_quality_hint) {
+			auto quality_hint = shared_new(GRPacketServerStreamQualityHint);
+			quality_hint->set_hint(str(stream_quality) + " %");
+			auto srv = GodotRemote::get_singleton()->get_device();
+			if (srv)
+				srv->send_packet(quality_hint);
+
+			first_send_quality_hint = true;
+			prev_quality_of_stream = stream_quality;
+		}
 
 		pack->set_compression_type(compression_type);
 		pack->set_size(Size2((float)com_image.img_width, (float)com_image.img_height));
@@ -204,9 +218,9 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 				Error err = Error::OK;
 
 #ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
-				err = GRUtilsJPGCodec::_compress_jpg_turbo(img_data, com_image.img_data, jpg_buffer, com_image.img_width, com_image.img_height, bytes_in_color, jpg_quality);
+				err = GRUtilsJPGCodec::_compress_jpg_turbo(img_data, com_image.img_data, jpg_buffer, com_image.img_width, com_image.img_height, bytes_in_color, stream_quality);
 #else
-				err = GRUtilsJPGCodec::_compress_jpg(img_data, com_image.img_data, jpg_buffer, com_image.img_width, com_image.img_height, bytes_in_color, jpg_quality);
+				err = GRUtilsJPGCodec::_compress_jpg(img_data, com_image.img_data, jpg_buffer, com_image.img_width, com_image.img_height, bytes_in_color, stream_quality);
 #endif
 
 				if ((int)err) {

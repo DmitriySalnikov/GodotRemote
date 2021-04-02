@@ -37,7 +37,7 @@ GR_PS_NAME_TYPE GodotRemote::ps_server_config_adb_name = "debug/godot_remote/ser
 GR_PS_NAME_TYPE GodotRemote::ps_server_stream_skip_frames_name = "debug/godot_remote/server/skip_frames";
 GR_PS_NAME_TYPE GodotRemote::ps_server_stream_enabled_name = "debug/godot_remote/server/video_stream_enabled";
 GR_PS_NAME_TYPE GodotRemote::ps_server_compression_type_name = "debug/godot_remote/server/compression_type";
-GR_PS_NAME_TYPE GodotRemote::ps_server_jpg_quality_name = "debug/godot_remote/server/jpg_quality";
+GR_PS_NAME_TYPE GodotRemote::ps_server_stream_quality_name = "debug/godot_remote/server/stream_quality";
 GR_PS_NAME_TYPE GodotRemote::ps_server_jpg_buffer_mb_size_name = "debug/godot_remote/server/jpg_compress_buffer_size_mbytes";
 GR_PS_NAME_TYPE GodotRemote::ps_server_auto_adjust_scale_name = "debug/godot_remote/server/auto_adjust_scale";
 GR_PS_NAME_TYPE GodotRemote::ps_server_scale_of_sending_stream_name = "debug/godot_remote/server/scale_of_sending_stream";
@@ -250,10 +250,11 @@ void GodotRemote::_register_methods() {
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_USE_INTERNAL);
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_VIDEO_STREAM_ENABLED);
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_COMPRESSION_TYPE);
-	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_JPG_QUALITY);
+	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_STREAM_QUALITY);
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_SKIP_FRAMES);
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_RENDER_SCALE);
 	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_TARGET_FPS);
+	CONST_REG(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_THREADS_NUMBER);
 
 	CONST_REG(GRDevice, ImageCompressionType, COMPRESSION_JPG);
 	CONST_REG(GRDevice, ImageCompressionType, COMPRESSION_H264);
@@ -448,7 +449,7 @@ void GodotRemote::register_and_load_settings() {
 	DEF_(ps_server_compression_type_name, 1 /*GRDevice::ImageCompressionType::JPG*/, Variant::INT, PROPERTY_HINT_ENUM, "Uncompressed,JPG,PNG (deprecated),H264");
 	DEF_(ps_server_stream_skip_frames_name, 0, Variant::INT, PROPERTY_HINT_RANGE, "0,1000");
 	DEF_(ps_server_scale_of_sending_stream_name, 0.75f, Variant::REAL, PROPERTY_HINT_RANGE, "0,1,0.01");
-	DEF_(ps_server_jpg_quality_name, 90, Variant::INT, PROPERTY_HINT_RANGE, "0,100");
+	DEF_(ps_server_stream_quality_name, 85, Variant::INT, PROPERTY_HINT_RANGE, "0,100");
 	DEF_(ps_server_auto_adjust_scale_name, false, Variant::BOOL, PROPERTY_HINT_NONE, "");
 
 #undef DEF_SET

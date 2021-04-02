@@ -31,6 +31,7 @@ private:
 
 	PoolByteArray ret_data;
 	bool is_threads_active = true;
+	int prev_quality_of_stream = 0;
 
 	void _processing_thread(Variant p_userdata);
 

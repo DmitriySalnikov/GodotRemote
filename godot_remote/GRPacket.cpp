@@ -51,6 +51,8 @@ std::shared_ptr<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 			CREATE(GRPacketCustomUserData);
 		case PacketType::StreamDataH264:
 			CREATE(GRPacketStreamDataH264);
+		case PacketType::ServerStreamQualityHint:
+			CREATE(GRPacketServerStreamQualityHint);
 
 			// Requests
 		case PacketType::Ping:
@@ -271,7 +273,7 @@ bool GRPacketStreamAspectRatio::_create(Ref<StreamPeerBuffer> buf) {
 
 Ref<StreamPeerBuffer> GRPacketCustomUserData::_get_data() {
 	auto buf = GRPacket::_get_data();
-	buf->put_string(packet_id);
+	buf->put_var(packet_id);
 	buf->put_8(full_objects);
 	buf->put_var(user_data, full_objects);
 	return buf;
@@ -279,8 +281,23 @@ Ref<StreamPeerBuffer> GRPacketCustomUserData::_get_data() {
 
 bool GRPacketCustomUserData::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacket::_create(buf);
-	packet_id = buf->get_string();
+	packet_id = buf->get_var();
 	full_objects = buf->get_8();
 	user_data = buf->get_var(full_objects);
+	return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// SERVER STREAM QUALITY HINT
+
+Ref<StreamPeerBuffer> GRPacketServerStreamQualityHint::_get_data() {
+	auto buf = GRPacket::_get_data();
+	buf->put_string(quality_hint);
+	return buf;
+}
+
+bool GRPacketServerStreamQualityHint::_create(Ref<StreamPeerBuffer> buf) {
+	GRPacket::_create(buf);
+	quality_hint = buf->get_string();
 	return true;
 }

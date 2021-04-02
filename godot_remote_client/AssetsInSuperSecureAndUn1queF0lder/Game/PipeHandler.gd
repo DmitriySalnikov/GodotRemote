@@ -62,6 +62,6 @@ func clear_pipes():
 	is_manual_destroying = true
 	for p in moving_pipes:
 		p.queue_free()
+	moving_pipes.clear()
 	last_pipe = null
-	
 	is_manual_destroying = false

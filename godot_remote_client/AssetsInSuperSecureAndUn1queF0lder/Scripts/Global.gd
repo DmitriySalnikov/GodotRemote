@@ -51,10 +51,11 @@ var override_server_settings : bool = false setget set_override_settings
 var sync_server_settings : bool = false setget set_sync_server_settings
 var server_video_stream : bool = true setget set_server_video_stream
 var server_compression_type : int = 1 setget set_server_compression_type
-var server_jpg_quality : int = 90 setget set_server_jpg_quality
+var server_quality : int = 90 setget set_server_jpg_quality
 var server_render_scale : float = 0.5 setget set_server_render_scale
 var server_skip_fps : int = 0 setget set_server_skip_fps
 var server_target_fps : int = 60 setget set_server_target_fps
+var server_threads_number : int = 2 setget set_server_threads_number
 
 func get_random_hash(length : int = 6) -> String:
 	return str(randi() * randi()).md5_text().substr(0,length)
@@ -145,10 +146,11 @@ func _set_all_values():
 	if override_server_settings:
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED, server_video_stream)
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE, server_compression_type)
-		dev.set_server_setting(C.GRDevice_SERVER_PARAM_JPG_QUALITY, server_jpg_quality)
+		dev.set_server_setting(C.GRDevice_SERVER_PARAM_STREAM_QUALITY, server_quality)
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_RENDER_SCALE, server_render_scale)
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_SKIP_FRAMES, server_skip_fps)
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_TARGET_FPS, server_target_fps)
+		dev.set_server_setting(C.GRDevice_SERVER_SETTINGS_THREADS_NUMBER, server_threads_number)
 	
 	if i_w:
 		dev.start()
@@ -182,11 +184,12 @@ func _save_settings():
 	d["ov_s_settings"] = override_server_settings
 	d["sync_s_settings"] = sync_server_settings
 	d["s_video_stream"] = server_video_stream
-	d["s_jpg_quality"] = server_jpg_quality
+	d["s_quality"] = server_quality
 	d["s_render_scale"] = server_render_scale
 	d["s_skip_fps"] = server_skip_fps
 	d["s_target_fps"] = server_target_fps
 	d["s_compression_type"] = server_compression_type
+	d["s_threads_number"] = server_threads_number
 	
 	var dir = Directory.new()
 	
@@ -246,11 +249,12 @@ func _load_settings():
 			override_server_settings = _safe_get_from_dict(d, "ov_s_settings", override_server_settings)
 			sync_server_settings = _safe_get_from_dict(d, "sync_s_settings", sync_server_settings)
 			server_video_stream = _safe_get_from_dict(d, "s_video_stream", server_video_stream)
-			server_jpg_quality = _safe_get_from_dict(d, "s_jpg_quality", server_jpg_quality)
+			server_quality = _safe_get_from_dict(d, "s_quality", server_quality)
 			server_render_scale = _safe_get_from_dict(d, "s_render_scale", server_render_scale)
 			server_skip_fps = _safe_get_from_dict(d, "s_skip_fps", server_skip_fps)
 			server_target_fps = _safe_get_from_dict(d, "s_target_fps", server_target_fps)
 			server_compression_type = _safe_get_from_dict(d, "s_compression_type", server_compression_type)
+			server_threads_number = _safe_get_from_dict(d, "s_threads_number", server_threads_number)
 			
 			_check_for_outdated_values()
 
@@ -360,7 +364,7 @@ func set_server_compression_type(val : int):
 	_save_settings()
 
 func set_server_jpg_quality(val : int):
-	server_jpg_quality = val
+	server_quality = val
 	_save_settings()
 
 func set_server_render_scale(val : float):
@@ -373,4 +377,8 @@ func set_server_skip_fps(val : int):
 
 func set_server_target_fps(val : int):
 	server_target_fps = val
+	_save_settings()
+
+func set_server_threads_number(val : int):
+	server_threads_number = val
 	_save_settings()
