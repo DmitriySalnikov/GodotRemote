@@ -18,6 +18,7 @@ Added the ability to change the number of touches to open the settings.
 Changed the 'Welcome' screen to be more clear. Now it can be reopened by clicking on 'Godot Remote' version in the settings.
 Added the ability to open settings when the broadcast is not active.
 Changed the text of the 'Connect' button. The Start/Stop client button now changes color to visually indicate the client status.
+Added built-in game :-)
 Module:
 Fixed multithreading issues.
 Improved fps and ping counters.

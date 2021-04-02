@@ -18,6 +18,8 @@ signal touches_to_open_settings_changed(count)
 const CLIENT_VERSION := 0
 const SAVE_FILE := "user://settings.json"
 
+var GameHighScore := 0 setget set_game_score
+
 var IsMobile : bool = false
 var Billings : Node = null
 
@@ -154,6 +156,8 @@ func _set_all_values():
 func _save_settings():
 	var d = Dictionary()
 	
+	d["game_highscore"] = GameHighScore
+	
 	d["m_version"] = get_version()
 	d["first_run_accepted"] = FirstRunAgreementAccepted
 	d["app_runs"] = AppRuns
@@ -210,7 +214,9 @@ func _load_settings():
 			f.close()
 			var d = parse_json(txt)
 			
-			PreviousVersion = _safe_get_from_dict(d, "m_version", get_version()) 
+			GameHighScore = _safe_get_from_dict(d, "game_highscore", GameHighScore)
+			
+			PreviousVersion = _safe_get_from_dict(d, "m_version", get_version())
 			VersionChanged = PreviousVersion != get_version()
 			if VersionChanged:
 				AppRuns = 0
@@ -262,6 +268,10 @@ func _safe_get_from_dict(dict:Dictionary, val, def):
 
 func get_version() -> String:
 	return "%s.%d" % [GodotRemote.get_version(), CLIENT_VERSION]
+
+func set_game_score(val : int):
+	GameHighScore = val
+	_save_settings()
 
 func set_first_run_agreement_accepted(val : bool):
 	FirstRunAgreementAccepted = val

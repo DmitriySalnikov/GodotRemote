@@ -5,6 +5,8 @@ signal stretch_mode_changed
 var button_red_theme = preload("res://AssetsInSuperSecureAndUn1queF0lder/Styles/ButtonRed.tres")
 var button_green_theme = preload("res://AssetsInSuperSecureAndUn1queF0lder/Styles/ButtonGreen.tres")
 
+var game_open_counter := 0
+
 onready var timer = $Timer
 onready var start_stop = $H/StartStop
 onready var version = $H/Version
@@ -79,13 +81,13 @@ func _ready():
 	_init_point()
 
 func _notification(what):
+	if get_parent() and get_parent().game_scene:
+		return
+	
 	match what:
 		NOTIFICATION_WM_GO_BACK_REQUEST: 
 			if visible:
-					if get_parent().has_method("_hide_settings"):
-						get_parent()._hide_settings()
-					else:
-						visible = false
+				get_parent()._hide_settings()
 		NOTIFICATION_WM_QUIT_REQUEST:
 			grab_focus()
 
@@ -191,9 +193,16 @@ func _status_changed(_status : int):
 
 func _connection_changed(connected : bool):
 	if connected:
+		game_open_counter = 0
 		_set_all_server_settings()
 	else:
 		pass
+
+func _game_scene_counter_increase():
+	game_open_counter += 1
+	if game_open_counter >= 5:
+		game_open_counter = 0
+		get_parent().create_game_scene(true)
 
 func _server_settings_received(_settings : Dictionary):
 	updated_by_code = true
@@ -289,6 +298,8 @@ func _on_wifi_SetAddress_pressed():
 		wifi_ip_line.text = address
 		G.port = wifi_port_line.value
 		G.connection_type = con_type_menu.selected
+		
+		_game_scene_counter_increase()
 
 func _on_adb_SetAddress_pressed():
 	_disable_buttons_by_timer()
@@ -296,6 +307,8 @@ func _on_adb_SetAddress_pressed():
 	GodotRemote.get_device().port = adb_port_line.value
 	G.port = adb_port_line.value
 	G.connection_type = con_type_menu.selected
+	
+	_game_scene_counter_increase()
 
 func _on_con_Type_item_selected(index):
 	match index:
@@ -402,4 +415,4 @@ func _on_server_target_fps_value_changed(value: float) -> void:
 	if not updated_by_code:
 		if G.override_server_settings:
 			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_TARGET_FPS, value)
-	G.server_target_fps = value
+	G.server_target_fps = int(value)

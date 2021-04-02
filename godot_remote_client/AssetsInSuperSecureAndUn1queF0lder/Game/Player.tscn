@@ -4,9 +4,10 @@
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Game/Player.gd" type="Script" id=2]
 
 [sub_resource type="CircleShape2D" id=1]
-radius = 43.2015
+radius = 38.7677
 
 [node name="Player" type="KinematicBody2D"]
+collision_layer = 3
 script = ExtResource( 2 )
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

@@ -462,7 +462,7 @@ margin_bottom = 653.0
 custom_constants/separation = 0
 
 [node name="Button2" type="Button" parent="FirstLaunchHint/VBox/HBoxContainer"]
-margin_right = 1112.0
+margin_right = 792.0
 margin_bottom = 64.0
 rect_min_size = Vector2( 0, 64 )
 size_flags_horizontal = 3
@@ -470,12 +470,11 @@ text = "Okay, I get it!"
 script = SubResource( 5 )
 
 [node name="Button3" type="Button" parent="FirstLaunchHint/VBox/HBoxContainer"]
-visible = false
-margin_left = 774.0
+margin_left = 792.0
 margin_right = 1112.0
 margin_bottom = 64.0
 rect_min_size = Vector2( 0, 64 )
-text = "NO!!! THIS IS A GAME!"
+text = "NO! THIS IS A GAME!"
 script = SubResource( 5 )
 
 [connection signal="pressed" from="OpenSettingsWithoutSignal/OpenSettings" to="." method="_on_open_settings_pressed"]
@@ -486,3 +485,4 @@ script = SubResource( 5 )
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/yes" to="PlsRatePopup" method="_on_yes_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/no" to="PlsRatePopup" method="_on_no_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/later" to="PlsRatePopup" method="_on_later_pressed"]
+[connection signal="pressed" from="FirstLaunchHint/VBox/HBoxContainer/Button3" to="." method="_on_no_this_is_a_game_pressed"]

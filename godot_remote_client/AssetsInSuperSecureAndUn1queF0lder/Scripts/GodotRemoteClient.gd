@@ -13,6 +13,7 @@ var mouse_mode : = Input.MOUSE_MODE_VISIBLE
 var support : Control = null
 var orig_hint_text : String = ""
 var prev_stream_state
+var game_scene : Node = null
 
 func _ready():
 	var d = Directory.new()
@@ -170,6 +171,9 @@ func _release_sceen_touches(count : int):
 		Input.parse_input_event(ev)
 
 func _input(e):
+	if game_scene:
+		return
+	
 	if e is InputEventKey:
 		if e.pressed:
 			match e.scancode:
@@ -198,3 +202,14 @@ func show_support_window():
 
 func _on_open_settings_pressed() -> void:
 	_show_settings()
+
+func _on_no_this_is_a_game_pressed() -> void:
+	create_game_scene()
+
+func create_game_scene(is_easter_egg = false):
+	game_scene = load("res://AssetsInSuperSecureAndUn1queF0lder/Game/THIS_IS_A_GAME.tscn").instance()
+	game_scene.connect("tree_exiting", self, "_game_scene_exiting")
+	add_child(game_scene)
+
+func _game_scene_exiting():
+	game_scene = null
