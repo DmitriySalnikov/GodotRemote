@@ -328,7 +328,7 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 
 		GRServer *srv = cast_to<GRServer>(GodotRemote::get_singleton()->get_device());
 
-		encoder_props.max_frame_rate = srv ? srv->get_target_fps() * (1.f / (srv->get_skip_frames() + 1)) : 60;
+		encoder_props.max_frame_rate = srv ? int(srv->get_target_fps() * (1.f / (srv->get_skip_frames() + 1))) : 60;
 		encoder_props.pic_width = com_image.img_width;
 		encoder_props.pic_height = com_image.img_height;
 

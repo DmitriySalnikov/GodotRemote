@@ -1,73 +1,20 @@
 # SCsub
 import lib_utils
+import json
+
 Import('env')
 module_env = env.Clone()
 
-from SCons.Variables import BoolVariable, EnumVariable
+# setup all options
 opts = Variables([], ARGUMENTS)
+lib_utils.setup_options(module_env, opts, lambda e: Help(opts.GenerateHelpText(e)))
 
-opts.Add(BoolVariable("godot_remote_tracy_enabled", "Godot Remote. Enable tracy profiler.", False))
-opts.Add(BoolVariable("godot_remote_libjpeg_turbo_enabled", "Godot Remote. Enable libjpeg-turbo.", True))
-opts.Add(BoolVariable("godot_remote_h264_enabled", "Godot Remote. Enable OpenH264 codec.", True))
-opts.Add(BoolVariable("godot_remote_no_default_resources", "Godot Remote. Remove default resources.", False))
-opts.Add(BoolVariable("godot_remote_disable_server", "Godot Remote. Remove server.", False))
-opts.Add(BoolVariable("godot_remote_disable_client", "Godot Remote. Remove client.", False))
-opts.Add(BoolVariable("godot_remote_use_sse2", "Godot Remote. Use SSE2 to convert YUV to RGB for the H264 codec. Only on PC.", True))
-#opts.Add(BoolVariable("godot_remote_livepp", "Godot Remote. Live++ support... Windows only", False))
-opts.Update(module_env)
-Help(opts.GenerateHelpText(module_env))
-
-if module_env['platform'] not in ['windows', 'x11', 'linuxbsd', 'osx']:
-    module_env['godot_remote_use_sse2'] = False
-
-if module_env['godot_remote_no_default_resources']:
-    module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_DEFAULT_RESOURCES'])
-if module_env['godot_remote_libjpeg_turbo_enabled']:
-    module_env.Append(CPPDEFINES=['GODOTREMOTE_LIBJPEG_TURBO_ENABLED'])
-if module_env['godot_remote_disable_server']:
-    module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_SERVER'])
-if module_env['godot_remote_disable_client']:
-    module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_CLIENT'])
-if module_env['godot_remote_use_sse2']:
-    module_env.Append(CPPDEFINES=['GODOT_REMOTE_USE_SSE2'])
-
-module_dir = "#modules/godot_remote/"
-module_env.Append(CPPPATH=[module_dir])
-
-src_files = [
-    'GodotRemote.cpp',
-    'GRAVGCounter.cpp',
-    'GRClient.cpp',
-    'GRDevice.cpp',
-    'GRInputData.cpp',
-    'GRNotifications.cpp',
-    'GRPacket.cpp',
-    'GRProfiler.cpp',
-    'GRProfilerViewportMiniPreview.cpp',
-    'GRResources.cpp',
-    'GRServer.cpp',
-    'GRStreamDecoders.cpp',
-    'GRStreamDecoderH264.cpp',
-    'GRStreamDecoderImageSequence.cpp',
-    'GRStreamEncoders.cpp',
-    'GRStreamEncoderH264.cpp',
-    'GRStreamEncoderImageSequence.cpp',
-    'GRUtils.cpp',
-    'GRUtilsH264Codec.cpp',
-    'GRUtilsJPGCodec.cpp',
-    'iterable_queue.cpp',
-    'register_types.cpp',
-]
+src_files = []
+with open('default_sources.json') as f:
+    src_files = json.load(f)
 
 def get_sources():
-    return [module_dir + file for file in src_files]
-
-
-# 'CXXFLAGS' 'CCFLAGS' 'LINKFLAGS' and others
-def remove_flag_cxx(flags_group : str, flags : []):
-    for f in flags:
-        if f in module_env[flags_group]:
-            module_env[flags_group].remove(f)
+    return ["#modules/godot_remote/" + file for file in src_files]
 
 # Tools
 if module_env['tools']:
@@ -107,7 +54,7 @@ if module_env['platform'] == 'windows':
     #        module_env['LINKFLAGS'].remove('/GL')
     
     if module_env['target'] == 'release_debug':
-        remove_flag_cxx('CCFLAGS', ['/O2', '/O1'])
+        lib_utils.remove_flag_from_env(module_env, 'CCFLAGS', ['/O2', '/O1'])
         module_env.AppendUnique(CCFLAGS=['/Zi', '/FS'])
     
     module_env.Append(CXXFLAGS=['/std:c++14'])

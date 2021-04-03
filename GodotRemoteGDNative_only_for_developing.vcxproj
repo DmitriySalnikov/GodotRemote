@@ -142,13 +142,14 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>WIN64;_DEBUG;GDNATIVE_LIBRARY;GODOTREMOTE_H264_ENABLED;DEBUG_ENABLED;GODOTREMOTE_LIBJPEG_TURBO_ENABLED2;GODOTREMOTE_TRACY_ENABLED;TRACY_ENABLE;TRACY_DELAYED_INIT;TRACY_MANUAL_LIFETIME;GODOT_REMOTE_USE_SSE2;TRACY_ON_DEMAND;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;_DEBUG;GDNATIVE_LIBRARY;GODOTREMOTE_H264_ENABLED;DEBUG_ENABLED;GODOTREMOTE_LIBJPEG_TURBO_ENABLED;GODOTREMOTE_TRACY_ENABLED;TRACY_ENABLE;TRACY_DELAYED_INIT;TRACY_MANUAL_LIFETIME;GODOT_REMOTE_USE_SSE2;TRACY_ON_DEMAND;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ExceptionHandling>Sync</ExceptionHandling>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <LanguageStandard>stdcpp14</LanguageStandard>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -156,6 +157,7 @@
       <AdditionalDependencies>libgodot-cpp.windows.$(Configuration).$(PlatformArchitecture).lib;turbojpeg-static.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
