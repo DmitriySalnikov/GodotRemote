@@ -98,6 +98,7 @@ def gdnative_get_library_object(env):
 
     #######################################################
     # additional data for specific options
+    src.append('GRToolMenuPlugin.cpp')
 
     # Tracy
     if env['godot_remote_tracy_enabled']:

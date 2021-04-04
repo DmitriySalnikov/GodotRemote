@@ -87,7 +87,7 @@ opts.Add(EnumVariable(
     'platform',
     'Target platform',
     host_platform,
-    allowed_values=('linux', 'freebsd', 'osx', 'windows', 'android', 'ios'),
+    allowed_values=('linux', 'freebsd', 'osx', 'windows', 'android', 'ios', 'javascript'),
     ignorecase=2
 ))
 opts.Add(EnumVariable(
@@ -375,6 +375,34 @@ elif env['platform'] == 'android':
     env.Append(CCFLAGS=['--target=' + arch_info['target'] + env['android_api_level'], '-march=' + arch_info['march'], '-fPIC'])#, '-fPIE', '-fno-addrsig', '-Oz'])
     env.Append(CCFLAGS=arch_info['ccflags'])
 
+elif env["platform"] == "javascript":
+    env["ENV"] = os.environ
+    env["CC"] = "emcc"
+    env["CXX"] = "em++"
+    env["AR"] = "emar"
+    env["RANLIB"] = "emranlib"
+    env.Append(CPPFLAGS=["-s", "SIDE_MODULE=1"])
+    env.Append(LINKFLAGS=["-s", "SIDE_MODULE=1"])
+    env["SHOBJSUFFIX"] = ".bc"
+    env["SHLIBSUFFIX"] = ".wasm"
+    # Use TempFileMunge since some AR invocations are too long for cmd.exe.
+    # Use POSIX-style paths, required with TempFileMunge.
+    env["ARCOM_POSIX"] = env["ARCOM"].replace("$TARGET", "$TARGET.posix").replace("$SOURCES", "$SOURCES.posix")
+    env["ARCOM"] = "${TEMPFILE(ARCOM_POSIX)}"
+
+    # All intermediate files are just LLVM bitcode.
+    env["OBJPREFIX"] = ""
+    env["OBJSUFFIX"] = ".bc"
+    env["PROGPREFIX"] = ""
+    # Program() output consists of multiple files, so specify suffixes manually at builder.
+    env["PROGSUFFIX"] = ""
+    env["LIBPREFIX"] = "lib"
+    env["LIBSUFFIX"] = ".bc"
+    env["LIBPREFIXES"] = ["$LIBPREFIX"]
+    env["LIBSUFFIXES"] = ["$LIBSUFFIX"]
+    env.Replace(SHLINKFLAGS='$LINKFLAGS')
+    env.Replace(SHLINKFLAGS='$LINKFLAGS')
+
 env.Append(CPPPATH=[
     '.',
     env['headers_dir'],
@@ -396,12 +424,5 @@ if env['generate_bindings'] == 'auto':
     should_generate_bindings = not os.path.isfile(os.path.join(os.getcwd(), 'src', 'gen', 'Object.cpp'))
 else:
     should_generate_bindings = env['generate_bindings'] in ['yes', 'true']
-
-if should_generate_bindings:
-    pass
-    # Actually create the bindings here
-    #import binding_generator
-
-    #binding_generator.generate_bindings(json_api_file, env['generate_template_get_node'])
 
 Default(lib_utils.gdnative_get_library_object(env))
