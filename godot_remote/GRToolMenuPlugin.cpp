@@ -2,8 +2,26 @@
 
 #include "GRToolMenuPlugin.h"
 
-#if !defined(GDNATIVE_LIBRARY) && defined(TOOLS_ENABLED)
+#ifndef GDNATIVE_LIBRARY
 #include "scene/gui/popup_menu.h"
+#else
+#include <PopupMenu.hpp>
+#endif
+
+void GRToolMenuPlugin::_notification(int p_notification) {
+	switch (p_notification) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifdef GDNATIVE_LIBRARY
+			_init();
+#endif
+			break;
+		case NOTIFICATION_PREDELETE:
+#ifdef GDNATIVE_LIBRARY
+			_deinit();
+#endif
+			break;
+	}
+}
 
 void GRToolMenuPlugin::_menu_pressed(int id) {
 	GodotRemoteMenuItems item = (GodotRemoteMenuItems)id;
@@ -26,12 +44,12 @@ void GRToolMenuPlugin::_bind_methods() {
 }
 #else
 void GRToolMenuPlugin::_register_methods() {
+	METHOD_REG(GRToolMenuPlugin, _notification);
 	METHOD_REG(GRToolMenuPlugin, _menu_pressed);
 }
 #endif
 
-GRToolMenuPlugin::GRToolMenuPlugin(EditorNode *p_node) {
-	editor = p_node;
+void GRToolMenuPlugin::_init() {
 	auto menu = memnew(PopupMenu);
 
 	menu->add_item("Open Home Page", GodotRemoteMenuItems::OpenHomePage);
@@ -40,8 +58,17 @@ GRToolMenuPlugin::GRToolMenuPlugin(EditorNode *p_node) {
 	add_tool_submenu_item("Godot Remote", menu);
 }
 
-GRToolMenuPlugin::~GRToolMenuPlugin() {
+void GRToolMenuPlugin::_deinit() {
 	remove_tool_menu_item("Godot Remote");
 }
 
+#ifndef GDNATIVE_LIBRARY
+GRToolMenuPlugin::GRToolMenuPlugin(EditorNode *p_node) {
+	_init();
+}
+
+GRToolMenuPlugin::~GRToolMenuPlugin() {
+	_deinit();
+}
+#else
 #endif

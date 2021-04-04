@@ -78,8 +78,6 @@ private:
 	void _remove_exact_notification(Node *_notif);
 	void _clear_notifications();
 
-	void _remove_list();
-
 protected:
 #ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();

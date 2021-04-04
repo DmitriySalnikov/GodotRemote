@@ -1,10 +1,16 @@
 /* GRToolMenuPlugin.h */
 #pragma once
 
-#if !defined(GDNATIVE_LIBRARY) && defined(TOOLS_ENABLED)
 #include "GRUtils.h"
 
+#ifndef GDNATIVE_LIBRARY
 #include "editor/editor_node.h"
+#else
+
+#include <EditorPlugin.hpp>
+#endif
+
+#if defined(TOOLS_ENABLED) || defined(GDNATIVE_LIBRARY)
 
 class GRToolMenuPlugin : public EditorPlugin {
 	GD_CLASS(GRToolMenuPlugin, EditorPlugin);
@@ -14,7 +20,6 @@ class GRToolMenuPlugin : public EditorPlugin {
 		OpenDownloadPage,
 	};
 
-	EditorNode *editor;
 	void _menu_pressed(int id);
 
 protected:
@@ -27,12 +32,20 @@ public:
 protected:
 #endif
 
+	void _notification(int p_notification);
+
 public:
 	virtual String get_name() const { return "GodotRemoteMenu"; }
 	bool has_main_screen() const { return false; }
 
+	void _init();
+	void _deinit();
+
+#ifndef GDNATIVE_LIBRARY
 	GRToolMenuPlugin(EditorNode *p_node);
 	~GRToolMenuPlugin();
+#else
+#endif
 };
 
 #endif

@@ -52,7 +52,6 @@ def gdnative_get_sources(src):
 def gdnative_get_library_object(env):
     setup_default_cpp_defines(env)
     env.Append(CPPDEFINES=['GDNATIVE_LIBRARY'])
-    env['generate_bindings'] = 'no'
 
     #######################################################
     # platform specific

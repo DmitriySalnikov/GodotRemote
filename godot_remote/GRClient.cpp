@@ -330,7 +330,7 @@ void GRClient::_deinit() {
 	if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
 		_internal_call_only_deffered_stop();
 	}
-	set_control_to_show_in(nullptr, 0);
+	//set_control_to_show_in(nullptr, 0);
 
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 	no_signal_mat.unref();

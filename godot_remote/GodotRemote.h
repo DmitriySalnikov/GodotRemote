@@ -77,6 +77,7 @@ private:
 	bool is_notifications_enabled = true;
 
 	class GRDevice *device = nullptr;
+	class Node *godot_remote_root_node = nullptr;
 
 	void register_and_load_settings();
 #ifndef GDNATIVE_LIBRARY
@@ -167,6 +168,8 @@ protected:
 	void _notification(int p_notification);
 
 public:
+	Node *get_root_node();
+
 	// GRNotifications
 	class GRNotificationPanel *get_notification(String title);
 	Array get_all_notifications();

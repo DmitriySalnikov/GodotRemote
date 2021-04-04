@@ -161,7 +161,6 @@ void GRNotifications::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_notification), "title", "is_all_entries"), &GRNotifications::_remove_notification);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_exact_notification), "notification"), &GRNotifications::_remove_exact_notification);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_clear_notifications)), &GRNotifications::_clear_notifications);
-	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_list)), &GRNotifications::_remove_list);
 
 	ADD_SIGNAL(MethodInfo("notifications_toggled", PropertyInfo(Variant::BOOL, "is_enabled")));
 	ADD_SIGNAL(MethodInfo("notifications_cleared"));
@@ -194,8 +193,6 @@ void GRNotifications::_register_methods() {
 	METHOD_REG(GRNotifications, _remove_notification);
 	METHOD_REG(GRNotifications, _remove_exact_notification);
 	METHOD_REG(GRNotifications, _clear_notifications);
-
-	METHOD_REG(GRNotifications, _remove_list);
 
 	register_signal<GRNotifications>("notifications_toggled", "is_enabled", GODOT_VARIANT_TYPE_BOOL);
 	register_signal<GRNotifications>("notifications_cleared", Dictionary::make());
@@ -418,7 +415,7 @@ void GRNotifications::_init() {
 
 	notif_list_node = memnew(VBoxContainer);
 	notif_list_node->set_name("NotificationList");
-	call_deferred("add_child", notif_list_node); // add new function to check ST() and then add_child to prevent leak when generation mono glue
+	call_deferred("add_child", notif_list_node); // TODO add new function to check ST() and then add_child to prevent leak when generation mono glue
 
 	notif_list_node->set_anchor_and_margin(MARGIN_LEFT, 0.f, 8.f);
 	notif_list_node->set_anchor_and_margin(MARGIN_RIGHT, 1.f, -8.f);
@@ -435,7 +432,6 @@ void GRNotifications::_deinit() {
 
 	if (this == singleton)
 		singleton = nullptr;
-	call_deferred(NAMEOF(_remove_list));
 
 	notifications.clear();
 	GRNotificationPanel::_default_data->_default_close_texture.unref();
@@ -445,13 +441,6 @@ void GRNotifications::_deinit() {
 	GRNotificationPanel::_default_data = nullptr;
 
 	style.unref();
-}
-
-void GRNotifications::_remove_list() {
-	_clear_notifications();
-	remove_child(notif_list_node);
-	memdelete(notif_list_node);
-	notif_list_node = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////

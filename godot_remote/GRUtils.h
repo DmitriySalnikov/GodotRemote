@@ -173,8 +173,21 @@ typedef Directory _Directory;
 
 #ifdef TRACY_ENABLE
 #define Thread_set_name(_name) tracy::SetThreadName(_name)
+
+#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
+#define MANUAL_TRACY
+#define START_TRACY tracy::StartupProfiler();
+#define STOP_TRACY tracy::ShutdownProfiler();
+#else
+#define START_TRACY
+#define STOP_TRACY
+#endif
+
 #else
 #define Thread_set_name(_name)
+
+#define START_TRACY
+#define STOP_TRACY
 #endif
 
 // =================================================================

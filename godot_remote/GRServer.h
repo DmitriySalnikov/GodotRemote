@@ -106,14 +106,13 @@ private:
 	ENUM_ARG(Compression::Mode)
 	custom_input_pck_compression_type = ENUM_CONV(Compression::Mode) 0;
 	const String custom_input_scene_regex_resource_finder_pattern = "\\\"(res://.*?)\\\"";
-	Ref<class RegEx> custom_input_scene_regex_resource_finder;
+	Ref<RegEx> custom_input_scene_regex_resource_finder;
 
 	float prev_avg_fps = 0;
 	void _adjust_viewport_scale();
 
 	void _load_settings(bool force_hide_notifications = false);
 	void _update_settings_from_client(const std::map<int, Variant> settings);
-	void _remove_resize_viewport(Node *vp);
 
 	virtual void _reset_counters() override;
 

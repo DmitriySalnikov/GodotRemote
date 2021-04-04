@@ -307,6 +307,7 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 					}
 
 					if (is_decode_with_error && image_pack->get_frame_type() != EVideoFrameType::videoFrameTypeIDR) {
+						gr_client->_update_avg_fps(0);
 						// wait next IDR
 						continue;
 					}

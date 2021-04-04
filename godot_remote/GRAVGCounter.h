@@ -3,6 +3,7 @@
 
 #include "iterable_queue.h"
 #include <functional>
+#include <mutex>
 
 template <typename TQueue, typename TValue>
 class GRAVGCounter {
@@ -10,26 +11,32 @@ class GRAVGCounter {
 	uint32_t queue_size;
 	std::function<TValue(TValue)> modifier = nullptr;
 	iterable_queue<TQueue> val_queue;
+	mutable std::recursive_mutex ts_lock;
 
 public:
 	inline TValue get_avg() const {
+		std::lock_guard<std::recursive_mutex> _scoped_lock_guard(ts_lock);
 		return avg_val;
 	}
 
 	inline TValue get_min() const {
+		std::lock_guard<std::recursive_mutex> _scoped_lock_guard(ts_lock);
 		return min_val;
 	}
 
 	inline TValue get_max() const {
+		std::lock_guard<std::recursive_mutex> _scoped_lock_guard(ts_lock);
 		return max_val;
 	}
 
 	void reset() {
+		std::lock_guard<std::recursive_mutex> _scoped_lock_guard(ts_lock);
 		avg_val = min_val = max_val = 0;
 		val_queue = iterable_queue<TQueue>();
 	}
 
 	void update(TQueue val, uint32_t _max_queue_size = 0) {
+		std::lock_guard<std::recursive_mutex> _scoped_lock_guard(ts_lock);
 		_max_queue_size = _max_queue_size > 0 ? _max_queue_size : queue_size;
 
 		val_queue.push(val);
@@ -57,6 +64,14 @@ public:
 			min_val = 0;
 			max_val = 0;
 		}
+	}
+
+	GRAVGCounter(GRAVGCounter<TQueue, TValue> &other){
+		avg_val = other.avg_val;
+		min_val = other.min_val;
+		max_val = other.max_val;
+		queue_size = other.queue_size;
+		modifier = other.modifier;
 	}
 
 	GRAVGCounter(std::function<TValue(TValue)> _modifier) {

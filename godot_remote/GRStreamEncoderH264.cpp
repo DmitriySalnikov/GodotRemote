@@ -207,7 +207,7 @@ void _get_encoder_params(ISVCEncoder *h264_encoder, SEncParamExt *p_param, GRStr
 	cfg->iVideoWidth = props->pic_width; ///< width of picture in luminance samples of a layer
 	cfg->iVideoHeight = props->pic_height; ///< height of picture in luminance samples of a layer
 	cfg->fFrameRate = float(props->max_frame_rate); ///< frame rate specified for a layer
-	cfg->iSpatialBitrate = props->target_bitrate; ///< target bitrate for a spatial layer, in unit of bps
+	cfg->iSpatialBitrate = 0; ///< target bitrate for a spatial layer, in unit of bps
 	cfg->iMaxSpatialBitrate = props->target_bitrate; ///< maximum  bitrate for a spatial layer, in unit of bps
 	GET_PARAM_FROM_CFG(cfg->uiProfileIdc, EProfileIdc::PRO_HIGH, (EProfileIdc)(int)); ///< value of profile IDC (PRO_UNKNOWN for auto-detection)
 	GET_PARAM_FROM_CFG(cfg->uiLevelIdc, ELevelIdc::LEVEL_UNKNOWN, (ELevelIdc)(int)); ///< value of profile IDC (0 for auto-detection)

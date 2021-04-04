@@ -99,9 +99,6 @@ void unregister_godot_remote_types() {
 }
 
 #else
-#include <Engine.hpp>
-#include <ProjectSettings.hpp>
-
 using namespace godot;
 
 /** GDNative Initialize **/
@@ -112,22 +109,13 @@ extern "C" void GDN_EXPORT godot_gdnative_init(godot_gdnative_init_options *o) {
 /** GDNative Terminate **/
 extern "C" void GDN_EXPORT godot_gdnative_terminate(godot_gdnative_terminate_options *o) {
 	Godot::gdnative_terminate(o);
-#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
-	tracy::ShutdownProfiler();
-#endif
 }
 
 /** NativeScript Initialize **/
 extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
-#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
-	tracy::StartupProfiler();
-#endif
-
 	Godot::nativescript_init(handle);
 
 	register_class<GodotRemote>();
-	//Engine::get_singleton()->add_singleton(Engine::Singleton("GodotRemote", memnew(GodotRemote)));
-	//GRUtils::init(); // moved to GodotRemote::init()
 
 	register_class<GRNotifications>();
 	register_class<GRNotificationPanel>();
@@ -159,6 +147,7 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 	register_class<GRStreamDecoderImageSequence>();
 	register_class<GRStreamDecoderH264>();
 #endif
-	//register_class<GRPacket>();
+
+	register_tool_class<GRToolMenuPlugin>();
 }
 #endif

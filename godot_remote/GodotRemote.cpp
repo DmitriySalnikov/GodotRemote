@@ -5,6 +5,7 @@
 
 #ifndef GDNATIVE_LIBRARY
 #include "editor/editor_node.h"
+#include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/timer.h"
 #else
@@ -53,6 +54,8 @@ GodotRemote *GodotRemote::get_singleton() {
 }
 
 void GodotRemote::_init() {
+	START_TRACY
+
 	if (!singleton)
 		singleton = this;
 
@@ -61,15 +64,25 @@ void GodotRemote::_init() {
 
 	GRUtils::init();
 
+#ifndef GDNATIVE_LIBRARY
+	godot_remote_root_node = memnew(Node);
+	godot_remote_root_node->set_name("GodotRemoteRoot");
+#else
+	godot_remote_root_node = this;
+#endif
+
 	call_deferred(NAMEOF(_create_autoload_nodes));
-	if (is_autostart)
+	if (is_autostart) {
 		call_deferred(NAMEOF(create_and_start_device), DeviceType::DEVICE_AUTO);
+	}
 
 #ifndef GDNATIVE_LIBRARY
 #ifdef TOOLS_ENABLED
 	call_deferred(NAMEOF(_prepare_editor));
 #endif
 #endif
+
+	is_init_completed = true;
 }
 
 void GodotRemote::_deinit() {
@@ -81,10 +94,13 @@ void GodotRemote::_deinit() {
 	call_deferred(NAMEOF(_adb_start_timer_timeout));
 #endif
 #endif
+
 	if (singleton == this) {
 		singleton = nullptr;
 	}
 	GRUtils::deinit();
+
+	STOP_TRACY
 }
 
 #ifndef GDNATIVE_LIBRARY
@@ -292,6 +308,10 @@ void GodotRemote::_notification(int p_notification) {
 	}
 }
 
+Node *GodotRemote::GodotRemote::get_root_node() {
+	return godot_remote_root_node;
+}
+
 GRDevice *GodotRemote::get_device() {
 	return device;
 }
@@ -310,7 +330,7 @@ bool GodotRemote::is_gdnative() {
 }
 
 bool GodotRemote::create_remote_device(ENUM_ARG(DeviceType) type) {
-	if (!ST()) return false;
+	if (!godot_remote_root_node) return false;
 	remove_remote_device();
 
 	GRDevice *d = nullptr;
@@ -348,8 +368,8 @@ bool GodotRemote::create_remote_device(ENUM_ARG(DeviceType) type) {
 	if (d) {
 		device = d;
 		call_deferred("emit_signal", "device_added");
-		ST()->get_root()->call_deferred("add_child", device);
-		ST()->get_root()->call_deferred("move_child", device, 0);
+		godot_remote_root_node->call_deferred("add_child", device);
+		godot_remote_root_node->call_deferred("move_child", device, 0);
 		return true;
 	}
 
@@ -366,8 +386,14 @@ bool GodotRemote::start_remote_device() {
 
 bool GodotRemote::remove_remote_device() {
 	if (device && !device->is_queued_for_deletion()) {
+#ifdef MANUAL_TRACY
+		if (device->get_status() == (int)GRDevice::WorkingStatus::STATUS_WORKING) {
+			device->call(NAMEOF(_internal_call_only_deffered_stop));
+		}
+#else
 		device->stop();
-		device->queue_del();
+#endif
+		//memdelete(device);
 		device = nullptr;
 		call_deferred("emit_signal", "device_removed");
 		return true;
@@ -459,13 +485,17 @@ void GodotRemote::register_and_load_settings() {
 
 void GodotRemote::_create_autoload_nodes() {
 	if (ST()) {
+#ifndef GDNATIVE_LIBRARY
+		ST()->get_root()->add_child(godot_remote_root_node);
+#endif
+
 		GRNotifications *notif = memnew(GRNotifications);
-		ST()->get_root()->add_child(notif);
-		ST()->get_root()->move_child(notif, 0);
+		godot_remote_root_node->add_child(notif);
+		godot_remote_root_node->move_child(notif, 0);
 
 #if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE)
 		GRProfilerViewportMiniPreview *mini_profiler_preview = memnew(GRProfilerViewportMiniPreview);
-		ST()->get_root()->add_child(mini_profiler_preview);
+		godot_remote_root_node->add_child(mini_profiler_preview);
 #endif
 	}
 }

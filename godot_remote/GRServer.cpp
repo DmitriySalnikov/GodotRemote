@@ -45,7 +45,6 @@ using namespace GRUtils;
 
 void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(_load_settings), "force_hide_notifications"), &GRServer::_load_settings, DEFVAL(false));
-	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_resize_viewport), "vp"), &GRServer::_remove_resize_viewport);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_listen), "user_data"), &GRServer::_thread_listen);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_connection), "user_data"), &GRServer::_thread_connection);
 
@@ -99,7 +98,6 @@ void GRServer::_bind_methods() {
 void GRServer::_register_methods() {
 	METHOD_REG(GRServer, _notification);
 	METHOD_REG(GRServer, _load_settings);
-	METHOD_REG(GRServer, _remove_resize_viewport);
 	METHOD_REG(GRServer, _thread_listen);
 	METHOD_REG(GRServer, _thread_connection);
 
@@ -346,7 +344,6 @@ void GRServer::_deinit() {
 	if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
 		_internal_call_only_deffered_stop();
 	}
-	custom_input_scene_regex_resource_finder.unref();
 }
 
 void GRServer::_internal_call_only_deffered_start() {
@@ -406,7 +403,6 @@ void GRServer::_internal_call_only_deffered_stop() {
 
 	if (resize_viewport)
 		resize_viewport->_stop_encoder();
-	call_deferred(NAMEOF(_remove_resize_viewport), resize_viewport);
 	resize_viewport = nullptr;
 
 	_send_queue_resize(0);
@@ -414,16 +410,6 @@ void GRServer::_internal_call_only_deffered_stop() {
 	set_status(WorkingStatus::STATUS_STOPPED);
 
 	GRNotifications::add_notification_or_update_line("Godot Remote Server", "1status", "Server stopped", GRNotifications::NotificationIcon::ICON_FAIL, 1.f);
-}
-
-void GRServer::_remove_resize_viewport(Node *node) {
-	GRSViewport *vp = cast_to<GRSViewport>(node);
-	if (vp && !vp->is_queued_for_deletion()) {
-		vp->server = nullptr;
-		remove_child(vp);
-		memdelete(vp);
-		vp = nullptr;
-	}
 }
 
 GRSViewport *GRServer::get_gr_viewport() {
@@ -1557,12 +1543,7 @@ void GRSViewport::_notification(int p_notification) {
 			break;
 		}
 		case NOTIFICATION_EXIT_TREE: {
-			if (renderer) {
-				remove_child(renderer);
-				//renderer->queue_del();
-				memdelete(renderer);
-				renderer = nullptr;
-			}
+			renderer = nullptr;
 			main_vp->disconnect("size_changed", this, NAMEOF(_update_size));
 			main_vp = nullptr;
 			break;
@@ -1713,6 +1694,7 @@ void GRSViewport::_init() {
 
 	rendering_scale = GET_PS(GodotRemote::ps_server_scale_of_sending_stream_name);
 
+	set_process_priority(-1);
 	set_hdr(false);
 	set_disable_3d(true);
 	set_keep_3d_linear(true);

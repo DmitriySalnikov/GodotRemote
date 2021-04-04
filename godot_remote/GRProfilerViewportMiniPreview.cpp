@@ -63,24 +63,6 @@ void GRProfilerViewportMiniPreview::_notification(int p_notification) {
 			add_child(renderer);
 			break;
 		}
-		case NOTIFICATION_EXIT_TREE: {
-			if (main_vp)
-				main_vp->disconnect("size_changed", this, NAMEOF(_update_size));
-			main_vp = nullptr;
-
-			if (renderer) {
-				remove_child(renderer);
-				memdelete(renderer);
-			}
-			renderer = nullptr;
-			if (get_parent()) {
-				get_parent()->call_deferred("remove_child", this);
-			}
-
-			if (!is_queued_for_deletion())
-				queue_del();
-			break;
-		}
 		default:
 			break;
 	}
