@@ -6,7 +6,9 @@ export(int, 1, 1024) var pipe_interval := 256 * 1.5
 export(int, 0, 2048) var pipes_speed := 200
 var spawn_x : float = 0
 var viewport_size : Vector2
+var player_node : Node2D = null
 var last_pipe : Node2D = null
+var first_pipe : Node2D = null
 var moving_pipes : Array = []
 
 func _ready() -> void:
@@ -29,6 +31,7 @@ func _physics_process(delta: float) -> void:
 		p.connect("tree_exiting", self, "_pipe_destroying", [p])
 		moving_pipes.append(p)
 		last_pipe = p
+		first_pipe = p
 		add_child(p)
 	else:
 		if (spawn_x - last_pipe.position.x) > pipe_interval:
@@ -40,16 +43,24 @@ func _physics_process(delta: float) -> void:
 			last_pipe = p
 			add_child(p)
 	
-	for p in moving_pipes:
-		p.position.x -= pipes_speed * delta
-		
+	var speed_mult = 1
+	if first_pipe:
+		var pipe_pos = first_pipe.position
+		var player_pos = player_node.position
+		if pipe_pos.x - player_pos.x > 512:
+			speed_mult = ((pipe_pos.x - player_pos.x - 512 / 1.5) / 512) * 3
 	
+	for p in moving_pipes:
+		p.position.x -= pipes_speed * delta * speed_mult
 
 var is_manual_destroying = false
 
 func _pipe_destroying(p : Node2D):
 	if is_manual_destroying:
 		return
+	
+	if first_pipe == p:
+		first_pipe = null
 	
 	if last_pipe == p:
 		last_pipe = null

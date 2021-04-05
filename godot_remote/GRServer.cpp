@@ -8,7 +8,6 @@
 #include "GodotRemote.h"
 
 #ifndef GDNATIVE_LIBRARY
-
 #include "core/input_map.h"
 #include "core/io/pck_packer.h"
 #include "core/io/resource_loader.h"
@@ -21,7 +20,6 @@
 #include "scene/main/scene_tree.h"
 
 #else
-
 #include <Input.hpp>
 #include <InputEvent.hpp>
 #include <InputMap.hpp>

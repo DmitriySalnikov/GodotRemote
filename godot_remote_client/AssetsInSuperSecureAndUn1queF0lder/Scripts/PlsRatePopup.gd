@@ -1,7 +1,7 @@
 extends WindowDialog
 
 func _is_ready_to_show() -> bool:
-	return (G.Billings and ((G.AppRuns == 7 or (G.AppRuns > 9 and G.AppRuns % 9 == 0)) and G.UserRateState == G.RateState.NotNow)) and !G.VersionChanged
+	return (G.Billings and ((G.AppRuns == 7 or (G.AppRuns > 9 and G.AppRuns % 9 == 0)) and G.UserRateState == G.RateState.NotNow)) and !G.VersionChanged and G.FirstRunAgreementAccepted
 
 func _ready():
 	if _is_ready_to_show():

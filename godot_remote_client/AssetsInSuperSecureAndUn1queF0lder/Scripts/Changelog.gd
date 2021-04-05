@@ -27,38 +27,58 @@ Significantly improved JPG compression/decompression performance.
 Exposed all classes in GDScript, but did not expose their methods.
 Custom input scenes now adding '.md5' files from '.import' folder.
 Added 'tracy' profiler.
+""", UPD_EDITOR = true },
+"1.0.1.0" : 
+{ "text" : """Client:
+Added the ability to send user packages in custom input scenes
+Added "Rate This App" window
+Module:
+The codebase has also been updated to match the usual Godot API and GDNative at the same time.
+""", },
+"1.0.0.0" : 
+{ "text" : """First Release.
 """, },
 }
 
 func _ready() -> void:
 	if G.VersionChanged:
-		var text = "Current version: %s\nPrevious version: %s\n\n" % [G.get_version(), G.PreviousVersion]
-		var force_update_editor : bool = false
-		
 		var prev = _get_version_sum(G.PreviousVersion.split("."))
 		var curr = _get_version_sum(G.get_version().split("."))
 		
 		if curr < prev:
 			return
 		
-		var found_logs = false
-		for k in changelog.keys():
-			var v = _get_version_sum(k.split("."))
-			if v > prev and v <= curr:
-				text += "[%s]\n%s\n" % [k, changelog[k]["text"]]
-				found_logs = true
-				
-				if changelog[k].has(UPD_EDITOR):
-					if changelog[k][UPD_EDITOR] == true:
-						force_update_editor = true
-		
-		if not found_logs:
-			text += "No changes were found between these versions."
-		
-		$HBoxContainer/Control/ListOfChanges.text = text
-		$HBoxContainer/HBoxContainer/Button2.visible = force_update_editor or _check_need_update_server(G.PreviousVersion, G.get_version())
-		call_deferred("popup_centered_ratio", 1)
-		get_parent().connect("item_rect_changed", self, "viewport_size_changed")
+		show_logs(prev)
+	get_parent().connect("item_rect_changed", self, "viewport_size_changed")
+
+func show_logs(prev : int = 0):
+	var curr = _get_version_sum(G.get_version().split("."))
+	
+	var text = ""
+	if prev == 0:
+		text += "Current version: %s\n\n" % [G.get_version()]
+	else:
+		text += "Current version: %s\nPrevious version: %s\n\n" % [G.get_version(), G.PreviousVersion]
+	
+	var force_update_editor : bool = false
+	
+	var found_logs = false
+	for k in changelog.keys():
+		var v = _get_version_sum(k.split("."))
+		if v > prev and v <= curr:
+			text += "[%s]\n%s\n" % [k, changelog[k]["text"]]
+			found_logs = true
+			
+			if changelog[k].has(UPD_EDITOR):
+				if changelog[k][UPD_EDITOR] == true:
+					force_update_editor = true
+	
+	if not found_logs:
+		text += "No changes were found between these versions."
+	
+	$HBoxContainer/Control/ListOfChanges.text = text
+	$HBoxContainer/HBoxContainer/Button2.visible = prev == 0 or force_update_editor or _check_need_update_server(G.PreviousVersion, G.get_version())
+	call_deferred("popup_centered_ratio", 1)
 
 func viewport_size_changed() -> void:
 	if visible:

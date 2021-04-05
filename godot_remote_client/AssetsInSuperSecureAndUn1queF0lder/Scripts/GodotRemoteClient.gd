@@ -196,6 +196,9 @@ func _input(e):
 				_show_settings()
 				_release_sceen_touches(pressed_count)
 
+func show_changelogs():
+	$Changelog.show_logs()
+
 func show_support_window():
 	if support:
 		support.visible = true

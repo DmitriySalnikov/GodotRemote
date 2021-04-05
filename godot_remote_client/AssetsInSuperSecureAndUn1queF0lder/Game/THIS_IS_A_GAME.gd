@@ -43,6 +43,7 @@ func _ready() -> void:
 	player.connect("dead", self, "_game_stopped")
 	player.connect("started", self, "_game_started")
 	player.connect("score_updated", self, "_score_updated")
+	pipe_handler.player_node = player
 	_update_scoreboard()
 	_switch_layout(UI_LAYOUTS.PlAY_MENU)
 	
@@ -107,6 +108,7 @@ func _on_Play_pressed() -> void:
 	yield(get_tree(), "idle_frame")
 	_switch_layout(UI_LAYOUTS.TAP_TO_START)
 	player.get_ready()
+	player.update_bounds($Control.rect_size)
 	pipe_handler.update_bounds($Control.rect_size)
 	pipe_handler.clear_pipes()
 

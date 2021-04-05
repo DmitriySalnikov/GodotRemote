@@ -12,10 +12,14 @@ onready var sprite = $CollisionShape2D/Sprite
 var is_playing = false
 var score = 0
 var velocity : float = 0
+var viewport_size : Vector2
 
 func _ready() -> void:
 	set_process_input(false)
 	reset_game()
+
+func update_bounds(vp_size : Vector2):
+	viewport_size = vp_size
 
 func increment_score():
 	score += 1
@@ -50,16 +54,20 @@ func _physics_process(delta: float) -> void:
 	if Input.is_mouse_button_pressed(BUTTON_LEFT):
 		velocity = -jump_velocity
 	
+	var force_dead = false
 	var rel_vec = Vector2.DOWN * velocity * delta
 	if position.y + rel_vec.y < 0:
+		position.y = 0
 		rel_vec.y = 0
 		velocity = 0
+	elif position.y > viewport_size.y:
+		force_dead = true
 	
 	sprite.rotation_degrees = (90 * pow((velocity + max_velocity) / float(max_velocity * 2), 2)) - 45
 	
 	var col = move_and_collide(rel_vec, true)
 	
-	if col:
+	if col or force_dead:
 		set_physics_process(false)
 		fall_tween()
 		is_playing = false
