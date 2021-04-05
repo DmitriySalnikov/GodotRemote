@@ -47,6 +47,7 @@ func _ready():
 	_touches_to_open_settings_changed(G.TouchesToOpenSettings)
 	if !G.FirstRunAgreementAccepted:
 		popup_welcome_screen()
+		G.a_progression_event(G.A_ProgressStatus.Start, "WelcomeScreen")
 
 func _touches_to_open_settings_changed(count : int) -> void:
 	no_signal_hint_text.text = orig_hint_text % count
@@ -55,7 +56,7 @@ func _settings_stretch_mode_changed() -> void:
 	_stream_aspect_ratio_changed(GodotRemote.get_device().get_stream_aspect_ratio())
 
 func popup_welcome_screen() -> void:
-	first_launch_hint.popup_centered(get_viewport_rect().size)
+	first_launch_hint.call_deferred("popup_centered", get_viewport_rect().size)
 
 func viewport_size_changed() -> void:
 	if first_launch_hint.visible:
@@ -209,11 +210,20 @@ func _on_open_settings_pressed() -> void:
 func _on_no_this_is_a_game_pressed() -> void:
 	create_game_scene()
 
-func create_game_scene(is_easter_egg = false):
+func create_game_scene(as_dino = false):
 	game_scene = load("res://AssetsInSuperSecureAndUn1queF0lder/Game/THIS_IS_A_GAME.tscn").instance()
 	game_scene.connect("tree_exiting", self, "_game_scene_exiting")
-	game_scene.set_is_loading_after_error(is_easter_egg)
+	game_scene.set_is_loading_after_error(as_dino)
 	add_child(game_scene)
+	
+	if as_dino:
+		G.a_design_event("Game:AsDino")
+	else:
+		G.a_design_event("Game:FromWelcome")
 
 func _game_scene_exiting():
 	game_scene = null
+	
+	popup_welcome_screen()
+	if !G.FirstRunAgreementAccepted:
+		G.a_progression_event(G.A_ProgressStatus.Start, "WelcomeScreen")

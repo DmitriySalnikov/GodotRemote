@@ -487,6 +487,7 @@ void GodotRemote::_create_autoload_nodes() {
 	if (ST()) {
 #ifndef GDNATIVE_LIBRARY
 		ST()->get_root()->add_child(godot_remote_root_node);
+		ST()->get_root()->move_child(godot_remote_root_node, 0);
 #endif
 
 		GRNotifications *notif = memnew(GRNotifications);

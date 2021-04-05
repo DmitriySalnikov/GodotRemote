@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=2]
+[gd_scene load_steps=19 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/GodotRemoteClient.gd" type="Script" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalLight.tres" type="DynamicFont" id=2]
@@ -51,14 +51,24 @@ func _pressed() -> void:
 [sub_resource type="GDScript" id=6]
 script/source = "extends Button
 
-func _ready() -> void:
-	if G.FirstRunAgreementAccepted:
-		text = \"Clappy Droid\"
-
 func _pressed() -> void:
 	get_parent().get_parent().get_parent().hide()
 	if !G.FirstRunAgreementAccepted:
 		G.FirstRunAgreementAccepted = true
+		G.a_progression_event(G.A_ProgressStatus.Complete, \"WelcomeScreen\")
+"
+
+[sub_resource type="GDScript" id=7]
+script/source = "extends Button
+
+func _ready() -> void:
+	if G.FirstRunAgreementAccepted:
+		text = \"Clappy Droid\"
+	else:
+		G.a_progression_event(G.A_ProgressStatus.Fail, \"WelcomeScreen\")
+
+func _pressed() -> void:
+	get_parent().get_parent().get_parent().hide()
 "
 
 [node name="GodotRemote" type="Control"]
@@ -286,7 +296,7 @@ align = 1
 [node name="Control" type="ScrollContainer" parent="Changelog/HBoxContainer"]
 margin_top = 50.0
 margin_right = 759.0
-margin_bottom = 508.0
+margin_bottom = 507.0
 size_flags_vertical = 3
 
 [node name="ListOfChanges" type="Label" parent="Changelog/HBoxContainer/Control"]
@@ -299,9 +309,9 @@ text = "         don't forget to write a changelog..."
 autowrap = true
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Changelog/HBoxContainer"]
-margin_top = 512.0
+margin_top = 511.0
 margin_right = 759.0
-margin_bottom = 584.0
+margin_bottom = 583.0
 custom_constants/separation = 12
 
 [node name="Button" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
@@ -415,11 +425,11 @@ __meta__ = {
 }
 
 [node name="SafeAreaHeight" type="Control" parent="FirstLaunchHint/VBox"]
-margin_right = 768.0
+margin_right = 767.0
 script = SubResource( 3 )
 
 [node name="Label" type="Label" parent="FirstLaunchHint/VBox"]
-margin_right = 768.0
+margin_right = 767.0
 margin_bottom = 46.0
 grow_horizontal = 0
 grow_vertical = 0
@@ -433,7 +443,7 @@ __meta__ = {
 
 [node name="Label3" type="Label" parent="FirstLaunchHint/VBox"]
 margin_top = 93.0
-margin_right = 768.0
+margin_right = 767.0
 margin_bottom = 221.0
 grow_horizontal = 0
 grow_vertical = 0
@@ -449,12 +459,12 @@ __meta__ = {
 
 [node name="HBoxContainer2" type="HBoxContainer" parent="FirstLaunchHint/VBox"]
 margin_top = 269.0
-margin_right = 768.0
+margin_right = 767.0
 margin_bottom = 341.0
 custom_constants/separation = 20
 
 [node name="Button" type="Button" parent="FirstLaunchHint/VBox/HBoxContainer2"]
-margin_right = 484.0
+margin_right = 483.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
@@ -462,8 +472,8 @@ text = "Open documentation page"
 script = SubResource( 4 )
 
 [node name="Button2" type="Button" parent="FirstLaunchHint/VBox/HBoxContainer2"]
-margin_left = 504.0
-margin_right = 768.0
+margin_left = 503.0
+margin_right = 767.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 text = "Open Changelogs"
@@ -471,7 +481,7 @@ script = SubResource( 5 )
 
 [node name="Label2" type="Label" parent="FirstLaunchHint/VBox"]
 margin_top = 409.0
-margin_right = 768.0
+margin_right = 767.0
 margin_bottom = 496.0
 grow_horizontal = 0
 grow_vertical = 0
@@ -486,13 +496,13 @@ __meta__ = {
 }
 
 [node name="HBoxContainer" type="HBoxContainer" parent="FirstLaunchHint/VBox"]
-margin_top = 565.0
-margin_right = 768.0
-margin_bottom = 637.0
+margin_top = 564.0
+margin_right = 767.0
+margin_bottom = 636.0
 custom_constants/separation = 20
 
 [node name="Button2" type="Button" parent="FirstLaunchHint/VBox/HBoxContainer"]
-margin_right = 375.0
+margin_right = 374.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
@@ -502,15 +512,15 @@ text = "Okay, I get it!"
 script = SubResource( 6 )
 
 [node name="Button3" type="Button" parent="FirstLaunchHint/VBox/HBoxContainer"]
-margin_left = 395.0
-margin_right = 768.0
+margin_left = 394.0
+margin_right = 767.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 custom_colors/font_color = Color( 0.635294, 0.458824, 0.458824, 1 )
 custom_colors/font_color_hover = Color( 0.768627, 0.211765, 0.211765, 1 )
 custom_colors/font_color_pressed = Color( 1, 0.0784314, 0.0784314, 1 )
 text = "No, I think this is a game!"
-script = SubResource( 6 )
+script = SubResource( 7 )
 
 [connection signal="pressed" from="OpenSettingsWithoutSignal/OpenSettings" to="." method="_on_open_settings_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]

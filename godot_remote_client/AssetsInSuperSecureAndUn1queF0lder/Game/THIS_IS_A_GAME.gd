@@ -17,6 +17,7 @@ onready var pipe_handler = $World/PipeHandler
 onready var dont_show = $Control/WindowDialog/PanelContainer/VBoxContainer/DontShowOnReconnects
 
 var is_loading_after_error = false
+var analytics_event_suffix : String = ""
 
 onready var layouts := [
 	game_menu,
@@ -49,6 +50,7 @@ func _ready() -> void:
 	
 	dont_show.visible = !G.GameShowAfterConnectionErrors or is_loading_after_error
 	dont_show.pressed = !G.GameShowAfterConnectionErrors
+	analytics_event_suffix = "Normal" if G.FirstRunAgreementAccepted else "NotAccepted"
 
 func _center_floor():
 	$World/Floor.position = $Control.rect_size * Vector2(0.5, 1)
@@ -66,6 +68,8 @@ func _game_stopped():
 	
 	yield(get_tree().create_timer(1), "timeout")
 	_switch_layout(UI_LAYOUTS.PlAY_MENU)
+	
+	G.a_progression_event(G.A_ProgressStatus.Complete, "ClappyDroid", analytics_event_suffix, "", player.score)
 
 func _game_started():
 	_switch_layout(UI_LAYOUTS.GAMEPLAY_SCORE)
@@ -111,6 +115,8 @@ func _on_Play_pressed() -> void:
 	player.update_bounds($Control.rect_size)
 	pipe_handler.update_bounds($Control.rect_size)
 	pipe_handler.clear_pipes()
+	
+	G.a_progression_event(G.A_ProgressStatus.Start, "ClappyDroid", analytics_event_suffix)
 
 func _on_Exit_pressed() -> void:
 	queue_free()

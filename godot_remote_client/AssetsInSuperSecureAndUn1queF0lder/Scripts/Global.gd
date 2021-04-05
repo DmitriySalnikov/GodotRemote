@@ -12,6 +12,20 @@ enum StatInfoState{
 	Detailed = 2,
 }
 
+enum A_ProgressStatus{
+	Start = 0,
+	Fail = 1,
+	Complete = 2
+}
+
+enum A_ErrorSeverity{
+	Debug = 0,
+	Info = 1,
+	Warning = 2,
+	Error = 3,
+	Critical = 4
+}
+
 signal show_stats_changed(state)
 signal touches_to_open_settings_changed(count)
 
@@ -23,6 +37,7 @@ var GameShowAfterConnectionErrors := true setget set_game_show_after_errors
 
 var IsMobile : bool = false
 var Billings : Node = null
+var Analytics : Node = null
 
 var VersionChanged : bool = false
 var PreviousVersion : String = ""
@@ -67,6 +82,8 @@ func _enter_tree():
 	
 	var d = Directory.new()
 	d.open("res://") # godot in some versions print error if derectory not opened
+	
+	# Billing
 	var f = "res://An0therUn1queN@meOfF0lderForSecur1tyPurp0ses/AndroidBilling.gd"
 	var fc = f+"c"
 	if OS.has_feature("Android") and OS.has_feature("billing") and (d.file_exists(f) or d.file_exists(fc)):
@@ -75,6 +92,16 @@ func _enter_tree():
 			print("Android Billings Loaded")
 			Billings = b.new()
 			add_child(Billings)
+	
+	# Analytics
+	f = "res://An0therUn1queN@meOfF0lderForSecur1tyPurp0ses/Analytics.gd"
+	fc = f+"c"
+	if OS.has_feature("analytics") and (d.file_exists(f) or d.file_exists(fc)):
+		var a = load(f)
+		if a:
+			print("GameAnalytics Loaded")
+			Analytics = a.new()
+			add_child(Analytics)
 
 func _ready():
 	randomize()
@@ -155,6 +182,11 @@ func _set_all_values():
 	
 	if i_w:
 		dev.start()
+
+
+#########################################################
+#                       SAVE/LOAD
+#########################################################
 
 func _save_settings():
 	var d = Dictionary()
@@ -273,8 +305,41 @@ func _safe_get_from_dict(dict:Dictionary, val, def):
 		return r if r != null else def
 	return def
 
+#########################################################
+#                        UTILS
+#########################################################
 func get_version() -> String:
 	return "%s.%d" % [GodotRemote.get_version(), CLIENT_VERSION]
+
+
+#########################################################
+#                       ANALYTICS
+#########################################################
+
+func a_business_event(cartType: String, itemType: String, itemId: String, amount: int, currency: String, receipt: String = "", signature: String = "") -> void:
+	if Analytics:
+		Analytics.business_event(cartType, itemType, itemId, amount, currency, receipt, signature)
+
+func a_design_event(eventId: String, value: float = NAN) -> void:
+	if Analytics:
+		Analytics.design_event(eventId, value)
+
+func a_progression_event(status: int, first: String, second: String = "", third: String = "", score: int = NAN) -> void:
+	if Analytics:
+		Analytics.progression_event(status, first, second, third, score)
+
+func a_error_event(severity: int, message: String = "") -> void:
+	if Analytics:
+		Analytics.error_event(severity, message)
+
+func a_resource_event(flowType_is_source: bool, currency: String, amount: float, itemType: String, itemId: String) -> void:
+	if Analytics:
+		Analytics.resource_event(flowType_is_source, currency, amount, itemType, itemId)
+
+
+#########################################################
+#                        SETGET
+#########################################################
 
 func set_game_score(val : int):
 	GameHighScore = val
