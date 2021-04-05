@@ -350,6 +350,7 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 
 		pack->set_is_stream_end(false);
 		pack->set_start_time(com_image.time_added);
+		pack->set_frametime(com_image.frametime);
 		pack->set_compression_type(GRDevice::ImageCompressionType::COMPRESSION_H264);
 
 		if (com_image.img_data.size() == 0)

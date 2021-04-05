@@ -1,4 +1,5 @@
 # Android.mk
+# TODO outdated.
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)

@@ -1415,6 +1415,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 						sync_time_client = get_time_usec();
 						sync_time_server = data->get_time();
+						sync_time_delta = sync_time_client - sync_time_server;
 
 						break;
 					}

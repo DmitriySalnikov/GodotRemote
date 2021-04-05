@@ -27,6 +27,7 @@ class GRClient : public GRDevice {
 	GD_CLASS(GRClient, GRDevice);
 
 	friend class GRTextureRect;
+	friend class GRStreamDecoder;
 	friend class GRStreamDecoderImageSequence;
 	friend class GRStreamDecoderH264;
 
@@ -152,7 +153,8 @@ private:
 
 	uint64_t sync_time_client = 0;
 	uint64_t sync_time_server = 0;
-	GRAVGCounter<uint64_t, float> delay_counter = GRAVGCounter<uint64_t, float>([](float i) -> float {if (i > 0) return float(1000000.0 / i); else return 0; });
+	int64_t sync_time_delta = 0;
+	GRAVGCounter<uint64_t, float> delay_counter = GRAVGCounter<uint64_t, float>([](float i) -> float { return float(i * 0.001); });
 
 	// NO SIGNAL screen
 	uint64_t prev_valid_connection_time = 0;

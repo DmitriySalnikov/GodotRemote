@@ -25,12 +25,12 @@ private:
 	public:
 		Ref<Image> img;
 		uint64_t frametime;
-		uint64_t frame_send_time;
+		uint64_t frame_added_time;
 		bool is_ready = false;
 		bool is_end = false;
 		BufferedImage(uint64_t time_of_frame, uint64_t frame_added) {
 			frametime = time_of_frame;
-			frame_send_time = frame_added;
+			frame_added_time = frame_added;
 		}
 	};
 
@@ -42,7 +42,6 @@ private:
 	bool is_threads_active = true;
 	bool is_update_thread_active = true;
 	bool video_stream_enabled = true;
-	uint64_t prev_shown_frame_time = 0;
 
 	void _update_thread(Variant p_userdata);
 	void _processing_thread(Variant p_userdata);

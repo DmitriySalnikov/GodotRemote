@@ -158,6 +158,7 @@ class GRPacketStreamDataH264 : public GRPacketStreamData {
 
 	std::vector<PoolByteArray> data_layers;
 	uint64_t start_time = 0;
+	uint64_t frametime = 0;
 	uint8_t frame_type = 0;
 
 protected:
@@ -170,8 +171,12 @@ public:
 	std::vector<PoolByteArray> get_image_data() {
 		return data_layers;
 	}
+
 	uint64_t get_start_time() {
 		return start_time;
+	}
+	uint64_t get_frametime() {
+		return frametime;
 	}
 	uint8_t get_frame_type() {
 		return frame_type;
@@ -190,6 +195,9 @@ public:
 	}
 	void set_start_time(uint64_t _start_time) {
 		start_time = _start_time;
+	}
+	void set_frametime(uint64_t _frametime) {
+		frametime = _frametime;
 	}
 	void set_frame_type(uint8_t type) {
 		frame_type = type;

@@ -69,7 +69,7 @@ void GRStreamDecoderH264::push_packet_to_decode(std::shared_ptr<GRPacketStreamDa
 			while (buffer.size())
 				buffer.pop();
 
-			auto img = BufferedImage(0);
+			auto img = BufferedImage(0, 0);
 			img.is_end = true;
 
 			buffer.push(img);
@@ -140,10 +140,16 @@ void GRStreamDecoderH264::_deinit() {
 	stop_decoder_threads();
 }
 
-// TODO add a way to calculate delay of stream. based on sync time mb
 void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 	Thread_set_name("H264 Update Thread");
 	auto os = OS::get_singleton();
+	auto wait_next_frame = [&]() {
+		ts_lock.lock();
+		uint64_t ft = buffer.size() ? buffer.front().frametime : 0;
+		ts_lock.unlock();
+		_sleep_waiting_next_frame(ft);
+	};
+
 	while (is_update_thread_active) {
 		ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
 		ts_lock.lock();
@@ -161,21 +167,28 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 				prev_shown_frame_time = time;
 
 				if (buf.img.is_valid() && !img_is_empty(buf.img)) {
-					gr_client->_display_new_image(buf.img, buf.frame_send_time - abs(int64_t(gr_client->sync_time_server) - int64_t(gr_client->sync_time_client)));
+					int64_t delay = _calc_delay(time, buf.frame_added_time, buf.frametime);
+					if (delay < 0) {
+						delay = 0;
+					}
+
+					gr_client->_display_new_image(buf.img, delay);
 				} else {
 					gr_client->_image_lost();
 				}
-				sleep_usec(1_ms);
+
+				wait_next_frame();
 				continue;
 			}
 		}
 		ts_lock.unlock();
 
-		sleep_usec(1_ms);
 		// check if image displayed less then few seconds ago. if not then remove texture
 		if (get_time_usec() > uint64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
 			gr_client->_image_lost();
 		}
+
+		wait_next_frame();
 	}
 }
 
@@ -185,7 +198,7 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void GRStreamDecoderH264::FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_time) {
+void GRStreamDecoderH264::FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_time, uint64_t frametime) {
 	ZoneScopedNC("Flush Frames", tracy::Color::Blue1);
 	uint8_t *pData[3] = { NULL }; // WTF IS THIS??
 	uint8_t remaining_frames = 0;
@@ -203,11 +216,11 @@ void GRStreamDecoderH264::FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_
 		sDstBufInfo.uiInBsTimeStamp = get_time_usec();
 		h264_decoder->FlushFrame(pData, &sDstBufInfo);
 
-		ProcessFrame(&sDstBufInfo, start_time);
+		ProcessFrame(&sDstBufInfo, start_time, frametime);
 	}
 }
 
-bool GRStreamDecoderH264::ProcessFrame(SBufferInfo *info, uint64_t start_time) {
+bool GRStreamDecoderH264::ProcessFrame(SBufferInfo *info, uint64_t start_time, uint64_t frametime) {
 	if (info->iBufferStatus == 1) {
 		ZoneScopedNC("Process Frame", tracy::Color::Orange3);
 		Ref<Image> img = newref(Image);
@@ -226,7 +239,7 @@ bool GRStreamDecoderH264::ProcessFrame(SBufferInfo *info, uint64_t start_time) {
 			return false;
 		}
 
-		auto buf_img = BufferedImage(start_time);
+		auto buf_img = BufferedImage(start_time, frametime);
 		buf_img.img = img;
 		buffer.push(buf_img);
 	}
@@ -327,7 +340,7 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 							if (iLastSpsByteCount > 0 && iSpsByteCount > 0) {
 								if (iSpsByteCount != iLastSpsByteCount || memcmp(uSpsPtr, uLastSpsBuf, iLastSpsByteCount) != 0) {
 									//whenever new sequence is different from preceding sequence. All pending frames must be flushed out before the new sequence can start to decode.
-									FlushFrames(h264_decoder, 0);
+									FlushFrames(h264_decoder, 0, image_pack->get_frametime());
 								}
 							}
 							if (iSpsByteCount > 0 && uSpsPtr != NULL) {
@@ -352,7 +365,7 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 							is_decode_with_error = true;
 						}
 
-						ProcessFrame(&sDstBufInfo, image_pack->get_start_time());
+						ProcessFrame(&sDstBufInfo, image_pack->get_start_time(), image_pack->get_frametime());
 					}
 				} else {
 					_log("Wrong image package for this stream", LogLevel::LL_DEBUG);

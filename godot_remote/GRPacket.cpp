@@ -111,6 +111,7 @@ bool GRPacketStreamDataImage::_create(Ref<StreamPeerBuffer> buf) {
 Ref<StreamPeerBuffer> GRPacketStreamDataH264::_get_data() {
 	auto buf = GRPacketStreamData::_get_data();
 	buf->put_var(start_time);
+	buf->put_var(frametime);
 	buf->put_var(frame_type);
 
 	// store array size
@@ -125,6 +126,7 @@ Ref<StreamPeerBuffer> GRPacketStreamDataH264::_get_data() {
 bool GRPacketStreamDataH264::_create(Ref<StreamPeerBuffer> buf) {
 	GRPacketStreamData::_create(buf);
 	start_time = buf->get_var();
+	frametime = buf->get_var();
 	frame_type = buf->get_var();
 
 	// get array size

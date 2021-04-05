@@ -41,14 +41,14 @@ func _pressed() -> void:
 	OS.shell_open(\"https://github.com/DmitriySalnikov/GodotRemote#godot-remote\")
 "
 
-[sub_resource type="GDScript" id=6]
+[sub_resource type="GDScript" id=5]
 script/source = "extends Button
 
 func _pressed() -> void:
 	get_parent().get_parent().get_parent().get_parent().show_changelogs()
 "
 
-[sub_resource type="GDScript" id=5]
+[sub_resource type="GDScript" id=6]
 script/source = "extends Button
 
 func _ready() -> void:
@@ -467,7 +467,7 @@ margin_right = 768.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 text = "Open Changelogs"
-script = SubResource( 6 )
+script = SubResource( 5 )
 
 [node name="Label2" type="Label" parent="FirstLaunchHint/VBox"]
 margin_top = 409.0
@@ -499,7 +499,7 @@ size_flags_horizontal = 3
 custom_colors/font_color = Color( 0.588235, 0.964706, 0.466667, 1 )
 custom_colors/font_color_hover = Color( 0.290196, 1, 0.231373, 1 )
 text = "Okay, I get it!"
-script = SubResource( 5 )
+script = SubResource( 6 )
 
 [node name="Button3" type="Button" parent="FirstLaunchHint/VBox/HBoxContainer"]
 margin_left = 395.0
@@ -510,7 +510,7 @@ custom_colors/font_color = Color( 0.635294, 0.458824, 0.458824, 1 )
 custom_colors/font_color_hover = Color( 0.768627, 0.211765, 0.211765, 1 )
 custom_colors/font_color_pressed = Color( 1, 0.0784314, 0.0784314, 1 )
 text = "No, I think this is a game!"
-script = SubResource( 5 )
+script = SubResource( 6 )
 
 [connection signal="pressed" from="OpenSettingsWithoutSignal/OpenSettings" to="." method="_on_open_settings_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]

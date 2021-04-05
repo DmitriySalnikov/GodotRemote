@@ -37,7 +37,7 @@ func _process(_delta):
 			ping_max.text = "%.1f" % dev.get_max_ping()
 			
 			delay.text = "Delay: %.1f" % dev.get_avg_delay()
-			delay_min.text = "%.1f" % dev.get_max_delay()
+			delay_min.text = "%.1f" % dev.get_min_delay()
 			delay_max.text = "%.1f" % dev.get_max_delay()
 		
 		rect_size = grid.rect_size

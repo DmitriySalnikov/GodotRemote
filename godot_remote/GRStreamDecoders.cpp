@@ -177,6 +177,21 @@ void GRStreamDecoder::_register_methods() {
 
 #endif
 
+void GRStreamDecoder::_sleep_waiting_next_frame(uint64_t frametime) {
+	if (frametime > 0) {
+		int wait_time = int(frametime - get_time_usec() - prev_shown_frame_time);
+		if (wait_time > (int)1_ms && wait_time < (int)frametime) {
+			sleep_usec(wait_time - 500);
+		}
+	} else {
+		sleep_usec(1_ms);
+	}
+}
+
+int64_t GRStreamDecoder::_calc_delay(uint64_t time, uint64_t start_time, uint64_t frametime) {
+	return time - start_time - gr_client->sync_time_delta + int64_t(1000000.0 / Engine::get_singleton()->get_frames_per_second()) + frametime * 2;
+}
+
 void GRStreamDecoder::_notification(int p_notification) {
 	switch (p_notification) {
 		case NOTIFICATION_POSTINITIALIZE:

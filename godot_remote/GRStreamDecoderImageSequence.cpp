@@ -145,9 +145,15 @@ void GRStreamDecoderImageSequence::_deinit() {
 	stop_decoder_threads();
 }
 
-// TODO add a way to calculate delay of stream. based on sync time mb
 void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 	Thread_set_name("Image Sequence Update Thread");
+	auto wait_next_frame = [&]() {
+		ts_lock.lock();
+		uint64_t ft = buffer.size() ? buffer.front()->frametime : 0;
+		ts_lock.unlock();
+		_sleep_waiting_next_frame(ft);
+	};
+
 	while (is_update_thread_active) {
 		ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
 		ts_lock.lock();
@@ -171,33 +177,40 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 			if (buf->is_ready) {
 				uint64_t time = get_time_usec();
 				// TODO check for correctness. it looks like the fps changes in a wave
-				uint64_t next_frame = prev_shown_frame_time + buf->frametime - 1_ms;
+				uint64_t next_frame = prev_shown_frame_time + buf->frametime;
 				if (buf->is_end) {
 					gr_client->_image_lost();
 				} else if (time > next_frame) {
 					buffer.pop();
+					ts_lock.unlock();
 
 					prev_shown_frame_time = time;
 
 					if (buf->img.is_valid() && !img_is_empty(buf->img)) {
-						// TODO does not work
-						gr_client->_display_new_image(buf->img, buf->frame_send_time - abs(int64_t(gr_client->sync_time_server) - int64_t(gr_client->sync_time_client)));
+						int64_t delay = _calc_delay(time, buf->frame_added_time, buf->frametime);
+						if (delay < 0) {
+							delay = 0;
+						}
+
+						gr_client->_display_new_image(buf->img, delay);
 					} else {
 						gr_client->_image_lost();
 					}
-					ts_lock.unlock();
-					sleep_usec(1_ms);
+
+					wait_next_frame();
 					continue;
 				}
 			}
 		}
 		ts_lock.unlock();
-		sleep_usec(1_ms);
 
 		// check if image displayed less then few seconds ago. if not then remove texture
 		if (get_time_usec() > uint64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
 			gr_client->_image_lost();
+			continue;
 		}
+
+		wait_next_frame();
 	}
 }
 

@@ -25,10 +25,12 @@ private:
 	class BufferedImage {
 	public:
 		Ref<Image> img;
-		uint64_t frame_send_time;
+		uint64_t frame_added_time;
+		uint64_t frametime;
 		bool is_end = false;
-		BufferedImage(uint64_t frame_added) {
-			frame_send_time = frame_added;
+		BufferedImage(uint64_t frame_added,uint64_t frame_time) {
+			frame_added_time = frame_added;
+			frametime = frame_time;
 		}
 	};
 
@@ -38,7 +40,6 @@ private:
 
 	PoolByteArray ret_data;
 	bool video_stream_enabled = true;
-	uint64_t prev_shown_frame_time = 0;
 	bool is_thread_active = false;
 	bool is_update_thread_active = true;
 	int threads_number = 2;
@@ -48,8 +49,8 @@ private:
 	int en_pic_height = 0;
 	int en_target_bitrate = 0;
 	int en_threads_count = 0;
-	void FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_time);
-	bool ProcessFrame(SBufferInfo *info, uint64_t start_time);
+	void FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_time, uint64_t frametime);
+	bool ProcessFrame(SBufferInfo *info, uint64_t start_time, uint64_t frametime);
 
 	void _update_thread(Variant p_userdata);
 	void _processing_thread(Variant p_userdata);

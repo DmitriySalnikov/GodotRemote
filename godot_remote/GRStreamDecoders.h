@@ -69,8 +69,12 @@ protected:
 #endif
 	GRClient *gr_client = nullptr;
 	GRStreamDecodersManager *decoders_manager = nullptr;
-	void _notification(int p_notification);
 	std::queue<std::shared_ptr<GRPacketStreamData> > images;
+	uint64_t prev_shown_frame_time = 0;
+
+	void _sleep_waiting_next_frame(uint64_t frametime);
+	int64_t _calc_delay(uint64_t time, uint64_t start_time, uint64_t frametime);
+	void _notification(int p_notification);
 
 public:
 	void set_gr_client(GRClient *client);
