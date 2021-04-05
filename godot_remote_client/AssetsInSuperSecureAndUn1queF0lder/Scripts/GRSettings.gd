@@ -117,7 +117,7 @@ func _init_point():
 		_points_update(G.Billings.get_purchased_points())
 
 func _points_update(points):
-	donations.text = "Points: " + str(points)
+	donations.text = "Your Points: " + str(points)
 
 func _on_GRSettings_resized():
 	var cols = 2 if (rect_size.x / rect_size.y > 1.37) else 1

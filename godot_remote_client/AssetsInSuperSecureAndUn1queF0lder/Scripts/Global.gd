@@ -44,6 +44,7 @@ var PreviousVersion : String = ""
 var AppRuns : int = 0
 var TotalAppRuns : int = 0
 var FirstRunAgreementAccepted : bool = false setget set_first_run_agreement_accepted
+var FirstConnectionSuccessful : bool = false setget set_first_connection_successful
 var TouchesToOpenSettings : int = 5 setget set_touches_to_open_settings
 var UserRateState : int = RateState.NotNow setget set_user_rate_state
 
@@ -96,7 +97,7 @@ func _enter_tree():
 	# Analytics
 	f = "res://An0therUn1queN@meOfF0lderForSecur1tyPurp0ses/Analytics.gd"
 	fc = f+"c"
-	if OS.has_feature("analytics") and (d.file_exists(f) or d.file_exists(fc)):
+	if Engine.has_singleton("GameAnalytics") and (d.file_exists(f) or d.file_exists(fc)):
 		var a = load(f)
 		if a:
 			print("GameAnalytics Loaded")
@@ -196,6 +197,7 @@ func _save_settings():
 	
 	d["m_version"] = get_version()
 	d["first_run_accepted"] = FirstRunAgreementAccepted
+	d["first_connection_successful"] = FirstConnectionSuccessful
 	d["app_runs"] = AppRuns
 	d["total_app_runs"] = TotalAppRuns
 	d["touches_to_open_settings"] = TouchesToOpenSettings
@@ -262,6 +264,7 @@ func _load_settings():
 				AppRuns = _safe_get_from_dict(d, "app_runs", AppRuns)
 			
 			FirstRunAgreementAccepted = _safe_get_from_dict(d, "first_run_accepted", FirstRunAgreementAccepted) 
+			FirstConnectionSuccessful = _safe_get_from_dict(d, "first_connection_successful", FirstConnectionSuccessful) 
 			TotalAppRuns = _safe_get_from_dict(d, "total_app_runs", TotalAppRuns)
 			TouchesToOpenSettings = _safe_get_from_dict(d, "touches_to_open_settings", TouchesToOpenSettings)
 			UserRateState = _safe_get_from_dict(d, "user_rate_state", UserRateState)
@@ -324,7 +327,7 @@ func a_design_event(eventId: String, value: float = NAN) -> void:
 	if Analytics:
 		Analytics.design_event(eventId, value)
 
-func a_progression_event(status: int, first: String, second: String = "", third: String = "", score: int = NAN) -> void:
+func a_progression_event(status: int, first: String, second: String = "", third: String = "", score: int = -9223372036854775807) -> void:
 	if Analytics:
 		Analytics.progression_event(status, first, second, third, score)
 
@@ -351,6 +354,10 @@ func set_game_show_after_errors(val : bool):
 
 func set_first_run_agreement_accepted(val : bool):
 	FirstRunAgreementAccepted = val
+	_save_settings()
+
+func set_first_connection_successful(val : bool):
+	FirstConnectionSuccessful = val
 	_save_settings()
 
 func set_touches_to_open_settings(val : int):

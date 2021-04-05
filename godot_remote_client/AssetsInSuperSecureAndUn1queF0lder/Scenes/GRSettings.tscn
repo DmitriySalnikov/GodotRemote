@@ -92,26 +92,26 @@ custom_styles/separator = ExtResource( 4 )
 
 [node name="Donations" type="ToolButton" parent="H"]
 margin_left = 170.0
-margin_right = 301.0
+margin_right = 345.0
 margin_bottom = 59.0
 mouse_filter = 1
 size_flags_horizontal = 3
 size_flags_vertical = 5
 custom_fonts/font = ExtResource( 5 )
-custom_colors/font_color = Color( 0.384314, 0.407843, 0.423529, 1 )
-text = "Points: 100"
+custom_colors/font_color = Color( 0.541176, 0.737255, 0.592157, 1 )
+text = "Your Points: 100"
 
 [node name="empty" type="Control" parent="H"]
-margin_left = 305.0
-margin_right = 437.0
+margin_left = 349.0
+margin_right = 453.0
 margin_bottom = 59.0
 mouse_filter = 1
 size_flags_horizontal = 3
 size_flags_vertical = 5
 
 [node name="Version" type="ToolButton" parent="H"]
-margin_left = 441.0
-margin_right = 634.0
+margin_left = 457.0
+margin_right = 650.0
 margin_bottom = 59.0
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -121,7 +121,7 @@ text = "GR version: 1.0.14"
 align = 2
 
 [node name="VSeparator2" type="VSeparator" parent="H"]
-margin_left = 638.0
+margin_left = 654.0
 margin_right = 720.0
 margin_bottom = 59.0
 size_flags_horizontal = 3

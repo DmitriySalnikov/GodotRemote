@@ -31,6 +31,7 @@ func _ready():
 	GodotRemote.get_device().connect("stream_state_changed", self, "_stream_state_changed")
 	GodotRemote.get_device().connect("mouse_mode_changed", self, "_mouse_mode_changed")
 	GodotRemote.get_device().connect("stream_aspect_ratio_changed", self, "_stream_aspect_ratio_changed")
+	GodotRemote.get_device().connect("connection_state_changed", self, "_connections_state_changed")
 	GodotRemote.connect("device_removed", self, "_device_removed")
 	settings.connect("stretch_mode_changed", self, "_settings_stretch_mode_changed")
 	
@@ -103,6 +104,12 @@ func _custom_input_scene_added():
 func _custom_input_scene_removed():
 	bg_touch_hint_tex.visible = true
 	GodotRemote.get_device().capture_pointer = true
+
+func _connections_state_changed(state : bool):
+	if state:
+		if !G.FirstConnectionSuccessful:
+			G.FirstConnectionSuccessful = true
+			G.a_design_event("ConnectedFirstTime")
 
 func _stream_state_changed(_is_connected):
 	prev_stream_state = _is_connected

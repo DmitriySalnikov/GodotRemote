@@ -245,16 +245,17 @@ margin_bottom = 50.0
 margin_top = 54.0
 margin_right = 668.0
 margin_bottom = 126.0
+custom_constants/separation = 12
 
 [node name="Button" type="Button" parent="PlsSupportPopup/HBoxContainer/HBoxContainer"]
-margin_right = 332.0
+margin_right = 328.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "Support"
 
 [node name="Button2" type="Button" parent="PlsSupportPopup/HBoxContainer/HBoxContainer"]
-margin_left = 336.0
+margin_left = 340.0
 margin_right = 668.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
@@ -331,16 +332,15 @@ text = "How do I update the server?"
 
 [node name="PlsRatePopup" type="WindowDialog" parent="."]
 visible = true
-margin_left = -839.331
-margin_top = 100.887
-margin_right = -141.331
-margin_bottom = 362.887
-rect_min_size = Vector2( 500, 135 )
+margin_left = -839.0
+margin_top = 101.0
+margin_right = -189.0
+margin_bottom = 323.0
+rect_min_size = Vector2( 500, 222 )
 popup_exclusive = true
 window_title = "Rate This App"
 script = ExtResource( 8 )
 __meta__ = {
-"_edit_lock_": true,
 "_edit_use_anchors_": false
 }
 
@@ -357,42 +357,43 @@ __meta__ = {
 }
 
 [node name="Label" type="Label" parent="PlsRatePopup/HBoxContainer"]
-margin_top = 52.0
-margin_right = 666.0
-margin_bottom = 98.0
+margin_top = 32.0
+margin_right = 618.0
+margin_bottom = 78.0
 size_flags_vertical = 6
 text = "Do you want to rate this app?"
 align = 1
 valign = 1
 
 [node name="Control" type="Control" parent="PlsRatePopup/HBoxContainer"]
-margin_top = 154.0
-margin_right = 666.0
-margin_bottom = 154.0
+margin_top = 114.0
+margin_right = 618.0
+margin_bottom = 114.0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="PlsRatePopup/HBoxContainer"]
-margin_top = 158.0
-margin_right = 666.0
-margin_bottom = 230.0
+margin_top = 118.0
+margin_right = 618.0
+margin_bottom = 190.0
+custom_constants/separation = 12
 
 [node name="yes" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
-margin_right = 219.0
+margin_right = 198.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "Yes"
 
 [node name="no" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
-margin_left = 223.0
-margin_right = 442.0
+margin_left = 210.0
+margin_right = 408.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "No, thanks"
 
 [node name="later" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
-margin_left = 446.0
-margin_right = 666.0
+margin_left = 420.0
+margin_right = 618.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
@@ -461,10 +462,10 @@ __meta__ = {
 margin_top = 269.0
 margin_right = 767.0
 margin_bottom = 341.0
-custom_constants/separation = 20
+custom_constants/separation = 12
 
 [node name="Button" type="Button" parent="FirstLaunchHint/VBox/HBoxContainer2"]
-margin_right = 483.0
+margin_right = 491.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
@@ -499,10 +500,10 @@ __meta__ = {
 margin_top = 564.0
 margin_right = 767.0
 margin_bottom = 636.0
-custom_constants/separation = 20
+custom_constants/separation = 12
 
 [node name="Button2" type="Button" parent="FirstLaunchHint/VBox/HBoxContainer"]
-margin_right = 374.0
+margin_right = 382.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
@@ -523,6 +524,7 @@ text = "No, I think this is a game!"
 script = SubResource( 7 )
 
 [connection signal="pressed" from="OpenSettingsWithoutSignal/OpenSettings" to="." method="_on_open_settings_pressed"]
+[connection signal="visibility_changed" from="PlsSupportPopup" to="PlsSupportPopup" method="_on_PlsSupportPopup_visibility_changed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button2" to="PlsSupportPopup" method="_on_Button2_pressed"]
 [connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button" to="Changelog" method="_on_Button_pressed"]
