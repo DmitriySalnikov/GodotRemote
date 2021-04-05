@@ -32,9 +32,9 @@ private:
 	static void _clear();
 
 	// YUV to RGB conversion
-	static unsigned long tjPlaneSizeYUV(int componentID, int width, int height);
-	static int tjPlaneWidth(int componentID, int width);
-	static int tjPlaneHeight(int componentID, int height);
+	static unsigned long get_PlaneSizeYUV(int componentID, int width, int height);
+	static int get_PlaneWidth(int componentID, int width);
+	static int get_PlaneHeight(int componentID, int height);
 
 public:
 	static Error _encoder_create(ISVCEncoder **encoder);

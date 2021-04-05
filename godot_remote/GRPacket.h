@@ -81,7 +81,7 @@ public:
 class GRPacketStreamData : public GRPacket {
 	friend GRPacket;
 
-	/*GRDevice::ImageCompressionType*/ int compression = 1 /*GRDevice::ImageCompressionType::JPG*/;
+	/*GRDevice::ImageCompressionType*/ int compression = 1 /*GRDevice::ImageCompressionType::COMPRESSION_JPG*/;
 	bool is_stream_end = false;
 
 protected:
@@ -193,6 +193,10 @@ public:
 	}
 	void set_frame_type(uint8_t type) {
 		frame_type = type;
+	}
+
+	GRPacketStreamDataH264() {
+		set_compression_type(3); /*COMPRESSION_H264*/
 	}
 };
 

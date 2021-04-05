@@ -206,7 +206,7 @@ void GRUtilsH264Codec::yuv_buffer_data_to_encoder::free_mem() {
 }
 
 int GRUtilsH264Codec::_get_yuv_comp_size(int componentID, int width, int height) {
-	return tjPlaneSizeYUV(componentID, width, height);
+	return get_PlaneSizeYUV(componentID, width, height);
 }
 
 void yuv420_rgb24(uint32_t width, uint32_t height, const uint8_t *y, const uint8_t *u, const uint8_t *v,
@@ -219,28 +219,20 @@ void rgb32_yuv420(uint32_t width, uint32_t height, const uint8_t *rgba, uint32_t
 		uint8_t *y, uint8_t *u, uint8_t *v, uint32_t y_stride, uint32_t uv_stride);
 
 Error GRUtilsH264Codec::_encode_image_to_yuv(PoolByteArray img_data, const int width, const int height, const int bytes_in_color, uint8_t *buf[3]) {
-#if !(defined(GODOT_REMOTE_USE_SSE2) && (defined(_M_AMD64) || defined(_M_X64) || _M_IX86_FP == 2))
-	ZoneScopedNC("_encode_image_to_yuv std", tracy::Color::LavenderBlush);
-#else
-	ZoneScopedNC("_encode_image_to_yuv SSE2", tracy::Color::LavenderBlush);
-#endif
+	ZoneScopedNC("_encode_image_to_yuv", tracy::Color::OrangeRed);
 
 	auto idr = img_data.read();
 	if (bytes_in_color == 3) {
-		rgb24_yuv420(width, height, idr.ptr(), width * bytes_in_color, buf[0], buf[1], buf[2], tjPlaneWidth(0, width), tjPlaneWidth(1, width));
+		rgb24_yuv420(width, height, idr.ptr(), width * bytes_in_color, buf[0], buf[1], buf[2], get_PlaneWidth(0, width), get_PlaneWidth(1, width));
 	} else {
-		rgb32_yuv420(width, height, idr.ptr(), width * bytes_in_color, buf[0], buf[1], buf[2], tjPlaneWidth(0, width), tjPlaneWidth(1, width));
+		rgb32_yuv420(width, height, idr.ptr(), width * bytes_in_color, buf[0], buf[1], buf[2], get_PlaneWidth(0, width), get_PlaneWidth(1, width));
 	}
 
 	return Error::OK;
 }
 
 Error GRUtilsH264Codec::_decode_yuv_to_image(Ref<Image> img, const int width, const int height, uint8_t *buf_y, uint8_t *buf_u, uint8_t *buf_v, int stride[2]) {
-#if !(defined(GODOT_REMOTE_USE_SSE2) && (defined(_M_AMD64) || defined(_M_X64) || _M_IX86_FP == 2))
-	ZoneScopedNC("_decode_yuv_to_image std", tracy::Color::LavenderBlush);
-#else
-	ZoneScopedNC("_decode_yuv_to_image SSE2", tracy::Color::LavenderBlush);
-#endif
+	ZoneScopedNC("_decode_yuv_to_image", tracy::Color::OrangeRed);
 
 	PoolByteArray rgb;
 	rgb.resize(width * height * 3);
@@ -265,7 +257,7 @@ Error GRUtilsH264Codec::_decode_yuv_to_image(Ref<Image> img, const int width, co
 // LibJPEG-turbo original code
 
 // https://github.com/libjpeg-turbo/libjpeg-turbo/blob/8e895c79e1d4c2a6727ee5729fe88bba1051ce33/turbojpeg.c#L610
-unsigned long GRUtilsH264Codec::tjPlaneSizeYUV(int componentID, int width, int height) {
+unsigned long GRUtilsH264Codec::get_PlaneSizeYUV(int componentID, int width, int height) {
 	unsigned long long retval = 0;
 	int pw, ph;
 
@@ -274,8 +266,8 @@ unsigned long GRUtilsH264Codec::tjPlaneSizeYUV(int componentID, int width, int h
 		return -1;
 	}
 
-	pw = tjPlaneWidth(componentID, width);
-	ph = tjPlaneHeight(componentID, height);
+	pw = get_PlaneWidth(componentID, width);
+	ph = get_PlaneHeight(componentID, height);
 	if (pw < 0 || ph < 0) return -1;
 
 	int stride = pw;
@@ -292,7 +284,7 @@ unsigned long GRUtilsH264Codec::tjPlaneSizeYUV(int componentID, int width, int h
 #define PAD(v, p) ((v + (p)-1) & (~((p)-1)))
 
 // https://github.com/libjpeg-turbo/libjpeg-turbo/blob/8e895c79e1d4c2a6727ee5729fe88bba1051ce33/turbojpeg.c#L568
-int GRUtilsH264Codec::tjPlaneWidth(int componentID, int width) {
+int GRUtilsH264Codec::get_PlaneWidth(int componentID, int width) {
 	int pw, retval = 0;
 
 	if (width < 1) {
@@ -310,7 +302,7 @@ int GRUtilsH264Codec::tjPlaneWidth(int componentID, int width) {
 }
 
 // https://github.com/libjpeg-turbo/libjpeg-turbo/blob/8e895c79e1d4c2a6727ee5729fe88bba1051ce33/turbojpeg.c#L589
-int GRUtilsH264Codec::tjPlaneHeight(int componentID, int height) {
+int GRUtilsH264Codec::get_PlaneHeight(int componentID, int height) {
 	int ph, retval = 0;
 
 	if (height < 1) {
@@ -329,6 +321,62 @@ int GRUtilsH264Codec::tjPlaneHeight(int componentID, int height) {
 
 #undef PAD
 
+#ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
+
+#include "libjpeg-turbo/include/turbojpeg.h"
+
+void rgb24_yuv420(uint32_t width, uint32_t height, const uint8_t *RGB, uint32_t RGB_stride, uint8_t *Y, uint8_t *U, uint8_t *V, uint32_t Y_stride, uint32_t UV_stride) {
+	ZoneScopedNC("libjpeg-turbo", tracy::Color::OrangeRed);
+	tjhandle _jpegCompressor = tjInitCompress();
+
+	uint8_t *buf[3] = { Y, U, V };
+	int err = tjEncodeYUVPlanes(_jpegCompressor, RGB, width, 0, height, TJPF_RGB, buf, nullptr, TJSAMP_420, TJFLAG_FASTDCT | TJFLAG_NOREALLOC);
+	if (err) {
+		tjDestroy(_jpegCompressor);
+		//return Error::FAILED;
+	}
+	tjDestroy(_jpegCompressor);
+	//return Error::OK;
+}
+
+void rgb32_yuv420(uint32_t width, uint32_t height, const uint8_t *RGBA, uint32_t RGBA_stride, uint8_t *Y, uint8_t *U, uint8_t *V, uint32_t Y_stride, uint32_t UV_stride) {
+	ZoneScopedNC("libjpeg-turbo", tracy::Color::OrangeRed);
+	tjhandle _jpegCompressor = tjInitCompress();
+
+	uint8_t *buf[3] = { Y, U, V };
+	int err = tjEncodeYUVPlanes(_jpegCompressor, RGBA, width, 0, height, TJPF_RGBA, buf, nullptr, TJSAMP_420, TJFLAG_FASTDCT | TJFLAG_NOREALLOC);
+	if (err) {
+		tjDestroy(_jpegCompressor);
+		//return Error::FAILED;
+	}
+	tjDestroy(_jpegCompressor);
+	//return Error::OK;
+}
+
+void yuv420_rgb24(uint32_t width, uint32_t height, const uint8_t *Y, const uint8_t *U, const uint8_t *V, uint32_t Y_stride, uint32_t UV_stride, uint8_t *RGB, uint32_t RGB_stride) {
+	ZoneScopedNC("libjpeg-turbo", tracy::Color::OrangeRed);
+	tjhandle _jpegDecompressor = tjInitDecompress();
+	const uint8_t *yuv[] = {
+		Y,
+		U,
+		V,
+	};
+	int strides[3] = {
+		(int)Y_stride,
+		(int)UV_stride,
+		(int)UV_stride
+	};
+
+	int err = tjDecodeYUVPlanes(_jpegDecompressor, yuv, strides, TJSAMP_420, RGB, width, 0, height, TJPF_RGB, TJFLAG_FASTDCT | TJFLAG_NOREALLOC);
+	if (err) {
+		tjDestroy(_jpegDecompressor);
+		//return Error::FAILED;
+	}
+	tjDestroy(_jpegDecompressor);
+	//return img_is_empty(img) ? Error::FAILED : Error::OK;
+}
+
+#else
 // yuv2rgb lib code
 //
 // LICENSE
@@ -391,6 +439,7 @@ void rgb24_yuv420(
 		uint32_t width, uint32_t height,
 		const uint8_t *RGB, uint32_t RGB_stride,
 		uint8_t *Y, uint8_t *U, uint8_t *V, uint32_t Y_stride, uint32_t UV_stride) {
+	ZoneScopedNC("std", tracy::Color::OrangeRed);
 
 	uint32_t x, y;
 	for (y = 0; y < (height - 1); y += 2) {
@@ -444,6 +493,7 @@ void rgb32_yuv420(
 		uint32_t width, uint32_t height,
 		const uint8_t *RGBA, uint32_t RGBA_stride,
 		uint8_t *Y, uint8_t *U, uint8_t *V, uint32_t Y_stride, uint32_t UV_stride) {
+	ZoneScopedNC("std", tracy::Color::OrangeRed);
 
 	uint32_t x, y;
 	for (y = 0; y < (height - 1); y += 2) {
@@ -497,6 +547,8 @@ void yuv420_rgb24(
 		uint32_t width, uint32_t height,
 		const uint8_t *Y, const uint8_t *U, const uint8_t *V, uint32_t Y_stride, uint32_t UV_stride,
 		uint8_t *RGB, uint32_t RGB_stride) {
+	ZoneScopedNC("std", tracy::Color::OrangeRed);
+
 	uint32_t x, y;
 	for (y = 0; y < (height - 1); y += 2) {
 		const uint8_t *y_ptr1 = Y + y * Y_stride,
@@ -715,6 +767,7 @@ void rgb24_yuv420(uint32_t width, uint32_t height,
 		uint8_t *Y, uint8_t *U, uint8_t *V, uint32_t Y_stride, uint32_t UV_stride) {
 #define LOAD_SI128 _mm_load_si128
 #define SAVE_SI128 _mm_stream_si128
+	ZoneScopedNC("SSE2", tracy::Color::OrangeRed);
 
 	uint32_t x, y;
 	for (y = 0; y < (height - 1); y += 2) {
@@ -911,6 +964,7 @@ void rgb32_yuv420(uint32_t width, uint32_t height,
 		uint8_t *Y, uint8_t *U, uint8_t *V, uint32_t Y_stride, uint32_t UV_stride) {
 #define LOAD_SI128 _mm_load_si128
 #define SAVE_SI128 _mm_stream_si128
+	ZoneScopedNC("SSE2", tracy::Color::OrangeRed);
 
 	uint32_t x, y;
 	for (y = 0; y < (height - 1); y += 2) {
@@ -1102,6 +1156,7 @@ void yuv420_rgb24(
 		uint8_t *RGB, uint32_t RGB_stride) {
 #define LOAD_SI128 _mm_load_si128
 #define SAVE_SI128 _mm_stream_si128
+	ZoneScopedNC("SSE2", tracy::Color::OrangeRed);
 
 	uint32_t x, y;
 	for (y = 0; y < (height - 1); y += 2) {
@@ -1129,3 +1184,5 @@ void yuv420_rgb24(
 }
 
 #endif //__SSE2__
+
+#endif
