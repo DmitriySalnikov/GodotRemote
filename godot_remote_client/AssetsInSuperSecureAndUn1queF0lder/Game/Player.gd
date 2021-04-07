@@ -20,13 +20,14 @@ func _ready() -> void:
 
 func update_bounds(vp_size : Vector2):
 	viewport_size = vp_size
+	reset_game()
 
 func increment_score():
 	score += 1
 	emit_signal("score_updated", score)
 
 func reset_game():
-	var vp_s = get_viewport_rect().size
+	var vp_s = get_viewport_rect().size if viewport_size == Vector2() else viewport_size
 	tween.stop_all()
 	score = 0
 	position = Vector2(vp_s.x / 5, vp_s.y / 2)
@@ -77,7 +78,7 @@ func fall_tween():
 	var duration = 0.8
 	var bounce_time_percent = 0.4
 	var duration_without_bounce = duration - duration * bounce_time_percent
-	var target_pos = get_viewport_rect().size.y - 24
+	var target_pos = viewport_size.y - 24
 	var bounce = false
 	if target_pos - global_position.y > 128:
 		target_pos -= 128

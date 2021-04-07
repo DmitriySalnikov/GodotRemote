@@ -8,48 +8,48 @@ var button_green_theme = preload("res://AssetsInSuperSecureAndUn1queF0lder/Style
 var game_open_counter := 0
 
 onready var timer = $Timer
-onready var start_stop = $H/StartStop
-onready var version = $H/Version
-onready var empty_top = $H/empty
-onready var donations = $H/Donations
+onready var start_stop = $V/H/StartStop
+onready var version = $V/H/Version
+onready var empty_top = $V/H/empty
+onready var donations = $V/H/Donations
 
-onready var scroll = $Scroll
-onready var grid = $Scroll/H/Grid
-onready var wifi = $Scroll/H/Grid/WiFi
-onready var adb = $Scroll/H/Grid/ADB
+onready var scroll = $V/Scroll
+onready var grid = $V/Scroll/H/Grid
+onready var wifi = $V/Scroll/H/Grid/WiFi
+onready var adb = $V/Scroll/H/Grid/ADB
 
-onready var device_id = $Scroll/H/Grid/DeviceID/ID
-onready var con_type_menu = $Scroll/H/Grid/ConnectionType/Type
-onready var adb_port_line = $Scroll/H/Grid/ADB/Port
-onready var adb_set_port = $Scroll/H/Grid/SetADBPort
+onready var device_id = $V/Scroll/H/Grid/DeviceID/ID
+onready var con_type_menu = $V/Scroll/H/Grid/ConnectionType/Type
+onready var adb_port_line = $V/Scroll/H/Grid/ADB/Port
+onready var adb_set_port = $V/Scroll/H/Grid/SetADBPort
 
-onready var wifi_port_line = $Scroll/H/Grid/WiFi/Address/Port
-onready var wifi_ip_line = $Scroll/H/Grid/WiFi/Address/IP
-onready var wifi_set_address = $Scroll/H/Grid/SetWiFiAddress
+onready var wifi_port_line = $V/Scroll/H/Grid/WiFi/Address/Port
+onready var wifi_ip_line = $V/Scroll/H/Grid/WiFi/Address/IP
+onready var wifi_set_address = $V/Scroll/H/Grid/SetWiFiAddress
 
-onready var fps = $Scroll/H/Grid/OutFps/FPS
-onready var password = $Scroll/H/Grid/PassRow/Pass
-onready var filtering = $Scroll/H/Grid/Filtering
-onready var stretch_mode = $Scroll/H/Grid/StretchMode/Type
-onready var stats = $Scroll/H/Grid/ShowStats/Type
-onready var sync_orient = $Scroll/H/Grid/SyncOrientation
-onready var sync_aspect = $Scroll/H/Grid/SyncAspect
-onready var decoder_threads = $Scroll/H/Grid/DecoderThreads/Type
-onready var keepscreen = $Scroll/H/Grid/KeepScreen
-onready var captureinput = $Scroll/H/Grid/CaptureInput
-onready var touches_to_open = $Scroll/H/Grid/TouchesToOpenSettings/Type
+onready var fps = $V/Scroll/H/Grid/OutFps/FPS
+onready var password = $V/Scroll/H/Grid/PassRow/Pass
+onready var filtering = $V/Scroll/H/Grid/Filtering
+onready var stretch_mode = $V/Scroll/H/Grid/StretchMode/Type
+onready var stats = $V/Scroll/H/Grid/ShowStats/Type
+onready var sync_orient = $V/Scroll/H/Grid/SyncOrientation
+onready var sync_aspect = $V/Scroll/H/Grid/SyncAspect
+onready var decoder_threads = $V/Scroll/H/Grid/DecoderThreads/Type
+onready var keepscreen = $V/Scroll/H/Grid/KeepScreen
+onready var captureinput = $V/Scroll/H/Grid/CaptureInput
+onready var touches_to_open = $V/Scroll/H/Grid/TouchesToOpenSettings/Type
 
-onready var enabled_server_settings = $Scroll/H/Grid/OverrideServerSetting
-onready var sync_server_settings = $Scroll/H/Grid/SyncServerSettings
-onready var video_stream = $Scroll/H/Grid/VideoStream
-onready var stream_quality = $Scroll/H/Grid/Quality/Quality
-onready var quality_hint = $Scroll/H/Grid/Quality/HBox/QualityHint
-onready var render_scale = $Scroll/H/Grid/RenderScale/Scale
-onready var skip_frames = $Scroll/H/Grid/SkipFrames/SKIP
-onready var scale_hint = $Scroll/H/Grid/RenderScale/HBox/ScaleHint
-onready var target_server_fps = $Scroll/H/Grid/TargetFramerate/fps
-onready var compression = $Scroll/H/Grid/CompressionType/State2
-onready var encoder_threads = $Scroll/H/Grid/EncoderThreadsNumber/threads
+onready var enabled_server_settings = $V/Scroll/H/Grid/OverrideServerSetting
+onready var sync_server_settings = $V/Scroll/H/Grid/SyncServerSettings
+onready var video_stream = $V/Scroll/H/Grid/VideoStream
+onready var stream_quality = $V/Scroll/H/Grid/Quality/Quality
+onready var quality_hint = $V/Scroll/H/Grid/Quality/HBox/QualityHint
+onready var render_scale = $V/Scroll/H/Grid/RenderScale/Scale
+onready var skip_frames = $V/Scroll/H/Grid/SkipFrames/SKIP
+onready var scale_hint = $V/Scroll/H/Grid/RenderScale/HBox/ScaleHint
+onready var target_server_fps = $V/Scroll/H/Grid/TargetFramerate/fps
+onready var compression = $V/Scroll/H/Grid/CompressionType/State2
+onready var encoder_threads = $V/Scroll/H/Grid/EncoderThreadsNumber/threads
 
 # Names of LineEdits in custom touch input menu
 onready var line_edits_to_touch_input = [

@@ -4,7 +4,7 @@ onready var settings = $GRSettings
 onready var stats = $Stats
 onready var bg_touch_hint = $BackgroundTouchHint
 onready var bg_touch_hint_tex = $BackgroundTouchHint/Panel/TextureRect
-onready var first_launch_hint = $FirstLaunchHint
+onready var Welcome_screen = $Welcome
 onready var no_signal_hint = $OpenSettingsWithoutSignal
 onready var no_signal_hint_text = $OpenSettingsWithoutSignal/SettingsHint
 
@@ -57,11 +57,11 @@ func _settings_stretch_mode_changed() -> void:
 	_stream_aspect_ratio_changed(GodotRemote.get_device().get_stream_aspect_ratio())
 
 func popup_welcome_screen() -> void:
-	first_launch_hint.call_deferred("popup_centered", get_viewport_rect().size)
+	Welcome_screen.call_deferred("popup_centered", get_viewport_rect().size)
 
 func viewport_size_changed() -> void:
-	if first_launch_hint.visible:
-		first_launch_hint.rect_size = get_viewport_rect().size
+	if Welcome_screen.visible:
+		Welcome_screen.rect_size = get_viewport_rect().size
 	_stream_aspect_ratio_changed(GodotRemote.get_device().get_stream_aspect_ratio())
 
 func _mouse_mode_changed(_mode):
@@ -71,26 +71,27 @@ func _mouse_mode_changed(_mode):
 		Input.set_mouse_mode(mouse_mode)
 
 func _stream_aspect_ratio_changed(_ratio):
+	var safe_rect = G.get_safe_rect(bg_touch_hint)
+	
 	if _ratio == 0 or GodotRemote.get_device().stretch_mode == C.GRClient_STRETCH_FILL:
-		bg_touch_hint.rect_size = rect_size
-		bg_touch_hint.rect_position = Vector2.ZERO
+		bg_touch_hint.rect_size = safe_rect.size
+		bg_touch_hint.rect_position = safe_rect.position
 	else:
-		var s = Vector2(rect_size.x, rect_size.y / _ratio)
-		if (_ratio >= (rect_size.x / rect_size.y)):
-			s.x = rect_size.x
+		var s = Vector2(safe_rect.size.x, safe_rect.size.y / _ratio)
+		if (_ratio >= (safe_rect.size.x / safe_rect.size.y)):
+			s.x = safe_rect.size.x
 			s.y = s.x / _ratio
 			bg_touch_hint.rect_size = s
-			bg_touch_hint.rect_position = Vector2(0, (rect_size.y - bg_touch_hint.rect_size.y) / 2)
+			bg_touch_hint.rect_position = Vector2(safe_rect.position.x, safe_rect.position.y + (safe_rect.size.y - bg_touch_hint.rect_size.y) / 2)
 		else:
-			s.y = rect_size.y
+			s.y = safe_rect.size.y
 			s.x = s.y * _ratio
 			var a2 = s.x / s.y
-			if s.x > rect_size.x:
-				s.x = rect_size.x
+			if s.x > safe_rect.size.x:
+				s.x = safe_rect.size.x
 				s.y = s.x * a2
 			bg_touch_hint.rect_size = s
-			bg_touch_hint.rect_position = Vector2((rect_size.x - bg_touch_hint.rect_size.x) / 2, 0)
-		
+			bg_touch_hint.rect_position = Vector2((safe_rect.size.x - bg_touch_hint.rect_size.x) / 2 + safe_rect.position.x, safe_rect.position.y)
 		
 		if (bg_touch_hint_tex.rect_size.x < bg_touch_hint_tex.texture.get_width()) or (bg_touch_hint_tex.rect_size.y < bg_touch_hint_tex.texture.get_height()):
 			bg_touch_hint_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -189,8 +190,8 @@ func _input(e):
 					if TIM.IsVisible:
 						TIM.hide()
 					else:
-						if first_launch_hint.visible:
-							first_launch_hint.hide();
+						if Welcome_screen.visible:
+							Welcome_screen.hide();
 							if !G.FirstRunAgreementAccepted:
 								G.FirstRunAgreementAccepted = true
 						else:
