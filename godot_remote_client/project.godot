@@ -13,9 +13,15 @@ _global_script_classes=[ {
 "class": "CustomPopupTextInput",
 "language": "GDScript",
 "path": "res://AssetsInSuperSecureAndUn1queF0lder/Scripts/CustomPopupTextInput.gd"
+}, {
+"base": "Resource",
+"class": "FullWindowSafeAreaObject",
+"language": "GDScript",
+"path": "res://AssetsInSuperSecureAndUn1queF0lder/Scripts/FullWindowSafeAreaObject.gd"
 } ]
 _global_script_class_icons={
-"CustomPopupTextInput": ""
+"CustomPopupTextInput": "",
+"FullWindowSafeAreaObject": ""
 }
 
 [application]

@@ -15,7 +15,7 @@ func _ready() -> void:
 	set_physics_process(false)
 
 func update_bounds(vp_size : Vector2):
-	spawn_x = vp_size.x + 128
+	spawn_x = get_viewport_rect().size.x + 128
 	viewport_size = vp_size
 
 func start():

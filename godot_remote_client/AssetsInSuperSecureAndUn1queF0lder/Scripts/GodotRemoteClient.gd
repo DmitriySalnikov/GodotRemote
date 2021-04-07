@@ -38,6 +38,7 @@ func _ready():
 	stats.visible = false
 	bg_touch_hint.visible = false
 	_hide_settings()
+	Welcome_screen.hide()
 	
 	GodotRemote.get_device().start()
 	
@@ -57,11 +58,11 @@ func _settings_stretch_mode_changed() -> void:
 	_stream_aspect_ratio_changed(GodotRemote.get_device().get_stream_aspect_ratio())
 
 func popup_welcome_screen() -> void:
-	Welcome_screen.call_deferred("popup_centered", get_viewport_rect().size)
+	Welcome_screen.show()
 
 func viewport_size_changed() -> void:
-	if Welcome_screen.visible:
-		Welcome_screen.rect_size = get_viewport_rect().size
+#	if Welcome_screen.visible:
+#		Welcome_screen.rect_size = get_viewport_rect().size
 	_stream_aspect_ratio_changed(GodotRemote.get_device().get_stream_aspect_ratio())
 
 func _mouse_mode_changed(_mode):

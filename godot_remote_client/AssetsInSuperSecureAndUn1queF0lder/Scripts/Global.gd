@@ -321,9 +321,9 @@ func get_safe_rect(node : CanvasItem) -> Rect2:
 	
 	return Rect2(safe_area.position * safe_rect_ratio, safe_rect_ratio * safe_area.size)
 
-func get_margin_rect(ControlToHandle : Control, custom_left : float, custom_top : float, custom_right : float, custom_bottom : float) -> Rect2:
+func get_margin_rect(vp_size : Vector2, ControlToHandle : Control, custom_left : float, custom_top : float, custom_right : float, custom_bottom : float) -> Rect2:
 	var rect = G.get_safe_rect(ControlToHandle)
-	var vp_size = ControlToHandle.get_parent_area_size()
+	#var vp_size = ControlToHandle.get_parent_area_size()
 	
 	return Rect2(
 		rect.position.x + custom_left,

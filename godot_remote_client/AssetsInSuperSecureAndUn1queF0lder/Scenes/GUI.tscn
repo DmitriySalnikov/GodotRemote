@@ -22,6 +22,7 @@ Top = 16.0
 Right = 16.0
 Bottom = 16.0
 IsRootObjectOfPanel = true
+ChangeParentSizeToFullwindow = true
 
 [sub_resource type="Resource" id=2]
 script = ExtResource( 14 )
@@ -31,6 +32,7 @@ Top = 16.0
 Right = 16.0
 Bottom = 16.0
 IsRootObjectOfPanel = true
+ChangeParentSizeToFullwindow = true
 
 [sub_resource type="Resource" id=3]
 script = ExtResource( 14 )
@@ -40,6 +42,7 @@ Top = 16.0
 Right = 16.0
 Bottom = 16.0
 IsRootObjectOfPanel = false
+ChangeParentSizeToFullwindow = false
 
 [sub_resource type="StyleBoxFlat" id=4]
 bg_color = Color( 0.133333, 0.164706, 0.188235, 0.815686 )
@@ -231,6 +234,7 @@ margin_top = 424.185
 margin_right = -138.665
 margin_bottom = 582.185
 rect_min_size = Vector2( 500, 158 )
+input_pass_on_modal_close_click = false
 window_title = "Do you like this app?"
 script = ExtResource( 9 )
 __meta__ = {
@@ -284,74 +288,6 @@ rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "Not now"
 
-[node name="Changelog" type="PopupPanel" parent="."]
-visible = true
-margin_left = -1643.4
-margin_top = 64.0
-margin_right = -864.4
-margin_bottom = 680.0
-rect_min_size = Vector2( 500, 540 )
-custom_styles/panel = ExtResource( 11 )
-popup_exclusive = true
-script = ExtResource( 10 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="HBoxContainer" type="VBoxContainer" parent="Changelog"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-margin_left = 16.0
-margin_top = 16.0
-margin_right = -16.0
-margin_bottom = -16.0
-__meta__ = {
-"_edit_lock_": true,
-"_edit_use_anchors_": false
-}
-
-[node name="Label" type="Label" parent="Changelog/HBoxContainer"]
-margin_right = 747.0
-margin_bottom = 46.0
-text = "Godot Remote Updated"
-align = 1
-
-[node name="Control" type="ScrollContainer" parent="Changelog/HBoxContainer"]
-margin_top = 50.0
-margin_right = 747.0
-margin_bottom = 508.0
-size_flags_vertical = 3
-
-[node name="ListOfChanges" type="Label" parent="Changelog/HBoxContainer/Control"]
-margin_right = 747.0
-margin_bottom = 46.0
-size_flags_horizontal = 3
-size_flags_vertical = 1
-custom_fonts/font = ExtResource( 2 )
-text = "         don't forget to write a changelog..."
-autowrap = true
-
-[node name="HBoxContainer" type="HBoxContainer" parent="Changelog/HBoxContainer"]
-margin_top = 512.0
-margin_right = 747.0
-margin_bottom = 584.0
-custom_constants/separation = 12
-
-[node name="Button" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
-margin_right = 322.0
-margin_bottom = 72.0
-rect_min_size = Vector2( 0, 72 )
-size_flags_horizontal = 3
-text = "Okay, I get it!"
-
-[node name="Button2" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
-margin_left = 334.0
-margin_right = 747.0
-margin_bottom = 72.0
-rect_min_size = Vector2( 0, 72 )
-size_flags_horizontal = 3
-text = "How do I update the server?"
-
 [node name="PlsRatePopup" type="WindowDialog" parent="."]
 visible = true
 margin_left = -839.0
@@ -359,6 +295,7 @@ margin_top = 101.0
 margin_right = -189.0
 margin_bottom = 323.0
 rect_min_size = Vector2( 500, 222 )
+input_pass_on_modal_close_click = false
 popup_exclusive = true
 window_title = "Rate This App"
 script = ExtResource( 8 )
@@ -422,18 +359,14 @@ rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "Not now"
 
-[node name="Welcome" type="PopupPanel" parent="."]
-visible = true
+[node name="Welcome" type="Panel" parent="."]
 margin_left = -833.909
 margin_top = 610.655
 margin_right = -45.9089
 margin_bottom = 1286.65
 rect_min_size = Vector2( 700, 503 )
+input_pass_on_modal_close_click = false
 custom_styles/panel = ExtResource( 11 )
-popup_exclusive = true
-__meta__ = {
-"_edit_use_anchors_": false
-}
 
 [node name="VBox" type="VBoxContainer" parent="Welcome"]
 anchor_right = 1.0
@@ -542,13 +475,80 @@ custom_colors/font_color_pressed = Color( 1, 0.0784314, 0.0784314, 1 )
 text = "No, I think this is a game!"
 script = SubResource( 9 )
 
+[node name="Changelog" type="Panel" parent="."]
+margin_left = -1643.4
+margin_top = 64.0
+margin_right = -864.4
+margin_bottom = 680.0
+rect_min_size = Vector2( 500, 540 )
+input_pass_on_modal_close_click = false
+custom_styles/panel = ExtResource( 11 )
+script = ExtResource( 10 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="HBoxContainer" type="VBoxContainer" parent="Changelog"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 16.0
+margin_top = 16.0
+margin_right = -16.0
+margin_bottom = -16.0
+__meta__ = {
+"_edit_lock_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Changelog/HBoxContainer"]
+margin_right = 747.0
+margin_bottom = 46.0
+text = "Godot Remote Updated"
+align = 1
+
+[node name="Control" type="ScrollContainer" parent="Changelog/HBoxContainer"]
+margin_top = 50.0
+margin_right = 747.0
+margin_bottom = 508.0
+size_flags_vertical = 3
+
+[node name="ListOfChanges" type="Label" parent="Changelog/HBoxContainer/Control"]
+margin_right = 747.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 2 )
+text = "         don't forget to write a changelog..."
+autowrap = true
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Changelog/HBoxContainer"]
+margin_top = 512.0
+margin_right = 747.0
+margin_bottom = 584.0
+custom_constants/separation = 12
+
+[node name="Button" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
+margin_right = 322.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
+size_flags_horizontal = 3
+text = "Okay, I get it!"
+
+[node name="Button2" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
+margin_left = 334.0
+margin_right = 747.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
+size_flags_horizontal = 3
+text = "How do I update the server?"
+
 [connection signal="pressed" from="OpenSettingsWithoutSignal/OpenSettings" to="." method="_on_open_settings_pressed"]
 [connection signal="visibility_changed" from="PlsSupportPopup" to="PlsSupportPopup" method="_on_PlsSupportPopup_visibility_changed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button2" to="PlsSupportPopup" method="_on_Button2_pressed"]
-[connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button" to="Changelog" method="_on_Button_pressed"]
-[connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button2" to="Changelog" method="_on_Button2_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/yes" to="PlsRatePopup" method="_on_yes_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/no" to="PlsRatePopup" method="_on_no_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/later" to="PlsRatePopup" method="_on_later_pressed"]
 [connection signal="pressed" from="Welcome/VBox/HBoxContainer/Button3" to="." method="_on_no_this_is_a_game_pressed"]
+[connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button" to="Changelog" method="_on_Button_pressed"]
+[connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button2" to="Changelog" method="_on_Button2_pressed"]

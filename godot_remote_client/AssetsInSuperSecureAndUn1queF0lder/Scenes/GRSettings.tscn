@@ -21,6 +21,7 @@ Top = 16.0
 Right = 16.0
 Bottom = 16.0
 IsRootObjectOfPanel = false
+ChangeParentSizeToFullwindow = false
 
 [sub_resource type="StyleBoxFlat" id=2]
 bg_color = Color( 0.054902, 0.0588235, 0.0627451, 0.243137 )

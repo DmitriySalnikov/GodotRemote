@@ -1,4 +1,4 @@
-extends PopupPanel
+extends Panel
 
 const UPD_EDITOR = "force_update_editor"
 
@@ -41,6 +41,7 @@ The codebase has also been updated to match the usual Godot API and GDNative at 
 }
 
 func _ready() -> void:
+	hide()
 	if G.VersionChanged:
 		var prev = _get_version_sum(G.PreviousVersion.split("."))
 		var curr = _get_version_sum(G.get_version().split("."))
@@ -49,7 +50,7 @@ func _ready() -> void:
 			return
 		
 		show_logs(prev)
-	get_parent().connect("item_rect_changed", self, "viewport_size_changed")
+#	get_parent().connect("item_rect_changed", self, "viewport_size_changed")
 
 func show_logs(prev : int = 0):
 	var curr = _get_version_sum(G.get_version().split("."))
@@ -78,11 +79,11 @@ func show_logs(prev : int = 0):
 	
 	$HBoxContainer/Control/ListOfChanges.text = text
 	$HBoxContainer/HBoxContainer/Button2.visible = prev == 0 or force_update_editor or _check_need_update_server(G.PreviousVersion, G.get_version())
-	call_deferred("popup_centered_ratio", 1)
+	show()
 
-func viewport_size_changed() -> void:
-	if visible:
-		rect_size = get_viewport_rect().size
+#func viewport_size_changed() -> void:
+#	if visible:
+#		rect_size = get_viewport_rect().size
 
 func _get_version_sum(v : PoolStringArray) -> int:
 	var major = int(v[0]) << 32
