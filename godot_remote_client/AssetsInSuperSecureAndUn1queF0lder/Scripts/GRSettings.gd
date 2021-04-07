@@ -86,17 +86,6 @@ func _ready():
 	_resize_for_mobile()
 	_init_point()
 
-func _notification(what):
-	if get_parent() and get_parent().game_scene:
-		return
-	
-	match what:
-		NOTIFICATION_WM_GO_BACK_REQUEST: 
-			if visible:
-				get_parent()._hide_settings()
-		NOTIFICATION_WM_QUIT_REQUEST:
-			grab_focus()
-
 func _resize_for_mobile():
 	if G.IsMobile:
 		var nodes = get_tree().get_nodes_in_group("nodes_that_should_be_higher")
@@ -140,12 +129,10 @@ func _on_GRSettings_visibility_changed():
 		grab_focus()
 		
 		yield(get_tree(), "idle_frame")
-		get_tree().set_quit_on_go_back(false)
 		GodotRemote.get_device().capture_input = false
 	else:
 		# yield needs to wait next frame and not instant close app
 		yield(get_tree(), "idle_frame")
-		get_tree().set_quit_on_go_back(true)
 		GodotRemote.get_device().capture_input = true
 
 func update_values():

@@ -15,27 +15,27 @@ std::shared_ptr<GRUtilsData> GRUtils::_grutils_data = nullptr;
 
 namespace GRUtils {
 void init() {
-	LEAVE_IF_EDITOR();
 	_grutils_data = shared_new(GRUtilsData);
 	_grutils_data->current_loglevel = LogLevel::LL_NORMAL;
+	GET_PS_SET(_grutils_data->current_loglevel, GodotRemote::ps_general_loglevel_name);
+
+	LEAVE_IF_EDITOR();
 
 	GR_PACKET_HEADER('G', 'R', 'H', 'D');
 #include "GRVersion.h"
-
-	GET_PS_SET(_grutils_data->current_loglevel, GodotRemote::ps_general_loglevel_name);
 }
 
 void deinit() {
-	LEAVE_IF_EDITOR();
 	if (_grutils_data) {
 		_grutils_data->internal_PACKET_HEADER.resize(0);
 		_grutils_data->internal_VERSION.resize(0);
 	}
+	LEAVE_IF_EDITOR();
 }
 
 #ifdef DEBUG_ENABLED
 void __log(const Variant &val, int lvl, String file, int line) {
-	if (lvl >= _grutils_data->current_loglevel && lvl < LogLevel::LL_NONE) {
+	if (lvl >= (_grutils_data ? _grutils_data->current_loglevel : LogLevel::LL_DEBUG) && lvl < LogLevel::LL_NONE) {
 		auto val_str = str(val);
 #ifndef GDNATIVE_LIBRARY
 		String file_line = "";

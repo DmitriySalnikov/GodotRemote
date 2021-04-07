@@ -88,7 +88,7 @@ private:
 #ifndef GDNATIVE_LIBRARY
 #ifdef TOOLS_ENABLED
 	int64_t adb_pid = 0;
-	class Timer *adb_start_timer = nullptr;
+	bool is_adb_timer_active = false;
 
 	void _prepare_editor();
 	void _run_emitted();

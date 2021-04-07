@@ -60,9 +60,15 @@ void GodotRemote::_init() {
 		singleton = this;
 
 	register_and_load_settings();
-	LEAVE_IF_EDITOR();
+
+#ifndef GDNATIVE_LIBRARY
+#ifdef TOOLS_ENABLED
+	call_deferred(NAMEOF(_prepare_editor));
+#endif
+#endif
 
 	GRUtils::init();
+	LEAVE_IF_EDITOR();
 
 #ifndef GDNATIVE_LIBRARY
 	godot_remote_root_node = memnew(Node);
@@ -75,12 +81,6 @@ void GodotRemote::_init() {
 	if (is_autostart) {
 		call_deferred(NAMEOF(create_and_start_device), DeviceType::DEVICE_AUTO);
 	}
-
-#ifndef GDNATIVE_LIBRARY
-#ifdef TOOLS_ENABLED
-	call_deferred(NAMEOF(_prepare_editor));
-#endif
-#endif
 
 	is_init_completed = true;
 }
@@ -529,21 +529,18 @@ void GodotRemote::_adb_port_forwarding() {
 	String adb = EditorSettings::get_singleton()->get_setting("export/android/adb");
 
 	if (!adb.empty()) {
-		if (!adb_start_timer || adb_start_timer->is_queued_for_deletion()) {
-			adb_start_timer = memnew(Timer);
-			SceneTree::get_singleton()->get_root()->add_child(adb_start_timer);
-			adb_start_timer->set_one_shot(true);
-			adb_start_timer->set_autostart(false);
-			adb_start_timer->connect("timeout", this, NAMEOF(_adb_start_timer_timeout));
+		if (!is_adb_timer_active) {
+			is_adb_timer_active = true;
+			ST()->create_timer(1.f)->connect("timeout", this, NAMEOF(_adb_start_timer_timeout));
 		}
-
-		adb_start_timer->start(4.f);
 	} else {
 		_log("ADB path not specified.", LogLevel::LL_DEBUG);
 	}
 }
 
 void GodotRemote::_adb_start_timer_timeout() {
+	is_adb_timer_active = false;
+
 	String adb = EditorSettings::get_singleton()->get_setting("export/android/adb");
 	List<String> args;
 	args.push_back("reverse");
@@ -558,11 +555,6 @@ void GodotRemote::_adb_start_timer_timeout() {
 		_log("Can't execute adb port forwarding: '" + start_url + "' error code: " + str(err), LogLevel::LL_ERROR);
 	} else {
 		_log("ADB port configuring completed", LogLevel::LL_NORMAL);
-	}
-
-	if (adb_start_timer && !adb_start_timer->is_queued_for_deletion() && adb_start_timer->is_inside_tree()) {
-		adb_start_timer->queue_del();
-		adb_start_timer = nullptr;
 	}
 }
 

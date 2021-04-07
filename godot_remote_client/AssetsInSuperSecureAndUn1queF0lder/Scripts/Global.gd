@@ -36,6 +36,7 @@ var GameHighScore := 0 setget set_game_score
 var GameShowAfterConnectionErrors := true setget set_game_show_after_errors
 
 var IsMobile : bool = false
+var GodotRemoteRootNode : Control = null
 var Billings : Node = null
 var Analytics : Node = null
 

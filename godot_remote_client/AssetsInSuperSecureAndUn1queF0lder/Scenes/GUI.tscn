@@ -411,9 +411,9 @@ __meta__ = {
 }
 
 [node name="HBoxContainer2" type="HBoxContainer" parent="Welcome/VBox"]
-margin_top = 273.0
+margin_top = 272.0
 margin_right = 756.0
-margin_bottom = 345.0
+margin_bottom = 344.0
 custom_constants/separation = 12
 
 [node name="Button" type="Button" parent="Welcome/VBox/HBoxContainer2"]
@@ -433,9 +433,9 @@ text = "Open Changelogs"
 script = SubResource( 7 )
 
 [node name="Label2" type="Label" parent="Welcome/VBox"]
-margin_top = 415.0
+margin_top = 414.0
 margin_right = 756.0
-margin_bottom = 502.0
+margin_bottom = 501.0
 grow_horizontal = 0
 grow_vertical = 0
 size_flags_vertical = 6
@@ -449,9 +449,9 @@ __meta__ = {
 }
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Welcome/VBox"]
-margin_top = 572.0
+margin_top = 571.0
 margin_right = 756.0
-margin_bottom = 644.0
+margin_bottom = 643.0
 custom_constants/separation = 12
 
 [node name="Button2" type="Button" parent="Welcome/VBox/HBoxContainer"]

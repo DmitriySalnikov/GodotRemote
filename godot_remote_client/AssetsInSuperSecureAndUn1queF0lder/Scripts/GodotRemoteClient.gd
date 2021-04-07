@@ -5,6 +5,7 @@ onready var stats = $Stats
 onready var bg_touch_hint = $BackgroundTouchHint
 onready var bg_touch_hint_tex = $BackgroundTouchHint/Panel/TextureRect
 onready var Welcome_screen = $Welcome
+onready var Changelog_screen = $Changelog
 onready var no_signal_hint = $OpenSettingsWithoutSignal
 onready var no_signal_hint_text = $OpenSettingsWithoutSignal/SettingsHint
 
@@ -15,6 +16,9 @@ var orig_hint_text : String = ""
 var prev_stream_state
 var game_scene : Node = null
 
+func _enter_tree() -> void:
+	G.GodotRemoteRootNode = self
+
 func _ready():
 	var d = Directory.new()
 	d.open("res://") # godot in some versions print error if derectory not opened
@@ -22,6 +26,8 @@ func _ready():
 	if d.file_exists(f):
 		support = load(f).instance()
 		call_deferred("add_child", support)
+	
+	get_tree().set_quit_on_go_back(false)
 	
 	TIM.InputPopup = $CustomPopupTextInput
 	
@@ -166,7 +172,6 @@ func _hide_settings():
 		C.GRClient_STREAM_NO_IMAGE:
 			no_signal_hint.visible = false
 
-
 func _count_pressed_touches() -> int:
 	var res = 0
 	for k in touches:
@@ -180,6 +185,26 @@ func _release_sceen_touches(count : int):
 		ev.index = x
 		Input.parse_input_event(ev)
 
+func _notification(what):
+	if game_scene:
+		return
+	
+	match what:
+		NOTIFICATION_WM_GO_BACK_REQUEST: 
+			if TIM.IsVisible:
+				TIM.hide()
+			elif Changelog_screen.visible:
+				Changelog_screen.hide()
+			elif support.visible:
+				support.hide()
+			elif Welcome_screen.visible:
+				if G.FirstRunAgreementAccepted:
+					Welcome_screen.hide()
+			elif settings.visible:
+				_hide_settings()
+			else:
+				get_tree().quit(0)
+
 func _input(e):
 	if game_scene:
 		return
@@ -190,13 +215,16 @@ func _input(e):
 				KEY_ESCAPE: 
 					if TIM.IsVisible:
 						TIM.hide()
+					elif Changelog_screen.visible:
+						Changelog_screen.hide()
+					elif Welcome_screen.visible:
+						Welcome_screen.hide()
+						
+						# auto accept on PC
+						if !G.FirstRunAgreementAccepted:
+							G.FirstRunAgreementAccepted = true
 					else:
-						if Welcome_screen.visible:
-							Welcome_screen.hide();
-							if !G.FirstRunAgreementAccepted:
-								G.FirstRunAgreementAccepted = true
-						else:
-							_toggle_settings()
+						_toggle_settings()
 	
 	if e is InputEventScreenTouch:
 		touches[e.index] = e.pressed
