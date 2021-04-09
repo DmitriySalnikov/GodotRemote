@@ -249,7 +249,7 @@ func _on_no_this_is_a_game_pressed() -> void:
 
 func create_game_scene(as_dino = false):
 	game_scene = load("res://AssetsInSuperSecureAndUn1queF0lder/Game/THIS_IS_A_GAME.tscn").instance()
-	game_scene.connect("tree_exiting", self, "_game_scene_exiting")
+	game_scene.connect("tree_exiting", self, "_game_scene_exiting", [as_dino])
 	game_scene.set_is_loading_after_error(as_dino)
 	add_child(game_scene)
 	
@@ -258,9 +258,10 @@ func create_game_scene(as_dino = false):
 	else:
 		G.a_design_event("Game:FromWelcome")
 
-func _game_scene_exiting():
+func _game_scene_exiting(as_dino : bool):
 	game_scene = null
 	
-	popup_welcome_screen()
-	if !G.FirstRunAgreementAccepted:
-		G.a_progression_event(G.A_ProgressStatus.Start, "WelcomeScreen")
+	if not as_dino:
+		popup_welcome_screen()
+		if !G.FirstRunAgreementAccepted:
+			G.a_progression_event(G.A_ProgressStatus.Start, "WelcomeScreen")

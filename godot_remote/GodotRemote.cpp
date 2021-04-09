@@ -284,6 +284,7 @@ void GodotRemote::_register_methods() {
 	// GRClient
 	CONST_REG(GRClient, ConnectionType, CONNECTION_ADB);
 	CONST_REG(GRClient, ConnectionType, CONNECTION_WiFi);
+	CONST_REG(GRClient, ConnectionType, CONNECTION_AUTO);
 
 	CONST_REG(GRClient, StretchMode, STRETCH_KEEP_ASPECT);
 	CONST_REG(GRClient, StretchMode, STRETCH_FILL);

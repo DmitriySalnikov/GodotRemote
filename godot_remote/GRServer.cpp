@@ -7,6 +7,25 @@
 #include "GRPacket.h"
 #include "GodotRemote.h"
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#define poll WSAPoll
+#else
+#include <arpa/inet.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <poll.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
+
 #ifndef GDNATIVE_LIBRARY
 #include "core/input_map.h"
 #include "core/io/pck_packer.h"
@@ -20,6 +39,7 @@
 #include "scene/main/scene_tree.h"
 
 #else
+#include <IP.hpp>
 #include <Input.hpp>
 #include <InputEvent.hpp>
 #include <InputMap.hpp>
@@ -607,6 +627,120 @@ void GRServer::_reset_counters() {
 ////////////////// THREAD ////////////////////
 //////////////////////////////////////////////
 
+#ifdef _WIN32
+struct __wsinit {
+	__wsinit() {
+		WSADATA wsaData;
+		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+			fprintf(stderr, "Cannot init winsock.\n");
+			exit(1);
+		}
+	}
+};
+
+void InitWinSock() {
+	static __wsinit init;
+}
+#endif
+
+class UdpBroadcast {
+public:
+	UdpBroadcast() :
+			m_sock(-1) {
+#ifdef _WIN32
+		InitWinSock();
+#endif
+	}
+
+	~UdpBroadcast() {
+		if (m_sock != -1) Close();
+	}
+
+	bool Open(const char *addr, uint16_t port) {
+		if (m_sock != -1)
+			return false;
+
+		struct addrinfo hints;
+		struct addrinfo *res, *ptr;
+
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = AF_INET;
+		hints.ai_socktype = SOCK_DGRAM;
+
+		if (getaddrinfo(addr, str(port).ascii().get_data(), &hints, &res) != 0) return false;
+		int sock = 0;
+		for (ptr = res; ptr; ptr = ptr->ai_next) {
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable : 4244)
+#endif
+			if ((sock = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol)) == -1) continue;
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
+
+#if defined __APPLE__
+			int val = 1;
+			setsockopt(sock, SOL_SOCKET, SO_NOSIGPIPE, &val, sizeof(val));
+#endif
+#if defined _WIN32
+			unsigned long broadcast = 1;
+			if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const char *)&broadcast, sizeof(broadcast)) == -1)
+#else
+			int broadcast = 1;
+			if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast)) == -1)
+#endif
+			{
+#ifdef _WIN32
+				closesocket(sock);
+#else
+				close(sock);
+#endif
+				continue;
+			}
+			break;
+		}
+		freeaddrinfo(res);
+		if (!ptr) return false;
+
+		m_sock = sock;
+		inet_pton(AF_INET, addr, &m_addr);
+		return true;
+	}
+
+	void Close() {
+		if (m_sock == -1)
+			return;
+
+#ifdef _WIN32
+		closesocket(m_sock);
+#else
+		close(m_sock);
+#endif
+		m_sock = -1;
+	}
+
+	int Send(uint16_t port, const void *data, int len) {
+		if (m_sock == -1)
+			return -1;
+
+		struct sockaddr_in addr;
+		addr.sin_family = AF_INET;
+		addr.sin_port = htons(port);
+		addr.sin_addr.s_addr = m_addr;
+		return sendto(m_sock, (const char *)data, len, 0, (sockaddr *)&addr, sizeof(addr));
+	}
+
+	UdpBroadcast(const UdpBroadcast &) = delete;
+	UdpBroadcast(UdpBroadcast &&) = delete;
+	UdpBroadcast &operator=(const UdpBroadcast &) = delete;
+	UdpBroadcast &operator=(UdpBroadcast &&) = delete;
+
+private:
+	int m_sock;
+	uint32_t m_addr = 0;
+};
+
 void GRServer::_thread_listen(Variant p_userdata) {
 	Thread_set_name("Server Listen for Connections");
 
@@ -615,6 +749,49 @@ void GRServer::_thread_listen(Variant p_userdata) {
 	ConnectionThreadParamsServer *connection_thread_info = nullptr;
 	Error err = Error::OK;
 	bool listening_error_notification_shown = false;
+
+	uint64_t prev_udp_time_send = 0;
+	std::vector<std::shared_ptr<UdpBroadcast> > available_addresses;
+	{
+		Array addresses = IP::get_singleton()->call(NAMEOF(get_local_addresses));
+
+		for (int i = 0; i < addresses.size(); i++) {
+#ifndef GDNATIVE_LIBRARY
+			Vector<String> split = ((String)addresses[i]).split(".");
+#else
+			PoolStringArray split = ((String)addresses[i]).split(".");
+#endif
+			if (split.size() == 4) {
+				split.set(3, "255");
+				String address = split[0] + "." + split[1] + "." + split[2] + "." + split[3];
+
+				if (err == Error::OK) {
+					auto udp = shared_new(UdpBroadcast);
+					if (udp->Open(address.ascii().get_data(), AUTO_CONNECTION_PORT)) {
+						available_addresses.push_back(udp);
+					}
+				} else {
+					_log("Can't set destination address for UDP. Error: " + str((int)err), LogLevel::LL_ERROR);
+				}
+			}
+		}
+	}
+
+	// prepare data to broadcast
+	PoolByteArray udp_data;
+	udp_data.append_array(get_packet_header());
+	{
+		Dictionary server_udp_dict;
+		server_udp_dict["version"] = get_gr_version();
+		server_udp_dict["project_name"] = GET_PS("application/config/name");
+		server_udp_dict["port"] = port;
+
+		Ref<StreamPeerBuffer> buf = newref(StreamPeerBuffer);
+		buf->set_data_array(udp_data);
+		buf->seek(4);
+		buf->put_var(server_udp_dict);
+		udp_data = buf->get_data_array();
+	}
 
 	while (!this_thread_info->stop_thread) {
 		ZoneScopedNC("Server Listen For Connections", tracy::Color::Orange2);
@@ -707,7 +884,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 				}
 
 				switch (res) {
-					case GRDevice::AuthResult::OK:
+					case GRDevice::AuthResult::OK: {
 						connection_thread_info = memnew(ConnectionThreadParamsServer);
 						connection_thread_info->device_id = dev_id;
 						connection_thread_info->ppeer = ppeer;
@@ -721,7 +898,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 						call_deferred("emit_signal", "client_connected", dev_id);
 						GRNotifications::add_notification("Connected", "Client connected: " + address + "\nDevice ID: " + connection_thread_info->device_id, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 						break;
-
+					}
 					case GRDevice::AuthResult::VersionMismatch:
 					case GRDevice::AuthResult::IncorrectPassword:
 					case GRDevice::AuthResult::Error:
@@ -738,7 +915,13 @@ void GRServer::_thread_listen(Variant p_userdata) {
 				GRDevice::AuthResult res = _auth_client(ppeer, ret_data, true);
 			}
 		} else {
-			_log("Waiting...", LogLevel::LL_DEBUG);
+			if (available_addresses.size() && client_connected == 0 && get_time_usec() - prev_udp_time_send > 1000_ms) {
+				for (auto u : available_addresses) {
+					u->Send(AUTO_CONNECTION_PORT, udp_data.read().ptr(), udp_data.size());
+				}
+				prev_udp_time_send = get_time_usec();
+				_log("Waiting...", LogLevel::LL_DEBUG);
+			}
 			sleep_usec(50_ms);
 		}
 	}
@@ -751,6 +934,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 		connection_thread_info = nullptr;
 	}
 
+	available_addresses.resize(0);
 	tcp_server->stop();
 	this_thread_info->finished = true;
 }

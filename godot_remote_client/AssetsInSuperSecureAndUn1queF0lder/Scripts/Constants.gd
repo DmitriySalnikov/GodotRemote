@@ -44,6 +44,7 @@ var GRDevice_IMAGE_COMPRESSION_H264 : int
 
 var GRClient_CONNECTION_ADB : int
 var GRClient_CONNECTION_WiFi : int
+var GRClient_CONNECTION_AUTO : int
 
 var GRClient_STRETCH_KEEP_ASPECT : int
 var GRClient_STRETCH_FILL : int
@@ -98,6 +99,7 @@ func _setup_constants():
 
 	GRClient_CONNECTION_ADB = get_enum_constant("GRClient", "ConnectionType", "CONNECTION_ADB");
 	GRClient_CONNECTION_WiFi = get_enum_constant("GRClient", "ConnectionType", "CONNECTION_WiFi");
+	GRClient_CONNECTION_AUTO = get_enum_constant("GRClient", "ConnectionType", "CONNECTION_AUTO");
 
 	GRClient_STRETCH_KEEP_ASPECT = get_enum_constant("GRClient", "StretchMode", "STRETCH_KEEP_ASPECT");
 	GRClient_STRETCH_FILL = get_enum_constant("GRClient", "StretchMode", "STRETCH_FILL");
@@ -108,9 +110,12 @@ func _setup_constants():
 
 func get_enum_constant(_class : String, _enum : String, _value : String) -> int:
 	if GodotRemote.is_gdnative():
-		return int(GodotRemote.call("_get_%s_%s_%s"%[_class, _enum, _value]))
+		var name = "_get_%s_%s_%s"%[_class, _enum, _value]
+		if GodotRemote.has_method(name):
+			return int(GodotRemote.call(name))
 	else:
 		if ClassDB.class_has_integer_constant(_class, _value):
 			return ClassDB.class_get_integer_constant(_class, _value)
-		print("'%s' constant not found in class '%s'" % [_value, _class])
-		return 0
+	
+	print("'%s' constant not found in class '%s'" % [_value, _class])
+	return 0

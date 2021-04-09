@@ -21,11 +21,12 @@ onready var adb = $V/Scroll/H/Grid/ADB
 onready var device_id = $V/Scroll/H/Grid/DeviceID/ID
 onready var con_type_menu = $V/Scroll/H/Grid/ConnectionType/Type
 onready var adb_port_line = $V/Scroll/H/Grid/ADB/Port
-onready var adb_set_port = $V/Scroll/H/Grid/SetADBPort
 
 onready var wifi_port_line = $V/Scroll/H/Grid/WiFi/Address/Port
 onready var wifi_ip_line = $V/Scroll/H/Grid/WiFi/Address/IP
-onready var wifi_set_address = $V/Scroll/H/Grid/SetWiFiAddress
+
+onready var auto_line = $V/Scroll/H/Grid/Auto
+onready var auto_items_line = $V/Scroll/H/Grid/Auto/ItemList
 
 onready var fps = $V/Scroll/H/Grid/OutFps/FPS
 onready var password = $V/Scroll/H/Grid/PassRow/Pass
@@ -298,33 +299,41 @@ func _on_wifi_IP_text_entered(_new_text):
 
 func _on_wifi_SetAddress_pressed():
 	_disable_buttons_by_timer()
-	GodotRemote.get_device().connection_type = con_type_menu.selected
+	var id = con_type_menu.get_item_id(con_type_menu.selected)
+	GodotRemote.get_device().connection_type = id
 	var address = wifi_ip_line.text.replace("http://", "").replace("https://", "").strip_edges()
 	if GodotRemote.get_device().set_address_port(address, wifi_port_line.value):
 		G.ip = address
 		wifi_ip_line.text = address
 		G.port = wifi_port_line.value
-		G.connection_type = con_type_menu.selected
+		G.connection_type = id
 
 func _on_adb_SetAddress_pressed():
 	_disable_buttons_by_timer()
-	GodotRemote.get_device().connection_type = con_type_menu.selected
+	var id = con_type_menu.get_item_id(con_type_menu.selected)
+	GodotRemote.get_device().connection_type = id
 	GodotRemote.get_device().port = adb_port_line.value
 	G.port = adb_port_line.value
-	G.connection_type = con_type_menu.selected
+	G.connection_type = id
 
 func _on_con_Type_item_selected(index):
-	match index:
+	var id = con_type_menu.get_item_id(index)
+	match id:
 		0:
 			wifi.visible = true
-			wifi_set_address.visible = true
 			adb.visible = false
-			adb_set_port.visible = false
+			auto_line.visible = false
 		1:
 			wifi.visible = false
-			wifi_set_address.visible = false
 			adb.visible = true
-			adb_set_port.visible = true
+			auto_line.visible = false
+		2:
+			wifi.visible = false
+			adb.visible = false
+			auto_line.visible = true
+			
+			G.connection_type = id
+			GodotRemote.get_device().connection_type = id
 
 func _on_stretch_Type_item_selected(index):
 	GodotRemote.get_device().stretch_mode = index

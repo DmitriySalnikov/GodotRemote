@@ -44,6 +44,7 @@ void register_godot_remote_types() {
 	//GRUtils::init();
 
 	ClassDB::register_class<GRNotifications>();
+	ClassDB::register_class<GRNotificationListWithSafeZone>();
 	ClassDB::register_class<GRNotificationPanel>();
 	ClassDB::register_class<GRNotificationPanelUpdatable>();
 	ClassDB::register_class<GRNotificationStyle>();
@@ -118,6 +119,7 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 	register_class<GodotRemote>();
 
 	register_class<GRNotifications>();
+	register_class<GRNotificationListWithSafeZone>();
 	register_class<GRNotificationPanel>();
 	register_class<GRNotificationPanelUpdatable>();
 	register_class<GRNotificationStyle>();

@@ -153,6 +153,7 @@ public:
 	// GRClient
 	CONST_GET(GRClient, ConnectionType, CONNECTION_ADB);
 	CONST_GET(GRClient, ConnectionType, CONNECTION_WiFi);
+	CONST_GET(GRClient, ConnectionType, CONNECTION_AUTO);
 
 	CONST_GET(GRClient, StretchMode, STRETCH_KEEP_ASPECT);
 	CONST_GET(GRClient, StretchMode, STRETCH_FILL);

@@ -5,6 +5,7 @@
 
 #ifndef GDNATIVE_LIBRARY
 #include "scene/gui/panel_container.h"
+#include "scene/gui/box_container.h"
 #include "scene/main/canvas_layer.h"
 #else
 #include <Button.hpp>
@@ -25,6 +26,7 @@ using namespace godot;
 
 class GRNotificationPanel;
 class GRNotificationStyle;
+class GRNotificationListWithSafeZone;
 class GRNotificationPanelSTATIC_DATA;
 
 class GRNotifications : public CanvasLayer {
@@ -61,7 +63,7 @@ private:
 	bool notifications_enabled = true;
 	NotificationsPosition notifications_position = NotificationsPosition::TOP_LEFT;
 
-	class VBoxContainer *notif_list_node = nullptr;
+	GRNotificationListWithSafeZone *notif_list_node = nullptr;
 	std::vector<GRNotificationPanel *> notifications; // GRNotificationPanel *
 	Ref<GRNotificationStyle> style;
 
@@ -267,6 +269,35 @@ public:
 	void set_notification_icon(ENUM_ARG(GRNotifications::NotificationIcon) notification_icon, Ref<Texture> icon_texture);
 	Ref<Texture> get_notification_icon(ENUM_ARG(GRNotifications::NotificationIcon) notification_icon);
 
+	void _init();
+	void _deinit();
+};
+
+// SAFE ZONE
+
+class GRNotificationListWithSafeZone : public VBoxContainer {
+	GD_CLASS(GRNotificationListWithSafeZone, VBoxContainer);
+
+private:
+
+protected:
+#ifndef GDNATIVE_LIBRARY
+	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+
+protected:
+#endif
+
+	bool is_manual_changing = false;
+
+	void _on_resize();
+	void _notification(int p_what);
+
+public:
+
+	void set_safe_zone(Rect2 rect);
 	void _init();
 	void _deinit();
 };

@@ -31,6 +31,8 @@ class GRClient : public GRDevice {
 	friend class GRStreamDecoderImageSequence;
 	friend class GRStreamDecoderH264;
 
+	Mutex_define(ts_lock, "GRClient Lock");
+
 	enum class ScreenOrientation : int {
 		NONE = 0,
 		VERTICAL = 1,
@@ -41,6 +43,7 @@ public:
 	enum ConnectionType : int {
 		CONNECTION_WiFi = 0,
 		CONNECTION_ADB = 1,
+		CONNECTION_AUTO = 2,
 	};
 
 	enum StretchMode : int {
@@ -119,6 +122,23 @@ public:
 	};
 
 private:
+	class AvailableServerAddress {
+	public:
+		uint64_t time_added;
+		String project_name;
+		String ip_address;
+		int port;
+
+		AvailableServerAddress() {}
+
+		AvailableServerAddress(uint64_t _time, String _proj_name, String _ip, int _port) {
+			time_added = _time;
+			project_name = _proj_name;
+			ip_address = _ip;
+			port = _port;
+		}
+	};
+
 	const int default_decoder_threads_count = 3;
 
 	bool is_deleting = false;
@@ -133,6 +153,10 @@ private:
 
 	String device_id = "UNKNOWN";
 	String server_address = String("127.0.0.1");
+	String current_auto_connect_server_address = String("127.0.0.1");
+	int current_auto_connect_server_port = 52341;
+	std::vector<std::shared_ptr<AvailableServerAddress> > found_server_addresses;
+	bool is_auto_mode_active = false;
 
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 	ScreenOrientation is_vertical = ScreenOrientation::NONE;
@@ -243,6 +267,10 @@ public:
 	String get_password();
 	void set_device_id(String _id);
 	String get_device_id();
+	void set_current_auto_connect_address(String _address);
+	String get_current_auto_connect_address();
+	void set_current_auto_connect_port(int _port);
+	int get_current_auto_connect_port();
 
 	ENUM_ARG(StreamState)
 	get_stream_state();
@@ -250,6 +278,7 @@ public:
 	bool is_connected_to_host();
 	Node *get_custom_input_scene();
 	String get_address();
+	Array get_found_auto_connect_addresses();
 	bool set_address(String ip);
 	bool set_address_port(String ip, uint16_t _port);
 	void set_input_buffer_size(int mb);

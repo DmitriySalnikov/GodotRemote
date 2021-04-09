@@ -9,12 +9,14 @@
 #include "GodotRemote.h"
 
 #ifndef GDNATIVE_LIBRARY
+#define get_packet_addr get_packet_address
 
 #include "core/input_map.h"
 #include "core/io/file_access_pack.h"
 #include "core/io/ip.h"
 #include "core/io/resource_loader.h"
 #include "core/io/tcp_server.h"
+#include "core/io/udp_server.h"
 #include "core/os/input_event.h"
 #include "core/os/thread_safe.h"
 #include "main/input_default.h"
@@ -25,8 +27,8 @@
 #include "scene/resources/material.h"
 #include "scene/resources/packed_scene.h"
 #include "scene/resources/texture.h"
-
 #else
+#define get_packet_addr get_packet_ip
 
 #include <Control.hpp>
 #include <GlobalConstants.hpp>
@@ -36,6 +38,7 @@
 #include <Material.hpp>
 #include <Node.hpp>
 #include <PackedScene.hpp>
+#include <PacketPeerUDP.hpp>
 #include <ProjectSettings.hpp>
 #include <RandomNumberGenerator.hpp>
 #include <ResourceLoader.hpp>
@@ -43,6 +46,7 @@
 #include <Shader.hpp>
 #include <TCP_Server.hpp>
 #include <Texture.hpp>
+#include <UDPServer.hpp>
 #include <Viewport.hpp>
 using namespace godot;
 
@@ -149,6 +153,7 @@ void GRClient::_bind_methods() {
 
 	BIND_ENUM_CONSTANT(CONNECTION_ADB);
 	BIND_ENUM_CONSTANT(CONNECTION_WiFi);
+	BIND_ENUM_CONSTANT(CONNECTION_AUTO);
 
 	BIND_ENUM_CONSTANT(STRETCH_KEEP_ASPECT);
 	BIND_ENUM_CONSTANT(STRETCH_FILL);
@@ -631,6 +636,19 @@ String GRClient::get_address() {
 	return (String)server_address;
 }
 
+Array GRClient::get_found_auto_connect_addresses() {
+	Scoped_lock(ts_lock);
+	Array arr;
+	for (auto i : found_server_addresses) {
+		Dictionary dict;
+		dict["ip"] = i->ip_address;
+		dict["port"] = i->port;
+		dict["project_name"] = i->project_name;
+		arr.append(dict);
+	}
+	return arr;
+}
+
 bool GRClient::set_address(String ip) {
 	return set_address_port(ip, port);
 }
@@ -741,6 +759,26 @@ void GRClient::set_device_id(String _id) {
 
 String GRClient::get_device_id() {
 	return device_id;
+}
+
+void GRClient::set_current_auto_connect_address(String _address) {
+	Scoped_lock(ts_lock);
+	current_auto_connect_server_address = _address;
+}
+
+String GRClient::get_current_auto_connect_address() {
+	Scoped_lock(ts_lock);
+	return current_auto_connect_server_address;
+}
+
+void GRClient::set_current_auto_connect_port(int _port) {
+	Scoped_lock(ts_lock);
+	current_auto_connect_server_port = _port;
+}
+
+int GRClient::get_current_auto_connect_port() {
+	Scoped_lock(ts_lock);
+	return current_auto_connect_server_port;
 }
 
 bool GRClient::is_connected_to_host() {
@@ -1055,6 +1093,25 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 	ConnectionThreadParamsClient *con_thread = VARIANT_OBJ_CAST_TO(p_userdata, ConnectionThreadParamsClient);
 	Ref<StreamPeerTCP> con = con_thread->peer;
+	Ref<UDPServer> udp_server = newref(UDPServer);
+	std::vector<Ref<PacketPeerUDP> > udp_peers;
+
+	Error err = Error::OK;
+	bool is_udp_cant_be_started = false;
+	auto close_and_reset_udp = [&]() {
+		udp_server->stop();
+		is_udp_cant_be_started = false;
+		is_auto_mode_active = false;
+
+		for (auto p : udp_peers) {
+			if (p->is_connected_to_host()) {
+				p->close();
+			}
+		}
+		udp_peers.resize(0);
+		found_server_addresses.resize(0);
+		// TODO emit signal
+	};
 
 	GRDevice::AuthResult prev_auth_error = GRDevice::AuthResult::OK;
 	bool first_connection_signal_emitted = false;
@@ -1087,37 +1144,224 @@ void GRClient::_thread_connection(Variant p_userdata) {
 		String adr;
 #endif
 
-		if (connection_type == CONNECTION_ADB) {
-#ifndef GDNATIVE_LIBRARY
-			adr = IP_Address("127.0.0.1");
-#else
-			adr = "127.0.0.1";
-#endif
-		} else {
-			if (server_address.is_valid_ip_address()) {
-				adr = server_address;
-				if (adr.is_valid_ip()) {
+		bool auto_mode_ready_to_connect = false;
+		switch (connection_type) {
+			case GRClient::CONNECTION_WiFi: {
+				is_udp_cant_be_started = false;
+				if (server_address.is_valid_ip_address()) {
+					adr = server_address;
+					if (adr.is_valid_ip()) {
+					} else {
+						_log("Address is invalid: " + server_address, LogLevel::LL_ERROR);
+						if (prev_auth_error != GRDevice::AuthResult::Error)
+							GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + server_address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+						prev_auth_error = GRDevice::AuthResult::Error;
+					}
 				} else {
-					_log("Address is invalid: " + server_address, LogLevel::LL_ERROR);
-					if (prev_auth_error != GRDevice::AuthResult::Error)
-						GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + server_address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-					prev_auth_error = GRDevice::AuthResult::Error;
+					adr = IP::get_singleton()->resolve_hostname(adr);
+					if (adr.is_valid_ip()) {
+						_log("Resolved address for " + server_address + "\n" + adr, LogLevel::LL_DEBUG);
+					} else {
+						_log("Can't resolve address for " + server_address, LogLevel::LL_ERROR);
+						if (prev_auth_error != GRDevice::AuthResult::Error)
+							GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + server_address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+						prev_auth_error = GRDevice::AuthResult::Error;
+					}
 				}
-			} else {
-				adr = IP::get_singleton()->resolve_hostname(adr);
-				if (adr.is_valid_ip()) {
-					_log("Resolved address for " + server_address + "\n" + adr, LogLevel::LL_DEBUG);
-				} else {
-					_log("Can't resolve address for " + server_address, LogLevel::LL_ERROR);
-					if (prev_auth_error != GRDevice::AuthResult::Error)
-						GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + server_address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-					prev_auth_error = GRDevice::AuthResult::Error;
-				}
+				break;
 			}
+			case GRClient::CONNECTION_ADB: {
+				is_udp_cant_be_started = false;
+#ifndef GDNATIVE_LIBRARY
+				adr = IP_Address("127.0.0.1");
+#else
+				adr = "127.0.0.1";
+#endif
+				break;
+			}
+			case GRClient::CONNECTION_AUTO: {
+				if (!is_udp_cant_be_started) {
+					if (!udp_server->is_listening()) {
+						err = udp_server->listen(AUTO_CONNECTION_PORT);
+						if (err != Error::OK) {
+							is_udp_cant_be_started = true;
+							_log("Can't start listening on port " + str(AUTO_CONNECTION_PORT) + " for auto connection mode. Error: " + str((int)err), LogLevel::LL_ERROR);
+							is_auto_mode_active = false;
+							sleep_usec(250_ms);
+							continue;
+						}
+						// TODO add signals
+						is_auto_mode_active = true;
+					}
+				} else {
+					sleep_usec(250_ms);
+					continue;
+				}
+
+				// collect all connections
+				err = udp_server->poll();
+				if (err == Error::OK) {
+					if (udp_server->is_connection_available()) {
+						udp_peers.push_back(udp_server->take_connection());
+					}
+				} else {
+					_log("Can't poll connection. Error: " + str((int)err), LogLevel::LL_ERROR);
+					close_and_reset_udp();
+					continue;
+				}
+
+				std::vector<Ref<PacketPeerUDP> > to_delete;
+				bool is_error_in_for = false;
+				Ref<StreamPeerBuffer> buf = newref(StreamPeerBuffer);
+
+				// get info from connections
+				for (auto p : udp_peers) {
+					if (p->is_connected_to_host()) {
+						while (p->get_available_packet_count() > 0) {
+#ifndef GDNATIVE_LIBRARY
+							PoolByteArray data;
+							data.resize(p->get_max_packet_size());
+							int size;
+							const uint8_t *dp = nullptr;
+							err = p->get_packet(&dp, size);
+
+							if (dp) {
+								data.resize(size);
+								auto dw = data.write();
+								memcpy(dw.ptr(), dp, size);
+							}
+#else
+							PoolByteArray data = p->get_packet();
+							err = p->get_packet_error();
+							int size = data.size();
+#endif
+							if (err == Error::OK) {
+								if (data.size() > 4) {
+									buf->set_data_array(data);
+									buf->seek(4);
+
+									if (GRUtils::validate_packet(data.read().ptr())) {
+										Variant var = buf->get_var(false);
+										if (var.get_type() == Variant::Type::DICTIONARY) {
+											Dictionary dict = var;
+											String version;
+											String project_name;
+											int port;
+
+											if (dict.has("version")) {
+												PoolByteArray ver = dict["version"];
+												if (!GRUtils::validate_version(ver)) {
+													break;
+												} else {
+													version = str_arr(ver, true, 32, ".");
+												}
+											}
+
+											if (dict.has("project_name")) {
+												project_name = dict["project_name"];
+											}
+											if (dict.has("port")) {
+												port = dict["port"];
+											}
+
+											{
+												ts_lock.lock();
+
+												std::shared_ptr<AvailableServerAddress> available_server;
+												for (auto a : found_server_addresses) {
+													if (a->ip_address == p->get_packet_addr() &&
+															a->port == port) {
+														available_server = a;
+													}
+												}
+												if (!available_server) {
+													available_server = shared_new(AvailableServerAddress);
+													available_server->ip_address = p->get_packet_addr();
+													available_server->port = port;
+
+													found_server_addresses.push_back(available_server);
+													// TODO emit signal
+												}
+
+												available_server->time_added = get_time_usec();
+												available_server->project_name = project_name;
+
+												ts_lock.unlock();
+											}
+										}
+									}
+								} else {
+									// just ignore any wrong packet
+								}
+							} else {
+								_log("Can't get UDP packet for auto mode. Error: " + str((int)err), LogLevel::LL_ERROR);
+								close_and_reset_udp();
+								is_error_in_for = true;
+								break;
+							}
+						}
+					} else {
+						to_delete.push_back(p);
+					}
+
+					if (is_error_in_for) {
+						break;
+					}
+				}
+
+				for (auto p : to_delete) {
+					if (p->is_connected_to_host()) {
+						p->close();
+					}
+					vec_remove_obj(udp_peers, p);
+				}
+
+				if (is_error_in_for) {
+					continue;
+				}
+
+				// clear outdated servers
+				bool is_list_changed = false;
+				for (int i = (int)found_server_addresses.size() - 1; i >= 0; i--) {
+					if (found_server_addresses.size() > 0) {
+						if (get_time_usec() - found_server_addresses[i]->time_added > 1500_ms) {
+							found_server_addresses.erase(found_server_addresses.begin() + i);
+							is_list_changed = true;
+						}
+					} else {
+						break;
+					}
+				}
+
+				if (is_list_changed) {
+					// TODO emit signal
+				}
+
+				for (auto s : found_server_addresses) {
+					if (s->ip_address == current_auto_connect_server_address &&
+							s->port == current_auto_connect_server_port) {
+						auto_mode_ready_to_connect = true;
+						udp_server->stop();
+						adr = s->ip_address;
+						port = s->port;
+						break;
+					}
+				}
+
+				if (!auto_mode_ready_to_connect) {
+					sleep_usec(50_ms);
+					continue;
+				}
+
+				break;
+			}
+			default:
+				_log("Not supported connection type: " + str(connection_type), LogLevel::LL_ERROR);
+				break;
 		}
 
 		String address = (String)adr + ":" + str(port);
-		Error err = con->connect_to_host(adr, port);
+		err = con->connect_to_host(adr, port);
 
 		_log("Connecting to " + address, LogLevel::LL_DEBUG);
 		if ((int)err) {

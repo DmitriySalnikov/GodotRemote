@@ -250,6 +250,8 @@ typedef Directory _Directory;
 #define GET_PS_SET(variable_to_store, setting_name) \
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
 
+#define AUTO_CONNECTION_PORT 57360
+
 enum LogLevel : int {
 	LL_DEBUG = 0,
 	LL_NORMAL = 1,
@@ -437,7 +439,7 @@ static void set_log_level(int lvl) {
 }
 
 template <class T>
-inline void vec_remove_idx(std::vector<T> &v, const T &item) {
+inline void vec_remove_obj(std::vector<T> &v, const T &item) {
 	v.erase(std::remove(v.begin(), v.end(), item), v.end());
 }
 

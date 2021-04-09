@@ -10,7 +10,6 @@
 #define set_b_icon set_icon
 
 #include "scene/animation/tween.h"
-#include "scene/gui/box_container.h"
 #include "scene/gui/button.h"
 #include "scene/gui/label.h"
 #include "scene/gui/texture_rect.h"
@@ -375,7 +374,7 @@ void GRNotifications::_remove_exact_notification(Node *_notif) {
 		emit_signal("notification_removed", np->get_text(), clearing_notifications);
 
 		notif_list_node->remove_child(np);
-		vec_remove_idx(notifications, np);
+		vec_remove_obj(notifications, np);
 		memdelete(np);
 
 		// FORCE UPDATE SIZE OF CONTEINER
@@ -388,7 +387,7 @@ void GRNotifications::_clear_notifications() {
 	for (int i = 0; i < notifications.size(); i++) {
 		GRNotificationPanel *tmp = notifications[i];
 		notif_list_node->remove_child(tmp);
-		vec_remove_idx(notifications, tmp);
+		vec_remove_obj(notifications, tmp);
 		memdelete(tmp);
 	}
 	emit_signal("notifications_cleared");
@@ -413,16 +412,9 @@ void GRNotifications::_init() {
 	notifications_position = (NotificationsPosition)(int)GET_PS(GodotRemote::ps_noticications_position_name);
 	notifications_duration = GET_PS(GodotRemote::ps_notifications_duration_name);
 
-	notif_list_node = memnew(VBoxContainer);
+	notif_list_node = memnew(GRNotificationListWithSafeZone);
 	notif_list_node->set_name("NotificationList");
 	call_deferred("add_child", notif_list_node); // TODO add new function to check ST() and then add_child to prevent leak when generation mono glue
-
-	notif_list_node->set_anchor_and_margin(MARGIN_LEFT, 0.f, 8.f);
-	notif_list_node->set_anchor_and_margin(MARGIN_RIGHT, 1.f, -8.f);
-	notif_list_node->set_anchor_and_margin(MARGIN_TOP, 0.f, 8.f);
-	notif_list_node->set_anchor_and_margin(MARGIN_BOTTOM, 1.f, -8.f);
-	notif_list_node->set_h_grow_direction(Control::GROW_DIRECTION_BOTH);
-	notif_list_node->set_mouse_filter(Control::MouseFilter::MOUSE_FILTER_IGNORE);
 
 	set_notifications_position(notifications_position);
 }
@@ -994,4 +986,60 @@ void GRNotificationStyle::set_notification_icon(ENUM_ARG(GRNotifications::Notifi
 
 Ref<Texture> GRNotificationStyle::get_notification_icon(ENUM_ARG(GRNotifications::NotificationIcon) notification_icon) {
 	return n_icons[notification_icon];
+}
+
+// SAFE ZONE
+
+void GRNotificationListWithSafeZone::_notification(int p_notification) {
+	switch (p_notification) {
+		case NOTIFICATION_POSTINITIALIZE:
+#ifndef GDNATIVE_LIBRARY
+			_init();
+#endif
+			break;
+		case NOTIFICATION_PREDELETE:
+			_deinit();
+			break;
+	}
+}
+
+#ifndef GDNATIVE_LIBRARY
+
+void GRNotificationListWithSafeZone::_bind_methods() {
+	ClassDB::bind_method(D_METHOD(NAMEOF(_on_resize)), &GRNotificationListWithSafeZone::_on_resize);
+}
+
+#else
+
+void GRNotificationListWithSafeZone::_register_methods() {
+	METHOD_REG(GRNotificationListWithSafeZone, _notification);
+	METHOD_REG(GRNotificationListWithSafeZone, _on_resize);
+}
+
+#endif
+
+void GRNotificationListWithSafeZone::_on_resize() {
+	if (!is_manual_changing) {
+		set_safe_zone(OS::get_singleton()->get_window_safe_area());
+	}
+}
+
+void GRNotificationListWithSafeZone::set_safe_zone(Rect2 rect) {
+	Vector2 vp_size = get_parent_area_size();
+	is_manual_changing = true;
+	set_anchor_and_margin(MARGIN_LEFT, 0.f, rect.position.x + 8);
+	set_anchor_and_margin(MARGIN_RIGHT, 1.f, -(vp_size.x - (rect.position.x + rect.size.x)) - 8);
+	set_anchor_and_margin(MARGIN_TOP, 0.f, rect.position.y + 8);
+	set_anchor_and_margin(MARGIN_BOTTOM, 1.f, -(vp_size.y - (rect.position.y + rect.size.y)) - 8);
+	is_manual_changing = false;
+}
+
+void GRNotificationListWithSafeZone::_init() {
+	set_h_grow_direction(Control::GROW_DIRECTION_BOTH);
+	set_mouse_filter(Control::MouseFilter::MOUSE_FILTER_IGNORE);
+	set_safe_zone(OS::get_singleton()->get_window_safe_area());
+	connect("resized", this, NAMEOF(_on_resize));
+}
+
+void GRNotificationListWithSafeZone::_deinit() {
 }
