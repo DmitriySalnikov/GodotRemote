@@ -1,6 +1,7 @@
+#!/usr/bin/env python3
+
 from shutil import copyfile
 import os
-import pathlib
 import json
 
 # 'headers_dir' option in SConstruct must be correct: 'godot-cpp/godot-headers'
@@ -192,7 +193,7 @@ def prepare_h264(env):
 ######
 
 # 'CXXFLAGS' 'CCFLAGS' 'LINKFLAGS' and others
-def remove_flag_from_env(env, flags_group : str, flags : []):
+def remove_flag_from_env(env, flags_group, flags):
     for f in flags:
         if f in env[flags_group]:
             env[flags_group].remove(f)
@@ -215,7 +216,7 @@ def prepare_turbo_jpeg(env, is_gdnative = False):
         need_to_use_hack = True
     
     # Linux libs
-    elif env['platform'] == 'x11':
+    elif env['platform'] in ['x11', 'linux', 'freebsd']:
         env.Append(LIBS=['libturbojpeg'])
         if env['bits'] == '32':
             dir += 'linux/x86/'
@@ -239,10 +240,12 @@ def prepare_turbo_jpeg(env, is_gdnative = False):
         lib = dir + 'libturbojpeg.a'
 
     if need_to_use_hack and not is_gdnative:
+        if env['platform'] == 'windows':
+            import pathlib
         tmp_dir = base_dir + 'temp_folder_for_lib_copies/'
         new_dir = dir.replace(base_dir, tmp_dir).replace(current_dir, '')
         new_file_name = (os.path.splitext(lib)[0] + env['LIBSUFFIX']).replace(base_dir, tmp_dir)
-        env.Append(LIBPATH=[pathlib.Path(new_file_name).parent])
+        env.Append(LIBPATH=[new_file_name.replace("/" + os.path.basename(new_file_name), "")])
         new_file_name = new_file_name.replace(current_dir, '')
 
         if not os.path.exists(new_dir):

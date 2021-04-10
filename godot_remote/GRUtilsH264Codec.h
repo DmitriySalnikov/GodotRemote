@@ -17,15 +17,22 @@ private:
 	// DLL Name
 	static const char *lib_name;
 
+#ifdef _WIN32
+#define H264_STDCALL __stdcall
+#else
+#define H264_STDCALL
+#endif
+
+
 	// Encoder
-	typedef int(__stdcall *WelsCreateSVCEncoderFunc)(ISVCEncoder **ppEncoder);
-	typedef void(__stdcall *WelsDestroySVCEncoderFunc)(ISVCEncoder *ppEncoder);
+	typedef int(H264_STDCALL *WelsCreateSVCEncoderFunc)(ISVCEncoder **ppEncoder);
+	typedef void(H264_STDCALL *WelsDestroySVCEncoderFunc)(ISVCEncoder *ppEncoder);
 	static WelsCreateSVCEncoderFunc CreateEncoderFunc;
 	static WelsDestroySVCEncoderFunc DestroyEncoderFunc;
 
 	// Decoder
-	typedef int(__stdcall *WelsCreateDecoderFunc)(ISVCDecoder **ppDecoder);
-	typedef void(__stdcall *WelsDestroyDecoderFunc)(ISVCDecoder *ppDecoder);
+	typedef int(H264_STDCALL *WelsCreateDecoderFunc)(ISVCDecoder **ppDecoder);
+	typedef void(H264_STDCALL *WelsDestroyDecoderFunc)(ISVCDecoder *ppDecoder);
 	static WelsCreateDecoderFunc CreateDecoderFunc;
 	static WelsDestroyDecoderFunc DestroyDecoderFunc;
 

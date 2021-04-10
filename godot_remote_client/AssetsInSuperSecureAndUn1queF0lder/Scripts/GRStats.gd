@@ -23,7 +23,7 @@ func _ready():
 	show_stats_changed(G.show_stats)
 
 func _process(_delta):
-	if GodotRemote.get_device() and visible:
+	if get_parent() is Control and get_parent().visible and visible and GodotRemote.get_device():
 		var dev = GodotRemote.get_device()
 		if stat_state > G.StatInfoState.Hidden:
 			fps.text = "FPS: %.1f" % dev.get_avg_fps()

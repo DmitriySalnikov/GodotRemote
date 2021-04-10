@@ -628,7 +628,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 #ifndef GDNATIVE_LIBRARY
 			Vector<String> split = ((String)addresses[i]).split(".");
 #else
-			PoolStringArray split = ((String)addresses[i]).split(".");
+			PoolStringArray split = (addresses[i].operator godot::String()).split(".");
 #endif
 			if (split.size() == 4) {
 				split.set(3, "255");

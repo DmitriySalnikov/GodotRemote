@@ -537,7 +537,6 @@ margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "How do I update the server?"
-
 [connection signal="pressed" from="OpenSettingsWithoutSignal/OpenSettings" to="." method="_on_open_settings_pressed"]
 [connection signal="visibility_changed" from="PlsSupportPopup" to="PlsSupportPopup" method="_on_PlsSupportPopup_visibility_changed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]

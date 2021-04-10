@@ -1,6 +1,7 @@
 /* UDPSocket.cpp */
 
 #include "UDPSocket.h"
+#include "GRUtils.h"
 
 // https://github.com/wolfpld/tracy/blob/8f48d6e5802f0ec63c86aa6a3383d020ad0b9d44/common/TracySocket.cpp
 
@@ -18,6 +19,7 @@
 #endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
 #ifdef _MSC_VER
 #pragma warning(disable : 4244)
 #pragma warning(disable : 4267)
@@ -228,7 +230,7 @@ void UdpListen::Close() {
 	m_sock = -1;
 }
 
-const char *UdpListen::Read(size_t &len, IpAddress &addr, int timeout) {
+const char *UdpListen::Read(uint64_t &len, IpAddress &addr, int timeout) {
 	static char buf[2048];
 
 	struct pollfd fd;
@@ -238,7 +240,7 @@ const char *UdpListen::Read(size_t &len, IpAddress &addr, int timeout) {
 
 	sockaddr sa;
 	socklen_t salen = sizeof(struct sockaddr);
-	len = (size_t)recvfrom(m_sock, buf, 2048, 0, &sa, &salen);
+	len = (uint64_t)recvfrom(m_sock, buf, 2048, 0, &sa, &salen);
 	addr.Set(sa);
 
 	return buf;
