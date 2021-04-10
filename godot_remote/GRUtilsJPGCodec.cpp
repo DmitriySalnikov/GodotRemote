@@ -48,7 +48,7 @@ Error GRUtilsJPGCodec::_compress_jpg_turbo(PoolByteArray &ret, const PoolByteArr
 	return Error::FAILED;
 }
 
-Error GRUtilsJPGCodec::_decompress_jpg_turbo(PoolByteArray &img_data, PoolByteArray &jpg_buffer, Ref<Image> *out_img) {
+Error GRUtilsJPGCodec::_decompress_jpg_turbo(PoolByteArray &img_data, PoolByteArray &jpg_buffer, PoolByteArray *out_data, int *out_width, int *out_height) {
 	ERR_FAIL_COND_V(img_data.size() == 0, Error::ERR_INVALID_PARAMETER);
 
 	int jpegSubsamp, width, height;
@@ -69,23 +69,20 @@ Error GRUtilsJPGCodec::_decompress_jpg_turbo(PoolByteArray &img_data, PoolByteAr
 			tjDestroy(_jpegDecompressor);
 
 			ZoneScopedNC("Copy Decopressed JPG Data to result Image", tracy::Color::HotPink3);
-			Ref<Image> img;
-			img.instance();
 
 			PoolByteArray fin_data;
 			fin_data.resize(size);
-			auto wr = fin_data.write();
-			memcpy(wr.ptr(), wb.ptr(), size);
-			release_pva_read(wb);
-			release_pva_write(wr);
+			{
+				auto wr = fin_data.write();
+				memcpy(wr.ptr(), wb.ptr(), size);
+				release_pva_read(wb);
+				release_pva_write(wr);
+			}
 
-#ifndef GDNATIVE_LIBRARY
-			img->create(width, height, false, Image::Format::FORMAT_RGB8, fin_data);
-#else
-			img->create_from_data(width, height, false, Image::Format::FORMAT_RGB8, fin_data);
-#endif
-			if (!img_is_empty(img)) {
-				*out_img = img;
+			if (fin_data.size() > 0) {
+				*out_data = fin_data;
+				*out_width = width;
+				*out_height = height;
 				return Error::OK;
 			}
 		} else {

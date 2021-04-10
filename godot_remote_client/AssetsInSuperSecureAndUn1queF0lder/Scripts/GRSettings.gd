@@ -140,7 +140,7 @@ func update_values():
 	var d = GodotRemote.get_device()
 	
 	device_id.text = d.device_id
-	con_type_menu.selected = d.connection_type
+	con_type_menu.selected = con_type_menu.get_item_index(d.connection_type)
 	adb_port_line.value = d.port
 	wifi_port_line.value = d.port
 	wifi_ip_line.text = d.get_address()

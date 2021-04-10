@@ -203,6 +203,7 @@
     <ClCompile Include="godot_remote\GRStreamEncoderImageSequence.cpp" />
     <ClCompile Include="godot_remote\GRStreamEncoders.cpp" />
     <ClCompile Include="godot_remote\GRToolMenuPlugin.cpp" />
+    <ClCompile Include="godot_remote\UDPSocket.cpp" />
     <ClCompile Include="godot_remote\GRUtils.cpp" />
     <ClCompile Include="godot_remote\GRUtilsH264Codec.cpp" />
     <ClCompile Include="godot_remote\GRUtilsJPGCodec.cpp" />
@@ -230,6 +231,7 @@
     <ClInclude Include="godot_remote\GRStreamEncoderImageSequence.h" />
     <ClInclude Include="godot_remote\GRStreamEncoders.h" />
     <ClInclude Include="godot_remote\GRToolMenuPlugin.h" />
+    <ClInclude Include="godot_remote\UDPSocket.h" />
     <ClInclude Include="godot_remote\GRUtils.h" />
     <ClInclude Include="godot_remote\GRUtilsH264Codec.h" />
     <ClInclude Include="godot_remote\GRUtilsJPGCodec.h" />

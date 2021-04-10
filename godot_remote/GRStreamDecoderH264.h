@@ -24,11 +24,18 @@ class GRStreamDecoderH264 : public GRStreamDecoder {
 private:
 	class BufferedImage {
 	public:
-		Ref<Image> img;
+		PoolByteArray img_data;
+		int img_width;
+		int img_height;
+
 		uint64_t frame_added_time;
 		uint64_t frametime;
 		bool is_end = false;
-		BufferedImage(uint64_t frame_added,uint64_t frame_time) {
+		BufferedImage(PoolByteArray data, int width, int height, uint64_t frame_added,uint64_t frame_time) {
+			img_data = data;
+			img_width = width;
+			img_height = height;
+
 			frame_added_time = frame_added;
 			frametime = frame_time;
 		}

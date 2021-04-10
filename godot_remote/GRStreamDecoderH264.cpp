@@ -69,7 +69,7 @@ void GRStreamDecoderH264::push_packet_to_decode(std::shared_ptr<GRPacketStreamDa
 			while (buffer.size())
 				buffer.pop();
 
-			auto img = BufferedImage(0, 0);
+			auto img = BufferedImage(PoolByteArray(), 0, 0, 0, 0);
 			img.is_end = true;
 
 			buffer.push(img);
@@ -166,13 +166,13 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 
 				prev_shown_frame_time = time;
 
-				if (buf.img.is_valid() && !img_is_empty(buf.img)) {
+				if (buf.img_data.size() != 0) {
 					int64_t delay = _calc_delay(time, buf.frame_added_time, buf.frametime);
 					if (delay < 0) {
 						delay = 0;
 					}
 
-					gr_client->_display_new_image(buf.img, delay);
+					gr_client->_display_new_image(buf.img_data, buf.img_width, buf.img_height, delay);
 				} else {
 					gr_client->_image_lost();
 				}
@@ -223,9 +223,9 @@ void GRStreamDecoderH264::FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_
 bool GRStreamDecoderH264::ProcessFrame(SBufferInfo *info, uint64_t start_time, uint64_t frametime) {
 	if (info->iBufferStatus == 1) {
 		ZoneScopedNC("Process Frame", tracy::Color::Orange3);
-		Ref<Image> img = newref(Image);
+		PoolByteArray data;
 
-		Error e = GRUtilsH264Codec::_decode_yuv_to_image(img, info->UsrData.sSystemBuffer.iWidth, info->UsrData.sSystemBuffer.iHeight, info->pDst[0], info->pDst[1], info->pDst[2], info->UsrData.sSystemBuffer.iStride);
+		Error e = GRUtilsH264Codec::_decode_yuv_to_image(&data, info->UsrData.sSystemBuffer.iWidth, info->UsrData.sSystemBuffer.iHeight, info->pDst[0], info->pDst[1], info->pDst[2], info->UsrData.sSystemBuffer.iStride);
 		if (e != Error::OK) {
 			_log("Can't decode image from YUV", LogLevel::LL_ERROR);
 			return false;
@@ -235,12 +235,11 @@ bool GRStreamDecoderH264::ProcessFrame(SBufferInfo *info, uint64_t start_time, u
 		while (buffer.size() > get_max_queued_frames())
 			buffer.pop();
 
-		if (buffer.size() && buffer.front().is_end && img_is_empty(img)) {
+		if (buffer.size() || buffer.front().is_end || data.size() == 0) {
 			return false;
 		}
 
-		auto buf_img = BufferedImage(start_time, frametime);
-		buf_img.img = img;
+		auto buf_img = BufferedImage(data, info->UsrData.sSystemBuffer.iWidth, info->UsrData.sSystemBuffer.iHeight, start_time, frametime);
 		buffer.push(buf_img);
 	}
 	return true;

@@ -122,7 +122,9 @@ func _ready():
 	_set_all_values()
 	_setup_notifications_style()
 	_add_runs()
-	#GodotRemote.set_log_level(GodotRemote.LL_Debug)
+	
+	# DEBUG
+	#GodotRemote.set_log_level(GodotRemote.LL_DEBUG)
 	
 	yield(get_tree(), "idle_frame")
 	if Billings:

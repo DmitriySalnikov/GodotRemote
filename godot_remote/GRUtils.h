@@ -251,6 +251,7 @@ typedef Directory _Directory;
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
 
 #define AUTO_CONNECTION_PORT 57360
+#define AUTO_CONNECTION_ENABLED
 
 enum LogLevel : int {
 	LL_DEBUG = 0,

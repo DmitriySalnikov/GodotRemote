@@ -60,6 +60,7 @@ void GodotRemote::_init() {
 		singleton = this;
 
 	register_and_load_settings();
+	GRUtils::init();
 
 #ifndef GDNATIVE_LIBRARY
 #ifdef TOOLS_ENABLED
@@ -67,7 +68,6 @@ void GodotRemote::_init() {
 #endif
 #endif
 
-	GRUtils::init();
 	LEAVE_IF_EDITOR();
 
 #ifndef GDNATIVE_LIBRARY

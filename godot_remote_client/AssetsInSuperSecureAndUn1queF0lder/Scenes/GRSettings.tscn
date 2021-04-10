@@ -43,10 +43,40 @@ shadow_size = 2
 [sub_resource type="GDScript" id=4]
 script/source = "extends PopupMenu
 
+var touches : Dictionary = {}
+
 func _process(_delta: float) -> void:
+	if not OS.has_feature(\"standalone\"):
+		if get_parent().visible:
+			if Input.is_key_pressed(KEY_F1) and Input.is_key_pressed(KEY_SHIFT):
+				call_deferred(\"popup_centered\")
+	else:
+		queue_free()
+
+func _release_sceen_touches(count : int):
+	for x in range(count):
+		var ev = InputEventScreenTouch.new()
+		ev.pressed = false
+		ev.index = x
+		Input.parse_input_event(ev)
+
+func _count_pressed_touches() -> int:
+	var res = 0
+	for k in touches:
+		res += int(touches[k])
+	return res
+
+func _input(e: InputEvent) -> void:
 	if get_parent().visible:
-		if Input.is_key_pressed(KEY_F1) and Input.is_key_pressed(KEY_SHIFT):
-			popup_centered()
+		if e is InputEventScreenTouch:
+			touches[e.index] = e.pressed
+			if e.pressed:
+				var pressed_count = _count_pressed_touches()
+				if pressed_count == 5:
+					call_deferred(\"popup_centered\")
+					_release_sceen_touches(pressed_count)
+	else:
+		touches.clear()
 "
 
 [node name="GRSettings" type="Control"]
@@ -286,7 +316,7 @@ margin_right = 740.0
 margin_bottom = 318.0
 rect_min_size = Vector2( 0, 218 )
 custom_constants/vseparation = 18
-items = [ "255.255.255.255:65555255.255.255.255:65555255.255.255.255:65555255.255.255.255:65555", null, false, "255.255.255.255:65555", null, false, "255.255.255.255:65555", null, false, "255.255.255.255:65555", null, false, "255.255.255.255:65555", null, false, "255.255.255.255:65555", null, false, "255.255.255.255:65555", null, false, "255.255.255.255:65555", null, false ]
+items = [ "255.255.255.255:65555255.255.255.255:65555255.255.255.255:65555255.255.255.255:65555", null, false, "REPLACE BY SCROLLBOX", null, false, "255.255.255.255:65555", null, false, "255.255.255.255:65555", null, false, "255.255.255.255:65555", null, false, "255.255.255.255:65555", null, false, "255.255.255.255:65555", null, false, "255.255.255.255:65555", null, false ]
 
 [node name="WiFi" type="VBoxContainer" parent="V/Scroll/H/Grid"]
 margin_top = 582.0

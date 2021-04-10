@@ -231,7 +231,7 @@ Error GRUtilsH264Codec::_encode_image_to_yuv(PoolByteArray img_data, const int w
 	return Error::OK;
 }
 
-Error GRUtilsH264Codec::_decode_yuv_to_image(Ref<Image> img, const int width, const int height, uint8_t *buf_y, uint8_t *buf_u, uint8_t *buf_v, int stride[2]) {
+Error GRUtilsH264Codec::_decode_yuv_to_image(PoolByteArray *data, const int width, const int height, uint8_t *buf_y, uint8_t *buf_u, uint8_t *buf_v, int stride[2]) {
 	ZoneScopedNC("_decode_yuv_to_image", tracy::Color::OrangeRed);
 
 	PoolByteArray rgb;
@@ -243,14 +243,9 @@ Error GRUtilsH264Codec::_decode_yuv_to_image(Ref<Image> img, const int width, co
 	{
 		ZoneScopedNC("Create Image from Data", tracy::Color::DarkOliveGreen);
 		release_pva_write(rw);
-#ifndef GDNATIVE_LIBRARY
-		img->create(width, height, false, Image::Format::FORMAT_RGB8, rgb);
-#else
-		img->create_from_data(width, height, false, Image::Format::FORMAT_RGB8, rgb);
-#endif
 	}
 
-	return img_is_empty(img) ? Error::FAILED : Error::OK;
+	return Error::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////

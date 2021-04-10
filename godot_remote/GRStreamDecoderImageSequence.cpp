@@ -186,13 +186,13 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 
 					prev_shown_frame_time = time;
 
-					if (buf->img.is_valid() && !img_is_empty(buf->img)) {
+					if (buf->img_data.size() != 0) {
 						int64_t delay = _calc_delay(time, buf->frame_added_time, buf->frametime);
 						if (delay < 0) {
 							delay = 0;
 						}
 
-						gr_client->_display_new_image(buf->img, delay);
+						gr_client->_display_new_image(buf->img_data, buf->img_width, buf->img_height, delay);
 					} else {
 						gr_client->_image_lost();
 					}
@@ -242,6 +242,9 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 				buffer.pop();
 
 			PoolByteArray img_data = image_pack->get_image_data();
+			PoolByteArray out_img_data;
+			int out_width = 0;
+			int out_height = 0;
 
 			if (buffer.size() && buffer.front()->is_end && !img_data.size()) {
 				ts_lock.unlock();
@@ -253,18 +256,17 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 
 			ts_lock.unlock();
 
-			Ref<Image> img = newref(Image);
 			GRDevice::ImageCompressionType type = (GRDevice::ImageCompressionType)image_pack->get_compression_type();
 
 			switch (type) {
 				case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
 #ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
-					err = GRUtilsJPGCodec::_decompress_jpg_turbo(img_data, jpg_buffer, &img);
+					err = GRUtilsJPGCodec::_decompress_jpg_turbo(img_data, jpg_buffer, &out_img_data, &out_width, &out_height);
 #else
 					err = img->load_jpg_from_buffer(img_data);
 #endif
 
-					if ((int)err || img_is_empty(img)) { // is NOT OK
+					if ((int)err || img_data.size() == 0) { // is NOT OK
 						_log("Can't decode JPG image.", LogLevel::LL_ERROR);
 						GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 					}
@@ -275,7 +277,10 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 					break;
 			}
 
-			buf_img->img = img;
+			buf_img->img_data = out_img_data;
+			buf_img->img_width = out_width;
+			buf_img->img_height = out_height;
+
 			buf_img->is_ready = true;
 		} else {
 			ts_lock.unlock();

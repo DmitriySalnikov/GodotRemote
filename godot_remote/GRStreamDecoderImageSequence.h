@@ -23,7 +23,10 @@ class GRStreamDecoderImageSequence : public GRStreamDecoder {
 private:
 	class BufferedImage {
 	public:
-		Ref<Image> img;
+		PoolByteArray img_data;
+		int img_width;
+		int img_height;
+
 		uint64_t frametime;
 		uint64_t frame_added_time;
 		bool is_ready = false;

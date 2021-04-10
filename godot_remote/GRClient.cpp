@@ -7,9 +7,9 @@
 #include "GRPacket.h"
 #include "GRResources.h"
 #include "GodotRemote.h"
+#include "UDPSocket.h"
 
 #ifndef GDNATIVE_LIBRARY
-#define get_packet_addr get_packet_address
 
 #include "core/input_map.h"
 #include "core/io/file_access_pack.h"
@@ -28,7 +28,6 @@
 #include "scene/resources/packed_scene.h"
 #include "scene/resources/texture.h"
 #else
-#define get_packet_addr get_packet_ip
 
 #include <Control.hpp>
 #include <GlobalConstants.hpp>
@@ -38,7 +37,6 @@
 #include <Material.hpp>
 #include <Node.hpp>
 #include <PackedScene.hpp>
-#include <PacketPeerUDP.hpp>
 #include <ProjectSettings.hpp>
 #include <RandomNumberGenerator.hpp>
 #include <ResourceLoader.hpp>
@@ -46,7 +44,6 @@
 #include <Shader.hpp>
 #include <TCP_Server.hpp>
 #include <Texture.hpp>
-#include <UDPServer.hpp>
 #include <Viewport.hpp>
 using namespace godot;
 
@@ -503,15 +500,25 @@ void GRClient::_image_lost() {
 	}
 }
 
-void GRClient::_display_new_image(Ref<Image> img, uint64_t delay) {
-	call_deferred(NAMEOF(_update_texture_from_image), img);
-	TracyPlot("FPS", int64_t(float(1000000.0 / (get_time_usec() - prev_shown_frame_time))));
-	_update_avg_delay(delay);
-	_update_avg_fps(get_time_usec() - prev_shown_frame_time);
-	prev_shown_frame_time = get_time_usec();
+void GRClient::_display_new_image(PoolByteArray data, int width, int height, uint64_t delay) {
+	ZoneScopedNC("Displaying new Image", tracy::Color::LightGoldenrod3);
+	Ref<Image> img = newref(Image);
+#ifndef GDNATIVE_LIBRARY
+	img->create(width, height, false, Image::Format::FORMAT_RGB8, data);
+#else
+	img->create_from_data(width, height, false, Image::Format::FORMAT_RGB8, data);
+#endif
 
-	if (signal_connection_state != StreamState::STREAM_ACTIVE) {
-		call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_ACTIVE);
+	if (!img_is_empty(img)) {
+		call_deferred(NAMEOF(_update_texture_from_image), img);
+		TracyPlot("FPS", int64_t(float(1000000.0 / (get_time_usec() - prev_shown_frame_time))));
+		_update_avg_delay(delay);
+		_update_avg_fps(get_time_usec() - prev_shown_frame_time);
+		prev_shown_frame_time = get_time_usec();
+
+		if (signal_connection_state != StreamState::STREAM_ACTIVE) {
+			call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_ACTIVE);
+		}
 	}
 }
 
@@ -1093,25 +1100,22 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 	ConnectionThreadParamsClient *con_thread = VARIANT_OBJ_CAST_TO(p_userdata, ConnectionThreadParamsClient);
 	Ref<StreamPeerTCP> con = con_thread->peer;
-	Ref<UDPServer> udp_server = newref(UDPServer);
-	std::vector<Ref<PacketPeerUDP> > udp_peers;
-
 	Error err = Error::OK;
 	bool is_udp_cant_be_started = false;
+
+#ifdef AUTO_CONNECTION_ENABLED
+	std::shared_ptr<UdpListen> udp_server;
 	auto close_and_reset_udp = [&]() {
-		udp_server->stop();
+		if (udp_server) {
+			udp_server->Close();
+		}
 		is_udp_cant_be_started = false;
 		is_auto_mode_active = false;
 
-		for (auto p : udp_peers) {
-			if (p->is_connected_to_host()) {
-				p->close();
-			}
-		}
-		udp_peers.resize(0);
 		found_server_addresses.resize(0);
 		// TODO emit signal
 	};
+#endif
 
 	GRDevice::AuthResult prev_auth_error = GRDevice::AuthResult::OK;
 	bool first_connection_signal_emitted = false;
@@ -1179,11 +1183,15 @@ void GRClient::_thread_connection(Variant p_userdata) {
 #endif
 				break;
 			}
+#ifdef AUTO_CONNECTION_ENABLED
 			case GRClient::CONNECTION_AUTO: {
+				ZoneScopedNC("Scanning for available servers", tracy::Color::DarkMagenta);
+
 				if (!is_udp_cant_be_started) {
-					if (!udp_server->is_listening()) {
-						err = udp_server->listen(AUTO_CONNECTION_PORT);
-						if (err != Error::OK) {
+					if (!udp_server) {
+						udp_server = shared_new(UdpListen);
+						if (!udp_server->Listen(AUTO_CONNECTION_PORT)) {
+							udp_server = nullptr;
 							is_udp_cant_be_started = true;
 							_log("Can't start listening on port " + str(AUTO_CONNECTION_PORT) + " for auto connection mode. Error: " + str((int)err), LogLevel::LL_ERROR);
 							is_auto_mode_active = false;
@@ -1198,122 +1206,84 @@ void GRClient::_thread_connection(Variant p_userdata) {
 					continue;
 				}
 
-				// collect all connections
-				err = udp_server->poll();
-				if (err == Error::OK) {
-					if (udp_server->is_connection_available()) {
-						udp_peers.push_back(udp_server->take_connection());
-					}
-				} else {
-					_log("Can't poll connection. Error: " + str((int)err), LogLevel::LL_ERROR);
-					close_and_reset_udp();
-					continue;
-				}
-
-				std::vector<Ref<PacketPeerUDP> > to_delete;
 				bool is_error_in_for = false;
 				Ref<StreamPeerBuffer> buf = newref(StreamPeerBuffer);
 
 				// get info from connections
-				for (auto p : udp_peers) {
-					if (p->is_connected_to_host()) {
-						while (p->get_available_packet_count() > 0) {
-#ifndef GDNATIVE_LIBRARY
-							PoolByteArray data;
-							data.resize(p->get_max_packet_size());
-							int size;
-							const uint8_t *dp = nullptr;
-							err = p->get_packet(&dp, size);
+				uint64_t start_time = get_time_usec();
+				while (get_time_usec() - start_time < 16_ms) {
+					size_t size;
+					IpAddress adrs;
+					
+					const char *ptr = udp_server->Read(size, adrs, 0);
+					if (!ptr) {
+						break;
+					} else {
+						PoolByteArray data;
+						data.resize((int)size);
+						{
+							auto dw = data.write();
+							memcpy(dw.ptr(), ptr, size);
+						}
 
-							if (dp) {
-								data.resize(size);
-								auto dw = data.write();
-								memcpy(dw.ptr(), dp, size);
-							}
-#else
-							PoolByteArray data = p->get_packet();
-							err = p->get_packet_error();
-							int size = data.size();
-#endif
-							if (err == Error::OK) {
-								if (data.size() > 4) {
-									buf->set_data_array(data);
-									buf->seek(4);
+						if (data.size() > 4) {
+							buf->set_data_array(data);
+							buf->seek(4);
 
-									if (GRUtils::validate_packet(data.read().ptr())) {
-										Variant var = buf->get_var(false);
-										if (var.get_type() == Variant::Type::DICTIONARY) {
-											Dictionary dict = var;
-											String version;
-											String project_name;
-											int port;
+							if (GRUtils::validate_packet(data.read().ptr())) {
+								Variant var = buf->get_var(false);
+								if (var.get_type() == Variant::Type::DICTIONARY) {
+									Dictionary dict = var;
+									String version;
+									String project_name;
+									int port;
 
-											if (dict.has("version")) {
-												PoolByteArray ver = dict["version"];
-												if (!GRUtils::validate_version(ver)) {
-													break;
-												} else {
-													version = str_arr(ver, true, 32, ".");
-												}
-											}
-
-											if (dict.has("project_name")) {
-												project_name = dict["project_name"];
-											}
-											if (dict.has("port")) {
-												port = dict["port"];
-											}
-
-											{
-												ts_lock.lock();
-
-												std::shared_ptr<AvailableServerAddress> available_server;
-												for (auto a : found_server_addresses) {
-													if (a->ip_address == p->get_packet_addr() &&
-															a->port == port) {
-														available_server = a;
-													}
-												}
-												if (!available_server) {
-													available_server = shared_new(AvailableServerAddress);
-													available_server->ip_address = p->get_packet_addr();
-													available_server->port = port;
-
-													found_server_addresses.push_back(available_server);
-													// TODO emit signal
-												}
-
-												available_server->time_added = get_time_usec();
-												available_server->project_name = project_name;
-
-												ts_lock.unlock();
-											}
+									if (dict.has("version")) {
+										PoolByteArray ver = dict["version"];
+										if (!GRUtils::validate_version(ver)) {
+											break;
+										} else {
+											version = str_arr(ver, true, 32, ".");
 										}
 									}
-								} else {
-									// just ignore any wrong packet
+
+									if (dict.has("project_name")) {
+										project_name = dict["project_name"];
+									}
+									if (dict.has("port")) {
+										port = dict["port"];
+									}
+
+									{
+										ts_lock.lock();
+
+										std::shared_ptr<AvailableServerAddress> available_server;
+										for (auto a : found_server_addresses) {
+											if (a->ip_address == adrs.GetText() &&
+													a->port == port) {
+												available_server = a;
+											}
+										}
+										if (!available_server) {
+											available_server = shared_new(AvailableServerAddress);
+											available_server->ip_address = adrs.GetText();
+											available_server->port = port;
+
+											found_server_addresses.push_back(available_server);
+											// TODO emit signal
+										}
+
+										available_server->time_added = get_time_usec();
+										available_server->project_name = project_name;
+
+										ts_lock.unlock();
+									}
 								}
-							} else {
-								_log("Can't get UDP packet for auto mode. Error: " + str((int)err), LogLevel::LL_ERROR);
-								close_and_reset_udp();
-								is_error_in_for = true;
-								break;
 							}
+						} else {
+							// just ignore any wrong packet
 						}
-					} else {
-						to_delete.push_back(p);
 					}
-
-					if (is_error_in_for) {
-						break;
-					}
-				}
-
-				for (auto p : to_delete) {
-					if (p->is_connected_to_host()) {
-						p->close();
-					}
-					vec_remove_obj(udp_peers, p);
 				}
 
 				if (is_error_in_for) {
@@ -1341,7 +1311,8 @@ void GRClient::_thread_connection(Variant p_userdata) {
 					if (s->ip_address == current_auto_connect_server_address &&
 							s->port == current_auto_connect_server_port) {
 						auto_mode_ready_to_connect = true;
-						udp_server->stop();
+						udp_server = nullptr;
+
 						adr = s->ip_address;
 						port = s->port;
 						break;
@@ -1355,6 +1326,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 				break;
 			}
+#endif
 			default:
 				_log("Not supported connection type: " + str(connection_type), LogLevel::LL_ERROR);
 				break;

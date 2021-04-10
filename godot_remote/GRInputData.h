@@ -59,24 +59,16 @@ public:
 	};
 
 protected:
-	Ref<StreamPeerBuffer> data;
+	PoolByteArray input_data;
 	virtual InputType _get_type() { return InputType::_NoneIT; };
 
 public:
-	GRInputData() {
-		data = newref(StreamPeerBuffer);
-	}
-
 	PoolByteArray get_data() {
-		return data->get_data_array();
-	}
-	void set_data(PoolByteArray &_data) {
-		data->set_data_array(_data);
+		return input_data;
 	}
 	virtual InputType get_type() {
-		if (data->get_size()) {
-			data->seek(0);
-			return (InputType)data->get_8();
+		if (input_data.size() > 0) {
+			return (InputType)input_data[0];
 		} else {
 			return _get_type();
 		}
@@ -107,13 +99,13 @@ public:
 // GodotRemoteInputEventData
 class GRInputDataEvent : public GRInputData {
 protected:
-	virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2 &rect) {
+	virtual Ref<InputEvent> _construct_event(Ref<StreamPeerBuffer> data, Ref<InputEvent> ev, const Rect2 &rect) {
 		data->seek(0);
 		data->get_8();
 		ev->set_device(data->get_32());
 		return data;
 	};
-	virtual void _parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) {
+	virtual void _parse_event(Ref<StreamPeerBuffer> data, const Ref<InputEvent> &ev, const Rect2 &rect) {
 		data->resize(0);
 		data->put_8((uint8_t)get_type());
 		data->put_32(ev->get_device());
@@ -125,17 +117,17 @@ public:
 	static std::shared_ptr<GRInputDataEvent> parse_event(const Ref<InputEvent> &ev, const Rect2 &rect);
 };
 
-#define INPUT_EVENT_DATA(__class, _parent, _type)                                                 \
-	class __class : public _parent {                                                              \
-		friend GRInputDataEvent;                                                                  \
-		friend GRInputData;                                                                       \
-                                                                                                  \
-	protected:                                                                                    \
-		virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2 &rect) override; \
-		virtual void _parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) override;         \
-		virtual InputType _get_type() override { return _type; };                                 \
-                                                                                                  \
-	public:                                                                                       \
+#define INPUT_EVENT_DATA(__class, _parent, _type)                                                                             \
+	class __class : public _parent {                                                                                          \
+		friend GRInputDataEvent;                                                                                              \
+		friend GRInputData;                                                                                                   \
+                                                                                                                              \
+	protected:                                                                                                                \
+		virtual Ref<InputEvent> _construct_event(Ref<StreamPeerBuffer> data, Ref<InputEvent> ev, const Rect2 &rect) override; \
+		virtual void _parse_event(Ref<StreamPeerBuffer> data, const Ref<InputEvent> &ev, const Rect2 &rect) override;         \
+		virtual InputType _get_type() override { return _type; };                                                             \
+                                                                                                                              \
+	public:                                                                                                                   \
 	}
 
 INPUT_EVENT_DATA(GRIEDataWithModifiers, GRInputDataEvent, InputType::_InputEventWithModifiers);

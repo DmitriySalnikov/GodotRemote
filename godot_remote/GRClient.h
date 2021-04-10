@@ -199,7 +199,7 @@ private:
 	void _stop_decoder();
 	void _push_pack_to_decoder(std::shared_ptr<GRPacketStreamData> pack);
 	void _image_lost();
-	void _display_new_image(Ref<Image> img, uint64_t delay);
+	void _display_new_image(PoolByteArray data, int width, int height, uint64_t delay);
 
 	void _force_update_stream_viewport_signals();
 	void _load_custom_input_scene(String path, PoolByteArray scene_data, int orig_size, bool is_compressed, int compression_type);

@@ -15,22 +15,28 @@ using namespace godot;
 using namespace GRUtils;
 
 void GRInputDeviceSensorsData::set_sensors(PoolVector3Array _sensors) {
-	data->resize(0);
+	Ref<StreamPeerBuffer> data = newref(StreamPeerBuffer);
 	data->put_8((uint8_t)get_type());
 	data->put_var(_sensors);
+	input_data = data->get_data_array();
 }
 
 PoolVector3Array GRInputDeviceSensorsData::get_sensors() {
+	Ref<StreamPeerBuffer> data = newref(StreamPeerBuffer);
+	data->set_data_array(input_data);
+
 	data->seek(0);
 	data->get_8();
 	return data->get_var();
 }
 
 std::shared_ptr<GRInputData> GRInputData::create(const PoolByteArray &buf) {
+	ERR_FAIL_COND_V(buf.size() == 0, std::shared_ptr<GRInputData>());
+
 #define CREATE(_d)                               \
 	{                                            \
 		std::shared_ptr<_d> id = shared_new(_d); \
-		id->data->set_data_array(buf);           \
+		id->input_data = buf;                    \
 		return id;                               \
 	}
 
@@ -82,15 +88,17 @@ std::shared_ptr<GRInputData> GRInputData::create(const PoolByteArray &buf) {
 std::shared_ptr<GRInputDataEvent> GRInputDataEvent::parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) {
 	ERR_FAIL_COND_V(ev.is_null(), std::shared_ptr<GRInputDataEvent>());
 
-#define PARSE(_i, _d)                                  \
-	{                                                  \
-		Ref<_i> ie = ev;                               \
-		if (ie.is_valid()) {                           \
-			std::shared_ptr<_d> data = shared_new(_d); \
-			data->_parse_event(ie, rect);              \
-			return data;                               \
-		}                                              \
+#define PARSE(_i, _d)                                     \
+	{                                                     \
+		Ref<_i> ie = ev;                                  \
+		if (ie.is_valid()) {                              \
+			std::shared_ptr<_d> in_data = shared_new(_d); \
+			in_data->_parse_event(data, ie, rect);        \
+			in_data->input_data = data->get_data_array(); \
+			return in_data;                               \
+		}                                                 \
 	}
+	Ref<StreamPeerBuffer> data = newref(StreamPeerBuffer);
 
 	PARSE(InputEventKey, GRIEDataKey);
 	PARSE(InputEventMouseButton, GRIEDataMouseButton);
@@ -111,13 +119,15 @@ std::shared_ptr<GRInputDataEvent> GRInputDataEvent::parse_event(const Ref<InputE
 }
 
 Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
-	ERR_FAIL_COND_V(!data->get_size(), Ref<InputEvent>());
+	ERR_FAIL_COND_V(!input_data.size(), Ref<InputEvent>());
 
-#define CONSTRUCT(_i)                         \
-	{                                         \
-		Ref<_i> ev = newref(_i);              \
-		return _construct_event(ev, vp_size); \
+#define CONSTRUCT(_i)                               \
+	{                                               \
+		Ref<_i> ev = newref(_i);                    \
+		return _construct_event(data, ev, vp_size); \
 	}
+	Ref<StreamPeerBuffer> data = newref(StreamPeerBuffer);
+	data->set_data_array(input_data);
 
 	InputType type = _get_type();
 	ERR_FAIL_COND_V_MSG(type < InputType::_InputEvent || type >= InputType::_InputEventMAX, Ref<InputEvent>(), "Not InputEvent");
@@ -176,13 +186,13 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 #define restore(_e) ((Vector2(_e) * rect.size) + ((rect.position - rect.size) / 2.f))
 #define restore_rel(_e) (Vector2(_e) * rect.size)
 
-#define CONSTRUCT(_type) Ref<InputEvent> _type::_construct_event(Ref<InputEvent> ev, const Rect2 &rect)
-#define PARSE(_type) void _type::_parse_event(const Ref<InputEvent> &ev, const Rect2 &rect)
+#define CONSTRUCT(_type) Ref<InputEvent> _type::_construct_event(Ref<StreamPeerBuffer> data, Ref<InputEvent> ev, const Rect2 &rect)
+#define PARSE(_type) void _type::_parse_event(Ref<StreamPeerBuffer> data, const Ref<InputEvent> &ev, const Rect2 &rect)
 
 //////////////////////////////////////////////////////////////////////////
 // InputEventWithModifiers
 CONSTRUCT(GRIEDataWithModifiers) {
-	GRInputDataEvent::_construct_event(ev, rect);
+	GRInputDataEvent::_construct_event(data, ev, rect);
 	Ref<InputEventWithModifiers> iewm = ev;
 	uint8_t flags = (uint8_t)data->get_8();
 	iewm->set_alt(flags & (1 << 0));
@@ -194,7 +204,7 @@ CONSTRUCT(GRIEDataWithModifiers) {
 }
 
 PARSE(GRIEDataWithModifiers) {
-	GRInputDataEvent::_parse_event(ev, rect);
+	GRInputDataEvent::_parse_event(data, ev, rect);
 	Ref<InputEventWithModifiers> iewm = ev;
 	data->put_8((uint8_t)iewm->get_alt() | (uint8_t)iewm->get_shift() << 1 | (uint8_t)iewm->get_control() << 2 |
 				(uint8_t)iewm->get_metakey() << 3 | (uint8_t)iewm->get_command() << 4);
@@ -203,7 +213,7 @@ PARSE(GRIEDataWithModifiers) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventMouse
 CONSTRUCT(GRIEDataMouse) {
-	GRIEDataWithModifiers::_construct_event(ev, rect);
+	GRIEDataWithModifiers::_construct_event(data, ev, rect);
 	Ref<InputEventMouse> iem = ev;
 	iem->set_button_mask(data->get_32());
 	iem->set_position(restore(data->get_var()));
@@ -212,7 +222,7 @@ CONSTRUCT(GRIEDataMouse) {
 }
 
 PARSE(GRIEDataMouse) {
-	GRIEDataWithModifiers::_parse_event(ev, rect);
+	GRIEDataWithModifiers::_parse_event(data, ev, rect);
 	Ref<InputEventMouse> iem = ev;
 	data->put_32(iem->get_button_mask());
 	data->put_var(fix(iem->get_position()));
@@ -222,14 +232,14 @@ PARSE(GRIEDataMouse) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventGesture
 CONSTRUCT(GRIEDataGesture) {
-	GRIEDataWithModifiers::_construct_event(ev, rect);
+	GRIEDataWithModifiers::_construct_event(data, ev, rect);
 	Ref<InputEventGesture> ieg = ev;
 	ieg->set_position(restore(data->get_var()));
 	return ieg;
 }
 
 PARSE(GRIEDataGesture) {
-	GRIEDataWithModifiers::_parse_event(ev, rect);
+	GRIEDataWithModifiers::_parse_event(data, ev, rect);
 	Ref<InputEventGesture> ieg = ev;
 	data->put_var(fix(ieg->get_position()));
 }
@@ -237,7 +247,7 @@ PARSE(GRIEDataGesture) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventKey
 CONSTRUCT(GRIEDataKey) {
-	GRIEDataWithModifiers::_construct_event(ev, rect);
+	GRIEDataWithModifiers::_construct_event(data, ev, rect);
 	Ref<InputEventKey> iek = ev;
 	uint8_t flags = (uint8_t)data->get_8();
 	iek->set_pressed(flags & 1);
@@ -248,7 +258,7 @@ CONSTRUCT(GRIEDataKey) {
 }
 
 PARSE(GRIEDataKey) {
-	GRIEDataWithModifiers::_parse_event(ev, rect);
+	GRIEDataWithModifiers::_parse_event(data, ev, rect);
 	Ref<InputEventKey> iek = ev;
 	data->put_8((uint8_t)iek->is_pressed() | (uint8_t)iek->is_echo() << 1);
 	data->put_32(iek->get_scancode());
@@ -258,7 +268,7 @@ PARSE(GRIEDataKey) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventMouseButton
 CONSTRUCT(GRIEDataMouseButton) {
-	GRIEDataMouse::_construct_event(ev, rect);
+	GRIEDataMouse::_construct_event(data, ev, rect);
 	Ref<InputEventMouseButton> iemb = ev;
 	iemb->set_factor(data->get_float());
 	iemb->set_button_index(data->get_16());
@@ -269,7 +279,7 @@ CONSTRUCT(GRIEDataMouseButton) {
 }
 
 PARSE(GRIEDataMouseButton) {
-	GRIEDataMouse::_parse_event(ev, rect);
+	GRIEDataMouse::_parse_event(data, ev, rect);
 	Ref<InputEventMouseButton> iemb = ev;
 	data->put_float(iemb->get_factor());
 	data->put_16(iemb->get_button_index());
@@ -279,7 +289,7 @@ PARSE(GRIEDataMouseButton) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventMouseMotion
 CONSTRUCT(GRIEDataMouseMotion) {
-	GRIEDataMouse::_construct_event(ev, rect);
+	GRIEDataMouse::_construct_event(data, ev, rect);
 	Ref<InputEventMouseMotion> iemm = ev;
 	iemm->set_pressure(data->get_float());
 	iemm->set_tilt(data->get_var());
@@ -289,7 +299,7 @@ CONSTRUCT(GRIEDataMouseMotion) {
 }
 
 PARSE(GRIEDataMouseMotion) {
-	GRIEDataMouse::_parse_event(ev, rect);
+	GRIEDataMouse::_parse_event(data, ev, rect);
 	Ref<InputEventMouseMotion> iemm = ev;
 	data->put_float(iemm->get_pressure());
 	data->put_var(iemm->get_tilt());
@@ -300,7 +310,7 @@ PARSE(GRIEDataMouseMotion) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventScreenTouch
 CONSTRUCT(GRIEDataScreenTouch) {
-	GRInputDataEvent::_construct_event(ev, rect);
+	GRInputDataEvent::_construct_event(data, ev, rect);
 	Ref<InputEventScreenTouch> iest = ev;
 	iest->set_index(data->get_8());
 	iest->set_pressed(data->get_8());
@@ -309,7 +319,7 @@ CONSTRUCT(GRIEDataScreenTouch) {
 }
 
 PARSE(GRIEDataScreenTouch) {
-	GRInputDataEvent::_parse_event(ev, rect);
+	GRInputDataEvent::_parse_event(data, ev, rect);
 	Ref<InputEventScreenTouch> iest = ev;
 	data->put_8(iest->get_index());
 	data->put_8(iest->is_pressed());
@@ -319,7 +329,7 @@ PARSE(GRIEDataScreenTouch) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventScreenDrag
 CONSTRUCT(GRIEDataScreenDrag) {
-	GRInputDataEvent::_construct_event(ev, rect);
+	GRInputDataEvent::_construct_event(data, ev, rect);
 	Ref<InputEventScreenDrag> iesd = ev;
 	iesd->set_index(data->get_8());
 	iesd->set_position(restore(data->get_var()));
@@ -329,7 +339,7 @@ CONSTRUCT(GRIEDataScreenDrag) {
 }
 
 PARSE(GRIEDataScreenDrag) {
-	GRInputDataEvent::_parse_event(ev, rect);
+	GRInputDataEvent::_parse_event(data, ev, rect);
 	Ref<InputEventScreenDrag> iesd = ev;
 	data->put_8(iesd->get_index());
 	data->put_var(fix(iesd->get_position()));
@@ -340,14 +350,14 @@ PARSE(GRIEDataScreenDrag) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventMagnifyGesture
 CONSTRUCT(GRIEDataMagnifyGesture) {
-	GRIEDataGesture::_construct_event(ev, rect);
+	GRIEDataGesture::_construct_event(data, ev, rect);
 	Ref<InputEventMagnifyGesture> iemg = ev;
 	iemg->set_factor(data->get_float());
 	return iemg;
 }
 
 PARSE(GRIEDataMagnifyGesture) {
-	GRIEDataGesture::_parse_event(ev, rect);
+	GRIEDataGesture::_parse_event(data, ev, rect);
 	Ref<InputEventMagnifyGesture> iemg = ev;
 	data->put_float(iemg->get_factor());
 }
@@ -355,14 +365,14 @@ PARSE(GRIEDataMagnifyGesture) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventPanGesture
 CONSTRUCT(GRIEDataPanGesture) {
-	GRIEDataGesture::_construct_event(ev, rect);
+	GRIEDataGesture::_construct_event(data, ev, rect);
 	Ref<InputEventPanGesture> iepg = ev;
 	iepg->set_delta(restore_rel(data->get_var()));
 	return iepg;
 }
 
 PARSE(GRIEDataPanGesture) {
-	GRIEDataGesture::_parse_event(ev, rect);
+	GRIEDataGesture::_parse_event(data, ev, rect);
 	Ref<InputEventPanGesture> iepg = ev;
 	data->put_var(fix_rel(iepg->get_delta()));
 }
@@ -370,7 +380,7 @@ PARSE(GRIEDataPanGesture) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventPanGesture
 CONSTRUCT(GRIEDataJoypadButton) {
-	GRInputDataEvent::_construct_event(ev, rect);
+	GRInputDataEvent::_construct_event(data, ev, rect);
 	Ref<InputEventJoypadButton> iejb = ev;
 	iejb->set_button_index(data->get_32());
 	iejb->set_pressure(data->get_float());
@@ -379,7 +389,7 @@ CONSTRUCT(GRIEDataJoypadButton) {
 }
 
 PARSE(GRIEDataJoypadButton) {
-	GRInputDataEvent::_parse_event(ev, rect);
+	GRInputDataEvent::_parse_event(data, ev, rect);
 	Ref<InputEventJoypadButton> iejb = ev;
 	data->put_32(iejb->get_button_index());
 	data->put_float(iejb->get_pressure());
@@ -389,7 +399,7 @@ PARSE(GRIEDataJoypadButton) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventJoypadMotion
 CONSTRUCT(GRIEDataJoypadMotion) {
-	GRInputDataEvent::_construct_event(ev, rect);
+	GRInputDataEvent::_construct_event(data, ev, rect);
 	Ref<InputEventJoypadMotion> iejm = ev;
 	iejm->set_axis(data->get_32());
 	iejm->set_axis_value(data->get_float());
@@ -397,7 +407,7 @@ CONSTRUCT(GRIEDataJoypadMotion) {
 }
 
 PARSE(GRIEDataJoypadMotion) {
-	GRInputDataEvent::_parse_event(ev, rect);
+	GRInputDataEvent::_parse_event(data, ev, rect);
 	Ref<InputEventJoypadMotion> iejm = ev;
 	data->put_32(iejm->get_axis());
 	data->put_float(iejm->get_axis_value());
@@ -406,7 +416,7 @@ PARSE(GRIEDataJoypadMotion) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventAction
 CONSTRUCT(GRIEDataAction) {
-	GRInputDataEvent::_construct_event(ev, rect);
+	GRInputDataEvent::_construct_event(data, ev, rect);
 	Ref<InputEventAction> iea = ev;
 	iea->set_action(data->get_var());
 	iea->set_strength(data->get_float());
@@ -415,7 +425,7 @@ CONSTRUCT(GRIEDataAction) {
 }
 
 PARSE(GRIEDataAction) {
-	GRInputDataEvent::_parse_event(ev, rect);
+	GRInputDataEvent::_parse_event(data, ev, rect);
 	Ref<InputEventAction> iea = ev;
 	data->put_var(iea->get_action());
 	data->put_float(iea->get_strength());
@@ -425,7 +435,7 @@ PARSE(GRIEDataAction) {
 //////////////////////////////////////////////////////////////////////////
 // InputEventAction
 CONSTRUCT(GRIEDataMIDI) {
-	GRInputDataEvent::_construct_event(ev, rect);
+	GRInputDataEvent::_construct_event(data, ev, rect);
 	Ref<InputEventMIDI> iemidi = ev;
 	iemidi->set_channel(data->get_32());
 	iemidi->set_message(data->get_32());
@@ -439,7 +449,7 @@ CONSTRUCT(GRIEDataMIDI) {
 }
 
 PARSE(GRIEDataMIDI) {
-	GRInputDataEvent::_parse_event(ev, rect);
+	GRInputDataEvent::_parse_event(data, ev, rect);
 	Ref<InputEventMIDI> iemidi = ev;
 	data->put_32(iemidi->get_channel());
 	data->put_32(iemidi->get_message());
