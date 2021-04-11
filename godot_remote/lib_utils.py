@@ -245,7 +245,7 @@ def prepare_turbo_jpeg(env, is_gdnative = False):
         tmp_dir = base_dir + 'temp_folder_for_lib_copies/'
         new_dir = dir.replace(base_dir, tmp_dir).replace(current_dir, '')
         new_file_name = (os.path.splitext(lib)[0] + env['LIBSUFFIX']).replace(base_dir, tmp_dir)
-        env.Append(LIBPATH=[new_file_name.replace("/" + os.path.basename(new_file_name), "")])
+        env.Append(LIBPATH=[new_file_name[:new_file_name.rfind('/')]])
         new_file_name = new_file_name.replace(current_dir, '')
 
         if not os.path.exists(new_dir):
