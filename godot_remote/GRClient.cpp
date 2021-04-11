@@ -95,10 +95,15 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_decoder_threads_count), "count"), &GRClient::set_decoder_threads_count);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_decoder_threads_count)), &GRClient::get_decoder_threads_count);
 
+	ClassDB::bind_method(D_METHOD(NAMEOF(break_connection_async)), &GRClient::break_connection_async);
+
 	ADD_SIGNAL(MethodInfo("custom_input_scene_added"));
 	ADD_SIGNAL(MethodInfo("custom_input_scene_removed"));
 
-	ADD_SIGNAL(MethodInfo("stream_state_changed", PropertyInfo(Variant::INT, "state", PROPERTY_HINT_ENUM)));
+	ADD_SIGNAL(MethodInfo("auto_connection_listener_status_changed", PropertyInfo(Variant::BOOL, "is_listening")));
+	ADD_SIGNAL(MethodInfo("auto_connection_list_changed", PropertyInfo(Variant::ARRAY, "available_connections")));
+
+	ADD_SIGNAL(MethodInfo("stream_state_changed", PropertyInfo(Variant::INT, "state")));
 	ADD_SIGNAL(MethodInfo("stream_aspect_ratio_changed", PropertyInfo(Variant::REAL, "ratio")));
 	ADD_SIGNAL(MethodInfo("connection_state_changed", PropertyInfo(Variant::BOOL, "is_connected")));
 	ADD_SIGNAL(MethodInfo("mouse_mode_changed", PropertyInfo(Variant::INT, "mouse_mode")));
@@ -119,6 +124,8 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_viewport_orientation_syncing), "is_syncing"), &GRClient::set_viewport_orientation_syncing);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_viewport_aspect_ratio_syncing), "is_syncing"), &GRClient::set_viewport_aspect_ratio_syncing);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_server_settings_syncing), "is_syncing"), &GRClient::set_server_settings_syncing);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_current_auto_connect_address), "address"), &GRClient::set_current_auto_connect_address);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_current_auto_connect_port), "port"), &GRClient::set_current_auto_connect_port);
 
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_on_focus)), &GRClient::is_capture_on_focus);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_when_hover)), &GRClient::is_capture_when_hover);
@@ -133,20 +140,24 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_viewport_orientation_syncing)), &GRClient::is_viewport_orientation_syncing);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_viewport_aspect_ratio_syncing)), &GRClient::is_viewport_aspect_ratio_syncing);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_server_settings_syncing)), &GRClient::is_server_settings_syncing);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_current_auto_connect_address)), &GRClient::get_current_auto_connect_address);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_current_auto_connect_port)), &GRClient::get_current_auto_connect_port);
 
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_pointer"), "set_capture_pointer", "is_capture_pointer");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_input"), "set_capture_input", "is_capture_input");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "connection_type", PROPERTY_HINT_ENUM, "WiFi,ADB"), "set_connection_type", "get_connection_type");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), "set_target_send_fps", "get_target_send_fps");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Fill,Keep Aspect"), "set_stretch_mode", "get_stretch_mode");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "texture_filtering"), "set_texture_filtering", "get_texture_filtering");
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "password"), "set_password", "get_password");
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "device_id"), "set_device_id", "get_device_id");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_orientation_syncing"), "set_viewport_orientation_syncing", "is_viewport_orientation_syncing");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_aspect_ratio_syncing"), "set_viewport_aspect_ratio_syncing", "is_viewport_aspect_ratio_syncing");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "server_settings_syncing"), "set_server_settings_syncing", "is_server_settings_syncing");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), NAMEOF(set_capture_on_focus), NAMEOF(is_capture_on_focus));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), NAMEOF(set_capture_when_hover), NAMEOF(is_capture_when_hover));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_pointer"), NAMEOF(set_capture_pointer), NAMEOF(is_capture_pointer));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_input"), NAMEOF(set_capture_input), NAMEOF(is_capture_input));
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "connection_type", PROPERTY_HINT_ENUM, "WiFi,ADB"), NAMEOF(set_connection_type), NAMEOF(get_connection_type));
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), NAMEOF(set_target_send_fps), NAMEOF(get_target_send_fps));
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Fill,Keep Aspect"), NAMEOF(set_stretch_mode), NAMEOF(get_stretch_mode));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "texture_filtering"), NAMEOF(set_texture_filtering), NAMEOF(get_texture_filtering));
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "password"), NAMEOF(set_password), NAMEOF(get_password));
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "device_id"), NAMEOF(set_device_id), NAMEOF(get_device_id));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_orientation_syncing"), NAMEOF(set_viewport_orientation_syncing), NAMEOF(is_viewport_orientation_syncing));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_aspect_ratio_syncing"), NAMEOF(set_viewport_aspect_ratio_syncing), NAMEOF(is_viewport_aspect_ratio_syncing));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "server_settings_syncing"), NAMEOF(set_server_settings_syncing), NAMEOF(is_server_settings_syncing));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "current_auto_connect_address"), NAMEOF(set_current_auto_connect_address), NAMEOF(get_current_auto_connect_address));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "current_auto_connect_port"), NAMEOF(set_current_auto_connect_port), NAMEOF(get_current_auto_connect_port));
 
 	BIND_ENUM_CONSTANT(CONNECTION_ADB);
 	BIND_ENUM_CONSTANT(CONNECTION_WiFi);
@@ -196,6 +207,11 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, set_decoder_threads_count);
 	METHOD_REG(GRClient, get_decoder_threads_count);
 
+	METHOD_REG(GRClient, break_connection_async);
+
+	register_signal<GRClient>("auto_connection_listener_status_changed", "is_listening", GODOT_VARIANT_TYPE_BOOL);
+	register_signal<GRClient>("auto_connection_list_changed", "available_connections", GODOT_VARIANT_TYPE_ARRAY);
+
 	register_signal<GRClient>("custom_input_scene_added", Dictionary::make());
 	register_signal<GRClient>("custom_input_scene_removed", Dictionary::make());
 
@@ -220,6 +236,8 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, set_viewport_orientation_syncing);
 	METHOD_REG(GRClient, set_viewport_aspect_ratio_syncing);
 	METHOD_REG(GRClient, set_server_settings_syncing);
+	METHOD_REG(GRClient, set_current_auto_connect_address);
+	METHOD_REG(GRClient, set_current_auto_connect_port);
 
 	METHOD_REG(GRClient, is_capture_on_focus);
 	METHOD_REG(GRClient, is_capture_when_hover);
@@ -234,6 +252,8 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, is_viewport_orientation_syncing);
 	METHOD_REG(GRClient, is_viewport_aspect_ratio_syncing);
 	METHOD_REG(GRClient, is_server_settings_syncing);
+	METHOD_REG(GRClient, get_current_auto_connect_address);
+	METHOD_REG(GRClient, get_current_auto_connect_port);
 
 	register_property<GRClient, bool>("capture_on_focus", &GRClient::set_capture_on_focus, &GRClient::is_capture_on_focus, false);
 	register_property<GRClient, bool>("capture_when_hover", &GRClient::set_capture_when_hover, &GRClient::is_capture_when_hover, false);
@@ -248,6 +268,8 @@ void GRClient::_register_methods() {
 	register_property<GRClient, bool>("viewport_orientation_syncing", &GRClient::set_viewport_orientation_syncing, &GRClient::is_viewport_orientation_syncing, true);
 	register_property<GRClient, bool>("viewport_aspect_ratio_syncing", &GRClient::set_viewport_aspect_ratio_syncing, &GRClient::is_viewport_aspect_ratio_syncing, true);
 	register_property<GRClient, bool>("server_settings_syncing", &GRClient::set_server_settings_syncing, &GRClient::is_server_settings_syncing, true);
+	register_property<GRClient, String>("current_auto_connect_address", &GRClient::set_current_auto_connect_address, &GRClient::get_current_auto_connect_address, "None");
+	register_property<GRClient, int>("current_auto_connect_port", &GRClient::set_current_auto_connect_port, &GRClient::get_current_auto_connect_port, 0);
 }
 
 #endif
@@ -315,7 +337,7 @@ void GRClient::_init() {
 #endif
 
 	Scoped_lock(stream_mutex);
-	stream_manager = memnew(GRStreamDecodersManager);
+	stream_manager = shared_new(GRStreamDecodersManager);
 	stream_manager->set_gr_client(this);
 	stream_manager->set_threads_count(default_decoder_threads_count);
 }
@@ -325,7 +347,7 @@ void GRClient::_deinit() {
 
 	Scoped_lock(stream_mutex);
 	if (stream_manager) {
-		memdelete(stream_manager);
+		stream_manager = nullptr;
 	}
 
 	is_deleting = true;
@@ -595,7 +617,10 @@ void GRClient::set_capture_input(bool value) {
 }
 
 void GRClient::set_connection_type(ENUM_ARG(ConnectionType) type) {
-	connection_type = (ConnectionType)type;
+	if (connection_type != (ConnectionType)type) {
+		break_connection_async();
+		connection_type = (ConnectionType)type;
+	}
 }
 
 ENUM_ARG(GRClient::ConnectionType)
@@ -643,14 +668,24 @@ String GRClient::get_address() {
 	return (String)server_address;
 }
 
-Array GRClient::get_found_auto_connect_addresses() {
+Array GRClient::get_found_auto_connection_addresses() {
 	Scoped_lock(ts_lock);
 	Array arr;
 	for (auto i : found_server_addresses) {
 		Dictionary dict;
-		dict["ip"] = i->ip_address;
-		dict["port"] = i->port;
+		dict["version"] = i->version;
+		dict["ip"] = i->sender_ip_address;
 		dict["project_name"] = i->project_name;
+		dict["port"] = i->port;
+		dict["addresses"] = vec_to_arr(i->recieved_from_addresses);
+
+		Ref<Image> img;
+		if (i->icon_data.size() > 0) {
+			img = newref(Image);
+			img->load_png_from_buffer(i->icon_data);
+		}
+		dict["icon"] = img;
+
 		arr.append(dict);
 	}
 	return arr;
@@ -675,7 +710,7 @@ bool GRClient::set_address_port(String ip, uint16_t _port) {
 		if (adr.is_valid_ip()) {
 			server_address = ip;
 			port = _port;
-			restart();
+			break_connection();
 			all_ok = true;
 		} else {
 			_log("Address is invalid: " + ip, LogLevel::LL_ERROR);
@@ -687,7 +722,7 @@ bool GRClient::set_address_port(String ip, uint16_t _port) {
 			_log("Resolved address for " + ip + "\n" + adr, LogLevel::LL_DEBUG);
 			server_address = ip;
 			port = _port;
-			restart();
+			break_connection();
 			all_ok = true;
 		} else {
 			_log("Can't resolve address for " + ip, LogLevel::LL_ERROR);
@@ -770,7 +805,10 @@ String GRClient::get_device_id() {
 
 void GRClient::set_current_auto_connect_address(String _address) {
 	Scoped_lock(ts_lock);
-	current_auto_connect_server_address = _address;
+	if (current_auto_connect_server_address != _address) {
+		break_connection_async();
+		current_auto_connect_server_address = _address;
+	}
 }
 
 String GRClient::get_current_auto_connect_address() {
@@ -780,7 +818,10 @@ String GRClient::get_current_auto_connect_address() {
 
 void GRClient::set_current_auto_connect_port(int _port) {
 	Scoped_lock(ts_lock);
-	current_auto_connect_server_port = _port;
+	if (current_auto_connect_server_port != _port) {
+		break_connection_async();
+		current_auto_connect_server_port = _port;
+	}
 }
 
 int GRClient::get_current_auto_connect_port() {
@@ -1053,7 +1094,7 @@ void GRClient::_update_stream_texture_state(ENUM_ARG(StreamState) _stream_state)
 		}
 
 		if (signal_connection_state != _stream_state) {
-			call_deferred("emit_signal", "stream_state_changed", _stream_state);
+			call_deferred(NAMEOF(emit_signal), "stream_state_changed", _stream_state);
 			signal_connection_state = (StreamState)_stream_state;
 		}
 	}
@@ -1091,6 +1132,21 @@ void GRClient::disable_overriding_server_settings() {
 	set_server_setting(TypesOfServerSettings::SERVER_SETTINGS_USE_INTERNAL, true);
 }
 
+void GRClient::break_connection_async() {
+	if (thread_connection) {
+		thread_connection->break_connection = true;
+	}
+}
+
+void GRClient::break_connection() {
+	if (thread_connection) {
+		thread_connection->break_connection = true;
+		while (!thread_connection->connection_finished) {
+			sleep_usec(1_ms);
+		}
+	}
+}
+
 //////////////////////////////////////////////
 ////////////////// THREAD ////////////////////
 //////////////////////////////////////////////
@@ -1102,18 +1158,19 @@ void GRClient::_thread_connection(Variant p_userdata) {
 	Ref<StreamPeerTCP> con = con_thread->peer;
 	Error err = Error::OK;
 	bool is_udp_cant_be_started = false;
+	String prev_connecting_password = "";
 
 #ifdef AUTO_CONNECTION_ENABLED
 	std::shared_ptr<UdpListen> udp_server;
-	auto close_and_reset_udp = [&]() {
-		if (udp_server) {
-			udp_server->Close();
-		}
-		is_udp_cant_be_started = false;
-		is_auto_mode_active = false;
-
-		found_server_addresses.resize(0);
-		// TODO emit signal
+	auto emit_auto_connections_status_changed = [&](bool status) {
+		call_deferred(NAMEOF(emit_signal), "auto_connection_listener_status_changed", status);
+	};
+	auto emit_auto_connection_list_changed = [&]() {
+		call_deferred(NAMEOF(emit_signal), "auto_connection_list_changed", get_found_auto_connection_addresses());
+	};
+	auto close_udp_connection = [&]() {
+		udp_server = nullptr;
+		emit_auto_connections_status_changed(false);
 	};
 #endif
 
@@ -1122,7 +1179,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 	auto emit_first_connection_error = [&]() {
 		if (!first_connection_signal_emitted) {
 			first_connection_signal_emitted = true;
-			call_deferred("emit_signal", "connection_state_changed", false);
+			call_deferred(NAMEOF(emit_signal), "connection_state_changed", false);
 		}
 	};
 
@@ -1195,10 +1252,11 @@ void GRClient::_thread_connection(Variant p_userdata) {
 							is_udp_cant_be_started = true;
 							_log("Can't start listening on port " + str(AUTO_CONNECTION_PORT) + " for auto connection mode. Error: " + str((int)err), LogLevel::LL_ERROR);
 							is_auto_mode_active = false;
+							emit_auto_connections_status_changed(false);
 							sleep_usec(250_ms);
 							continue;
 						}
-						// TODO add signals
+						emit_auto_connections_status_changed(true);
 						is_auto_mode_active = true;
 					}
 				} else {
@@ -1207,6 +1265,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				}
 
 				bool is_error_in_for = false;
+				bool is_list_changed = false;
 				Ref<StreamPeerBuffer> buf = newref(StreamPeerBuffer);
 
 				// get info from connections
@@ -1214,7 +1273,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				while (get_time_usec() - start_time < 16_ms) {
 					size_t size;
 					IpAddress adrs;
-					
+
 					const char *ptr = udp_server->Read(size, adrs, 0);
 					if (!ptr) {
 						break;
@@ -1234,47 +1293,76 @@ void GRClient::_thread_connection(Variant p_userdata) {
 								Variant var = buf->get_var(false);
 								if (var.get_type() == Variant::Type::DICTIONARY) {
 									Dictionary dict = var;
+
 									String version;
 									String project_name;
-									int port;
+									int port = 0;
+									PoolStringArray all_serever_addresses;
+									uint64_t server_hash = 0;
+									PoolByteArray icon_data;
 
 									if (dict.has("version")) {
 										PoolByteArray ver = dict["version"];
 										if (!GRUtils::validate_version(ver)) {
-											break;
+											continue;
 										} else {
-											version = str_arr(ver, true, 32, ".");
+											version = str(ver[0]) + "." + str(ver[1]) + "." + str(ver[2]);
 										}
 									}
 
-									if (dict.has("project_name")) {
+									if (dict.has("project_name"))
 										project_name = dict["project_name"];
-									}
-									if (dict.has("port")) {
+									if (dict.has("port"))
 										port = dict["port"];
-									}
+									if (dict.has("addresses"))
+										all_serever_addresses = dict["addresses"];
+									if (dict.has("server_hash"))
+										server_hash = dict["server_hash"];
+									if (dict.has("icon_data"))
+										icon_data = dict["icon_data"];
 
 									{
 										ts_lock.lock();
 
 										std::shared_ptr<AvailableServerAddress> available_server;
 										for (auto a : found_server_addresses) {
-											if (a->ip_address == adrs.GetText() &&
-													a->port == port) {
+											bool has_address = false;
+											for (int x = 0; x < a->all_serever_addresses.size(); x++) {
+												if (a->all_serever_addresses[x] == adrs.GetText()) {
+													has_address = true;
+													break;
+												}
+											}
+
+											if (has_address &&
+													a->port == port &&
+													a->version == version &&
+													a->project_name == project_name) {
 												available_server = a;
 											}
 										}
+
+										bool list_changed = false;
 										if (!available_server) {
 											available_server = shared_new(AvailableServerAddress);
-											available_server->ip_address = adrs.GetText();
 											available_server->port = port;
+											available_server->version = version;
+											available_server->project_name = project_name;
+											available_server->icon_data = icon_data;
 
 											found_server_addresses.push_back(available_server);
-											// TODO emit signal
+											is_list_changed = true;
 										}
 
+										available_server->sender_ip_address = adrs.GetText();
+										available_server->all_serever_addresses = all_serever_addresses;
+										available_server->server_hash = server_hash;
 										available_server->time_added = get_time_usec();
-										available_server->project_name = project_name;
+
+										if (!is_vector_contains(available_server->recieved_from_addresses, adrs.GetText())) {
+											available_server->recieved_from_addresses.push_back(adrs.GetText());
+											is_list_changed = true;
+										}
 
 										ts_lock.unlock();
 									}
@@ -1291,7 +1379,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				}
 
 				// clear outdated servers
-				bool is_list_changed = false;
+				ts_lock.lock();
 				for (int i = (int)found_server_addresses.size() - 1; i >= 0; i--) {
 					if (found_server_addresses.size() > 0) {
 						if (get_time_usec() - found_server_addresses[i]->time_added > 1500_ms) {
@@ -1303,21 +1391,21 @@ void GRClient::_thread_connection(Variant p_userdata) {
 					}
 				}
 
-				if (is_list_changed) {
-					// TODO emit signal
-				}
-
 				for (auto s : found_server_addresses) {
-					if (s->ip_address == current_auto_connect_server_address &&
+					if (s->sender_ip_address == current_auto_connect_server_address &&
 							s->port == current_auto_connect_server_port) {
 						auto_mode_ready_to_connect = true;
-						udp_server = nullptr;
 
-						adr = s->ip_address;
+						adr = s->sender_ip_address;
 						port = s->port;
 						break;
 					}
 				}
+
+				if (is_list_changed) {
+					emit_auto_connection_list_changed();
+				}
+				ts_lock.unlock();
 
 				if (!auto_mode_ready_to_connect) {
 					sleep_usec(50_ms);
@@ -1385,7 +1473,9 @@ void GRClient::_thread_connection(Variant p_userdata) {
 		ppeer->set_stream_peer(con);
 		ppeer->set_input_buffer_max_size(input_buffer_size_in_mb * 1024 * 1024);
 
+		String notif_error_text;
 		GRDevice::AuthResult res = _auth_on_server(ppeer);
+		bool force_show_error = false;
 		switch (res) {
 			case GRDevice::AuthResult::OK: {
 				_log("Successful connected to " + address, LogLevel::LL_NORMAL);
@@ -1393,15 +1483,20 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_IMAGE);
 
 				con_thread->break_connection = false;
+				con_thread->connection_finished = false;
 				con_thread->peer = con;
 				con_thread->ppeer = ppeer;
 
 				is_connection_working = true;
 				first_connection_signal_emitted = false;
 
-				call_deferred("emit_signal", "connection_state_changed", true);
+				call_deferred(NAMEOF(emit_signal), "connection_state_changed", true);
 				call_deferred(NAMEOF(_force_update_stream_viewport_signals)); // force update screen aspect ratio and orientation
 				GRNotifications::add_notification("Connected", "Connected to " + address, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
+
+#ifdef AUTO_CONNECTION_ENABLED
+				close_udp_connection();
+#endif
 
 				//////////////////////////////////////////////////////////////////////////
 				// Connection Loop Enter point
@@ -1412,54 +1507,66 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				con_thread->ppeer.unref();
 
 				is_connection_working = false;
-				call_deferred("emit_signal", "connection_state_changed", false);
-				call_deferred("emit_signal", "mouse_mode_changed", Input::MouseMode::MOUSE_MODE_VISIBLE);
+				call_deferred(NAMEOF(emit_signal), "connection_state_changed", false);
+				call_deferred(NAMEOF(emit_signal), "mouse_mode_changed", Input::MouseMode::MOUSE_MODE_VISIBLE);
 				break;
 			}
 			case GRDevice::AuthResult::Error:
-				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Can't connect to " + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-				long_wait = true;
+				notif_error_text = "Can't connect to " + address;
 				break;
 			case GRDevice::AuthResult::Timeout:
-				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Timeout\n" + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-				long_wait = true;
+				notif_error_text = "Timeout\n" + address;
 				break;
 			case GRDevice::AuthResult::RefuseConnection:
-				if (res != prev_auth_error)
-					GRNotifications::add_notification(con_error_title, "Connection refused\n" + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-				long_wait = true;
+				notif_error_text = "Connection refused\n" + address;
 				break;
 			case GRDevice::AuthResult::VersionMismatch:
-				GRNotifications::add_notification(con_error_title, "Version mismatch\n" + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-				long_wait = true;
+				notif_error_text = "Version mismatch\n" + address;
 				break;
 			case GRDevice::AuthResult::IncorrectPassword:
-				GRNotifications::add_notification(con_error_title, "Incorrect password\n" + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-				long_wait = true;
+				notif_error_text = "Incorrect password\n" + address;
+
+				if (prev_connecting_password != password) {
+					force_show_error = true;
+					prev_connecting_password = password;
+				}
 				break;
 			case GRDevice::AuthResult::PasswordRequired:
-				GRNotifications::add_notification(con_error_title, "Required password but it's not implemented.... " + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+				notif_error_text = "Required password but it's not implemented.... " + address;
 				break;
-			default:
+			default: {
+				notif_error_text = "Unknown error code: " + str((int)res) + "\n" + address;
 				if (res != prev_auth_error)
 					GRNotifications::add_notification(con_error_title, "Unknown error code: " + str((int)res) + "\n" + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 				_log("Unknown error code: " + str((int)res) + ". Disconnecting. " + address, LogLevel::LL_NORMAL);
 				break;
+			}
 		}
 
 		// check only for errors
 		switch (res) {
+			case GRDevice::AuthResult::OK:
+				break;
 			case GRDevice::AuthResult::Error:
 			case GRDevice::AuthResult::Timeout:
 			case GRDevice::AuthResult::RefuseConnection:
 			case GRDevice::AuthResult::VersionMismatch:
 			case GRDevice::AuthResult::IncorrectPassword:
-			case GRDevice::AuthResult::PasswordRequired:
+			case GRDevice::AuthResult::PasswordRequired: {
+				long_wait = true;
 				emit_first_connection_error();
+				if (!notif_error_text.empty()) {
+					if (res != prev_auth_error || force_show_error) {
+						GRNotifications::add_notification(con_error_title, notif_error_text, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+						_log(notif_error_text, LogLevel::LL_ERROR);
+					} else {
+						_log(notif_error_text, LogLevel::LL_DEBUG);
+					}
+				}
 				break;
+			}
 		}
+		prev_auth_error = res;
 
 		Ref<StreamPeerTCP> tcp_peer = ppeer->get_stream_peer();
 		if (tcp_peer.is_valid()) {
@@ -1467,8 +1574,6 @@ void GRClient::_thread_connection(Variant p_userdata) {
 		}
 		ppeer->set_output_buffer_max_size(0);
 		ppeer->set_input_buffer_max_size(0);
-
-		prev_auth_error = res;
 
 		if (con->is_connected_to_host()) {
 			con->disconnect_from_host();
@@ -1479,10 +1584,20 @@ void GRClient::_thread_connection(Variant p_userdata) {
 		}
 	}
 
+#ifdef AUTO_CONNECTION_ENABLED
+	ts_lock.lock();
+	found_server_addresses.resize(0);
+	emit_auto_connection_list_changed();
+	close_udp_connection();
+	ts_lock.unlock();
+#endif
+
 	call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_SIGNAL);
 	_log("Connection thread stopped", LogLevel::LL_DEBUG);
-	con_thread->finished = true;
 }
+
+//////////////////////////////////////////////////////////////////////////
+// CONNECTION LOOP
 
 void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	Ref<StreamPeerTCP> connection = con_thread->peer;
@@ -1490,6 +1605,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 	Error err = Error::OK;
 	String address = CONNECTION_ADDRESS(connection);
+	String log_error_text = "";
 
 	_reset_counters();
 	if (input_collector)
@@ -1574,8 +1690,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	end_send:
 
 		if (!connection->is_connected_to_host()) {
-			_log("Lost connection after sending!", LogLevel::LL_ERROR);
-			GRNotifications::add_notification("Error", "Lost connection after sending data!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+			log_error_text = "After sending.";
 			continue;
 		}
 
@@ -1646,7 +1761,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 							continue;
 						}
 
-						call_deferred("emit_signal", "server_settings_received", map_to_dict(data->get_settings()));
+						call_deferred(NAMEOF(emit_signal), "server_settings_received", map_to_dict(data->get_settings()));
 						break;
 					}
 					case GRPacket::PacketType::MouseModeSync: {
@@ -1656,7 +1771,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 							continue;
 						}
 
-						call_deferred("emit_signal", "mouse_mode_changed", data->get_mouse_mode());
+						call_deferred(NAMEOF(emit_signal), "mouse_mode_changed", data->get_mouse_mode());
 						break;
 					}
 					case GRPacket::PacketType::CustomInputScene: {
@@ -1676,7 +1791,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 							continue;
 						}
 						_prev_stream_aspect_ratio = data->get_aspect();
-						call_deferred("emit_signal", "stream_aspect_ratio_changed", data->get_aspect());
+						call_deferred(NAMEOF(emit_signal), "stream_aspect_ratio_changed", data->get_aspect());
 						break;
 					}
 					case GRPacket::PacketType::ServerStreamQualityHint: {
@@ -1685,7 +1800,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 							_log("Incorrect GRPacketServerStreamQualityHint", LogLevel::LL_ERROR);
 							continue;
 						}
-						call_deferred("emit_signal", "server_quality_hint_setting_received", data->get_hint());
+						call_deferred(NAMEOF(emit_signal), "server_quality_hint_setting_received", data->get_hint());
 						break;
 					}
 					case GRPacket::PacketType::CustomUserData: {
@@ -1694,7 +1809,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 							_log("Incorrect GRPacketCustomUserData", LogLevel::LL_ERROR);
 							continue;
 						}
-						call_deferred("emit_signal", "user_data_received", data->get_packet_id(), data->get_user_data());
+						call_deferred(NAMEOF(emit_signal), "user_data_received", data->get_packet_id(), data->get_user_data());
 						break;
 					}
 					case GRPacket::PacketType::Ping: {
@@ -1720,8 +1835,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	end_recv:
 
 		if (!connection->is_connected_to_host()) {
-			_log("Lost connection after receiving!", LogLevel::LL_ERROR);
-			GRNotifications::add_notification("Error", "Lost connection after receiving data!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+			log_error_text = "After receiving.";
 			continue;
 		}
 
@@ -1737,14 +1851,15 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	_send_queue_resize(0);
 
 	if (connection->is_connected_to_host()) {
-		_log("Lost connection to " + address, LogLevel::LL_ERROR);
+		_log("Closing connection to " + address, LogLevel::LL_NORMAL);
 		GRNotifications::add_notification("Disconnected", "Closing connection to " + address, GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
 	} else {
-		_log("Closing connection to " + address, LogLevel::LL_ERROR);
+		_log("Lost connection to " + address + ". " + log_error_text, LogLevel::LL_ERROR);
 		GRNotifications::add_notification("Disconnected", "Lost connection to " + address, GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
 	}
 
 	con_thread->break_connection = true;
+	con_thread->connection_finished = true;
 }
 
 GRDevice::AuthResult GRClient::_auth_on_server(Ref<PacketPeerStream> &ppeer) {
@@ -1813,18 +1928,7 @@ GRDevice::AuthResult GRClient::_auth_on_server(Ref<PacketPeerStream> &ppeer) {
 		if ((int)ret == (int)GRDevice::AuthResult::OK) {
 			return GRDevice::AuthResult::OK;
 		} else {
-			GRDevice::AuthResult r = (GRDevice::AuthResult)(int)ret;
-			switch (r) {
-				case GRDevice::AuthResult::Error:
-					_log("Can't connect to server", LogLevel::LL_ERROR);
-					return r;
-				case GRDevice::AuthResult::VersionMismatch:
-					_log("Version mismatch", LogLevel::LL_ERROR);
-					return r;
-				case GRDevice::AuthResult::IncorrectPassword:
-					_log("Incorrect password", LogLevel::LL_ERROR);
-					return r;
-			}
+			return (GRDevice::AuthResult)(int)ret;
 		}
 	}
 
@@ -1965,9 +2069,9 @@ void GRInputCollector::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_capture_pointer"), &GRInputCollector::is_capture_pointer);
 	ClassDB::bind_method(D_METHOD("set_capture_pointer", "value"), &GRInputCollector::set_capture_pointer);
 
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), "set_capture_on_focus", "is_capture_on_focus");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), "set_capture_when_hover", "is_capture_when_hover");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_pointer"), "set_capture_pointer", "is_capture_pointer");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), NAMEOF(set_capture_on_focus), NAMEOF(is_capture_on_focus));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), NAMEOF(set_capture_when_hover), NAMEOF(is_capture_when_hover));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_pointer"), NAMEOF(set_capture_pointer), NAMEOF(is_capture_pointer));
 }
 
 #else

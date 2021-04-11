@@ -147,11 +147,11 @@ void GodotRemote::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_notifications_duration)), &GodotRemote::get_notifications_duration);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_notifications_style)), &GodotRemote::get_notifications_style);
 
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_layer"), "set_notifications_layer", "get_notifications_layer");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_position"), "set_notifications_position", "get_notifications_position");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "notifications_enabled"), "set_notifications_enabled", "get_notifications_enabled");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "notifications_duration"), "set_notifications_duration", "get_notifications_duration");
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "notifications_style"), "set_notifications_style", "get_notifications_style");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_layer"), NAMEOF(set_notifications_layer), NAMEOF(get_notifications_layer));
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "notifications_position"), NAMEOF(set_notifications_position), NAMEOF(get_notifications_position));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "notifications_enabled"), NAMEOF(set_notifications_enabled), NAMEOF(get_notifications_enabled));
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "notifications_duration"), NAMEOF(set_notifications_duration), NAMEOF(get_notifications_duration));
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "notifications_style"), NAMEOF(set_notifications_style), NAMEOF(get_notifications_style));
 
 	ADD_SIGNAL(MethodInfo("device_added"));
 	ADD_SIGNAL(MethodInfo("device_removed"));
@@ -368,7 +368,7 @@ bool GodotRemote::create_remote_device(ENUM_ARG(DeviceType) type) {
 
 	if (d) {
 		device = d;
-		call_deferred("emit_signal", "device_added");
+		call_deferred(NAMEOF(emit_signal), "device_added");
 		godot_remote_root_node->call_deferred("add_child", device);
 		godot_remote_root_node->call_deferred("move_child", device, 0);
 		return true;
@@ -396,7 +396,7 @@ bool GodotRemote::remove_remote_device() {
 #endif
 		//memdelete(device);
 		device = nullptr;
-		call_deferred("emit_signal", "device_removed");
+		call_deferred(NAMEOF(emit_signal), "device_removed");
 		return true;
 	}
 	return false;

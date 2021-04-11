@@ -868,11 +868,11 @@ void GRNotificationStyle::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_title_font)), &GRNotificationStyle::get_title_font);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_text_font)), &GRNotificationStyle::get_text_font);
 
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "panel_style"), "set_panel_style", "get_panel_style");
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "close_button_theme"), "set_close_button_theme", "get_close_button_theme");
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "close_button_icon"), "set_close_button_icon", "get_close_button_icon");
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "title_font"), "set_title_font", "get_title_font");
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "text_font"), "set_text_font", "get_text_font");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "panel_style"), NAMEOF(set_panel_style), NAMEOF(get_panel_style));
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "close_button_theme"), NAMEOF(set_close_button_theme), NAMEOF(get_close_button_theme));
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "close_button_icon"), NAMEOF(set_close_button_icon), NAMEOF(get_close_button_icon));
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "title_font"), NAMEOF(set_title_font), NAMEOF(get_title_font));
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "text_font"), NAMEOF(set_text_font), NAMEOF(get_text_font));
 }
 
 #else

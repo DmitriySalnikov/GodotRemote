@@ -76,15 +76,10 @@ void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_custom_input_scene_compressed)), &GRServer::is_custom_input_scene_compressed);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_custom_input_scene_compression_type)), &GRServer::get_custom_input_scene_compression_type);
 
-	//ADD_PROPERTY(PropertyInfo(Variant::BOOL, "video_stream_enabled"), "set_video_stream_enabled", "is_video_stream_enabled");
-	//ADD_PROPERTY(PropertyInfo(Variant::INT, "skip_frames"), "set_skip_frames", "get_skip_frames");
-	////ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_adjust_scale"), "set_auto_adjust_scale", "is_auto_adjust_scale");
-	//ADD_PROPERTY(PropertyInfo(Variant::INT, "stream_quality"), "set_stream_quality", "get_stream_quality");
-	//ADD_PROPERTY(PropertyInfo(Variant::INT, "render_scale"), "set_render_scale", "get_render_scale");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "custom_input_scene"), "set_custom_input_scene", "get_custom_input_scene");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "custom_input_scene_compressed"), "set_custom_input_scene_compressed", "is_custom_input_scene_compressed");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene_compression_type"), "set_custom_input_scene_compression_type", "get_custom_input_scene_compression_type");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), NAMEOF(set_password), NAMEOF(get_password));
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "custom_input_scene"), NAMEOF(set_custom_input_scene), NAMEOF(get_custom_input_scene));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "custom_input_scene_compressed"), NAMEOF(set_custom_input_scene_compressed), NAMEOF(is_custom_input_scene_compressed));
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_input_scene_compression_type"), NAMEOF(set_custom_input_scene_compression_type), NAMEOF(get_custom_input_scene_compression_type));
 
 	ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
 	ADD_SIGNAL(MethodInfo("client_disconnected", PropertyInfo(Variant::STRING, "device_id")));
@@ -620,16 +615,24 @@ void GRServer::_thread_listen(Variant p_userdata) {
 
 #ifdef AUTO_CONNECTION_ENABLED
 	uint64_t prev_udp_time_send = 0;
-	std::vector<std::shared_ptr<UdpBroadcast> > available_addresses;
+	PoolByteArray udp_data;
+	std::vector<std::shared_ptr<UdpBroadcast> > available_sockets;
 	{
-		Array addresses = IP::get_singleton()->call(NAMEOF(get_local_addresses));
-
-		for (int i = 0; i < addresses.size(); i++) {
+		PoolStringArray available_addresses;
+		Array all_serever_addresses = IP::get_singleton()->call(NAMEOF(get_local_addresses));
+		for (int i = 0; i < all_serever_addresses.size(); i++) {
 #ifndef GDNATIVE_LIBRARY
-			Vector<String> split = ((String)addresses[i]).split(".");
+			String orig_address = (String)all_serever_addresses[i];
+			Vector<String> split = (orig_address).split(".");
 #else
-			PoolStringArray split = (addresses[i].operator godot::String()).split(".");
+			String orig_address = all_serever_addresses[i].operator godot::String();
+			PoolStringArray split = (orig_address).split(".");
 #endif
+			if (available_addresses.size() >= 50) {
+				_log("Too much all_serever_addresses, ignoring others.", LogLevel::LL_WARNING);
+				break;
+			}
+
 			if (split.size() == 4) {
 				split.set(3, "255");
 				String address = split[0] + "." + split[1] + "." + split[2] + "." + split[3];
@@ -637,25 +640,58 @@ void GRServer::_thread_listen(Variant p_userdata) {
 				if (err == Error::OK) {
 					auto udp = shared_new(UdpBroadcast);
 					if (udp->Open(address.ascii().get_data(), AUTO_CONNECTION_PORT)) {
-						available_addresses.push_back(udp);
+						available_sockets.push_back(udp);
+						available_addresses.append(orig_address);
 					}
 				} else {
 					_log("Can't set destination address for UDP. Error: " + str((int)err), LogLevel::LL_ERROR);
 				}
 			}
 		}
-	}
 
-	// prepare data to broadcast
-	PoolByteArray udp_data;
-	udp_data.append_array(get_packet_header());
-	{
+		//////////////////////////////////////////////////////////////////////////
+		// prepare data to broadcast
+		String proj_icon = GET_PS("application/config/icon");
+		PoolByteArray png_buffer;
+		if (proj_icon != "") {
+#ifndef GDNATIVE_LIBRARY
+			Ref<Resource> resource = ResourceLoader::load(proj_icon);
+#else
+			Ref<Resource> resource = ResourceLoader::get_singleton()->load(proj_icon);
+#endif
+			Ref<Image> out_img;
+
+			Ref<Texture> tex = resource;
+			if (tex.is_valid()) {
+				out_img = tex->get_data();
+			}
+			Ref<Image> img = resource;
+			if (img.is_valid()) {
+				out_img = img;
+			}
+
+			if (out_img.is_valid() && !img_is_empty(out_img)) {
+				out_img->resize(32, 32, ENUM_CONV(Image::Interpolation) 4); // INTERPOLATE_LANCZOS = 4 slowest interpolation
+				png_buffer = out_img->save_png_to_buffer();
+				
+				// too big
+				if (png_buffer.size() > 1024 * 4) {
+					png_buffer.resize(0);
+				}
+			} else {
+				_log("No project icon found.", LogLevel::LL_DEBUG);
+			}
+		}
+
 		Dictionary server_udp_dict;
 		server_udp_dict["version"] = get_gr_version();
 		server_udp_dict["project_name"] = GET_PS("application/config/name");
 		server_udp_dict["port"] = port;
+		server_udp_dict["addresses"] = available_addresses;
+		server_udp_dict["icon_data"] = png_buffer;
 
 		Ref<StreamPeerBuffer> buf = newref(StreamPeerBuffer);
+		udp_data.append_array(get_packet_header());
 		buf->set_data_array(udp_data);
 		buf->seek(4);
 		buf->put_var(server_udp_dict);
@@ -765,7 +801,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 						Thread_start(connection_thread_info->thread_ref, this, _thread_connection, connection_thread_info);
 						_log("New connection from " + address, LogLevel::LL_NORMAL);
 
-						call_deferred("emit_signal", "client_connected", dev_id);
+						call_deferred(NAMEOF(emit_signal), "client_connected", dev_id);
 						GRNotifications::add_notification("Connected", "Client connected: " + address + "\nDevice ID: " + connection_thread_info->device_id, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 						break;
 					}
@@ -786,17 +822,18 @@ void GRServer::_thread_listen(Variant p_userdata) {
 			}
 		} else {
 #ifdef AUTO_CONNECTION_ENABLED
-			if (available_addresses.size() && client_connected == 0 && get_time_usec() - prev_udp_time_send > 1000_ms) {
+			if (available_sockets.size() && client_connected == 0 && get_time_usec() - prev_udp_time_send > 1000_ms) {
 				ZoneScopedNC("Sending UDP server data", tracy::Color::DarkMagenta);
 
-				for (auto u : available_addresses) {
+				for (auto u : available_sockets) {
 					u->Send(AUTO_CONNECTION_PORT, udp_data.read().ptr(), udp_data.size());
 				}
 				prev_udp_time_send = get_time_usec();
 				_log("Waiting...", LogLevel::LL_DEBUG);
 			}
-#endif
+#else
 			_log("Waiting...", LogLevel::LL_DEBUG);
+#endif
 			sleep_usec(50_ms);
 		}
 	}
@@ -810,7 +847,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 	}
 
 #ifdef AUTO_CONNECTION_ENABLED
-	available_addresses.resize(0);
+	available_sockets.resize(0);
 #endif
 
 	tcp_server->stop();
@@ -827,6 +864,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	GodotRemote *gr = GodotRemote::get_singleton();
 	Input *input = Input::get_singleton();
 	Error err = Error::OK;
+	String log_error_text = "";
 
 	// Store prev target fps of game
 	int64_t default_target_fps = Engine::get_singleton()->get_target_fps();
@@ -1014,8 +1052,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	end_send:
 
 		if (!connection->is_connected_to_host()) {
-			_log("Lost connection after sending!", LogLevel::LL_ERROR);
-			GRNotifications::add_notification("Error", "Lost connection after sending data!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+			log_error_text = "After sending.";
 			continue;
 		}
 
@@ -1123,7 +1160,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 							_log("Incorrect GRPacketClientStreamOrientation", LogLevel::LL_ERROR);
 							continue;
 						}
-						call_deferred("emit_signal", "client_viewport_orientation_changed", data->is_vertical());
+						call_deferred(NAMEOF(emit_signal), "client_viewport_orientation_changed", data->is_vertical());
 						break;
 					}
 					case GRPacket::PacketType::StreamAspectRatio: {
@@ -1132,7 +1169,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 							_log("Incorrect GRPacketStreamAspectRatio", LogLevel::LL_ERROR);
 							continue;
 						}
-						call_deferred("emit_signal", "client_viewport_aspect_ratio_changed", data->get_aspect());
+						call_deferred(NAMEOF(emit_signal), "client_viewport_aspect_ratio_changed", data->get_aspect());
 						break;
 					}
 					case GRPacket::PacketType::CustomUserData: {
@@ -1141,7 +1178,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 							_log("Incorrect GRPacketCustomUserData", LogLevel::LL_ERROR);
 							continue;
 						}
-						call_deferred("emit_signal", "user_data_received", data->get_packet_id(), data->get_user_data());
+						call_deferred(NAMEOF(emit_signal), "user_data_received", data->get_packet_id(), data->get_user_data());
 						break;
 					}
 					case GRPacket::PacketType::Ping: {
@@ -1169,8 +1206,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	end_recv:
 
 		if (!connection->is_connected_to_host()) {
-			_log("Lost connection after receiving!", LogLevel::LL_ERROR);
-			GRNotifications::add_notification("Error", "Lost connection after receiving data!", GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+			log_error_text = "After receiving.";
 			continue;
 		}
 
@@ -1186,12 +1222,14 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	if (connection->is_connected_to_host()) {
 		GRNotifications::add_notification("Disconnected", "Closing connection with " + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
 	} else {
+		_log("Connection lost to " + address + ". " + log_error_text, LogLevel::LL_ERROR);
 		GRNotifications::add_notification("Disconnected", "Client disconnected: " + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
 	}
 
 	if (ppeer.is_valid()) {
 		ppeer.unref();
 	}
+
 	thread_info->ppeer.unref();
 	thread_info->break_connection = true;
 	client_connected--;
@@ -1201,7 +1239,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	_send_queue_resize(0);
 
 	//call_deferred(NAMEOF(_load_settings));
-	call_deferred("emit_signal", "client_disconnected", thread_info->device_id);
+	call_deferred(NAMEOF(emit_signal), "client_disconnected", thread_info->device_id);
 
 	thread_info->finished = true;
 }
@@ -1768,7 +1806,7 @@ void GRSViewport::_init() {
 	set_shadow_atlas_quadrant_subdiv(3, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
 
 	Scoped_lock(stream_mutex);
-	stream_manager = memnew(GRStreamEncodersManager);
+	stream_manager = shared_new(GRStreamEncodersManager);
 }
 
 void GRSViewport::_deinit() {
@@ -1776,7 +1814,7 @@ void GRSViewport::_deinit() {
 
 	Scoped_lock(stream_mutex);
 	if (stream_manager) {
-		memdelete(stream_manager);
+		stream_manager = nullptr;
 	}
 }
 

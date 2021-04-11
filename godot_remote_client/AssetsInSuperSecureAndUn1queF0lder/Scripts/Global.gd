@@ -53,6 +53,8 @@ var device_id : String = "" setget set_device_id
 var connection_type : int = 0 setget set_con_type
 var ip : String = "127.0.0.1" setget set_ip
 var port : int = 52341 setget set_port
+var auto_ip : String = "None" setget set_auto_ip
+var auto_port : int = 0 setget set_auto_port
 var stretch_mode : int = 0 setget set_stretch_mode
 var target_send_fps : int = 120 setget set_target_send_fps
 var texture_filtering : bool = true setget set_texture_filtering
@@ -209,6 +211,8 @@ func _save_settings():
 	d["con_type"] = connection_type
 	d["ip"] = ip
 	d["port"] = port
+	d["auto_ip"] = auto_ip
+	d["auto_port"] = auto_port
 	d["stretch"] = stretch_mode
 	d["stats"] = show_stats
 	d["target_fps"] = target_send_fps
@@ -276,6 +280,8 @@ func _load_settings():
 			connection_type = _safe_get_from_dict(d, "con_type", connection_type)
 			ip = _safe_get_from_dict(d, "ip", ip)
 			port = _safe_get_from_dict(d, "port", port)
+			auto_ip = _safe_get_from_dict(d, "auto_ip", auto_ip)
+			auto_port = _safe_get_from_dict(d, "auto_port", auto_port)
 			stretch_mode = _safe_get_from_dict(d, "stretch", stretch_mode)
 			show_stats = _safe_get_from_dict(d, "stats", show_stats)
 			target_send_fps = _safe_get_from_dict(d, "target_fps", target_send_fps)
@@ -403,6 +409,14 @@ func set_ip(val : String):
 
 func set_port(val : int):
 	port = val
+	_save_settings()
+
+func set_auto_ip(val : String):
+	auto_ip = val
+	_save_settings()
+
+func set_auto_port(val : int):
+	auto_port = val
 	_save_settings()
 
 func set_stretch_mode(val : int):

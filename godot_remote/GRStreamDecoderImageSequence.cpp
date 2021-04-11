@@ -29,8 +29,6 @@ using namespace GRUtils;
 void GRStreamDecoderImageSequence::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(_processing_thread), "user_data"), &GRStreamDecoderImageSequence::_processing_thread);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_update_thread), "user_data"), &GRStreamDecoderImageSequence::_update_thread);
-	//ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
-	//ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
 }
 
 #else
@@ -38,8 +36,6 @@ void GRStreamDecoderImageSequence::_bind_methods() {
 void GRStreamDecoderImageSequence::_register_methods() {
 	METHOD_REG(GRStreamDecoderImageSequence, _processing_thread);
 	METHOD_REG(GRStreamDecoderImageSequence, _update_thread);
-	//register_property<GRStreamDecoders, String>("password", &GRStreamDecoders::set_password, &GRStreamDecoders::get_password, "");
-	//register_signal<GRStreamDecoders>("client_connected", "device_id", GODOT_VARIANT_TYPE_STRING);
 }
 
 #endif

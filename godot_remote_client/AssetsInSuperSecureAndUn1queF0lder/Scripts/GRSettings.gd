@@ -26,7 +26,9 @@ onready var wifi_port_line = $V/Scroll/H/Grid/WiFi/Address/Port
 onready var wifi_ip_line = $V/Scroll/H/Grid/WiFi/Address/IP
 
 onready var auto_line = $V/Scroll/H/Grid/Auto
-onready var auto_items_line = $V/Scroll/H/Grid/Auto/ItemList
+onready var auto_status_icon = $V/Scroll/H/Grid/Auto/H/UDP_ListenerStatus
+onready var auto_prev_addr = $V/Scroll/H/Grid/Auto/LastConnected
+onready var auto_item_scroll = $V/Scroll/H/Grid/Auto/AvailableAddresses
 
 onready var fps = $V/Scroll/H/Grid/OutFps/FPS
 onready var password = $V/Scroll/H/Grid/PassRow/Pass
@@ -76,11 +78,15 @@ func _ready():
 	
 	version.text = "GR version: " + GodotRemote.get_version()
 	var d = GodotRemote.get_device()
+	auto_item_scroll.connect("selected_address", self, "_on_auto_list_address_changed")
+	d.connect("auto_connection_listener_status_changed", self, "_on_auto_connection_status_changed")
+	
 	d.connect("connection_state_changed", self, "_connection_changed")
 	d.connect("status_changed", self, "_status_changed")
 	d.connect("server_settings_received", self, "_server_settings_received")
 	d.connect("server_quality_hint_setting_received", self, "_update_quality_hint_text")
 	update_values()
+	_on_auto_list_address_changed()
 	_set_buttons_disabled(false)
 	_update_start_stop()
 	_init_mobile_touch_input()
@@ -186,6 +192,15 @@ func _status_changed(_status : int):
 	if timer.is_stopped():
 		_set_buttons_disabled(_status == C.GRDevice_STATUS_STARTING or _status == C.GRDevice_STATUS_STOPPING)
 	_update_start_stop()
+
+func _on_auto_list_address_changed():
+	auto_prev_addr.text = "%s:%d" % [G.auto_ip, G.auto_port]
+
+func _on_auto_connection_status_changed(is_listening):
+	if is_listening:
+		auto_status_icon.modulate = Color(0.439216, 0.819608, 0.360784)
+	else:
+		auto_status_icon.modulate = Color(0.819608, 0.360784, 0.360784)
 
 func _connection_changed(connected : bool):
 	if connected:
@@ -300,24 +315,23 @@ func _on_wifi_IP_text_entered(_new_text):
 func _on_wifi_SetAddress_pressed():
 	_disable_buttons_by_timer()
 	var id = con_type_menu.get_item_id(con_type_menu.selected)
-	GodotRemote.get_device().connection_type = id
 	var address = wifi_ip_line.text.replace("http://", "").replace("https://", "").strip_edges()
 	if GodotRemote.get_device().set_address_port(address, wifi_port_line.value):
 		G.ip = address
 		wifi_ip_line.text = address
 		G.port = wifi_port_line.value
-		G.connection_type = id
 
 func _on_adb_SetAddress_pressed():
 	_disable_buttons_by_timer()
 	var id = con_type_menu.get_item_id(con_type_menu.selected)
-	GodotRemote.get_device().connection_type = id
 	GodotRemote.get_device().port = adb_port_line.value
 	G.port = adb_port_line.value
-	G.connection_type = id
 
 func _on_con_Type_item_selected(index):
 	var id = con_type_menu.get_item_id(index)
+	G.connection_type = id
+	GodotRemote.get_device().connection_type = id
+	
 	match id:
 		0:
 			wifi.visible = true
@@ -332,8 +346,6 @@ func _on_con_Type_item_selected(index):
 			adb.visible = false
 			auto_line.visible = true
 			
-			G.connection_type = id
-			GodotRemote.get_device().connection_type = id
 
 func _on_stretch_Type_item_selected(index):
 	GodotRemote.get_device().stretch_mode = index

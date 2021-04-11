@@ -198,7 +198,7 @@ protected:
 	int stream_quality = 80;
 	int skip_frames = 0;
 	GRDevice::ImageCompressionType compression_type = GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED;
-	GRStreamEncodersManager *stream_manager = nullptr;
+	std::shared_ptr<GRStreamEncodersManager> stream_manager;
 
 	uint16_t frames_from_prev_image = 0;
 	bool is_empty_image_sended = false;

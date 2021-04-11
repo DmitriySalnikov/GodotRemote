@@ -29,6 +29,7 @@ void GRDevice::_bind_methods() {
 	//ClassDB::bind_method(D_METHOD(NAMEOF(send_packet), "packet"), &GRDevice::send_packet);
 	ClassDB::bind_method(D_METHOD(NAMEOF(send_user_data), "packet_id", "user_data", "full_objects"), &GRDevice::send_user_data, DEFVAL(false));
 
+	ClassDB::bind_method(D_METHOD(NAMEOF(restart)), &GRDevice::restart);
 	ClassDB::bind_method(D_METHOD(NAMEOF(start)), &GRDevice::start);
 	ClassDB::bind_method(D_METHOD(NAMEOF(stop)), &GRDevice::stop);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_status)), &GRDevice::get_status);
@@ -36,7 +37,7 @@ void GRDevice::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("status_changed", PropertyInfo(Variant::INT, "status")));
 	ADD_SIGNAL(MethodInfo("user_data_received", PropertyInfo(Variant::NIL, "packet_id"), PropertyInfo(Variant::NIL, "user_data")));
 
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "port"), "set_port", "get_port");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "port"), NAMEOF(set_port), NAMEOF(get_port));
 
 	BIND_ENUM_CONSTANT(STATUS_STARTING);
 	BIND_ENUM_CONSTANT(STATUS_STOPPING);
@@ -79,6 +80,7 @@ void GRDevice::_register_methods() {
 	//METHOD_REG(GRDevice, send_packet);
 	METHOD_REG(GRDevice, send_user_data);
 
+	METHOD_REG(GRDevice, restart);
 	METHOD_REG(GRDevice, start);
 	METHOD_REG(GRDevice, stop);
 	METHOD_REG(GRDevice, get_status);

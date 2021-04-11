@@ -26,18 +26,12 @@ using namespace GRUtils;
 // MANAGER
 
 void GRStreamEncodersManager::_bind_methods() {
-	//ClassDB::bind_method(D_METHOD("_load_settings"), &GRStreamEncoders::_load_settings);
-	//ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
-	//ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
 }
 
 #else
 
 void GRStreamEncodersManager::_register_methods() {
 	METHOD_REG(GRStreamEncodersManager, _notification);
-	//METHOD_REG(GRStreamEncoders, _notification);
-	//register_property<GRStreamEncoders, String>("password", &GRStreamEncoders::set_password, &GRStreamEncoders::get_password, "");
-	//register_signal<GRStreamEncoders>("client_connected", "device_id", GODOT_VARIANT_TYPE_STRING);
 }
 
 #endif

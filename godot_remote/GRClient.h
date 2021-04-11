@@ -63,30 +63,6 @@ private:
 public:
 #endif
 
-	class ImgProcessingStorageClient : public Object {
-		GD_CLASS(ImgProcessingStorageClient, Object);
-
-	public:
-		PoolByteArray tex_data;
-		uint64_t framerate = 0;
-		int format = 0;
-		ImageCompressionType compression_type = ImageCompressionType::COMPRESSION_UNCOMPRESSED;
-		Size2 size;
-		bool _is_processing_img = false;
-		bool _thread_closing = false;
-
-		static void _register_methods(){};
-		void _init() {
-			LEAVE_IF_EDITOR();
-			tex_data = PoolByteArray();
-		};
-
-		~ImgProcessingStorageClient() {
-			LEAVE_IF_EDITOR();
-			tex_data.resize(0);
-		}
-	};
-
 	class ConnectionThreadParamsClient : public Object {
 		GD_CLASS(ConnectionThreadParamsClient, Object);
 
@@ -98,7 +74,7 @@ public:
 
 		bool break_connection = false;
 		bool stop_thread = false;
-		bool finished = false;
+		bool connection_finished = false;
 
 		void close_thread() {
 			break_connection = true;
@@ -125,17 +101,29 @@ private:
 	class AvailableServerAddress {
 	public:
 		uint64_t time_added;
+		String version;
 		String project_name;
-		String ip_address;
+		String sender_ip_address;
 		int port;
+		PoolStringArray all_serever_addresses;
+		std::vector<String> recieved_from_addresses;
+		uint64_t server_hash;
+		PoolByteArray icon_data;
 
-		AvailableServerAddress() {}
+		AvailableServerAddress() {
+			time_added = 0;
+			port = 0;
+			server_hash = 0;
+		}
 
-		AvailableServerAddress(uint64_t _time, String _proj_name, String _ip, int _port) {
+		AvailableServerAddress(uint64_t _time, String _proj_name, String _ip, int _port, PoolStringArray _addresses, uint64_t _server_hash, PoolByteArray _icon_data) {
 			time_added = _time;
 			project_name = _proj_name;
-			ip_address = _ip;
+			sender_ip_address = _ip;
 			port = _port;
+			all_serever_addresses = _addresses;
+			server_hash = _server_hash;
+			icon_data = _icon_data;
 		}
 	};
 
@@ -148,7 +136,7 @@ private:
 	class GRTextureRect *tex_shows_stream = nullptr;
 	class GRInputCollector *input_collector = nullptr;
 	ConnectionThreadParamsClient *thread_connection = nullptr;
-	GRStreamDecodersManager *stream_manager = nullptr;
+	std::shared_ptr<GRStreamDecodersManager> stream_manager;
 	uint64_t prev_shown_frame_time = 0;
 
 	String device_id = "UNKNOWN";
@@ -278,7 +266,7 @@ public:
 	bool is_connected_to_host();
 	Node *get_custom_input_scene();
 	String get_address();
-	Array get_found_auto_connect_addresses();
+	Array get_found_auto_connection_addresses();
 	bool set_address(String ip);
 	bool set_address_port(String ip, uint16_t _port);
 	void set_input_buffer_size(int mb);
@@ -290,6 +278,9 @@ public:
 
 	void set_decoder_threads_count(int count);
 	int get_decoder_threads_count();
+
+	void break_connection_async();
+	void break_connection();
 
 	void set_server_setting(ENUM_ARG(TypesOfServerSettings) param, Variant value);
 	void disable_overriding_server_settings();

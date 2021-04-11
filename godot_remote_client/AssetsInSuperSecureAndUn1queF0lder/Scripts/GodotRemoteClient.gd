@@ -136,6 +136,7 @@ func _stream_state_changed(_is_connected):
 			no_signal_hint.visible = false
 			
 		C.GRClient_STREAM_NO_IMAGE:
+			OS.keep_screen_on = true
 			stats.visible = not settings.visible
 			bg_touch_hint.visible = true
 			bg_touch_hint_tex.visible = GodotRemote.get_device().get_custom_input_scene() == null

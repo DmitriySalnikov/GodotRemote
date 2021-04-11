@@ -161,18 +161,12 @@ void GRStreamDecodersManager::_deinit() {
 #ifndef GDNATIVE_LIBRARY
 
 void GRStreamDecoder::_bind_methods() {
-	//ClassDB::bind_method(D_METHOD("_load_settings"), &GRStreamDecoders::_load_settings);
-	//ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
-	//ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
 }
 
 #else
 
 void GRStreamDecoder::_register_methods() {
 	METHOD_REG(GRStreamDecoder, _notification);
-	//METHOD_REG(GRStreamDecoders, _notification);
-	//register_property<GRStreamDecoders, String>("password", &GRStreamDecoders::set_password, &GRStreamDecoders::get_password, "");
-	//register_signal<GRStreamDecoders>("client_connected", "device_id", GODOT_VARIANT_TYPE_STRING);
 }
 
 #endif

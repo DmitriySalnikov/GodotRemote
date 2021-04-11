@@ -41,16 +41,12 @@ using namespace GRUtils;
 
 void GRStreamEncoderH264::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(_processing_thread), "user_data"), &GRStreamEncoderH264::_processing_thread);
-	//ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
-	//ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
 }
 
 #else
 
 void GRStreamEncoderH264::_register_methods() {
 	METHOD_REG(GRStreamEncoderH264, _processing_thread);
-	//register_property<GRStreamEncoders, String>("password", &GRStreamEncoders::set_password, &GRStreamEncoders::get_password, "");
-	//register_signal<GRStreamEncoders>("client_connected", "device_id", GODOT_VARIANT_TYPE_STRING);
 }
 
 #endif

@@ -141,7 +141,6 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 #ifndef NO_GODOTREMOTE_CLIENT
 	register_class<GRClient>();
 	register_class<GRClient::ConnectionThreadParamsClient>();
-	register_class<GRClient::ImgProcessingStorageClient>();
 	register_class<GRInputCollector>();
 	register_class<GRTextureRect>();
 	register_class<GRStreamDecodersManager>();
