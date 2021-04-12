@@ -197,7 +197,9 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="OpenSettings" type="Button" parent="OpenSettingsWithoutSignal"]
+[node name="OpenSettings" type="Button" parent="OpenSettingsWithoutSignal" groups=[
+"nodes_that_should_be_higher",
+]]
 margin_top = 696.0
 margin_right = 768.0
 margin_bottom = 768.0
@@ -411,7 +413,9 @@ margin_right = 756.0
 margin_bottom = 344.0
 custom_constants/separation = 12
 
-[node name="Button" type="Button" parent="Welcome/VBox/HBoxContainer2"]
+[node name="Button" type="Button" parent="Welcome/VBox/HBoxContainer2" groups=[
+"nodes_that_should_be_higher",
+]]
 margin_right = 480.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
@@ -419,7 +423,9 @@ size_flags_horizontal = 3
 text = "Open documentation page"
 script = SubResource( 6 )
 
-[node name="Button2" type="Button" parent="Welcome/VBox/HBoxContainer2"]
+[node name="Button2" type="Button" parent="Welcome/VBox/HBoxContainer2" groups=[
+"nodes_that_should_be_higher",
+]]
 margin_left = 492.0
 margin_right = 756.0
 margin_bottom = 72.0
@@ -449,7 +455,9 @@ margin_right = 756.0
 margin_bottom = 643.0
 custom_constants/separation = 12
 
-[node name="Button2" type="Button" parent="Welcome/VBox/HBoxContainer"]
+[node name="Button2" type="Button" parent="Welcome/VBox/HBoxContainer" groups=[
+"nodes_that_should_be_higher",
+]]
 margin_right = 371.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
@@ -459,7 +467,9 @@ custom_colors/font_color_hover = Color( 0.290196, 1, 0.231373, 1 )
 text = "Okay, I get it!"
 script = SubResource( 8 )
 
-[node name="Button3" type="Button" parent="Welcome/VBox/HBoxContainer"]
+[node name="Button3" type="Button" parent="Welcome/VBox/HBoxContainer" groups=[
+"nodes_that_should_be_higher",
+]]
 margin_left = 383.0
 margin_right = 756.0
 margin_bottom = 72.0
@@ -521,14 +531,18 @@ margin_right = 747.0
 margin_bottom = 584.0
 custom_constants/separation = 12
 
-[node name="Button" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
+[node name="Button" type="Button" parent="Changelog/HBoxContainer/HBoxContainer" groups=[
+"nodes_that_should_be_higher",
+]]
 margin_right = 322.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "Okay, I get it!"
 
-[node name="Button2" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
+[node name="Button2" type="Button" parent="Changelog/HBoxContainer/HBoxContainer" groups=[
+"nodes_that_should_be_higher",
+]]
 margin_left = 334.0
 margin_right = 747.0
 margin_bottom = 72.0

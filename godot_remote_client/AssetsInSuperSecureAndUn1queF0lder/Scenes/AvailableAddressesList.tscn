@@ -33,6 +33,7 @@ size_flags_horizontal = 3
 custom_constants/separation = 0
 
 [node name="Nothing" type="Label" parent="H"]
+visible = false
 margin_top = 122.0
 margin_right = 394.0
 margin_bottom = 168.0
@@ -44,29 +45,29 @@ align = 1
 valign = 1
 
 [node name="List" type="VBoxContainer" parent="H"]
-margin_left = 394.0
-margin_right = 788.0
+margin_right = 796.0
 margin_bottom = 290.0
 size_flags_horizontal = 3
 
 [node name="Button" parent="H/List" instance=ExtResource( 1 )]
 anchor_right = 0.0
-margin_right = 394.0
+margin_right = 796.0
 margin_bottom = 94.0
 
 [node name="Button2" parent="H/List" instance=ExtResource( 1 )]
 anchor_right = 0.0
 margin_top = 98.0
-margin_right = 394.0
+margin_right = 796.0
 margin_bottom = 192.0
 
 [node name="Button3" parent="H/List" instance=ExtResource( 1 )]
 anchor_right = 0.0
 margin_top = 196.0
-margin_right = 394.0
+margin_right = 796.0
 margin_bottom = 290.0
 
 [node name="VSeparator" type="VSeparator" parent="H"]
+visible = false
 margin_left = 788.0
 margin_right = 796.0
 margin_bottom = 290.0

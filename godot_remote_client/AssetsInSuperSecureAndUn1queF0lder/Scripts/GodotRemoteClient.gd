@@ -52,10 +52,23 @@ func _ready():
 	
 	G.connect("touches_to_open_settings_changed", self, "_touches_to_open_settings_changed")
 	connect("item_rect_changed", self, "viewport_size_changed")
+	_resize_for_mobile()
 	_touches_to_open_settings_changed(G.TouchesToOpenSettings)
 	if !G.FirstRunAgreementAccepted:
 		popup_welcome_screen()
 		G.a_progression_event(G.A_ProgressStatus.Start, "WelcomeScreen")
+
+func _resize_for_mobile():
+	if G.IsMobile:
+		var height = 82
+		var nodes = get_tree().get_nodes_in_group("nodes_that_should_be_higher")
+		for n in nodes:
+			if n is Control:
+				n.rect_min_size = Vector2(n.rect_min_size.x, height if n.rect_min_size.y < height else n.rect_min_size.y)
+		nodes = get_tree().get_nodes_in_group("menus_that_should_be_higher")
+		for n in nodes:
+			if n is OptionButton:
+				n.get_popup().add_constant_override("vseparation", height / 2)
 
 func _touches_to_open_settings_changed(count : int) -> void:
 	no_signal_hint_text.text = orig_hint_text % count

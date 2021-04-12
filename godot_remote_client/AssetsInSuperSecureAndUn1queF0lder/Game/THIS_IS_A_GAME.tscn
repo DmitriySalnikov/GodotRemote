@@ -96,9 +96,9 @@ __meta__ = {
 
 [node name="PanelContainer" type="PanelContainer" parent="Control/WindowDialog"]
 margin_left = 109.0
-margin_top = 232.0
+margin_top = 227.0
 margin_right = 690.0
-margin_bottom = 567.0
+margin_bottom = 572.0
 rect_min_size = Vector2( 512, 0 )
 custom_styles/panel = SubResource( 3 )
 
@@ -106,7 +106,7 @@ custom_styles/panel = SubResource( 3 )
 margin_left = 4.0
 margin_top = 5.0
 margin_right = 577.0
-margin_bottom = 331.0
+margin_bottom = 341.0
 
 [node name="Label" type="Label" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
 margin_right = 573.0
@@ -129,34 +129,34 @@ text = "HIGH SCORE"
 [node name="HBoxContainer" type="HBoxContainer" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
 margin_top = 150.0
 margin_right = 573.0
-margin_bottom = 222.0
+margin_bottom = 232.0
 
 [node name="Play" type="Button" parent="Control/WindowDialog/PanelContainer/VBoxContainer/HBoxContainer"]
 margin_right = 284.0
-margin_bottom = 72.0
-rect_min_size = Vector2( 0, 72 )
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 text = "Play Game"
 
 [node name="Exit" type="Button" parent="Control/WindowDialog/PanelContainer/VBoxContainer/HBoxContainer"]
 margin_left = 288.0
 margin_right = 573.0
-margin_bottom = 72.0
-rect_min_size = Vector2( 0, 72 )
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 text = "Exit"
 
 [node name="empty" type="Control" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
-margin_top = 226.0
+margin_top = 236.0
 margin_right = 573.0
-margin_bottom = 274.0
+margin_bottom = 284.0
 rect_min_size = Vector2( 0, 48 )
 
 [node name="DontShowOnReconnects" type="CheckButton" parent="Control/WindowDialog/PanelContainer/VBoxContainer"]
 modulate = Color( 0.886275, 0.886275, 0.886275, 1 )
-margin_top = 278.0
+margin_top = 288.0
 margin_right = 573.0
-margin_bottom = 326.0
+margin_bottom = 336.0
 custom_fonts/font = ExtResource( 7 )
 custom_colors/font_color = Color( 0.792157, 0.792157, 0.792157, 1 )
 text = "Don't show this game after failed connections"

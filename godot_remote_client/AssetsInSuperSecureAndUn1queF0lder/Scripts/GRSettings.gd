@@ -90,15 +90,7 @@ func _ready():
 	_set_buttons_disabled(false)
 	_update_start_stop()
 	_init_mobile_touch_input()
-	_resize_for_mobile()
 	_init_point()
-
-func _resize_for_mobile():
-	if G.IsMobile:
-		var nodes = get_tree().get_nodes_in_group("nodes_that_should_be_higher")
-		for n in nodes:
-			if n is Control:
-				n.rect_min_size = Vector2(n.rect_min_size.x, 64 if n.rect_min_size.y < 64 else n.rect_min_size.y)
 
 func _init_mobile_touch_input():
 	for p in line_edits_to_touch_input:
@@ -194,7 +186,10 @@ func _status_changed(_status : int):
 	_update_start_stop()
 
 func _on_auto_list_address_changed():
-	auto_prev_addr.text = "%s:%d" % [G.auto_ip, G.auto_port]
+	if G.auto_ip != "None":
+		auto_prev_addr.text = "%s:%d" % [G.auto_ip, G.auto_port]
+	else:
+		auto_prev_addr.text = G.auto_ip
 
 func _on_auto_connection_status_changed(is_listening):
 	if is_listening:
