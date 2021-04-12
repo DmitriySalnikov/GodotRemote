@@ -30,28 +30,40 @@ margin_top = 2.0
 margin_right = 798.0
 margin_bottom = 292.0
 size_flags_horizontal = 3
+custom_constants/separation = 0
+
+[node name="Nothing" type="Label" parent="H"]
+margin_top = 122.0
+margin_right = 394.0
+margin_bottom = 168.0
+size_flags_horizontal = 3
+size_flags_vertical = 6
+custom_colors/font_color = Color( 0.639216, 0.639216, 0.639216, 1 )
+text = "No Servers Found"
+align = 1
+valign = 1
 
 [node name="List" type="VBoxContainer" parent="H"]
-margin_right = 784.0
+margin_left = 394.0
+margin_right = 788.0
 margin_bottom = 290.0
 size_flags_horizontal = 3
-size_flags_vertical = 3
 
 [node name="Button" parent="H/List" instance=ExtResource( 1 )]
 anchor_right = 0.0
-margin_right = 784.0
+margin_right = 394.0
 margin_bottom = 94.0
 
 [node name="Button2" parent="H/List" instance=ExtResource( 1 )]
 anchor_right = 0.0
 margin_top = 98.0
-margin_right = 784.0
+margin_right = 394.0
 margin_bottom = 192.0
 
 [node name="Button3" parent="H/List" instance=ExtResource( 1 )]
 anchor_right = 0.0
 margin_top = 196.0
-margin_right = 784.0
+margin_right = 394.0
 margin_bottom = 290.0
 
 [node name="VSeparator" type="VSeparator" parent="H"]

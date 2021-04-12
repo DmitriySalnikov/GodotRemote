@@ -3,7 +3,7 @@ extends Button
 func _ready() -> void:
 	pass # Replace with function body.
 
-func setup_params(version : String, ip : String, project_name : String, port : int, addresses : Array, img : Image):
+func setup_params(version : String, project_name : String, port : int, addresses : Array, img : Image):
 	if img and not img.is_empty():
 		var tex = ImageTexture.new()
 		tex.create_from_image(img)

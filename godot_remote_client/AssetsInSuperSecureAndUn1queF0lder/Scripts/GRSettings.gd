@@ -314,7 +314,6 @@ func _on_wifi_IP_text_entered(_new_text):
 
 func _on_wifi_SetAddress_pressed():
 	_disable_buttons_by_timer()
-	var id = con_type_menu.get_item_id(con_type_menu.selected)
 	var address = wifi_ip_line.text.replace("http://", "").replace("https://", "").strip_edges()
 	if GodotRemote.get_device().set_address_port(address, wifi_port_line.value):
 		G.ip = address
@@ -323,7 +322,6 @@ func _on_wifi_SetAddress_pressed():
 
 func _on_adb_SetAddress_pressed():
 	_disable_buttons_by_timer()
-	var id = con_type_menu.get_item_id(con_type_menu.selected)
 	GodotRemote.get_device().port = adb_port_line.value
 	G.port = adb_port_line.value
 

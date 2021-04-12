@@ -1,9 +1,8 @@
-[gd_scene load_steps=23 format=2]
+[gd_scene load_steps=22 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/GodotRemoteClient.gd" type="Script" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalLight.tres" type="DynamicFont" id=2]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scenes/GRStats.tscn" type="PackedScene" id=3]
-[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/MainTheme.tres" type="Theme" id=4]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Textures/tap_screen.png" type="Texture" id=5]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scenes/GRSettings.tscn" type="PackedScene" id=6]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scenes/CustomPopupTextInput.tscn" type="PackedScene" id=7]
@@ -97,7 +96,6 @@ func _pressed() -> void:
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-theme = ExtResource( 4 )
 script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
