@@ -74,7 +74,7 @@ public:
 
 		bool break_connection = false;
 		bool stop_thread = false;
-		bool connection_finished = false;
+		bool connection_finished = true;
 
 		void close_thread() {
 			break_connection = true;
