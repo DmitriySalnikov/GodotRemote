@@ -96,7 +96,7 @@ protected:
 	void _notification(int p_notification);
 
 public:
-	uint16_t port = 52341;
+	uint16_t static_port = 52341;
 
 	float get_avg_ping();
 	float get_min_ping();

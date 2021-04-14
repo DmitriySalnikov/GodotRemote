@@ -204,8 +204,8 @@ void GRStreamDecoder::set_gr_client(GRClient *client) {
 }
 
 void GRStreamDecoder::push_packet_to_decode(std::shared_ptr<GRPacketStreamData> packet) {
+	Scoped_lock(ts_lock);
 	if (packet) {
-		Scoped_lock(ts_lock);
 		while (images.size() > get_max_queued_frames()) {
 			images.pop();
 			TracyMessage("Removed Queued Packet", 22);

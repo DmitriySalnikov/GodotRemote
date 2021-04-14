@@ -1,6 +1,7 @@
 /* GRUtils.h */
 #pragma once
 
+#include "GRProfiler.h"
 #include <algorithm>
 #include <deque>
 #include <map>
@@ -8,7 +9,6 @@
 #include <mutex>
 #include <queue>
 #include <vector>
-#include "GRProfiler.h"
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/bind/core_bind.h"
@@ -223,7 +223,6 @@ typedef Directory _Directory;
 #define shared_new(type, ...) std::make_shared<type>(__VA_ARGS__)
 
 #define newref(_class) Ref<_class>(memnew(_class))
-#define is_vector_contains(vec, val) (std::find(vec.begin(), vec.end(), val) != vec.end())
 
 #define GR_VERSION(x, y, z)                            \
 	if (_grutils_data->internal_VERSION.size() == 0) { \
@@ -486,6 +485,16 @@ static std::vector<V> arr_to_vec(Array a) {
 	return res;
 }
 
+template <class V, class VAL>
+static bool is_vector_contains(V vec, VAL val) {
+	return std::find(vec.begin(), vec.end(), val) != vec.end();
+}
+
+template <class V, typename PRED>
+static bool is_vector_contains_if(std::vector<V> vec, PRED pred) {
+	return std::find_if(vec.begin(), vec.end(), pred) != vec.end();
+}
+
 #ifndef GDNATIVE_LIBRARY
 extern Vector<Variant> vec_args(const std::vector<Variant> &args);
 
@@ -499,5 +508,8 @@ extern Variant _gdn_dictionary_get_key_at_index(Dictionary d, int idx);
 extern Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx);
 extern Variant _GLOBAL_DEF(const String &p_var, const Variant &p_default, bool p_restart_if_changed = false);
 #endif
+
+// https://stackoverflow.com/a/33021408/8980874
+extern int64_t rand64();
 
 }; // namespace GRUtils

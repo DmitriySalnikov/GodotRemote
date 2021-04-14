@@ -31,7 +31,7 @@ private:
 		uint64_t frame_added_time;
 		uint64_t frametime;
 		bool is_end = false;
-		BufferedImage(PoolByteArray data, int width, int height, uint64_t frame_added,uint64_t frame_time) {
+		BufferedImage(PoolByteArray data, int width, int height, uint64_t frame_added, uint64_t frame_time) {
 			img_data = data;
 			img_width = width;
 			img_height = height;
@@ -59,6 +59,7 @@ private:
 	void FlushFrames(ISVCDecoder *h264_decoder, uint64_t start_time, uint64_t frametime);
 	bool ProcessFrame(SBufferInfo *info, uint64_t start_time, uint64_t frametime);
 
+	void _commit_stream_end();
 	void _update_thread(Variant p_userdata);
 	void _processing_thread(Variant p_userdata);
 

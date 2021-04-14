@@ -8,6 +8,7 @@
 anchor_right = 1.0
 margin_bottom = 20.0
 rect_min_size = Vector2( 0, 94 )
+rect_clip_content = true
 script = ExtResource( 3 )
 __meta__ = {
 "_edit_use_anchors_": false
@@ -98,3 +99,5 @@ max_lines_visible = 1
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[node name="Tween" type="Tween" parent="."]

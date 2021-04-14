@@ -75,6 +75,10 @@ public:
 		bool break_connection = false;
 		bool stop_thread = false;
 		bool connection_finished = true;
+		bool cancel_connection = false;
+		bool auto_mode_ready_to_connect = false;
+		int64_t auto_found_server_uid = 0;
+		int64_t auto_connected_server_uid = 0;
 
 		void close_thread() {
 			break_connection = true;
@@ -101,29 +105,26 @@ private:
 	class AvailableServerAddress {
 	public:
 		uint64_t time_added;
+		String ip;
+
+		AvailableServerAddress(uint64_t time, String _ip) {
+			time_added = time;
+			ip = _ip;
+		}
+	};
+
+	class AvailableServer {
+	public:
 		String version;
 		String project_name;
-		String sender_ip_address;
 		int port;
-		PoolStringArray all_serever_addresses;
-		std::vector<String> recieved_from_addresses;
-		uint64_t server_hash;
+		std::vector<std::shared_ptr<AvailableServerAddress> > recieved_from_addresses;
+		int64_t server_uid;
 		PoolByteArray icon_data;
 
-		AvailableServerAddress() {
-			time_added = 0;
+		AvailableServer() {
 			port = 0;
-			server_hash = 0;
-		}
-
-		AvailableServerAddress(uint64_t _time, String _proj_name, String _ip, int _port, PoolStringArray _addresses, uint64_t _server_hash, PoolByteArray _icon_data) {
-			time_added = _time;
-			project_name = _proj_name;
-			sender_ip_address = _ip;
-			port = _port;
-			all_serever_addresses = _addresses;
-			server_hash = _server_hash;
-			icon_data = _icon_data;
+			server_uid = 0;
 		}
 	};
 
@@ -141,9 +142,10 @@ private:
 
 	String device_id = "UNKNOWN";
 	String server_address = String("127.0.0.1");
-	String current_auto_connect_server_address = String("127.0.0.1");
+	PoolStringArray current_auto_connect_server_addresses;
+	String current_auto_connect_project_name = "";
 	int current_auto_connect_server_port = 52341;
-	std::vector<std::shared_ptr<AvailableServerAddress> > found_server_addresses;
+	std::vector<std::shared_ptr<AvailableServer> > found_server_addresses;
 	bool is_auto_mode_active = false;
 
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
@@ -201,6 +203,9 @@ private:
 	void _update_avg_delay(uint64_t delay);
 	virtual void _reset_counters() override;
 
+#ifdef AUTO_CONNECTION_ENABLED
+	void _thread_udp_listener(Variant p_userdata);
+#endif
 	void _thread_connection(Variant p_userdata);
 
 	void _connection_loop(ConnectionThreadParamsClient *con_thread);
@@ -255,8 +260,10 @@ public:
 	String get_password();
 	void set_device_id(String _id);
 	String get_device_id();
-	void set_current_auto_connect_address(String _address);
-	String get_current_auto_connect_address();
+	void set_current_auto_connect_addresses(PoolStringArray _addresses);
+	PoolStringArray get_current_auto_connect_addresses();
+	void set_current_auto_connect_project_name(String _project_name);
+	String get_current_auto_connect_project_name();
 	void set_current_auto_connect_port(int _port);
 	int get_current_auto_connect_port();
 

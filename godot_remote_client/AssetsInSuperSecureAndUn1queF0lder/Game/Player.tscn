@@ -14,7 +14,8 @@ script = ExtResource( 2 )
 shape = SubResource( 1 )
 
 [node name="Sprite" type="Sprite" parent="CollisionShape2D"]
-scale = Vector2( 4, 4 )
+position = Vector2( 0, -3.12743 )
+scale = Vector2( 1.86959, 1.86959 )
 texture = ExtResource( 1 )
 offset = Vector2( 0, -1.468 )
 

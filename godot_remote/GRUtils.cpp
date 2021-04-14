@@ -3,6 +3,7 @@
 #include "GRUtils.h"
 #include "GodotRemote.h"
 #include <chrono>
+#include <ctime>
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/io/compression.h"
@@ -23,6 +24,7 @@ void init() {
 
 	GR_PACKET_HEADER('G', 'R', 'H', 'D');
 #include "GRVersion.h"
+	srand((unsigned int)time(0));
 }
 
 void deinit() {
@@ -505,5 +507,20 @@ Variant _GLOBAL_DEF(const String &p_var, const Variant &p_default, bool p_restar
 	return ret;
 }
 #endif
+
+// https://stackoverflow.com/a/33021408/8980874
+
+#define IMAX_BITS(m) ((m) / ((m) % 255 + 1) / 255 % 255 * 8 + 7 - 86 / ((m) % 255 + 12))
+#define RAND_MAX_WIDTH IMAX_BITS(RAND_MAX)
+static_assert((RAND_MAX & (RAND_MAX + 1u)) == 0, "RAND_MAX not a Mersenne number");
+
+int64_t rand64() {
+	int64_t r = 0;
+	for (int i = 0; i < 64; i += RAND_MAX_WIDTH) {
+		r <<= RAND_MAX_WIDTH;
+		r ^= rand();
+	}
+	return r * get_time_usec();
+}
 
 } // namespace GRUtils

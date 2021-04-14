@@ -68,7 +68,7 @@ func _resize_for_mobile():
 		nodes = get_tree().get_nodes_in_group("menus_that_should_be_higher")
 		for n in nodes:
 			if n is OptionButton:
-				n.get_popup().add_constant_override("vseparation", height / 2)
+				n.get_popup().add_constant_override("vseparation", height / 3)
 
 func _touches_to_open_settings_changed(count : int) -> void:
 	no_signal_hint_text.text = orig_hint_text % count

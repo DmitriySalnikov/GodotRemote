@@ -53,8 +53,9 @@ var device_id : String = "" setget set_device_id
 var connection_type : int = 0 setget set_con_type
 var ip : String = "127.0.0.1" setget set_ip
 var port : int = 52341 setget set_port
-var auto_ip : String = "None" setget set_auto_ip
+var auto_addresses : PoolStringArray = [] setget set_auto_addresses
 var auto_port : int = 0 setget set_auto_port
+var auto_project_name : String = "" setget set_auto_project_name
 var stretch_mode : int = 0 setget set_stretch_mode
 var target_send_fps : int = 120 setget set_target_send_fps
 var texture_filtering : bool = true setget set_texture_filtering
@@ -167,6 +168,9 @@ func _set_all_values():
 	dev.device_id = device_id
 	dev.set_address_port(ip, port)
 	dev.set_decoder_threads_count(decoder_threads_number)
+	dev.current_auto_connect_addresses = auto_addresses
+	dev.current_auto_connect_port = auto_port
+	dev.current_auto_connect_project_name = auto_project_name
 	dev.connection_type = connection_type
 	dev.stretch_mode = stretch_mode
 	dev.target_send_fps = target_send_fps
@@ -175,6 +179,7 @@ func _set_all_values():
 	dev.server_settings_syncing = sync_server_settings
 	dev.viewport_orientation_syncing = sync_viewport_orientation
 	dev.viewport_aspect_ratio_syncing = sync_viewport_aspect_ratio
+	dev.set_decoder_threads_count(decoder_threads_number)
 	OS.keep_screen_on = keepscreenon
 	
 	if override_server_settings:
@@ -184,7 +189,7 @@ func _set_all_values():
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_RENDER_SCALE, server_render_scale)
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_SKIP_FRAMES, server_skip_fps)
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_TARGET_FPS, server_target_fps)
-		dev.set_server_setting(C.GRDevice_SERVER_SETTINGS_THREADS_NUMBER, server_threads_number)
+		dev.set_server_setting(C.GRDevice_SERVER_PARAM_THREADS_NUMBER, server_threads_number)
 	
 	if i_w:
 		dev.start()
@@ -211,8 +216,9 @@ func _save_settings():
 	d["con_type"] = connection_type
 	d["ip"] = ip
 	d["port"] = port
-	d["auto_ip"] = auto_ip
+	d["auto_addresses"] = auto_addresses
 	d["auto_port"] = auto_port
+	d["auto_project_name"] = auto_project_name
 	d["stretch"] = stretch_mode
 	d["stats"] = show_stats
 	d["target_fps"] = target_send_fps
@@ -280,8 +286,9 @@ func _load_settings():
 			connection_type = _safe_get_from_dict(d, "con_type", connection_type)
 			ip = _safe_get_from_dict(d, "ip", ip)
 			port = _safe_get_from_dict(d, "port", port)
-			auto_ip = _safe_get_from_dict(d, "auto_ip", auto_ip)
+			auto_addresses = _safe_get_from_dict(d, "auto_addresses", auto_addresses)
 			auto_port = _safe_get_from_dict(d, "auto_port", auto_port)
+			auto_project_name = _safe_get_from_dict(d, "auto_project_name", auto_project_name)
 			stretch_mode = _safe_get_from_dict(d, "stretch", stretch_mode)
 			show_stats = _safe_get_from_dict(d, "stats", show_stats)
 			target_send_fps = _safe_get_from_dict(d, "target_fps", target_send_fps)
@@ -411,12 +418,16 @@ func set_port(val : int):
 	port = val
 	_save_settings()
 
-func set_auto_ip(val : String):
-	auto_ip = val
+func set_auto_addresses(val : PoolStringArray):
+	auto_addresses = val
 	_save_settings()
 
 func set_auto_port(val : int):
 	auto_port = val
+	_save_settings()
+
+func set_auto_project_name(val : String):
+	auto_project_name = val
 	_save_settings()
 
 func set_stretch_mode(val : int):

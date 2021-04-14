@@ -236,15 +236,13 @@ Error GRUtilsH264Codec::_decode_yuv_to_image(PoolByteArray *data, const int widt
 
 	PoolByteArray rgb;
 	rgb.resize(width * height * 3);
-	auto rw = rgb.write();
-
-	yuv420_rgb24(width, height, buf_y, buf_u, buf_v, stride[0], stride[1], rw.ptr(), width * 3);
 
 	{
-		ZoneScopedNC("Create Image from Data", tracy::Color::DarkOliveGreen);
-		release_pva_write(rw);
+		auto rw = rgb.write();
+		yuv420_rgb24(width, height, buf_y, buf_u, buf_v, stride[0], stride[1], rw.ptr(), width * 3);
 	}
 
+	*data = rgb;
 	return Error::OK;
 }
 

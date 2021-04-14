@@ -54,21 +54,14 @@ void GRStreamDecoderH264::_notification(int p_notification) {
 
 void GRStreamDecoderH264::push_packet_to_decode(std::shared_ptr<GRPacketStreamData> packet) {
 	ZoneScopedNC("Push packet to decode", tracy::Color::Ivory);
+	Scoped_lock(ts_lock);
 	GRStreamDecoder::push_packet_to_decode(packet);
 
 	shared_cast_def(GRPacketStreamDataH264, img_data, packet);
 	if (img_data && packet->get_type() == GRPacket::StreamDataH264) {
 		if (img_data->get_is_stream_end()) {
-			Scoped_lock(ts_lock);
 			images.pop();
-
-			while (buffer.size())
-				buffer.pop();
-
-			auto img = BufferedImage(PoolByteArray(), 0, 0, 0, 0);
-			img.is_end = true;
-
-			buffer.push(img);
+			_commit_stream_end();
 		}
 	} else {
 		_log("Got wrong packet data", LogLevel::LL_ERROR);
@@ -136,6 +129,17 @@ void GRStreamDecoderH264::_deinit() {
 	stop_decoder_threads();
 }
 
+void GRStreamDecoderH264::_commit_stream_end() {
+	Scoped_lock(ts_lock);
+	while (buffer.size())
+		buffer.pop();
+
+	auto img = BufferedImage(PoolByteArray(), 0, 0, 0, 0);
+	img.is_end = true;
+
+	buffer.push(img);
+}
+
 void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 	Thread_set_name("H264 Update Thread");
 	auto os = OS::get_singleton();
@@ -152,12 +156,12 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 
 		if (buffer.size()) {
 			auto buf = buffer.front();
+			buffer.pop();
 
 			uint64_t time = get_time_usec();
 			if (buf.is_end) {
 				gr_client->_image_lost();
 			} else {
-				buffer.pop();
 				ts_lock.unlock();
 
 				prev_shown_frame_time = time;
@@ -231,7 +235,7 @@ bool GRStreamDecoderH264::ProcessFrame(SBufferInfo *info, uint64_t start_time, u
 		while (buffer.size() > get_max_queued_frames())
 			buffer.pop();
 
-		if (buffer.size() || buffer.front().is_end || data.size() == 0) {
+		if ((buffer.size() && buffer.front().is_end) || data.size() == 0) {
 			return false;
 		}
 

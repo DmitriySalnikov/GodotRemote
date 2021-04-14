@@ -614,11 +614,11 @@ void GRServer::_thread_listen(Variant p_userdata) {
 	bool listening_error_notification_shown = false;
 
 #ifdef AUTO_CONNECTION_ENABLED
+	const int duplicate_udp_packets = 2;
 	uint64_t prev_udp_time_send = 0;
-	PoolByteArray udp_data;
+	Ref<StreamPeerBuffer> udp_data_buf = newref(StreamPeerBuffer);
 	std::vector<std::shared_ptr<UdpBroadcast> > available_sockets;
 	{
-		PoolStringArray available_addresses;
 		Array all_serever_addresses = IP::get_singleton()->call(NAMEOF(get_local_addresses));
 		for (int i = 0; i < all_serever_addresses.size(); i++) {
 #ifndef GDNATIVE_LIBRARY
@@ -628,10 +628,6 @@ void GRServer::_thread_listen(Variant p_userdata) {
 			String orig_address = all_serever_addresses[i].operator godot::String();
 			PoolStringArray split = (orig_address).split(".");
 #endif
-			if (available_addresses.size() >= 50) {
-				_log("Too much all_serever_addresses, ignoring others.", LogLevel::LL_WARNING);
-				break;
-			}
 
 			if (split.size() == 4) {
 				split.set(3, "255");
@@ -641,7 +637,6 @@ void GRServer::_thread_listen(Variant p_userdata) {
 					auto udp = shared_new(UdpBroadcast);
 					if (udp->Open(address.ascii().get_data(), AUTO_CONNECTION_PORT)) {
 						available_sockets.push_back(udp);
-						available_addresses.append(orig_address);
 					}
 				} else {
 					_log("Can't set destination address for UDP. Error: " + str((int)err), LogLevel::LL_ERROR);
@@ -673,7 +668,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 			if (out_img.is_valid() && !img_is_empty(out_img)) {
 				out_img->resize(32, 32, ENUM_CONV(Image::Interpolation) 4); // INTERPOLATE_LANCZOS = 4 slowest interpolation
 				png_buffer = out_img->save_png_to_buffer();
-				
+
 				// too big
 				if (png_buffer.size() > 1024 * 4) {
 					png_buffer.resize(0);
@@ -686,23 +681,23 @@ void GRServer::_thread_listen(Variant p_userdata) {
 		Dictionary server_udp_dict;
 		server_udp_dict["version"] = get_gr_version();
 		server_udp_dict["project_name"] = GET_PS("application/config/name");
-		server_udp_dict["port"] = port;
-		server_udp_dict["addresses"] = available_addresses;
+		server_udp_dict["port"] = static_port;
+		server_udp_dict["server_uid"] = rand64();
 		server_udp_dict["icon_data"] = png_buffer;
 
-		Ref<StreamPeerBuffer> buf = newref(StreamPeerBuffer);
+		PoolByteArray udp_data;
 		udp_data.append_array(get_packet_header());
-		buf->set_data_array(udp_data);
-		buf->seek(4);
-		buf->put_var(server_udp_dict);
-		udp_data = buf->get_data_array();
+		udp_data_buf->set_data_array(udp_data);
+		udp_data_buf->seek(4);
+		udp_data_buf->put_64(0);
+		udp_data_buf->put_var(server_udp_dict);
 	}
 #endif
 
 	while (!this_thread_info->stop_thread) {
 		ZoneScopedNC("Server Listen For Connections", tracy::Color::Orange2);
 		if (!tcp_server->is_listening()) {
-			err = tcp_server->listen(port);
+			err = tcp_server->listen(static_port);
 
 			if (err != Error::OK) {
 				switch (err) {
@@ -752,8 +747,8 @@ void GRServer::_thread_listen(Variant p_userdata) {
 				sleep_usec(1000_ms);
 				continue;
 			} else {
-				_log("Start listening port " + str(port), LogLevel::LL_NORMAL);
-				GRNotifications::add_notification_or_update_line("Godot Remote Server", "2listening", "Start listening on port: " + str(port), GRNotifications::NotificationIcon::ICON_SUCCESS, 1.f);
+				_log("Start listening port " + str(static_port), LogLevel::LL_NORMAL);
+				GRNotifications::add_notification_or_update_line("Godot Remote Server", "2listening", "Start listening on port: " + str(static_port), GRNotifications::NotificationIcon::ICON_SUCCESS, 1.f);
 			}
 		}
 		listening_error_notification_shown = false;
@@ -822,12 +817,26 @@ void GRServer::_thread_listen(Variant p_userdata) {
 			}
 		} else {
 #ifdef AUTO_CONNECTION_ENABLED
-			if (available_sockets.size() && client_connected == 0 && get_time_usec() - prev_udp_time_send > 1000_ms) {
+			if (available_sockets.size() && client_connected == 0 && get_time_usec() - prev_udp_time_send > 400_ms) {
 				ZoneScopedNC("Sending UDP server data", tracy::Color::DarkMagenta);
+				std::vector<std::shared_ptr<UdpBroadcast> > sockets_to_delete;
 
 				for (auto u : available_sockets) {
-					u->Send(AUTO_CONNECTION_PORT, udp_data.read().ptr(), udp_data.size());
+					int64_t rnd_num = rand64();
+					udp_data_buf->seek(4);
+					udp_data_buf->put_64(rnd_num);
+					for (int i = 0; i < duplicate_udp_packets; i++) {
+						if (u->Send(AUTO_CONNECTION_PORT, udp_data_buf->get_data_array().read().ptr(), udp_data_buf->get_data_array().size()) == -1) {
+							sockets_to_delete.push_back(u);
+							break;
+						}
+					}
 				}
+
+				for (auto u : sockets_to_delete) {
+					vec_remove_obj(available_sockets, u);
+				}
+
 				prev_udp_time_send = get_time_usec();
 				_log("Waiting...", LogLevel::LL_DEBUG);
 			}

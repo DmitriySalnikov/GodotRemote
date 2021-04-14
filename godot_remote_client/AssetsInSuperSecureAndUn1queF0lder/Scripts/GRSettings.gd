@@ -178,7 +178,7 @@ func _set_all_server_settings():
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE, compression.get_item_id(compression.selected))
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED, video_stream.pressed)
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_TARGET_FPS, target_server_fps.value)
-		d.set_server_setting(C.GRDevice_SERVER_SETTINGS_THREADS_NUMBER, encoder_threads.value)
+		d.set_server_setting(C.GRDevice_SERVER_PARAM_THREADS_NUMBER, encoder_threads.value)
 
 func _status_changed(_status : int):
 	if timer.is_stopped():
@@ -186,10 +186,10 @@ func _status_changed(_status : int):
 	_update_start_stop()
 
 func _on_auto_list_address_changed():
-	if G.auto_ip != "None":
-		auto_prev_addr.text = "%s:%d" % [G.auto_ip, G.auto_port]
+	if G.auto_addresses.size() > 0:
+		auto_prev_addr.text = "%s\n%s\n%d" % [G.auto_project_name, G.auto_addresses.join(", "), G.auto_port]
 	else:
-		auto_prev_addr.text = G.auto_ip
+		auto_prev_addr.text = "None"
 
 func _on_auto_connection_status_changed(is_listening):
 	if is_listening:
@@ -234,7 +234,7 @@ func _server_settings_received(_settings : Dictionary):
 			C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE: compression.selected = compression.get_item_index(v)
 			C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED: video_stream.pressed = v
 			C.GRDevice_SERVER_PARAM_TARGET_FPS: target_server_fps.value = v
-			C.GRDevice_SERVER_SETTINGS_THREADS_NUMBER: encoder_threads.value = v
+			C.GRDevice_SERVER_PARAM_THREADS_NUMBER: encoder_threads.value = v
 	
 	updated_by_code = false
 
@@ -439,5 +439,5 @@ func _on_server_target_fps_value_changed(value: float) -> void:
 func _on_server_encoder_threads_value_changed(value: float) -> void:
 	if not updated_by_code:
 		if G.override_server_settings:
-			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_SETTINGS_THREADS_NUMBER, value)
+			GodotRemote.get_device().set_server_setting(C.GRDevice_SERVER_PARAM_THREADS_NUMBER, value)
 	G.server_threads_number = int(value)

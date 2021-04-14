@@ -174,11 +174,11 @@ float GRDevice::get_max_fps() {
 }
 
 uint16_t GRDevice::get_port() {
-	return port;
+	return static_port;
 }
 
 void GRDevice::set_port(uint16_t _port) {
-	port = _port;
+	static_port = _port;
 	restart();
 }
 
@@ -216,7 +216,7 @@ GRDevice::WorkingStatus GRDevice::get_status() {
 
 void GRDevice::_init() {
 	LEAVE_IF_EDITOR();
-	port = GET_PS(GodotRemote::ps_general_port_name);
+	static_port = GET_PS(GodotRemote::ps_general_port_name);
 }
 
 void GRDevice::_deinit() {

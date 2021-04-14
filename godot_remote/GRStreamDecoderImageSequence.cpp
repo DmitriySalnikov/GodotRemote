@@ -56,22 +56,14 @@ void GRStreamDecoderImageSequence::_notification(int p_notification) {
 
 void GRStreamDecoderImageSequence::push_packet_to_decode(std::shared_ptr<GRPacketStreamData> packet) {
 	ZoneScopedNC("Push packet to decode", tracy::Color::Ivory);
+	Scoped_lock(ts_lock);
 	GRStreamDecoder::push_packet_to_decode(packet);
 
 	shared_cast_def(GRPacketStreamDataImage, img_data, packet);
 	if (img_data && packet->get_type() == GRPacket::StreamDataImage) {
 		if (img_data->get_is_stream_end()) {
-			Scoped_lock(ts_lock);
 			images.pop();
-
-			while (buffer.size())
-				buffer.pop();
-
-			auto img = std::make_shared<BufferedImage>(0, 0);
-			img->is_ready = true;
-			img->is_end = true;
-
-			buffer.push(img);
+			_commit_stream_end();
 		}
 	}
 }
@@ -139,6 +131,18 @@ void GRStreamDecoderImageSequence::_init() {
 void GRStreamDecoderImageSequence::_deinit() {
 	LEAVE_IF_EDITOR();
 	stop_decoder_threads();
+}
+
+void GRStreamDecoderImageSequence::_commit_stream_end() {
+	Scoped_lock(ts_lock);
+	while (buffer.size())
+		buffer.pop();
+
+	auto img = std::make_shared<BufferedImage>(0, 0);
+	img->is_ready = true;
+	img->is_end = true;
+
+	buffer.push(img);
 }
 
 void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
@@ -229,6 +233,11 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 		Error err = Error::OK;
 		shared_cast_def(GRPacketStreamDataImage, image_pack, images.front());
 		images.pop();
+
+		if (image_pack->get_is_stream_end()) {
+			_commit_stream_end();
+			continue;
+		}
 
 		//                                       \/ this needed for static_cast
 		if (image_pack && image_pack->get_type() == GRPacket::StreamDataImage) {

@@ -46,6 +46,7 @@ private:
 	bool is_update_thread_active = true;
 	bool video_stream_enabled = true;
 
+	void _commit_stream_end();
 	void _update_thread(Variant p_userdata);
 	void _processing_thread(Variant p_userdata);
 
