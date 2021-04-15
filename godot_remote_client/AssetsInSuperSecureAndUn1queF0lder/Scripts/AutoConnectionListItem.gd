@@ -11,13 +11,17 @@ func appear():
 	$Tween.interpolate_callback(self, dur, "set_disabled", false)
 	$Tween.start()
 
-func setup_params(version : String, project_name : String, port : int, addresses : PoolStringArray, img : Image):
+func _create_tex(img : Image):
 	if img and not img.is_empty():
 		var tex = ImageTexture.new()
-		tex.create_from_image(img)
-		$H/Icon.texture = tex
+		tex.create_from_image(img, Texture.FLAG_FILTER)
+		return tex
 	else:
-		$H/Icon.texture = null
+		return null
+
+func setup_params(version : String, project_name : String, port : int, addresses : PoolStringArray, icon_img : Image, preview_img : Image):
+	$H/Icon.texture = _create_tex(icon_img)
+	$H/Preview.texture = _create_tex(preview_img)
 	
 	$H/V/ProjectName.text = project_name
 	$H/V/Port.text = str(port)

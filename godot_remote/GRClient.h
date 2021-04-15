@@ -121,6 +121,7 @@ private:
 		std::vector<std::shared_ptr<AvailableServerAddress> > recieved_from_addresses;
 		int64_t server_uid;
 		PoolByteArray icon_data;
+		PoolByteArray preview_data;
 
 		AvailableServer() {
 			port = 0;
@@ -203,7 +204,7 @@ private:
 	void _update_avg_delay(uint64_t delay);
 	virtual void _reset_counters() override;
 
-#ifdef AUTO_CONNECTION_ENABLED
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 	void _thread_udp_listener(Variant p_userdata);
 #endif
 	void _thread_connection(Variant p_userdata);
@@ -282,6 +283,9 @@ public:
 	float get_min_delay();
 	float get_max_delay();
 	float get_stream_aspect_ratio();
+
+	virtual uint16_t get_port() override;
+	virtual void set_port(uint16_t _port) override;
 
 	void set_decoder_threads_count(int count);
 	int get_decoder_threads_count();

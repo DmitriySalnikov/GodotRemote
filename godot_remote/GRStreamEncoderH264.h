@@ -1,7 +1,7 @@
 /* GRStreamEncoderH264.h */
 #pragma once
 
-#if !defined(NO_GODOTREMOTE_SERVER) && defined(GODOTREMOTE_H264_ENABLED)
+#if !defined(NO_GODOTREMOTE_SERVER) && defined(GODOT_REMOTE_H264_ENABLED)
 
 #include "GRPacket.h"
 #include "GRStreamEncoders.h"

@@ -179,7 +179,6 @@ uint16_t GRDevice::get_port() {
 
 void GRDevice::set_port(uint16_t _port) {
 	static_port = _port;
-	restart();
 }
 
 void GRDevice::send_packet(std::shared_ptr<GRPacket> packet) {

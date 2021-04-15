@@ -72,7 +72,9 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(_remove_custom_input_scene)), &GRClient::_remove_custom_input_scene);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_on_node_deleting), "var_name"), &GRClient::_on_node_deleting);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_connection), "user_data"), &GRClient::_thread_connection);
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_udp_listener), "user_data"), &GRClient::_thread_udp_listener);
+#endif
 
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_control_to_show_in), "control_node", "position_in_node"), &GRClient::set_control_to_show_in, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_custom_no_signal_texture), "texture"), &GRClient::set_custom_no_signal_texture);
@@ -96,6 +98,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_decoder_threads_count), "count"), &GRClient::set_decoder_threads_count);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_decoder_threads_count)), &GRClient::get_decoder_threads_count);
 
+	ClassDB::bind_method(D_METHOD(NAMEOF(break_connection)), &GRClient::break_connection);
 	ClassDB::bind_method(D_METHOD(NAMEOF(break_connection_async)), &GRClient::break_connection_async);
 
 	ADD_SIGNAL(MethodInfo("custom_input_scene_added"));
@@ -180,7 +183,9 @@ void GRClient::_bind_methods() {
 void GRClient::_register_methods() {
 	METHOD_REG(GRClient, _notification);
 	METHOD_REG(GRClient, _thread_connection);
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 	METHOD_REG(GRClient, _thread_udp_listener);
+#endif
 
 	METHOD_REG(GRClient, _update_texture_from_image);
 	METHOD_REG(GRClient, _update_stream_texture_state);
@@ -212,6 +217,7 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, set_decoder_threads_count);
 	METHOD_REG(GRClient, get_decoder_threads_count);
 
+	METHOD_REG(GRClient, break_connection);
 	METHOD_REG(GRClient, break_connection_async);
 
 	register_signal<GRClient>("auto_connection_listener_status_changed", "is_listening", GODOT_VARIANT_TYPE_BOOL);
@@ -552,6 +558,15 @@ void GRClient::_display_new_image(PoolByteArray data, int width, int height, uin
 	}
 }
 
+uint16_t GRClient::get_port() {
+	return static_port;
+}
+
+void GRClient::set_port(uint16_t _port) {
+	static_port = _port;
+	break_connection_async();
+}
+
 void GRClient::set_decoder_threads_count(int count) {
 	Scoped_lock(stream_mutex);
 	if (stream_manager)
@@ -678,6 +693,15 @@ String GRClient::get_address() {
 
 Array GRClient::get_found_auto_connection_addresses() {
 	Scoped_lock(ts_lock);
+	static auto load_png = [](PoolByteArray data) {
+		Ref<Image> img;
+		if (data.size() > 0) {
+			img = newref(Image);
+			img->load_png_from_buffer(data);
+		}
+		return img;
+	};
+
 	Array arr;
 	for (auto i : found_server_addresses) {
 		Dictionary dict;
@@ -692,12 +716,8 @@ Array GRClient::get_found_auto_connection_addresses() {
 		}
 		dict["addresses"] = adrss;
 
-		Ref<Image> img;
-		if (i->icon_data.size() > 0) {
-			img = newref(Image);
-			img->load_png_from_buffer(i->icon_data);
-		}
-		dict["icon"] = img;
+		dict["icon"] = load_png(i->icon_data);
+		dict["preview"] = load_png(i->preview_data);
 
 		arr.append(dict);
 	}
@@ -1177,7 +1197,7 @@ void GRClient::break_connection() {
 ////////////////// THREAD ////////////////////
 //////////////////////////////////////////////
 
-#ifdef AUTO_CONNECTION_ENABLED
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 void GRClient::_thread_udp_listener(Variant p_userdata) {
 	ConnectionThreadParamsClient *con_thread = VARIANT_OBJ_CAST_TO(p_userdata, ConnectionThreadParamsClient);
 
@@ -1185,7 +1205,7 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 	iterable_queue<int64_t> received_packs_uids;
 	Ref<StreamPeerBuffer> udp_server_buf = newref(StreamPeerBuffer);
 	bool is_udp_cant_be_started = false;
-	ConnectionType prev_connection_type = ConnectionType::CONNECTION_AUTO;
+	int prev_connection_type = -1;
 
 	auto emit_auto_connections_status_changed = [&](bool status) {
 		call_deferred(NAMEOF(emit_signal), "auto_connection_listener_status_changed", status);
@@ -1199,8 +1219,8 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 	};
 
 	while (!con_thread->stop_thread) {
-		if (prev_connection_type != connection_type) {
-			prev_connection_type = connection_type;
+		if (prev_connection_type != (int)connection_type) {
+			prev_connection_type = (int)connection_type;
 			is_udp_cant_be_started = false;
 		}
 
@@ -1274,6 +1294,7 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 								int port = 0;
 								int64_t server_uid = 0;
 								PoolByteArray icon_data;
+								PoolByteArray preview_data;
 
 								if (dict.has("version")) {
 									PoolByteArray ver = dict["version"];
@@ -1292,6 +1313,8 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 									server_uid = dict["server_uid"];
 								if (dict.has("icon_data"))
 									icon_data = dict["icon_data"];
+								if (dict.has("preview_data"))
+									preview_data = dict["preview_data"];
 
 								{
 									ts_lock.lock();
@@ -1309,12 +1332,13 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 										available_server->port = port;
 										available_server->version = version;
 										available_server->project_name = project_name;
-										available_server->icon_data = icon_data;
 										available_server->server_uid = server_uid;
 
 										found_server_addresses.push_back(available_server);
-										is_list_changed = true;
+										//is_list_changed = true;
 									}
+									available_server->icon_data = icon_data;
+									available_server->preview_data = preview_data;
 
 									// add or update IPs of sender
 									bool is_contains = false;
@@ -1326,11 +1350,12 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 									}
 									if (!is_contains) {
 										available_server->recieved_from_addresses.push_back(shared_new(AvailableServerAddress, get_time_usec(), adrs.GetText()));
-										is_list_changed = true;
+										//is_list_changed = true;
 									}
 
 									ts_lock.unlock();
 								}
+								is_list_changed = true;
 							}
 						}
 					} else {
@@ -1380,9 +1405,9 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 			}
 		out_of_search:
 
-			if (is_list_changed) {
+			if (is_list_changed)
 				emit_auto_connection_list_changed();
-			}
+
 			ts_lock.unlock();
 
 			sleep_usec(50_ms);
@@ -1391,13 +1416,11 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 		}
 	}
 
-#ifdef AUTO_CONNECTION_ENABLED
 	ts_lock.lock();
 	found_server_addresses.resize(0);
 	emit_auto_connection_list_changed();
 	close_udp_connection();
 	ts_lock.unlock();
-#endif
 }
 #endif
 
@@ -1409,10 +1432,13 @@ void GRClient::_thread_connection(Variant p_userdata) {
 	Error err = Error::OK;
 	const String con_error_title = "Connection Error";
 	String address;
+	String prev_connecting_address = "";
 	String prev_connecting_password = "";
-	ConnectionType prev_connection_type = ConnectionType::CONNECTION_AUTO;
+	int prev_connection_type = -1;
+	int prev_connection_type_unknown = -1;
+	int prev_connection_port = -1;
 
-#ifdef AUTO_CONNECTION_ENABLED
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 	Ref<_Thread> udp_thread;
 	Thread_start(udp_thread, this, _thread_udp_listener, p_userdata);
 #endif
@@ -1470,10 +1496,16 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 		if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
 			_log("Connection timed out with " + address, LogLevel::LL_DEBUG);
-			if (prev_auth_error != GRDevice::AuthResult::Timeout || prev_connection_type != connection_type) {
+			if (prev_auth_error != GRDevice::AuthResult::Timeout ||
+					prev_connection_type != (int)connection_type ||
+					prev_connection_port != try_to_port ||
+					prev_connecting_address != try_to_adr) {
+
 				GRNotifications::add_notification(con_error_title, "Connection timed out: " + address, GRNotifications::NotificationIcon::ICON_WARNING, true, 1.f);
 				prev_auth_error = GRDevice::AuthResult::Timeout;
-				prev_connection_type = connection_type;
+				prev_connection_type = (int)connection_type;
+				prev_connection_port = try_to_port;
+				prev_connecting_address = try_to_adr;
 			}
 			emit_first_connection_error();
 
@@ -1500,6 +1532,8 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 		switch (connection_type) {
 			case GRClient::CONNECTION_WiFi: {
+				prev_connection_type_unknown = (int)connection_type;
+
 #ifndef GDNATIVE_LIBRARY
 				IP_Address adr;
 #else
@@ -1533,13 +1567,17 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				break;
 			}
 			case GRClient::CONNECTION_ADB: {
+				prev_connection_type_unknown = (int)connection_type;
+
 				if (!try_connect("127.0.0.1", static_port)) {
 					continue;
 				}
 				break;
 			}
-#ifdef AUTO_CONNECTION_ENABLED
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 			case GRClient::CONNECTION_AUTO: {
+				prev_connection_type_unknown = (int)connection_type;
+
 				if (!con_thread->auto_mode_ready_to_connect) {
 					sleep_usec(50_ms);
 					continue;
@@ -1547,15 +1585,28 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 				// because connection attempts can be very long
 				ts_lock.lock();
-				auto copy_servers = found_server_addresses;
+				struct tmp_addrs {
+					std::vector<std::shared_ptr<AvailableServerAddress> > addresses;
+					int64_t uid = 0;
+					int port = 0;
+				};
+				std::vector<tmp_addrs> copy_servers;
+				for (auto s : found_server_addresses) {
+					tmp_addrs tmp;
+					tmp.addresses = s->recieved_from_addresses;
+					tmp.uid = s->server_uid;
+					tmp.port = s->port;
+
+					copy_servers.push_back(tmp);
+				}
 				ts_lock.unlock();
 
 				bool try_again = true;
 				for (auto s : copy_servers) {
-					if (s->server_uid == con_thread->auto_found_server_uid) {
-						for (auto adr : s->recieved_from_addresses) {
-							if (try_connect(adr->ip, s->port)) {
-								con_thread->auto_connected_server_uid = s->server_uid;
+					if (s.uid == con_thread->auto_found_server_uid) {
+						for (auto adr : s.addresses) {
+							if (try_connect(adr->ip, s.port)) {
+								con_thread->auto_connected_server_uid = s.uid;
 								try_again = false;
 								goto search_end;
 							}
@@ -1573,8 +1624,12 @@ void GRClient::_thread_connection(Variant p_userdata) {
 			}
 #endif
 			default:
-				_log("Not supported connection type: " + str(connection_type), LogLevel::LL_ERROR);
-				break;
+				if (prev_connection_type_unknown != (int)connection_type) {
+					_log("Not supported connection type: " + str(connection_type), LogLevel::LL_ERROR);
+				}
+				prev_connection_type_unknown = (int)connection_type;
+				sleep_usec(250_ms);
+				continue;
 		}
 
 		con->set_no_delay(true);
@@ -1590,7 +1645,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 		String notif_error_text;
 		GRDevice::AuthResult res = _auth_on_server(ppeer);
-		
+
 		if (need_to_cancel_connection()) {
 			continue;
 		}
@@ -1655,7 +1710,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				notif_error_text = "Unknown error code: " + str((int)res);
 				if (res != prev_auth_error)
 					GRNotifications::add_notification(con_error_title, "Unknown error code: " + str((int)res) + "\n" + address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
-				_log("Unknown error code: " + str((int)res) + ". Disconnecting. " + address, LogLevel::LL_NORMAL);
+				_log("Unknown error code: " + str((int)res) + ". Disconnecting. " + address, LogLevel::LL_ERROR);
 				break;
 			}
 		}
@@ -1702,7 +1757,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 	}
 
 	con_thread->stop_thread = true;
-#ifdef AUTO_CONNECTION_ENABLED
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 	Thread_close(udp_thread);
 #endif
 

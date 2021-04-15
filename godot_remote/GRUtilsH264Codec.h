@@ -1,6 +1,8 @@
 /* GRUtilsH264Codec.h */
 #pragma once
 
+#ifdef GODOT_REMOTE_H264_ENABLED
+
 #include "GRUtils.h"
 
 #include "openh264/include/codec_api.h"
@@ -22,7 +24,6 @@ private:
 #else
 #define H264_STDCALL
 #endif
-
 
 	// Encoder
 	typedef int(H264_STDCALL *WelsCreateSVCEncoderFunc)(ISVCEncoder **ppEncoder);
@@ -68,3 +69,5 @@ public:
 	static Error _encode_image_to_yuv(PoolByteArray img_data, const int width, const int height, const int bytes_in_color, uint8_t *buf[3]);
 	static Error _decode_yuv_to_image(PoolByteArray *data, const int width, const int height, uint8_t *buf_y, uint8_t *buf_u, uint8_t *buf_v, int stride[2]);
 };
+
+#endif

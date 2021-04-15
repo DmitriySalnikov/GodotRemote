@@ -1,8 +1,15 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalBoldSmall.tres" type="DynamicFont" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalBoldSmaller.tres" type="DynamicFont" id=2]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/AutoConnectionListItem.gd" type="Script" id=3]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Fonts/Roboto-Bold.ttf" type="DynamicFontData" id=4]
+
+[sub_resource type="DynamicFont" id=1]
+size = 12
+use_filter = true
+extra_spacing_top = -1
+font_data = ExtResource( 4 )
 
 [node name="Button" type="Button"]
 anchor_right = 1.0
@@ -35,7 +42,7 @@ stretch_mode = 6
 
 [node name="V" type="VBoxContainer" parent="H"]
 margin_left = 94.0
-margin_right = 747.0
+margin_right = 663.0
 margin_bottom = 90.0
 rect_clip_content = true
 mouse_filter = 2
@@ -43,7 +50,7 @@ size_flags_horizontal = 3
 custom_constants/separation = 0
 
 [node name="ProjectName" type="Label" parent="H/V"]
-margin_right = 653.0
+margin_right = 569.0
 margin_bottom = 37.0
 custom_fonts/font = ExtResource( 1 )
 text = "Project Name Here"
@@ -55,7 +62,7 @@ __meta__ = {
 
 [node name="Addresses" type="Label" parent="H/V"]
 margin_top = 37.0
-margin_right = 653.0
+margin_right = 569.0
 margin_bottom = 63.0
 custom_fonts/font = ExtResource( 2 )
 custom_colors/font_color = Color( 0.690196, 0.690196, 0.690196, 1 )
@@ -68,7 +75,7 @@ __meta__ = {
 
 [node name="Port" type="Label" parent="H/V"]
 margin_top = 63.0
-margin_right = 653.0
+margin_right = 569.0
 margin_bottom = 89.0
 custom_fonts/font = ExtResource( 2 )
 custom_colors/font_color = Color( 0.690196, 0.690196, 0.690196, 1 )
@@ -80,8 +87,8 @@ __meta__ = {
 }
 
 [node name="V2" type="VBoxContainer" parent="H"]
-margin_left = 751.0
-margin_right = 796.0
+margin_left = 667.0
+margin_right = 702.0
 margin_bottom = 90.0
 rect_clip_content = true
 mouse_filter = 2
@@ -89,15 +96,23 @@ custom_constants/separation = 0
 alignment = 1
 
 [node name="Version" type="Label" parent="H/V2"]
-margin_top = 32.0
-margin_right = 45.0
-margin_bottom = 58.0
-custom_fonts/font = ExtResource( 2 )
+margin_top = 34.0
+margin_right = 35.0
+margin_bottom = 56.0
+custom_fonts/font = SubResource( 1 )
 custom_colors/font_color = Color( 0.690196, 0.690196, 0.690196, 1 )
 text = "1.0.2"
 max_lines_visible = 1
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[node name="Preview" type="TextureRect" parent="H"]
+margin_left = 706.0
+margin_right = 796.0
+margin_bottom = 90.0
+rect_min_size = Vector2( 90, 90 )
+mouse_filter = 2
+stretch_mode = 6
 
 [node name="Tween" type="Tween" parent="."]

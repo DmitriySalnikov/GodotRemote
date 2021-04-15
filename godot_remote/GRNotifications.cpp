@@ -414,7 +414,7 @@ void GRNotifications::_init() {
 
 	notif_list_node = memnew(GRNotificationListWithSafeZone);
 	notif_list_node->set_name("NotificationList");
-	call_deferred("add_child", notif_list_node); // TODO add new function to check ST() and then add_child to prevent leak when generation mono glue
+	add_child(notif_list_node);
 
 	set_notifications_position(notifications_position);
 }
@@ -1038,6 +1038,7 @@ void GRNotificationListWithSafeZone::_init() {
 	set_h_grow_direction(Control::GROW_DIRECTION_BOTH);
 	set_mouse_filter(Control::MouseFilter::MOUSE_FILTER_IGNORE);
 	set_safe_zone(OS::get_singleton()->get_window_safe_area());
+	add_constant_override("separation", 3);
 	connect("resized", this, NAMEOF(_on_resize));
 }
 

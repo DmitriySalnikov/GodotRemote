@@ -18,6 +18,7 @@ def setup_options(env, opts, gen_help, is_gdnative = False):
     opts.Add(BoolVariable("godot_remote_disable_server", "Godot Remote. Remove server.", False))
     opts.Add(BoolVariable("godot_remote_disable_client", "Godot Remote. Remove client.", False))
     opts.Add(BoolVariable("godot_remote_use_sse2", "Godot Remote. Use SSE2 to convert YUV to RGB for the H264 codec. Only on PC and without libjpeg-turbo.", True))
+    opts.Add(BoolVariable("godot_remote_auto_connection_enabled", "Godot Remote. Enable auto connection mode using UDP broadcasting.", True))
     #opts.Add(BoolVariable("godot_remote_livepp", "Godot Remote. Live++ support... Windows only", False))
     opts.Update(env)
 
@@ -32,14 +33,16 @@ def setup_options(env, opts, gen_help, is_gdnative = False):
 def setup_default_cpp_defines(env):
     if env['godot_remote_no_default_resources']:
         env.Append(CPPDEFINES=['NO_GODOTREMOTE_DEFAULT_RESOURCES'])
-    if env['godot_remote_libjpeg_turbo_enabled']:
-        env.Append(CPPDEFINES=['GODOTREMOTE_LIBJPEG_TURBO_ENABLED'])
     if env['godot_remote_disable_server']:
         env.Append(CPPDEFINES=['NO_GODOTREMOTE_SERVER'])
     if env['godot_remote_disable_client']:
         env.Append(CPPDEFINES=['NO_GODOTREMOTE_CLIENT'])
+    if env['godot_remote_libjpeg_turbo_enabled']:
+        env.Append(CPPDEFINES=['GODOT_REMOTE_LIBJPEG_TURBO_ENABLED'])
     if env['godot_remote_use_sse2']:
         env.Append(CPPDEFINES=['GODOT_REMOTE_USE_SSE2'])
+    if env['godot_remote_auto_connection_enabled']:
+        env.Append(CPPDEFINES=['GODOT_REMOTE_AUTO_CONNECTION_ENABLED'])
 
 ######
 # gdnative

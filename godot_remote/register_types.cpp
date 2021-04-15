@@ -4,6 +4,7 @@
 
 #include "GRClient.h"
 #include "GRNotifications.h"
+#include "GRViewportCaptureRect.h"
 #include "GRProfilerViewportMiniPreview.h"
 #include "GRServer.h"
 #include "GRStreamDecoderH264.h"
@@ -48,6 +49,9 @@ void register_godot_remote_types() {
 	ClassDB::register_class<GRNotificationPanel>();
 	ClassDB::register_class<GRNotificationPanelUpdatable>();
 	ClassDB::register_class<GRNotificationStyle>();
+
+	ClassDB::register_class<GRViewportCaptureRect>();
+	ClassDB::register_class<GRProfilerViewportMiniPreview>();
 
 	ClassDB::register_virtual_class<GRDevice>();
 
@@ -123,6 +127,7 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 	register_class<GRNotificationPanel>();
 	register_class<GRNotificationPanelUpdatable>();
 	register_class<GRNotificationStyle>();
+	register_class<GRViewportCaptureRect>();
 	register_class<GRProfilerViewportMiniPreview>();
 
 	register_class<GRDevice>();
@@ -135,7 +140,9 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 	register_class<GRStreamEncodersManager>();
 	register_class<GRStreamEncoder>();
 	register_class<GRStreamEncoderImageSequence>();
+#ifdef GODOT_REMOTE_H264_ENABLED
 	register_class<GRStreamEncoderH264>();
+#endif
 #endif
 
 #ifndef NO_GODOTREMOTE_CLIENT
@@ -146,7 +153,9 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 	register_class<GRStreamDecodersManager>();
 	register_class<GRStreamDecoder>();
 	register_class<GRStreamDecoderImageSequence>();
+#ifdef GODOT_REMOTE_H264_ENABLED
 	register_class<GRStreamDecoderH264>();
+#endif
 #endif
 
 	register_tool_class<GRToolMenuPlugin>();

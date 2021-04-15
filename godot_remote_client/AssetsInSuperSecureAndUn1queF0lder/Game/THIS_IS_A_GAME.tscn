@@ -1,8 +1,9 @@
-[gd_scene load_steps=12 format=2]
+[gd_scene load_steps=13 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/AndroidAppIconBackground.png" type="Texture" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Game/Player.tscn" type="PackedScene" id=2]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Game/THIS_IS_A_GAME.gd" type="Script" id=3]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/MainTheme.tres" type="Theme" id=4]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Game/PipeHandler.gd" type="Script" id=5]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Game/PipePair.tscn" type="PackedScene" id=6]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NotificationPanelTitleStyle.tres" type="DynamicFont" id=7]
@@ -80,6 +81,7 @@ jump_velocity = 700
 [node name="Control" type="Control" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
+theme = ExtResource( 4 )
 __meta__ = {
 "_edit_use_anchors_": false
 }

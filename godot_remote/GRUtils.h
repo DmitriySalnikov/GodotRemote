@@ -166,7 +166,7 @@ typedef Directory _Directory;
 // DEBUG DEFINES
 
 #ifdef DEBUG_ENABLED
-#define _log(val, logLevel) __log(val, logLevel, __FILE__, __LINE__)
+#define _log(val, logLevel) __log(val, logLevel, __FUNCTION__, __FILE__, __LINE__)
 #else
 #define _log(val, logLevel)
 #endif // DEBUG_ENABLED
@@ -174,7 +174,7 @@ typedef Directory _Directory;
 #ifdef TRACY_ENABLE
 #define Thread_set_name(_name) tracy::SetThreadName(_name)
 
-#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
+#if defined(GODOT_REMOTE_TRACY_ENABLED) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
 #define MANUAL_TRACY
 #define START_TRACY tracy::StartupProfiler();
 #define STOP_TRACY tracy::ShutdownProfiler();
@@ -200,6 +200,7 @@ typedef Directory _Directory;
 #endif
 
 #define sleep_usec(usec) OS::get_singleton()->delay_usec(usec)
+#define rnd_rng(_min, _max) (_min + (abs(rand64()) % (_max - _min + 1)))
 #define Mutex_define(_var, _description) TracyLockableN(std::recursive_mutex, _var, _description)
 #define Scoped_lock(_mutex_name) std::lock_guard<LockableBase(std::recursive_mutex)> _scoped_lock_guard(_mutex_name)
 
@@ -250,7 +251,6 @@ typedef Directory _Directory;
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
 
 #define AUTO_CONNECTION_PORT 57360
-#define AUTO_CONNECTION_ENABLED
 
 enum LogLevel : int {
 	LL_DEBUG = 0,
@@ -287,7 +287,7 @@ extern uint64_t get_time_usec();
 extern Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type);
 extern Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolByteArray &res, int type);
 #ifdef DEBUG_ENABLED
-extern void __log(const Variant &val, int lvl = 1 /*LogLevel::LL_NORMAL*/, String file = "", int line = 0);
+extern void __log(const Variant &val, int lvl = 1 /*LogLevel::LL_NORMAL*/, String func = "", String file = "", int line = 0);
 #endif
 
 extern String str(const Variant &val);

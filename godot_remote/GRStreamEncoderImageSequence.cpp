@@ -200,7 +200,7 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 		}
 
 		pack->set_compression_type(compression_type);
-		pack->set_size(Size2((float)com_image.img_width, (float)com_image.img_height));
+		pack->set_size(Size2((real_t)com_image.img_width, (real_t)com_image.img_height));
 		pack->set_frametime(com_image.frametime);
 		pack->set_start_time(com_image.time_added);
 		pack->set_is_stream_end(false);
@@ -213,7 +213,7 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 				ZoneScopedNC("Image processed: JPG", tracy::Color::VioletRed3);
 				Error err = Error::OK;
 
-#ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
+#ifdef GODOT_REMOTE_LIBJPEG_TURBO_ENABLED
 				err = GRUtilsJPGCodec::_compress_jpg_turbo(img_data, com_image.img_data, jpg_buffer, com_image.img_width, com_image.img_height, bytes_in_color, stream_quality);
 #else
 				err = GRUtilsJPGCodec::_compress_jpg(img_data, com_image.img_data, jpg_buffer, com_image.img_width, com_image.img_height, bytes_in_color, stream_quality);

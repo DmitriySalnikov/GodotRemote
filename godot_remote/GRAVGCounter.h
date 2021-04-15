@@ -46,15 +46,15 @@ public:
 
 		if (val_queue.size() > 0) {
 			double sum = 0;
-			min_val = (float)val_queue.back();
-			max_val = (float)val_queue.back();
+			min_val = (TValue)val_queue.back();
+			max_val = (TValue)val_queue.back();
 
 			for (TQueue i : val_queue) {
 				sum += i;
 				if (i < min_val)
-					min_val = (float)i;
+					min_val = (TValue)i;
 				else if (i > max_val)
-					max_val = (float)i;
+					max_val = (TValue)i;
 			}
 			avg_val = modifier(TValue(sum / val_queue.size()));
 			min_val = modifier(TValue(min_val));

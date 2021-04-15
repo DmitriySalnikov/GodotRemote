@@ -76,7 +76,7 @@ void GRStreamDecodersManager::_start_decoder(std::shared_ptr<GRPacketStreamData>
 		return;
 	}
 
-#ifdef GODOTREMOTE_H264_ENABLED
+#ifdef GODOT_REMOTE_H264_ENABLED
 	if (packet->get_compression_type() == GRDevice::ImageCompressionType::COMPRESSION_H264) {
 		GRStreamDecoderH264 *tmp_en = decoder ? cast_to<GRStreamDecoderH264>(decoder) : nullptr;
 		if (tmp_en) {

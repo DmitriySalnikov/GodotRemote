@@ -104,8 +104,9 @@ public:
 	float get_avg_fps();
 	float get_min_fps();
 	float get_max_fps();
-	uint16_t get_port();
-	void set_port(uint16_t _port);
+
+	virtual uint16_t get_port();
+	virtual void set_port(uint16_t _port);
 
 	void send_packet(std::shared_ptr<GRPacket> packet);
 	void send_user_data(Variant packet_id, Variant user_data, bool full_objects = false);

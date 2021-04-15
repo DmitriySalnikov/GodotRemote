@@ -1,6 +1,6 @@
 /* GRStreamDecoderH264.cpp */
 
-#if !defined(NO_GODOTREMOTE_CLIENT) && defined(GODOTREMOTE_H264_ENABLED)
+#if !defined(NO_GODOTREMOTE_CLIENT) && defined(GODOT_REMOTE_H264_ENABLED)
 
 //#define DEBUG_H264
 

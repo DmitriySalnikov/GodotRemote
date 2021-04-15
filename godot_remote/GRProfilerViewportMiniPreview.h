@@ -2,28 +2,16 @@
 #pragma once
 
 #include "GRUtils.h"
+#include "GRViewportCaptureRect.h"
 
 #ifndef GDNATIVE_LIBRARY
-
-#include "scene/2d/node_2d.h"
-#include "scene/main/viewport.h"
 #else
-
-#include <Node2D.hpp>
-#include <Viewport.hpp>
 using namespace godot;
 #endif
 
-class GRProfilerViewportMiniPreview : public Viewport {
-	GD_CLASS(GRProfilerViewportMiniPreview, Viewport);
+class GRProfilerViewportMiniPreview : public GRViewportCaptureRect {
+	GD_CLASS(GRProfilerViewportMiniPreview, GRViewportCaptureRect);
 
-private:
-protected:
-	Viewport *main_vp = nullptr;
-	Node2D *renderer = nullptr;
-	Vector2 max_viewport_size = Vector2(128 * 3, 128 * 3);
-
-// by default it will disabled for mobile
 #if defined(__ANDROID__)
 	bool is_enabled = false;
 #else
@@ -39,10 +27,10 @@ public:
 protected:
 #endif
 	void _notification(int p_notification);
-	void _update_size();
-	void _on_draw();
 
 public:
+
+	virtual void on_process() override;
 	void set_enabled_preview(bool state);
 	void _init();
 	void _deinit();

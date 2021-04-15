@@ -1,7 +1,7 @@
 /* GRProfiler.h */
 #pragma once
 
-#ifdef GODOTREMOTE_TRACY_ENABLED
+#ifdef GODOT_REMOTE_TRACY_ENABLED
 
 //#include "tracy/client/TracyCallstack.hpp"
 #include "tracy/Tracy.hpp"
@@ -113,4 +113,4 @@
 #define TracyParameterSetup(idx, name, isBool, val)
 #define TracyIsConnected false
 
-#endif // GODOTREMOTE_TRACY_ENABLED
+#endif // GODOT_REMOTE_TRACY_ENABLED

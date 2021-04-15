@@ -49,6 +49,7 @@ public:
 	};
 
 	static GR_PS_NAME_TYPE ps_general_autoload_name;
+	static GR_PS_NAME_TYPE ps_general_use_static_port_name;
 	static GR_PS_NAME_TYPE ps_general_port_name;
 	static GR_PS_NAME_TYPE ps_general_loglevel_name;
 
@@ -206,6 +207,10 @@ public:
 	void set_accelerometer(const Vector3 &p_accel);
 	void set_magnetometer(const Vector3 &p_magnetometer);
 	void set_gyroscope(const Vector3 &p_gyroscope);
+
+	void print_str(String txt);
+	void print_error_str(String txt, String func, String file, int line);
+	void print_warning_str(String txt, String func, String file, int line);
 	// GRUtils end
 
 	GRDevice *get_device();

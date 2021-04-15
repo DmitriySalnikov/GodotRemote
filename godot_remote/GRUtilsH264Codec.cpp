@@ -1,6 +1,8 @@
 /* GRUtilsH264Codec.cpp */
 
+#ifdef GODOT_REMOTE_H264_ENABLED
 #include "GRUtilsH264Codec.h"
+
 using namespace GRUtils;
 
 #if defined(_MSC_VER)
@@ -314,7 +316,7 @@ int GRUtilsH264Codec::get_PlaneHeight(int componentID, int height) {
 
 #undef PAD
 
-#ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
+#ifdef GODOT_REMOTE_LIBJPEG_TURBO_ENABLED
 
 #include "libjpeg-turbo/include/turbojpeg.h"
 
@@ -1178,4 +1180,5 @@ void yuv420_rgb24(
 
 #endif //__SSE2__
 
+#endif
 #endif

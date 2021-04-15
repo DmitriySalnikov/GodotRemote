@@ -91,9 +91,15 @@ private:
 	ListenerThreadParamsServer *server_thread_listen = nullptr;
 	Ref<TCP_Server> tcp_server;
 	class GRSViewport *resize_viewport = nullptr;
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+	class GRViewportCaptureRect *udp_preview_viewport = nullptr;
+#endif
+	int64_t unique_server_id = 0;
 	int client_connected = 0;
 	int target_fps = 60;
+	int current_listening_port = 0;
 
+	bool use_static_port = false;
 	bool using_client_settings = false;
 	bool using_client_settings_recently_updated = false;
 
@@ -116,6 +122,9 @@ private:
 
 	virtual void _reset_counters() override;
 
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+	void _thread_udp_connection(Variant p_userdata);
+#endif
 	void _thread_listen(Variant p_userdata);
 	void _thread_connection(Variant p_userdata);
 
@@ -171,6 +180,9 @@ public:
 
 	GRSViewport *get_gr_viewport();
 	void force_update_custom_input_scene();
+
+	virtual uint16_t get_port() override;
+	virtual void set_port(uint16_t _port) override;
 
 	void _init();
 	void _deinit();

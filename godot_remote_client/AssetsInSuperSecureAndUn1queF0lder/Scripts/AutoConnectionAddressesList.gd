@@ -48,7 +48,8 @@ func _on_auto_connection_list_changed(new_list):
 		var port : int = _dict_safe_get(dict, "port", 0)
 		var server_uid : int = _dict_safe_get(dict, "server_uid", 0)
 		var addresses : PoolStringArray =  _dict_safe_get(dict, "addresses", [])
-		var img : Image = _dict_safe_get(dict, "icon", null)
+		var icon_img : Image = _dict_safe_get(dict, "icon", null)
+		var preview_img : Image = _dict_safe_get(dict, "preview", null)
 		
 		var tmp_item = null
 		if current_children_map.has(server_uid):
@@ -63,7 +64,7 @@ func _on_auto_connection_list_changed(new_list):
 			
 			tmp_item.appear()
 		
-		tmp_item.setup_params(version, project_name, port, addresses, img)
+		tmp_item.setup_params(version, project_name, port, addresses, icon_img, preview_img)
 	
 	# remove all unused items
 	for uid in current_children_map:
@@ -110,13 +111,15 @@ func _update_rect_size():
 		list.visible = false
 		nothing.visible = true
 	
-	yield(get_tree(), "idle_frame")
+	# dynamic block size:
 	
-	var style = get_stylebox("bg")
-	var sum_height = h.rect_size.y + style.content_margin_bottom + style.content_margin_top + 4*3
-	if sum_height < 238:
-		rect_min_size.y = sum_height
-	else:
-		rect_min_size.y = 238
+	#yield(get_tree(), "idle_frame")
 	
-	minimum_size_changed()
+	#var style = get_stylebox("bg")
+	#var sum_height = h.rect_size.y + style.content_margin_bottom + style.content_margin_top + 4*3
+	#if sum_height < 238:
+	#	rect_min_size.y = sum_height
+	#else:
+	#	rect_min_size.y = 238
+	
+	#minimum_size_changed()

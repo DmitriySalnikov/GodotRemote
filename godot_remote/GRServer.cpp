@@ -5,6 +5,7 @@
 #include "GRServer.h"
 #include "GRNotifications.h"
 #include "GRPacket.h"
+#include "GRViewportCaptureRect.h"
 #include "GodotRemote.h"
 #include "UDPSocket.h"
 
@@ -45,6 +46,9 @@ using namespace GRUtils;
 
 void GRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(_load_settings), "force_hide_notifications"), &GRServer::_load_settings, DEFVAL(false));
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_udp_connection), "user_data"), &GRServer::_thread_udp_connection);
+#endif
 	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_listen), "user_data"), &GRServer::_thread_listen);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_thread_connection), "user_data"), &GRServer::_thread_connection);
 
@@ -93,6 +97,9 @@ void GRServer::_bind_methods() {
 void GRServer::_register_methods() {
 	METHOD_REG(GRServer, _notification);
 	METHOD_REG(GRServer, _load_settings);
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+	METHOD_REG(GRServer, _thread_udp_connection);
+#endif
 	METHOD_REG(GRServer, _thread_listen);
 	METHOD_REG(GRServer, _thread_connection);
 
@@ -155,6 +162,14 @@ void GRServer::_notification(int p_notification) {
 			GRDevice::_deinit();
 			break;
 		}
+		case NOTIFICATION_ENTER_TREE: {
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+			udp_preview_viewport = memnew(GRViewportCaptureRect);
+			udp_preview_viewport->set_max_viewport_size(Vector2(32, 32));
+			udp_preview_viewport->set_use_size_snapping(false);
+			add_child(udp_preview_viewport);
+#endif
+		}
 		case NOTIFICATION_EXIT_TREE: {
 			if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
 				_internal_call_only_deffered_stop();
@@ -166,6 +181,15 @@ void GRServer::_notification(int p_notification) {
 			break;
 		}
 	}
+}
+
+uint16_t GRServer::get_port() {
+	return static_port;
+}
+
+void GRServer::set_port(uint16_t _port) {
+	static_port = _port;
+	restart();
 }
 
 void GRServer::set_auto_adjust_scale(bool _val) {
@@ -322,8 +346,10 @@ void GRServer::_init() {
 	LEAVE_IF_EDITOR();
 	TracyAppInfo("Godot Remote Server", 20);
 	set_process(true);
+	unique_server_id = rand64();
 
 	tcp_server.instance();
+	use_static_port = GET_PS(GodotRemote::ps_general_use_static_port_name);
 
 #ifndef GDNATIVE_LIBRARY
 #else
@@ -573,7 +599,7 @@ void GRServer::_update_settings_from_client(const std::map<int, Variant> setting
 					break;
 				}
 				case TypesOfServerSettings::SERVER_SETTINGS_RENDER_SCALE: {
-					SET_BODY(set_render_scale, "scale", "Scale of stream: ", (float));
+					SET_BODY(set_render_scale, "scale", "Scale of stream: ", (real_t));
 					break;
 				}
 				case TypesOfServerSettings::SERVER_SETTINGS_TARGET_FPS: {
@@ -604,19 +630,73 @@ void GRServer::_reset_counters() {
 ////////////////// THREAD ////////////////////
 //////////////////////////////////////////////
 
-void GRServer::_thread_listen(Variant p_userdata) {
-	Thread_set_name("Server Listen for Connections");
-
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+void GRServer::_thread_udp_connection(Variant p_userdata) {
 	ListenerThreadParamsServer *this_thread_info = VARIANT_OBJ_CAST_TO(p_userdata, ListenerThreadParamsServer);
-	OS *os = OS::get_singleton();
-	ConnectionThreadParamsServer *connection_thread_info = nullptr;
-	Error err = Error::OK;
-	bool listening_error_notification_shown = false;
 
-#ifdef AUTO_CONNECTION_ENABLED
 	const int duplicate_udp_packets = 2;
-	uint64_t prev_udp_time_send = 0;
+	Error err = Error::OK;
 	Ref<StreamPeerBuffer> udp_data_buf = newref(StreamPeerBuffer);
+	int prev_tcp_server_port = 0;
+
+	auto update_packet_data = [&]() {
+		String proj_icon = GET_PS("application/config/icon");
+		PoolByteArray icon_png_buffer;
+		PoolByteArray preview_png_buffer;
+		if (proj_icon != "") {
+#ifndef GDNATIVE_LIBRARY
+			Ref<Resource> resource = ResourceLoader::load(proj_icon);
+#else
+			Ref<Resource> resource = ResourceLoader::get_singleton()->load(proj_icon);
+#endif
+			Ref<Image> out_img;
+
+			Ref<Texture> tex = resource;
+			if (tex.is_valid()) {
+				out_img = tex->get_data();
+			}
+			Ref<Image> img = resource;
+			if (img.is_valid()) {
+				out_img = img;
+			}
+
+			if (out_img.is_valid() && !img_is_empty(out_img)) {
+				out_img->resize(32, 32, ENUM_CONV(Image::Interpolation) 4); // INTERPOLATE_LANCZOS = 4 slowest interpolation
+				icon_png_buffer = out_img->save_png_to_buffer();
+
+				// too big
+				if (icon_png_buffer.size() > 1024 * 4) {
+					icon_png_buffer.resize(0);
+				}
+			} else {
+				_log("No project icon found.", LogLevel::LL_DEBUG);
+			}
+		}
+
+		if (udp_preview_viewport && !udp_preview_viewport->is_queued_for_deletion() && udp_preview_viewport->is_inside_tree()) {
+			preview_png_buffer = udp_preview_viewport->get_texture()->get_data()->save_png_to_buffer();
+			// too big
+			if (preview_png_buffer.size() > 1024 * 4) {
+				preview_png_buffer.resize(0);
+			}
+		}
+
+		Dictionary server_udp_dict;
+		server_udp_dict["version"] = get_gr_version();
+		server_udp_dict["project_name"] = GET_PS("application/config/name");
+		server_udp_dict["port"] = current_listening_port;
+		server_udp_dict["server_uid"] = unique_server_id;
+		server_udp_dict["icon_data"] = icon_png_buffer;
+		server_udp_dict["preview_data"] = preview_png_buffer;
+
+		PoolByteArray udp_data;
+		udp_data.append_array(get_packet_header());
+		udp_data_buf->set_data_array(udp_data);
+		udp_data_buf->seek(4);
+		udp_data_buf->put_64(0);
+		udp_data_buf->put_var(server_udp_dict);
+	};
+
 	std::vector<std::shared_ptr<UdpBroadcast> > available_sockets;
 	{
 		Array all_serever_addresses = IP::get_singleton()->call(NAMEOF(get_local_addresses));
@@ -643,112 +723,116 @@ void GRServer::_thread_listen(Variant p_userdata) {
 				}
 			}
 		}
+	}
+	_log("UDP Broadcast thread inited with " + str(available_sockets.size()) + " available addresses", LogLevel::LL_DEBUG);
 
-		//////////////////////////////////////////////////////////////////////////
-		// prepare data to broadcast
-		String proj_icon = GET_PS("application/config/icon");
-		PoolByteArray png_buffer;
-		if (proj_icon != "") {
-#ifndef GDNATIVE_LIBRARY
-			Ref<Resource> resource = ResourceLoader::load(proj_icon);
-#else
-			Ref<Resource> resource = ResourceLoader::get_singleton()->load(proj_icon);
-#endif
-			Ref<Image> out_img;
+	while (!this_thread_info->stop_thread) {
+		if (available_sockets.size() && client_connected == 0) {
+			ZoneScopedNC("Sending UDP server data", tracy::Color::DarkMagenta);
+			std::vector<std::shared_ptr<UdpBroadcast> > sockets_to_delete;
+			//if (prev_tcp_server_port != current_listening_port) {
+			//	update_packet_data();
+			//	prev_tcp_server_port = current_listening_port;
+			//}
+			update_packet_data();
 
-			Ref<Texture> tex = resource;
-			if (tex.is_valid()) {
-				out_img = tex->get_data();
-			}
-			Ref<Image> img = resource;
-			if (img.is_valid()) {
-				out_img = img;
-			}
-
-			if (out_img.is_valid() && !img_is_empty(out_img)) {
-				out_img->resize(32, 32, ENUM_CONV(Image::Interpolation) 4); // INTERPOLATE_LANCZOS = 4 slowest interpolation
-				png_buffer = out_img->save_png_to_buffer();
-
-				// too big
-				if (png_buffer.size() > 1024 * 4) {
-					png_buffer.resize(0);
+			for (auto u : available_sockets) {
+				int64_t rnd_num = rand64();
+				udp_data_buf->seek(4);
+				udp_data_buf->put_64(rnd_num);
+				for (int i = 0; i < duplicate_udp_packets; i++) {
+					if (u->Send(AUTO_CONNECTION_PORT, udp_data_buf->get_data_array().read().ptr(), udp_data_buf->get_data_array().size()) == -1) {
+						sockets_to_delete.push_back(u);
+						break;
+					}
 				}
-			} else {
-				_log("No project icon found.", LogLevel::LL_DEBUG);
 			}
+
+			for (auto u : sockets_to_delete) {
+				vec_remove_obj(available_sockets, u);
+			}
+
+			_log("Broadcasting Server Info", LogLevel::LL_DEBUG);
 		}
 
-		Dictionary server_udp_dict;
-		server_udp_dict["version"] = get_gr_version();
-		server_udp_dict["project_name"] = GET_PS("application/config/name");
-		server_udp_dict["port"] = static_port;
-		server_udp_dict["server_uid"] = rand64();
-		server_udp_dict["icon_data"] = png_buffer;
-
-		PoolByteArray udp_data;
-		udp_data.append_array(get_packet_header());
-		udp_data_buf->set_data_array(udp_data);
-		udp_data_buf->seek(4);
-		udp_data_buf->put_64(0);
-		udp_data_buf->put_var(server_udp_dict);
+		sleep_usec(400_ms);
 	}
+
+	available_sockets.resize(0);
+}
 #endif
+
+void GRServer::_thread_listen(Variant p_userdata) {
+	Thread_set_name("Server Listen for Connections");
+
+	ListenerThreadParamsServer *this_thread_info = VARIANT_OBJ_CAST_TO(p_userdata, ListenerThreadParamsServer);
+	OS *os = OS::get_singleton();
+	ConnectionThreadParamsServer *connection_thread_info = nullptr;
+	Error err = Error::OK;
+	bool listening_error_notification_shown = false;
+
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+	Ref<_Thread> udp_thread;
+	Thread_start(udp_thread, this, _thread_udp_connection, this_thread_info);
+#endif
+
+	auto listener_error_to_text = [&](Error error) {
+		switch (error) {
+			case Error::ERR_UNAVAILABLE: {
+				return String("Socket listening unavailable");
+			}
+			case Error::ERR_ALREADY_IN_USE: {
+				return String("Socket already in use");
+			}
+			case Error::ERR_INVALID_PARAMETER: {
+				return String("Invalid listening address");
+			}
+			case Error::ERR_CANT_CREATE: {
+				return String("Can't bind listener");
+			}
+			case Error::FAILED: {
+				return String("Failed to start listening");
+			}
+			default: {
+				return "Server Listener Error: " + str((int)error);
+			}
+		}
+	};
 
 	while (!this_thread_info->stop_thread) {
 		ZoneScopedNC("Server Listen For Connections", tracy::Color::Orange2);
 		if (!tcp_server->is_listening()) {
-			err = tcp_server->listen(static_port);
+			int tmp_port = 0;
+
+			if (use_static_port) {
+				tmp_port = static_port;
+				err = tcp_server->listen(static_port);
+			} else {
+				for (int i = 0; i < 16; i++) {
+					tmp_port = (int)rnd_rng(49152, 65534);
+					err = tcp_server->listen(tmp_port);
+					if (err == Error::OK) {
+						break;
+					} else {
+						_log("TCP Server. Port: " + str(tmp_port) + ". " + listener_error_to_text(err), LogLevel::LL_ERROR);
+					}
+				}
+			}
 
 			if (err != Error::OK) {
-				switch (err) {
-					case Error::ERR_UNAVAILABLE: {
-						String txt = "Socket listening unavailable";
-						if (!listening_error_notification_shown) {
-							_log(txt, LogLevel::LL_ERROR);
-							GRNotifications::add_notification("Can't start listening", txt, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.25f);
-						}
-						break;
-					}
-					case Error::ERR_ALREADY_IN_USE: {
-						String txt = "Socket already in use";
-						if (!listening_error_notification_shown) {
-							_log(txt, LogLevel::LL_ERROR);
-							GRNotifications::add_notification("Can't start listening", txt, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.25f);
-						}
-						break;
-					}
-					case Error::ERR_INVALID_PARAMETER: {
-						String txt = "Invalid listening address";
-						if (!listening_error_notification_shown) {
-							_log(txt, LogLevel::LL_ERROR);
-							GRNotifications::add_notification("Can't start listening", txt, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.25f);
-						}
-						break;
-					}
-					case Error::ERR_CANT_CREATE: {
-						String txt = "Can't bind listener";
-						if (!listening_error_notification_shown) {
-							_log(txt, LogLevel::LL_ERROR);
-							GRNotifications::add_notification("Can't start listening", txt, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.25f);
-						}
-						break;
-					}
-					case Error::FAILED: {
-						String txt = "Failed to start listening";
-						if (!listening_error_notification_shown) {
-							_log(txt, LogLevel::LL_ERROR);
-							GRNotifications::add_notification("Can't start listening", txt, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.25f);
-						}
-						break;
-					}
+				String txt = listener_error_to_text(err);
+				if (!listening_error_notification_shown) {
+					_log("TCP Server. Port: " + str(tmp_port) + ". " + txt, LogLevel::LL_ERROR);
+					GRNotifications::add_notification("Can't start listening", "Port: " + str(tmp_port) + ".\n" + txt, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.25f);
 				}
 
 				listening_error_notification_shown = true;
 				sleep_usec(1000_ms);
 				continue;
 			} else {
-				_log("Start listening port " + str(static_port), LogLevel::LL_NORMAL);
-				GRNotifications::add_notification_or_update_line("Godot Remote Server", "2listening", "Start listening on port: " + str(static_port), GRNotifications::NotificationIcon::ICON_SUCCESS, 1.f);
+				current_listening_port = tmp_port;
+				_log("Start listening port " + str(current_listening_port), LogLevel::LL_NORMAL);
+				GRNotifications::add_notification_or_update_line("Godot Remote Server", "2listening", "Start listening on port: " + str(current_listening_port), GRNotifications::NotificationIcon::ICON_SUCCESS, 1.f);
 			}
 		}
 		listening_error_notification_shown = false;
@@ -816,33 +900,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 				GRDevice::AuthResult res = _auth_client(ppeer, ret_data, true);
 			}
 		} else {
-#ifdef AUTO_CONNECTION_ENABLED
-			if (available_sockets.size() && client_connected == 0 && get_time_usec() - prev_udp_time_send > 400_ms) {
-				ZoneScopedNC("Sending UDP server data", tracy::Color::DarkMagenta);
-				std::vector<std::shared_ptr<UdpBroadcast> > sockets_to_delete;
-
-				for (auto u : available_sockets) {
-					int64_t rnd_num = rand64();
-					udp_data_buf->seek(4);
-					udp_data_buf->put_64(rnd_num);
-					for (int i = 0; i < duplicate_udp_packets; i++) {
-						if (u->Send(AUTO_CONNECTION_PORT, udp_data_buf->get_data_array().read().ptr(), udp_data_buf->get_data_array().size()) == -1) {
-							sockets_to_delete.push_back(u);
-							break;
-						}
-					}
-				}
-
-				for (auto u : sockets_to_delete) {
-					vec_remove_obj(available_sockets, u);
-				}
-
-				prev_udp_time_send = get_time_usec();
-				_log("Waiting...", LogLevel::LL_DEBUG);
-			}
-#else
 			_log("Waiting...", LogLevel::LL_DEBUG);
-#endif
 			sleep_usec(50_ms);
 		}
 	}
@@ -855,12 +913,13 @@ void GRServer::_thread_listen(Variant p_userdata) {
 		connection_thread_info = nullptr;
 	}
 
-#ifdef AUTO_CONNECTION_ENABLED
-	available_sockets.resize(0);
-#endif
-
 	tcp_server->stop();
 	this_thread_info->finished = true;
+	this_thread_info->stop_thread = true;
+
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+	Thread_close(udp_thread);
+#endif
 }
 
 void GRServer::_thread_connection(Variant p_userdata) {

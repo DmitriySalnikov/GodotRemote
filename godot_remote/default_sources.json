@@ -19,6 +19,7 @@
 	"GRUtils.cpp",
 	"GRUtilsH264Codec.cpp",
 	"GRUtilsJPGCodec.cpp",
+	"GRViewportCaptureRect.cpp",
 	"UDPSocket.cpp",
 	"iterable_queue.cpp",
 	"register_types.cpp"

@@ -251,7 +251,7 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 			int out_width = 0;
 			int out_height = 0;
 
-			if (buffer.size() && buffer.front()->is_end && !img_data.size()) {
+			if ((buffer.size() && buffer.front()->is_end) || img_data.size() == 0) {
 				ts_lock.unlock();
 				continue;
 			}
@@ -265,13 +265,17 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 
 			switch (type) {
 				case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
-#ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
+#ifdef GODOT_REMOTE_LIBJPEG_TURBO_ENABLED
 					err = GRUtilsJPGCodec::_decompress_jpg_turbo(img_data, jpg_buffer, &out_img_data, &out_width, &out_height);
 #else
+					Ref<Image> img = newref(Image);
 					err = img->load_jpg_from_buffer(img_data);
+					if (err == Error::OK) {
+						out_img_data = img->get_data();
+					}
 #endif
 
-					if ((int)err || img_data.size() == 0) { // is NOT OK
+					if ((int)err || out_img_data.size() == 0) { // is NOT OK
 						_log("Can't decode JPG image.", LogLevel::LL_ERROR);
 						GRNotifications::add_notification("Stream Error", "Can't decode JPG image. Code: " + str((int)err), GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 					}

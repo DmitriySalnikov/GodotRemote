@@ -71,7 +71,7 @@ void GRStreamEncodersManager::start(int compression, GRSViewport *vp) {
 			encoder = memnew(GRStreamEncoderImageSequence);
 			break;
 		}
-#ifdef GODOTREMOTE_H264_ENABLED
+#ifdef GODOT_REMOTE_H264_ENABLED
 		case GRDevice::COMPRESSION_H264: {
 			_delete_encoder();
 			encoder = memnew(GRStreamEncoderH264);
@@ -111,7 +111,7 @@ void GRStreamEncodersManager::set_compression_type(int compression, GRSViewport 
 			}
 			break;
 		}
-#ifdef GODOTREMOTE_H264_ENABLED
+#ifdef GODOT_REMOTE_H264_ENABLED
 		case GRDevice::COMPRESSION_H264: {
 			GRStreamEncoderH264 *tmp_en = encoder ? cast_to<GRStreamEncoderH264>(encoder) : nullptr;
 			if (!tmp_en) {

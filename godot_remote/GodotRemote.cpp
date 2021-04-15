@@ -16,7 +16,7 @@
 using namespace godot;
 #endif
 
-#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE)
+#if defined(GODOT_REMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE)
 #include "GRProfilerViewportMiniPreview.h"
 #endif
 
@@ -26,6 +26,7 @@ GodotRemote *GodotRemote::singleton = nullptr;
 bool GodotRemote::is_init_completed = false;
 
 GR_PS_NAME_TYPE GodotRemote::ps_general_autoload_name = "debug/godot_remote/general/autostart";
+GR_PS_NAME_TYPE GodotRemote::ps_general_use_static_port_name = "debug/godot_remote/general/use_static_port";
 GR_PS_NAME_TYPE GodotRemote::ps_general_port_name = "debug/godot_remote/general/port";
 GR_PS_NAME_TYPE GodotRemote::ps_general_loglevel_name = "debug/godot_remote/general/log_level";
 
@@ -103,6 +104,42 @@ void GodotRemote::_deinit() {
 	STOP_TRACY
 }
 
+void GodotRemote::GodotRemote::print_str(String txt) {
+#ifndef GDNATIVE_LIBRARY
+	OS::get_singleton()->print(txt.ascii().get_data());
+	OS::get_singleton()->print("\n");
+
+#else
+	Godot::print(txt);
+#endif
+}
+
+void GodotRemote::GodotRemote::print_error_str(String txt, String func, String file, int line) {
+#ifndef GDNATIVE_LIBRARY
+	OS::get_singleton()->print_error(func.ascii().get_data(), file.ascii().get_data(), line, 0, txt.ascii().get_data(), Logger::ErrorType::ERR_ERROR);
+#else
+	if (file != "") {
+		int idx = file.find("godot_remote");
+		if (idx != -1)
+			file = file.substr(file.find("godot_remote"), file.length());
+	}
+	Godot::print_error(txt, func, file, line);
+#endif
+}
+
+void GodotRemote::GodotRemote::print_warning_str(String txt, String func, String file, int line) {
+#ifndef GDNATIVE_LIBRARY
+	OS::get_singleton()->print_error(func.ascii().get_data(), file.ascii().get_data(), line, 0, txt.ascii().get_data(), Logger::ErrorType::ERR_WARNING);
+#else
+	if (file != "") {
+		int idx = file.find("godot_remote");
+		if (idx != -1)
+			file = file.substr(file.find("godot_remote"), file.length());
+	}
+	Godot::print_warning(txt, func, file, line);
+#endif
+}
+
 #ifndef GDNATIVE_LIBRARY
 
 void GodotRemote::_bind_methods() {
@@ -175,6 +212,10 @@ void GodotRemote::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_magnetometer), "value"), &GodotRemote::set_magnetometer);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_gyroscope), "value"), &GodotRemote::set_gyroscope);
 
+	ClassDB::bind_method(D_METHOD(NAMEOF(print_str), "str"), &GodotRemote::print_str);
+	ClassDB::bind_method(D_METHOD(NAMEOF(print_error_str), "str", "file", "line"), &GodotRemote::print_error_str);
+	ClassDB::bind_method(D_METHOD(NAMEOF(print_warning_str), "str", "file", "line"), &GodotRemote::print_warning_str);
+
 	// Other Enums
 }
 
@@ -234,6 +275,10 @@ void GodotRemote::_register_methods() {
 	METHOD_REG(GodotRemote, set_accelerometer);
 	METHOD_REG(GodotRemote, set_magnetometer);
 	METHOD_REG(GodotRemote, set_gyroscope);
+
+	METHOD_REG(GodotRemote, print_str);
+	METHOD_REG(GodotRemote, print_error_str);
+	METHOD_REG(GodotRemote, print_warning_str);
 
 	CONST_FAKE_REG(GodotRemote);
 
@@ -450,6 +495,7 @@ void GodotRemote::register_and_load_settings() {
 #endif
 
 	DEF_SET(is_autostart, ps_general_autoload_name, true, Variant::BOOL, PROPERTY_HINT_NONE, "");
+	DEF_(ps_general_use_static_port_name, false, Variant::BOOL, PROPERTY_HINT_RANGE, "");
 	DEF_(ps_general_port_name, 52341, Variant::INT, PROPERTY_HINT_RANGE, "0,65535");
 	DEF_(ps_general_loglevel_name, LogLevel::LL_NORMAL, Variant::INT, PROPERTY_HINT_ENUM, "Debug,Normal,Warning,Error,None");
 
@@ -495,7 +541,7 @@ void GodotRemote::_create_autoload_nodes() {
 		godot_remote_root_node->add_child(notif);
 		godot_remote_root_node->move_child(notif, 0);
 
-#if defined(GODOTREMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE)
+#if defined(GODOT_REMOTE_TRACY_ENABLED) && defined(TRACY_ENABLE)
 		GRProfilerViewportMiniPreview *mini_profiler_preview = memnew(GRProfilerViewportMiniPreview);
 		godot_remote_root_node->add_child(mini_profiler_preview);
 #endif

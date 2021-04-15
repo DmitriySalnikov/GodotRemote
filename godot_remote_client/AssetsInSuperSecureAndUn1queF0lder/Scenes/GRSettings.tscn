@@ -175,7 +175,6 @@ margin_left = 435.0
 margin_right = 628.0
 margin_bottom = 80.0
 size_flags_horizontal = 3
-size_flags_vertical = 3
 custom_fonts/font = ExtResource( 5 )
 custom_colors/font_color = Color( 0.384314, 0.407843, 0.423529, 1 )
 text = "GR version: 1.0.14"

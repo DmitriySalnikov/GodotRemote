@@ -3,7 +3,7 @@
 #include "GRUtilsJPGCodec.h"
 using namespace GRUtils;
 
-#ifdef GODOTREMOTE_LIBJPEG_TURBO_ENABLED
+#ifdef GODOT_REMOTE_LIBJPEG_TURBO_ENABLED
 
 #include "libjpeg-turbo/include/turbojpeg.h"
 

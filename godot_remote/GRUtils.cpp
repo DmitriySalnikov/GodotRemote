@@ -36,46 +36,21 @@ void deinit() {
 }
 
 #ifdef DEBUG_ENABLED
-void __log(const Variant &val, int lvl, String file, int line) {
+void __log(const Variant &val, int lvl, String func, String file, int line) {
 	if (lvl >= (_grutils_data ? _grutils_data->current_loglevel : LogLevel::LL_DEBUG) && lvl < LogLevel::LL_NONE) {
-		auto val_str = str(val);
-#ifndef GDNATIVE_LIBRARY
-		String file_line = "";
-		if (lvl > LogLevel::LL_NORMAL && file != "") {
-			int idx = file.find("godot_remote");
-			if (idx != -1) {
-				file = file.substr(file.find("godot_remote"), file.length());
-			}
-
-			file_line = "\n    At: " + file + ":" + str(line);
-		}
-
 		if (lvl == LogLevel::LL_ERROR) {
-			print_error("[GodotRemote] " + val_str + file_line);
+			auto val_str = "[GodotRemote Error] " + str(val);
+			GodotRemote::get_singleton()->call_deferred("print_error_str", val_str, func, file, line);
 		} else if (lvl == LogLevel::LL_WARNING) {
-			print_error("[GodotRemote] " + val_str + file_line);
+			auto val_str = "[GodotRemote Warning] " + str(val);
+			GodotRemote::get_singleton()->call_deferred("print_warning_str", val_str, func, file, line);
 		} else {
-			print_line("[GodotRemote] " + val_str);
+			auto val_str = "[GodotRemote] " + str(val);
+			GodotRemote::get_singleton()->call_deferred("print_str", val_str);
 		}
-#else
-
-		if (lvl > LogLevel::LL_NORMAL && file != "") {
-			int idx = file.find("godot_remote");
-			if (idx != -1)
-				file = file.substr(file.find("godot_remote"), file.length());
-		}
-
-		if (lvl == LogLevel::LL_ERROR) {
-			Godot::print_error(val_str, "[GodotRemote Error]", file, line);
-		} else if (lvl == LogLevel::LL_WARNING) {
-			Godot::print_warning(val_str, "[GodotRemote Warning]", file, line);
-		} else {
-			Godot::print("[GodotRemote] " + val_str);
-		}
-#endif
 	}
 
-#ifdef GODOTREMOTE_TRACY_ENABLED
+#ifdef GODOT_REMOTE_TRACY_ENABLED
 	auto val_str = str(val);
 	if (lvl == LogLevel::LL_ERROR) {
 		TracyMessageC(val_str.ascii().get_data(), val_str.length(), tracy::Color::Red2);
@@ -86,7 +61,7 @@ void __log(const Variant &val, int lvl, String file, int line) {
 	} else {
 		TracyMessageC(val_str.ascii().get_data(), val_str.length(), tracy::Color::WhiteSmoke);
 	}
-#endif // GODOTREMOTE_TRACY_ENABLED
+#endif // GODOT_REMOTE_TRACY_ENABLED
 }
 #endif
 

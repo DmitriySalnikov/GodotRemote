@@ -87,6 +87,7 @@ func _ready():
 	d.connect("server_quality_hint_setting_received", self, "_update_quality_hint_text")
 	update_values()
 	_on_auto_list_address_changed()
+	_on_auto_connection_status_changed(false)
 	_set_buttons_disabled(false)
 	_update_start_stop()
 	_init_mobile_touch_input()
