@@ -353,6 +353,35 @@ bool compare_pool_byte_arrays(const PoolByteArray &a, const PoolByteArray &b) {
 	return true;
 }
 
+bool compare_pool_string_arrays(const PoolStringArray &a, const PoolStringArray &b) {
+	if (a.size() == b.size()) {
+		auto ra = a.read();
+		auto rb = b.read();
+		for (int i = 0; i < (int)a.size(); i++) {
+			if (ra[i] != rb[i]) {
+				return false;
+			}
+		}
+	} else {
+		return false;
+	}
+	return true;
+}
+
+bool compare_pool_string_arrays(const std::vector<String> &a, const PoolStringArray &b) {
+	if (a.size() == b.size()) {
+		auto rb = b.read();
+		for (int i = 0; i < (int)a.size(); i++) {
+			if (a[i] != rb[i]) {
+				return false;
+			}
+		}
+	} else {
+		return false;
+	}
+	return true;
+}
+
 void set_gravity(const Vector3 &p_gravity) {
 #ifndef GDNATIVE_LIBRARY
 	auto *id = (InputDefault *)Input::get_singleton();

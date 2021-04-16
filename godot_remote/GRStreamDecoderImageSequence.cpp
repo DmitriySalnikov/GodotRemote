@@ -176,12 +176,12 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 
 			if (buf->is_ready) {
 				uint64_t time = get_time_usec();
-				// TODO check for correctness. it looks like the fps changes in a wave
 				uint64_t next_frame = prev_shown_frame_time + buf->frametime;
+				buffer.pop();
+				// TODO fix fps
 				if (buf->is_end) {
 					gr_client->_image_lost();
 				} else if (time > next_frame) {
-					buffer.pop();
 					ts_lock.unlock();
 
 					prev_shown_frame_time = time;

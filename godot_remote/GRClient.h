@@ -79,6 +79,10 @@ public:
 		bool auto_mode_ready_to_connect = false;
 		int64_t auto_found_server_uid = 0;
 		int64_t auto_connected_server_uid = 0;
+		int auto_connected_server_port = 0;
+		bool is_auto_connected = false;
+		bool is_first_connection_try = false;
+		bool connect_to_exact_server = false;
 
 		void close_thread() {
 			break_connection = true;
@@ -148,6 +152,8 @@ private:
 	int current_auto_connect_server_port = 52341;
 	std::vector<std::shared_ptr<AvailableServer> > found_server_addresses;
 	bool is_auto_mode_active = false;
+
+	uint64_t auto_connecting_server_select_time = 0;
 
 	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 	ScreenOrientation is_vertical = ScreenOrientation::NONE;
@@ -261,12 +267,6 @@ public:
 	String get_password();
 	void set_device_id(String _id);
 	String get_device_id();
-	void set_current_auto_connect_addresses(PoolStringArray _addresses);
-	PoolStringArray get_current_auto_connect_addresses();
-	void set_current_auto_connect_project_name(String _project_name);
-	String get_current_auto_connect_project_name();
-	void set_current_auto_connect_port(int _port);
-	int get_current_auto_connect_port();
 
 	ENUM_ARG(StreamState)
 	get_stream_state();
@@ -292,6 +292,12 @@ public:
 
 	void break_connection_async();
 	void break_connection();
+
+	bool set_current_auto_connect_server(String _project_name, PoolStringArray _addresses, int _port, bool connect_to_exact_server = true);
+	PoolStringArray get_current_auto_connect_addresses();
+	String get_current_auto_connect_project_name();
+	int get_current_auto_connect_port();
+	int64_t get_current_auto_connected_server_uid();
 
 	void set_server_setting(ENUM_ARG(TypesOfServerSettings) param, Variant value);
 	void disable_overriding_server_settings();

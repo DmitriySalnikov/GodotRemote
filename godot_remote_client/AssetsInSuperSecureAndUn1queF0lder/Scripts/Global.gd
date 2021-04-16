@@ -32,13 +32,13 @@ signal touches_to_open_settings_changed(count)
 const CLIENT_VERSION := 0
 const SAVE_FILE := "user://settings.json"
 
-var GameHighScore := 0 setget set_game_score
-var GameShowAfterConnectionErrors := true setget set_game_show_after_errors
-
 var IsMobile : bool = false
 var GodotRemoteRootNode : Control = null
 var Billings : Node = null
 var Analytics : Node = null
+
+var GameHighScore := 0 setget set_game_score
+var GameShowAfterConnectionErrors := true setget set_game_show_after_errors
 
 var VersionChanged : bool = false
 var PreviousVersion : String = ""
@@ -168,9 +168,7 @@ func _set_all_values():
 	dev.device_id = device_id
 	dev.set_address_port(ip, port)
 	dev.set_decoder_threads_count(decoder_threads_number)
-	dev.current_auto_connect_addresses = auto_addresses
-	dev.current_auto_connect_port = auto_port
-	dev.current_auto_connect_project_name = auto_project_name
+	dev.set_current_auto_connect_server(auto_project_name, auto_addresses, auto_port, false)
 	dev.connection_type = connection_type
 	dev.stretch_mode = stretch_mode
 	dev.target_send_fps = target_send_fps

@@ -51,20 +51,20 @@ func _on_auto_connection_list_changed(new_list):
 		var icon_img : Image = _dict_safe_get(dict, "icon", null)
 		var preview_img : Image = _dict_safe_get(dict, "preview", null)
 		
-		var tmp_item = null
+		var tmp_item : Node = null
 		if current_children_map.has(server_uid):
 			tmp_item = current_children_map[server_uid]
 			current_children_map.erase(server_uid)
 		else:
 			tmp_item = list_item.instance()
 			tmp_item.set_meta("server_uid", server_uid)
-			tmp_item.connect("pressed", self, "_on_address_pressed", [addresses, port, project_name])
 			tmp_item.connect("tree_exiting", self, "_update_rect_size")
+			tmp_item.connect("server_selected", self, "_on_address_pressed")
 			list.add_child(tmp_item)
 			
 			tmp_item.appear()
 		
-		tmp_item.setup_params(version, project_name, port, addresses, icon_img, preview_img)
+		tmp_item.setup_params(server_uid, version, project_name, port, addresses, icon_img, preview_img)
 	
 	# remove all unused items
 	for uid in current_children_map:
@@ -77,18 +77,7 @@ func _on_address_pressed(ips : PoolStringArray, port : int, project_name : Strin
 		return
 	var d = GodotRemote.get_device()
 	
-	var same = d.current_auto_connect_addresses.size() == ips.size()
-	if same:
-		var tmp = d.current_auto_connect_addresses
-		for i in range(ips.size()):
-			if tmp[i] != ips[i]:
-				same = false
-				break
-	
-	if d.current_auto_connect_project_name != project_name or !same or d.current_auto_connect_port != port:
-		d.current_auto_connect_addresses = ips
-		d.current_auto_connect_port = port
-		d.current_auto_connect_project_name = project_name
+	if d.set_current_auto_connect_server(project_name, ips, port, true):
 		G.auto_addresses = ips
 		G.auto_port = port
 		G.auto_project_name = project_name

@@ -112,7 +112,7 @@ class GRPacketStreamDataImage : public GRPacketStreamData {
 	friend GRPacket;
 
 	Size2 size;
-	int format = 0; // TODO can be removed in next minor version
+	int format = 0;
 	PoolByteArray img_data;
 	uint64_t start_time = 0;
 	uint64_t frametime = 0;
@@ -136,6 +136,9 @@ public:
 	uint64_t get_start_time() {
 		return start_time;
 	}
+	int get_format() {
+		return format;
+	}
 
 	void set_image_data(PoolByteArray &buf) {
 		img_data = buf;
@@ -149,6 +152,9 @@ public:
 	void set_start_time(uint64_t _start_time) {
 		start_time = _start_time;
 	}
+	void set_format(int fmt) {
+		format = fmt;
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -160,6 +166,8 @@ class GRPacketStreamDataH264 : public GRPacketStreamData {
 	uint64_t start_time = 0;
 	uint64_t frametime = 0;
 	uint8_t frame_type = 0;
+	uint8_t format = 0;
+	Dictionary additional_data;
 
 protected:
 	virtual Ref<StreamPeerBuffer> _get_data() override;
@@ -181,6 +189,12 @@ public:
 	uint8_t get_frame_type() {
 		return frame_type;
 	}
+	uint8_t get_format() {
+		return format;
+	}
+	Dictionary get_additional_data() {
+		return additional_data;
+	}
 
 	void add_image_data(uint8_t *buf, uint64_t size) {
 		PoolByteArray img_data;
@@ -201,6 +215,12 @@ public:
 	}
 	void set_frame_type(uint8_t type) {
 		frame_type = type;
+	}
+	void set_format(uint8_t fmt) {
+		format = fmt;
+	}
+	void set_additional_data(Dictionary add_data) {
+		additional_data = add_data;
 	}
 
 	GRPacketStreamDataH264() {

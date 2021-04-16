@@ -300,6 +300,8 @@ extern bool validate_version(const PoolByteArray &data);
 extern bool validate_version(const uint8_t *data);
 
 extern bool compare_pool_byte_arrays(const PoolByteArray &a, const PoolByteArray &b);
+extern bool compare_pool_string_arrays(const PoolStringArray &a, const PoolStringArray &b);
+extern bool compare_pool_string_arrays(const std::vector<String> &a, const PoolStringArray &b);
 
 extern void set_gravity(const Vector3 &p_gravity);
 extern void set_accelerometer(const Vector3 &p_accel);

@@ -101,6 +101,11 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(break_connection)), &GRClient::break_connection);
 	ClassDB::bind_method(D_METHOD(NAMEOF(break_connection_async)), &GRClient::break_connection_async);
 
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_current_auto_connect_server), "project_name", "addresses", "port", "connect_to_exact_server"), &GRClient::set_current_auto_connect_server, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_current_auto_connect_addresses)), &GRClient::get_current_auto_connect_addresses);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_current_auto_connect_project_name)), &GRClient::get_current_auto_connect_project_name);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_current_auto_connect_port)), &GRClient::get_current_auto_connect_port);
+
 	ADD_SIGNAL(MethodInfo("custom_input_scene_added"));
 	ADD_SIGNAL(MethodInfo("custom_input_scene_removed"));
 
@@ -128,9 +133,6 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_viewport_orientation_syncing), "is_syncing"), &GRClient::set_viewport_orientation_syncing);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_viewport_aspect_ratio_syncing), "is_syncing"), &GRClient::set_viewport_aspect_ratio_syncing);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_server_settings_syncing), "is_syncing"), &GRClient::set_server_settings_syncing);
-	ClassDB::bind_method(D_METHOD(NAMEOF(set_current_auto_connect_addresses), "addresses"), &GRClient::set_current_auto_connect_addresses);
-	ClassDB::bind_method(D_METHOD(NAMEOF(set_current_auto_connect_project_name), "project_name"), &GRClient::set_current_auto_connect_project_name);
-	ClassDB::bind_method(D_METHOD(NAMEOF(set_current_auto_connect_port), "port"), &GRClient::set_current_auto_connect_port);
 
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_on_focus)), &GRClient::is_capture_on_focus);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_when_hover)), &GRClient::is_capture_when_hover);
@@ -145,9 +147,6 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_viewport_orientation_syncing)), &GRClient::is_viewport_orientation_syncing);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_viewport_aspect_ratio_syncing)), &GRClient::is_viewport_aspect_ratio_syncing);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_server_settings_syncing)), &GRClient::is_server_settings_syncing);
-	ClassDB::bind_method(D_METHOD(NAMEOF(get_current_auto_connect_addresses)), &GRClient::get_current_auto_connect_addresses);
-	ClassDB::bind_method(D_METHOD(NAMEOF(get_current_auto_connect_project_name)), &GRClient::get_current_auto_connect_project_name);
-	ClassDB::bind_method(D_METHOD(NAMEOF(get_current_auto_connect_port)), &GRClient::get_current_auto_connect_port);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), NAMEOF(set_capture_on_focus), NAMEOF(is_capture_on_focus));
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), NAMEOF(set_capture_when_hover), NAMEOF(is_capture_when_hover));
@@ -162,9 +161,6 @@ void GRClient::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_orientation_syncing"), NAMEOF(set_viewport_orientation_syncing), NAMEOF(is_viewport_orientation_syncing));
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_aspect_ratio_syncing"), NAMEOF(set_viewport_aspect_ratio_syncing), NAMEOF(is_viewport_aspect_ratio_syncing));
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "server_settings_syncing"), NAMEOF(set_server_settings_syncing), NAMEOF(is_server_settings_syncing));
-	ADD_PROPERTY(PropertyInfo(Variant::POOL_STRING_ARRAY, "current_auto_connect_addresses"), NAMEOF(set_current_auto_connect_addresses), NAMEOF(get_current_auto_connect_addresses));
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "current_auto_connect_project_name"), NAMEOF(set_current_auto_connect_project_name), NAMEOF(get_current_auto_connect_project_name));
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "current_auto_connect_port"), NAMEOF(set_current_auto_connect_port), NAMEOF(get_current_auto_connect_port));
 
 	BIND_ENUM_CONSTANT(CONNECTION_ADB);
 	BIND_ENUM_CONSTANT(CONNECTION_WiFi);
@@ -217,6 +213,11 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, set_decoder_threads_count);
 	METHOD_REG(GRClient, get_decoder_threads_count);
 
+	METHOD_REG(GRClient, set_current_auto_connect_server);
+	METHOD_REG(GRClient, get_current_auto_connect_addresses);
+	METHOD_REG(GRClient, get_current_auto_connect_project_name);
+	METHOD_REG(GRClient, get_current_auto_connect_port);
+
 	METHOD_REG(GRClient, break_connection);
 	METHOD_REG(GRClient, break_connection_async);
 
@@ -247,9 +248,6 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, set_viewport_orientation_syncing);
 	METHOD_REG(GRClient, set_viewport_aspect_ratio_syncing);
 	METHOD_REG(GRClient, set_server_settings_syncing);
-	METHOD_REG(GRClient, set_current_auto_connect_addresses);
-	METHOD_REG(GRClient, set_current_auto_connect_project_name);
-	METHOD_REG(GRClient, set_current_auto_connect_port);
 
 	METHOD_REG(GRClient, is_capture_on_focus);
 	METHOD_REG(GRClient, is_capture_when_hover);
@@ -264,9 +262,6 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, is_viewport_orientation_syncing);
 	METHOD_REG(GRClient, is_viewport_aspect_ratio_syncing);
 	METHOD_REG(GRClient, is_server_settings_syncing);
-	METHOD_REG(GRClient, get_current_auto_connect_addresses);
-	METHOD_REG(GRClient, get_current_auto_connect_project_name);
-	METHOD_REG(GRClient, get_current_auto_connect_port);
 
 	register_property<GRClient, bool>("capture_on_focus", &GRClient::set_capture_on_focus, &GRClient::is_capture_on_focus, false);
 	register_property<GRClient, bool>("capture_when_hover", &GRClient::set_capture_when_hover, &GRClient::is_capture_when_hover, false);
@@ -281,9 +276,6 @@ void GRClient::_register_methods() {
 	register_property<GRClient, bool>("viewport_orientation_syncing", &GRClient::set_viewport_orientation_syncing, &GRClient::is_viewport_orientation_syncing, true);
 	register_property<GRClient, bool>("viewport_aspect_ratio_syncing", &GRClient::set_viewport_aspect_ratio_syncing, &GRClient::is_viewport_aspect_ratio_syncing, true);
 	register_property<GRClient, bool>("server_settings_syncing", &GRClient::set_server_settings_syncing, &GRClient::is_server_settings_syncing, true);
-	register_property<GRClient, PoolStringArray>("current_auto_connect_addresses", &GRClient::set_current_auto_connect_addresses, &GRClient::get_current_auto_connect_addresses, PoolStringArray());
-	register_property<GRClient, String>("current_auto_connect_project_name", &GRClient::set_current_auto_connect_project_name, &GRClient::get_current_auto_connect_project_name, "");
-	register_property<GRClient, int>("current_auto_connect_port", &GRClient::set_current_auto_connect_port, &GRClient::get_current_auto_connect_port, 0);
 }
 
 #endif
@@ -836,43 +828,6 @@ String GRClient::get_device_id() {
 	return device_id;
 }
 
-void GRClient::set_current_auto_connect_addresses(PoolStringArray _addresses) {
-	Scoped_lock(ts_lock);
-	break_connection_async();
-	current_auto_connect_server_addresses = _addresses;
-}
-
-PoolStringArray GRClient::get_current_auto_connect_addresses() {
-	Scoped_lock(ts_lock);
-	return current_auto_connect_server_addresses;
-}
-
-void GRClient::set_current_auto_connect_project_name(String _project_name) {
-	Scoped_lock(ts_lock);
-	if (current_auto_connect_project_name != _project_name) {
-		break_connection_async();
-		current_auto_connect_project_name = _project_name;
-	}
-}
-
-String GRClient::get_current_auto_connect_project_name() {
-	Scoped_lock(ts_lock);
-	return current_auto_connect_project_name;
-}
-
-void GRClient::set_current_auto_connect_port(int _port) {
-	Scoped_lock(ts_lock);
-	if (current_auto_connect_server_port != _port) {
-		break_connection_async();
-		current_auto_connect_server_port = _port;
-	}
-}
-
-int GRClient::get_current_auto_connect_port() {
-	Scoped_lock(ts_lock);
-	return current_auto_connect_server_port;
-}
-
 bool GRClient::is_connected_to_host() {
 	if (thread_connection && thread_connection->peer.is_valid()) {
 		return thread_connection->peer->is_connected_to_host() && is_connection_working;
@@ -1193,6 +1148,50 @@ void GRClient::break_connection() {
 	}
 }
 
+bool GRClient::set_current_auto_connect_server(String _project_name, PoolStringArray _addresses, int _port, bool connect_to_exact_server) {
+	Scoped_lock(ts_lock);
+	bool same_addr = compare_pool_string_arrays(current_auto_connect_server_addresses, _addresses);
+
+	if (current_auto_connect_project_name != _project_name ||
+			current_auto_connect_server_port != _port ||
+			!same_addr) {
+		break_connection_async();
+		current_auto_connect_project_name = _project_name;
+		current_auto_connect_server_addresses = _addresses;
+		current_auto_connect_server_port = _port;
+
+		if (thread_connection) {
+			thread_connection->connect_to_exact_server = connect_to_exact_server;
+		}
+		auto_connecting_server_select_time = get_time_usec();
+		return true;
+	}
+	return false;
+}
+
+PoolStringArray GRClient::get_current_auto_connect_addresses() {
+	Scoped_lock(ts_lock);
+	return current_auto_connect_server_addresses;
+}
+
+String GRClient::get_current_auto_connect_project_name() {
+	Scoped_lock(ts_lock);
+	return current_auto_connect_project_name;
+}
+
+int GRClient::get_current_auto_connect_port() {
+	Scoped_lock(ts_lock);
+	return current_auto_connect_server_port;
+}
+
+int64_t GRClient::get_current_auto_connected_server_uid() {
+	Scoped_lock(ts_lock);
+	if (thread_connection) {
+		return thread_connection->auto_connected_server_uid;
+	}
+	return 0;
+}
+
 //////////////////////////////////////////////
 ////////////////// THREAD ////////////////////
 //////////////////////////////////////////////
@@ -1207,6 +1206,11 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 	bool is_udp_cant_be_started = false;
 	int prev_connection_type = -1;
 
+	// fixing time. thread start can be long.
+	if (auto_connecting_server_select_time != 0) {
+		auto_connecting_server_select_time = get_time_usec();
+	}
+
 	auto emit_auto_connections_status_changed = [&](bool status) {
 		call_deferred(NAMEOF(emit_signal), "auto_connection_listener_status_changed", status);
 	};
@@ -1216,6 +1220,28 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 	auto close_udp_connection = [&]() {
 		udp_server = nullptr;
 		emit_auto_connections_status_changed(false);
+	};
+	static auto compare_addresses = [](const std::vector<std::shared_ptr<AvailableServerAddress> > &a, const PoolStringArray &b) {
+		if (a.size() == b.size()) {
+			auto rb = b.read();
+			for (int i = 0; i < (int)a.size(); i++) {
+				if (a[i]->ip != rb[i]) {
+					return false;
+				}
+			}
+		} else {
+			return false;
+		}
+		return true;
+	};
+	static auto pool_string_arr_contains = [](const PoolStringArray &a, String val) {
+		auto ra = a.read();
+		for (int i = 0; i < a.size(); i++) {
+			if (ra[i] == val) {
+				return true;
+			}
+		}
+		return false;
 	};
 
 	while (!con_thread->stop_thread) {
@@ -1382,23 +1408,37 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 
 			// search for currently selected address
 			{
-				for (auto s : found_server_addresses) {
-					if (s->project_name == current_auto_connect_project_name &&
-							is_vector_contains_if(s->recieved_from_addresses, [&](auto i) {
-								for (int x = 0; x < current_auto_connect_server_addresses.size(); x++) {
-									if (i->ip == current_auto_connect_server_addresses[x]) {
-										return true;
-									}
-								}
-								return false;
-							})) {
-						if (con_thread->auto_connected_server_uid != s->server_uid) {
-							break_connection_async();
-						}
+				bool need_to_found_exact_uid = (get_time_usec() - auto_connecting_server_select_time) < 1250_ms ||
+											   con_thread->is_first_connection_try ||
+											   con_thread->connect_to_exact_server;
+				
+				if ((con_thread->auto_connected_server_uid == 0 && !con_thread->is_auto_connected)) {
+					_log(need_to_found_exact_uid, LogLevel::LL_NORMAL);
 
-						con_thread->auto_mode_ready_to_connect = true;
-						con_thread->auto_found_server_uid = s->server_uid;
-						goto out_of_search;
+					for (auto s : found_server_addresses) {
+						if (need_to_found_exact_uid ?
+										  (s->port == current_auto_connect_server_port &&
+												s->project_name == current_auto_connect_project_name &&
+												compare_addresses(s->recieved_from_addresses, current_auto_connect_server_addresses)) :
+										  (s->project_name == current_auto_connect_project_name &&
+												is_vector_contains_if(s->recieved_from_addresses, [&](std::shared_ptr<AvailableServerAddress> i) {
+													for (int x = 0; x < current_auto_connect_server_addresses.size(); x++) {
+														if (i->ip == current_auto_connect_server_addresses[x]) {
+															return true;
+														}
+													}
+													return false;
+												}))) {
+							break_connection_async();
+
+							ts_lock.lock();
+							auto_connecting_server_select_time = 0;
+							con_thread->auto_mode_ready_to_connect = true;
+							con_thread->auto_found_server_uid = s->server_uid;
+							con_thread->is_first_connection_try = true;
+							ts_lock.unlock();
+							goto out_of_search;
+						}
 					}
 				}
 				con_thread->auto_mode_ready_to_connect = false;
@@ -1518,6 +1558,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 	while (!con_thread->stop_thread) {
 		FrameMarkNamed("Client Connection Waiting Loop");
 
+		con_thread->is_auto_connected = false;
 		con_thread->cancel_connection = false;
 		if (get_time_usec() - prev_valid_connection_time > 1000_ms) {
 			call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_SIGNAL);
@@ -1578,17 +1619,20 @@ void GRClient::_thread_connection(Variant p_userdata) {
 			case GRClient::CONNECTION_AUTO: {
 				prev_connection_type_unknown = (int)connection_type;
 
+				ts_lock.lock();
 				if (!con_thread->auto_mode_ready_to_connect) {
+					ts_lock.unlock();
 					sleep_usec(50_ms);
 					continue;
 				}
 
-				// because connection attempts can be very long
-				ts_lock.lock();
+				int64_t uid = con_thread->auto_found_server_uid;
+				// here addresses must be copied because connection attempts can be very long
 				struct tmp_addrs {
 					std::vector<std::shared_ptr<AvailableServerAddress> > addresses;
 					int64_t uid = 0;
 					int port = 0;
+					String proj_name = "";
 				};
 				std::vector<tmp_addrs> copy_servers;
 				for (auto s : found_server_addresses) {
@@ -1596,6 +1640,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 					tmp.addresses = s->recieved_from_addresses;
 					tmp.uid = s->server_uid;
 					tmp.port = s->port;
+					tmp.proj_name = s->project_name;
 
 					copy_servers.push_back(tmp);
 				}
@@ -1603,11 +1648,19 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 				bool try_again = true;
 				for (auto s : copy_servers) {
-					if (s.uid == con_thread->auto_found_server_uid) {
+					if (s.uid == uid) {
 						for (auto adr : s.addresses) {
 							if (try_connect(adr->ip, s.port)) {
-								con_thread->auto_connected_server_uid = s.uid;
 								try_again = false;
+
+								ts_lock.lock();
+
+								current_auto_connect_server_port = s.port;
+								con_thread->auto_connected_server_uid = s.uid;
+								con_thread->is_auto_connected = true;
+								con_thread->auto_found_server_uid = 0;
+
+								ts_lock.unlock();
 								goto search_end;
 							}
 						}
@@ -1616,6 +1669,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				con_thread->auto_connected_server_uid = 0;
 			search_end:
 
+				con_thread->is_first_connection_try = false;
 				if (try_again) {
 					sleep_usec(50_ms);
 					continue;

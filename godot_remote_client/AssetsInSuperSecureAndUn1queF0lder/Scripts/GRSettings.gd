@@ -182,6 +182,10 @@ func _set_all_server_settings():
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_THREADS_NUMBER, encoder_threads.value)
 
 func _status_changed(_status : int):
+	if _status:
+		if GodotRemote.get_device().connection_type == C.GRClient_CONNECTION_AUTO:
+			G.auto_port = GodotRemote.get_device().get_current_auto_connect_port()
+	
 	if timer.is_stopped():
 		_set_buttons_disabled(_status == C.GRDevice_STATUS_STARTING or _status == C.GRDevice_STATUS_STOPPING)
 	_update_start_stop()

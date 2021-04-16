@@ -254,6 +254,13 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 	bool is_decoder_inited = false;
 	SBufferInfo sDstBufInfo;
 	int32_t iThreadCountInit = 0;
+
+#ifndef DEBUG_ENABLED
+	int32_t iTraceLevel = WELS_LOG_DEFAULT;
+#else
+	int32_t iTraceLevel = WELS_LOG_ERROR;
+#endif
+
 	int32_t iThreadCount = 1;
 	uint8_t uLastSpsBuf[32];
 	int32_t iLastSpsByteCount = 0;
@@ -293,6 +300,7 @@ void GRStreamDecoderH264::_processing_thread(Variant p_userdata) {
 			if (!is_decoder_inited) {
 				is_decoder_inited = true;
 				h264_decoder->SetOption(DECODER_OPTION_NUM_OF_THREADS, &iThreadCountInit);
+				h264_decoder->SetOption(DECODER_OPTION_TRACE_LEVEL, &iTraceLevel);
 
 				int err = h264_decoder->Initialize(&sDecParam);
 				if (err != 0) {

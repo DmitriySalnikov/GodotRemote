@@ -113,6 +113,8 @@ Ref<StreamPeerBuffer> GRPacketStreamDataH264::_get_data() {
 	buf->put_var(start_time);
 	buf->put_var(frametime);
 	buf->put_var(frame_type);
+	buf->put_var(format);
+	buf->put_var(additional_data);
 
 	// store array size
 	buf->put_var((int)data_layers.size());
@@ -128,6 +130,8 @@ bool GRPacketStreamDataH264::_create(Ref<StreamPeerBuffer> buf) {
 	start_time = buf->get_var();
 	frametime = buf->get_var();
 	frame_type = buf->get_var();
+	format = buf->get_var();
+	additional_data = buf->get_var();
 
 	// get array size
 	int count = buf->get_var();

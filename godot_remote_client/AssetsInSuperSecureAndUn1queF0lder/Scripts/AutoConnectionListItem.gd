@@ -1,5 +1,12 @@
 extends Button
 
+signal server_selected(ips, port, project_name)
+
+var server_ips : PoolStringArray
+var server_server_uid : int
+var server_port : int
+var server_project_name : String
+
 func _ready() -> void:
 	modulate.a = 0
 	disabled = true
@@ -19,14 +26,22 @@ func _create_tex(img : Image):
 	else:
 		return null
 
-func setup_params(version : String, project_name : String, port : int, addresses : PoolStringArray, icon_img : Image, preview_img : Image):
+func _pressed() -> void:
+	emit_signal("server_selected", server_ips, server_port, server_project_name)
+
+func setup_params(server_uid : int, version : String, project_name : String, port : int, addresses : PoolStringArray, icon_img : Image, preview_img : Image):
+	server_ips = addresses
+	server_port = port
+	server_project_name = project_name
+	server_server_uid = server_uid
+	
 	$H/Icon.texture = _create_tex(icon_img)
 	$H/Preview.texture = _create_tex(preview_img)
 	
 	$H/V/ProjectName.text = project_name
 	$H/V/Port.text = str(port)
-	$H/V2/Version.text = version
-	$H/V/Addresses.text = addresses.join(", ")
+	$H/V/H/Version.text = version
+	$H/V/H/Addresses.text = addresses.join(", ")
 
 func delayed_destroy():
 	remove_meta("server_uid")

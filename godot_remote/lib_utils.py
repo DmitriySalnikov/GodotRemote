@@ -107,7 +107,7 @@ def gdnative_get_library_object(env):
     # Tracy
     if env['godot_remote_tracy_enabled']:
         src.append('tracy/TracyClient.cpp')
-        env.Append(CPPDEFINES=['GODOTREMOTE_TRACY_ENABLED', 'TRACY_ENABLE', 'TRACY_ON_DEMAND', 'TRACY_DELAYED_INIT', 'TRACY_MANUAL_LIFETIME'])
+        env.Append(CPPDEFINES=['GODOT_REMOTE_TRACY_ENABLED', 'TRACY_ENABLE', 'TRACY_ON_DEMAND', 'TRACY_DELAYED_INIT', 'TRACY_MANUAL_LIFETIME'])
         #module_env.Append(CPPDEFINES=['TRACY_CALLSTACK'])
 
     # libturbo-jpeg
@@ -124,11 +124,13 @@ def gdnative_get_library_object(env):
 
     # OpenH264
     if env['godot_remote_h264_enabled']:
-        env.Append(CPPDEFINES=['GODOTREMOTE_H264_ENABLED'])
+        env.Append(CPPDEFINES=['GODOT_REMOTE_H264_ENABLED'])
         #prepare_h264(env)
 
     #######################################################
-
+    if env['target'] == 'debug':
+        env.Append(CPPDEFINES=['DEBUG_ENABLED'])
+    
     env.Append(LIBPATH=['#godot-cpp/bin/'])
     env.Append(LIBS=[
             'libgodot-cpp.{}.{}.{}{}'.format( # godot-cpp lib

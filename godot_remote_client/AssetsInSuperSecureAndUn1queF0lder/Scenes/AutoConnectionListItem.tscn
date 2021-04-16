@@ -42,7 +42,7 @@ stretch_mode = 6
 
 [node name="V" type="VBoxContainer" parent="H"]
 margin_left = 94.0
-margin_right = 663.0
+margin_right = 702.0
 margin_bottom = 90.0
 rect_clip_content = true
 mouse_filter = 2
@@ -50,8 +50,9 @@ size_flags_horizontal = 3
 custom_constants/separation = 0
 
 [node name="ProjectName" type="Label" parent="H/V"]
-margin_right = 569.0
+margin_right = 608.0
 margin_bottom = 37.0
+size_flags_horizontal = 3
 custom_fonts/font = ExtResource( 1 )
 text = "Project Name Here"
 clip_text = true
@@ -60,10 +61,15 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Addresses" type="Label" parent="H/V"]
+[node name="H" type="HBoxContainer" parent="H/V"]
 margin_top = 37.0
-margin_right = 569.0
+margin_right = 608.0
 margin_bottom = 63.0
+
+[node name="Addresses" type="Label" parent="H/V/H"]
+margin_right = 569.0
+margin_bottom = 26.0
+size_flags_horizontal = 3
 custom_fonts/font = ExtResource( 2 )
 custom_colors/font_color = Color( 0.690196, 0.690196, 0.690196, 1 )
 text = "192.168.0.1, 192.168.0.1, 192.168.0.1"
@@ -73,35 +79,28 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Port" type="Label" parent="H/V"]
-margin_top = 63.0
-margin_right = 569.0
-margin_bottom = 89.0
-custom_fonts/font = ExtResource( 2 )
+[node name="Version" type="Label" parent="H/V/H"]
+margin_left = 573.0
+margin_top = 2.0
+margin_right = 608.0
+margin_bottom = 24.0
+custom_fonts/font = SubResource( 1 )
 custom_colors/font_color = Color( 0.690196, 0.690196, 0.690196, 1 )
-text = "55434"
-clip_text = true
+text = "1.0.2"
 max_lines_visible = 1
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="V2" type="VBoxContainer" parent="H"]
-margin_left = 667.0
-margin_right = 702.0
-margin_bottom = 90.0
-rect_clip_content = true
-mouse_filter = 2
-custom_constants/separation = 0
-alignment = 1
-
-[node name="Version" type="Label" parent="H/V2"]
-margin_top = 34.0
-margin_right = 35.0
-margin_bottom = 56.0
-custom_fonts/font = SubResource( 1 )
+[node name="Port" type="Label" parent="H/V"]
+margin_top = 63.0
+margin_right = 608.0
+margin_bottom = 89.0
+size_flags_horizontal = 3
+custom_fonts/font = ExtResource( 2 )
 custom_colors/font_color = Color( 0.690196, 0.690196, 0.690196, 1 )
-text = "1.0.2"
+text = "55434"
+clip_text = true
 max_lines_visible = 1
 __meta__ = {
 "_edit_use_anchors_": false
