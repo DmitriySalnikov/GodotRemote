@@ -7,9 +7,11 @@
 #include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
+#include "core/io/tcp_server.h"
 #include "scene/main/node.h"
 #else
 #include <Node.hpp>
+#include <PacketPeerStream.hpp>
 using namespace godot;
 #endif
 
@@ -56,6 +58,13 @@ public:
 private:
 	WorkingStatus working_status = WorkingStatus::STATUS_STOPPED;
 
+	uint64_t prev_traffic_counter_time = 0;
+	uint32_t current_sec_bytes_received = 0;
+	uint32_t current_sec_bytes_sended = 0;
+
+	uint64_t total_bytes_received = 0;
+	uint64_t total_bytes_sended = 0;
+
 protected:
 	template <class T>
 	std::shared_ptr<T> _find_queued_packet_by_type(GRPacket::PacketType type) {
@@ -68,15 +77,21 @@ protected:
 		return std::shared_ptr<T>();
 	}
 
-	GRAVGCounter<uint64_t, float> fps_counter = GRAVGCounter<uint64_t, float>([](float i) -> float { if (i > 0) return float(1000000.0 / i); else return 0; });
-	GRAVGCounter<uint64_t, float> ping_counter = GRAVGCounter<uint64_t, float>([](float i) -> float { return float(i * 0.001); }, 20);
+	GRAVGCounter<uint64_t, real_t> fps_counter = GRAVGCounter<uint64_t, real_t>([](real_t i) -> real_t { if (i > 0) return real_t(1000000.0 / i); else return 0; });
+	GRAVGCounter<uint64_t, real_t> ping_counter = GRAVGCounter<uint64_t, real_t>([](real_t i) -> real_t { return real_t(i * 0.001); }, 20);
+	// traffic in MB
+	GRAVGCounter<uint64_t, real_t> traffic_recv_counter = GRAVGCounter<uint64_t, real_t>([](real_t i) -> real_t { return real_t(i / (double)MB_SIZE); }, 5);
+	GRAVGCounter<uint64_t, real_t> traffic_send_counter = GRAVGCounter<uint64_t, real_t>([](real_t i) -> real_t { return real_t(i / (double)MB_SIZE); }, 5);
 
 	Mutex_define(send_queue_mutex, "Device Send Queue Lock");
 	std::vector<std::shared_ptr<GRPacket> > send_queue;
 
 	void set_status(WorkingStatus status);
+	Error send_data_to(RefStd(PacketPeerStream) ppeer, PoolByteArray data);
+	Error recv_data_from(RefStd(PacketPeerStream) ppeer, PoolByteArray *data);
 	void _update_avg_ping(uint64_t ping);
 	void _update_avg_fps(uint64_t frametime);
+	void _update_avg_traffic(uint32_t bytes_sended, uint32_t bytes_received);
 	void _send_queue_resize(int new_size);
 	std::shared_ptr<GRPacket> _send_queue_pop_front();
 
@@ -98,12 +113,22 @@ protected:
 public:
 	uint16_t static_port = 52341;
 
-	float get_avg_ping();
-	float get_min_ping();
-	float get_max_ping();
-	float get_avg_fps();
-	float get_min_fps();
-	float get_max_fps();
+	real_t get_avg_ping();
+	real_t get_min_ping();
+	real_t get_max_ping();
+	real_t get_avg_fps();
+	real_t get_min_fps();
+	real_t get_max_fps();
+
+	real_t get_avg_recv_mbyte();
+	real_t get_min_recv_mbyte();
+	real_t get_max_recv_mbyte();
+	real_t get_avg_send_mbyte();
+	real_t get_min_send_mbyte();
+	real_t get_max_send_mbyte();
+
+	real_t get_total_sended_mbytes();
+	real_t get_total_received_mbytes();
 
 	virtual uint16_t get_port();
 	virtual void set_port(uint16_t _port);

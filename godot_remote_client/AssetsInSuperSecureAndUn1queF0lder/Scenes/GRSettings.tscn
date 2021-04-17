@@ -35,19 +35,19 @@ border_width_bottom = 2
 border_color = Color( 0.0862745, 0.0941176, 0.101961, 1 )
 
 [sub_resource type="AtlasTexture" id=3]
-flags = 13
+flags = 4
 atlas = ExtResource( 15 )
 region = Rect2( 0, 0, 64, 64 )
 margin = Rect2( 0, 8, 0, 16 )
 
 [sub_resource type="AtlasTexture" id=4]
-flags = 13
+flags = 4
 atlas = ExtResource( 7 )
 region = Rect2( 0, 0, 64, 64 )
 margin = Rect2( 0, 8, 0, 16 )
 
 [sub_resource type="AtlasTexture" id=5]
-flags = 13
+flags = 4
 atlas = ExtResource( 6 )
 region = Rect2( 0, 0, 64, 64 )
 margin = Rect2( 0, 8, 0, 16 )
@@ -667,7 +667,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 5
 text = "Hidden"
 align = 1
-items = [ "Hidden", null, false, 0, null, "Simple", null, false, 1, null, "Detailed", null, false, 2, null ]
+items = [ "Hidden", null, false, 0, null, "Simple", null, false, 2, null, "Detailed", null, false, 3, null, "Traffic", null, false, 4, null, "All", null, false, 1, null ]
 selected = 0
 
 [node name="KeepScreen" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
@@ -1159,7 +1159,7 @@ __meta__ = {
 [connection signal="text_changed" from="V/Scroll/H/Grid/PassRow/Pass" to="." method="_on_Password_text_changed"]
 [connection signal="toggled" from="V/Scroll/H/Grid/Filtering" to="." method="_on_texture_Filtering_toggled"]
 [connection signal="item_selected" from="V/Scroll/H/Grid/StretchMode/Type" to="." method="_on_stretch_Type_item_selected"]
-[connection signal="item_selected" from="V/Scroll/H/Grid/ShowStats/Type" to="." method="_on_stats_State_selected_id"]
+[connection signal="item_selected" from="V/Scroll/H/Grid/ShowStats/Type" to="." method="_on_stats_State_selected_index"]
 [connection signal="toggled" from="V/Scroll/H/Grid/KeepScreen" to="." method="_on_keep_screen_CheckButton_toggled"]
 [connection signal="toggled" from="V/Scroll/H/Grid/CaptureInput" to="." method="_on_CaptureInput_toggled"]
 [connection signal="item_selected" from="V/Scroll/H/Grid/TouchesToOpenSettings/Type" to="." method="_on_touches_to_open_item_selected"]

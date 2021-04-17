@@ -524,7 +524,7 @@ void GRClient::_push_pack_to_decoder(std::shared_ptr<GRPacketStreamData> pack) {
 void GRClient::_image_lost() {
 	if (signal_connection_state != StreamState::STREAM_NO_IMAGE) {
 		call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_IMAGE);
-		_reset_counters();
+		//_reset_counters();
 	}
 }
 
@@ -931,7 +931,9 @@ void GRClient::_load_custom_input_scene(String path, PoolByteArray pck_data, int
 						control_to_show_in->add_child(custom_input_scene);
 						custom_input_scene->connect("tree_exiting", this, NAMEOF(_on_node_deleting), vec_args({ (int)DeletingVarName::CUSTOM_INPUT_SCENE }));
 
-						_reset_counters();
+						//_reset_counters();
+						delay_counter.reset();
+						fps_counter.reset();
 						emit_signal("custom_input_scene_added");
 					}
 				}
@@ -1105,8 +1107,6 @@ void GRClient::_update_avg_delay(uint64_t delay) {
 
 void GRClient::_reset_counters() {
 	GRDevice::_reset_counters();
-	sync_time_client = 0;
-	sync_time_server = 0;
 	delay_counter.reset();
 }
 
@@ -1847,6 +1847,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 		ZoneScopedNC("Client Loop", tracy::Color::OrangeRed4);
 		Scoped_lock(connection_mutex);
 
+		_update_avg_traffic(0, 0);
 		uint64_t cycle_start_time = get_time_usec();
 
 		bool nothing_happens = true;
@@ -1869,7 +1870,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 					std::shared_ptr<GRPacketInputData> pack = input_collector->get_collected_input_data();
 
 					if (pack) {
-						err = ppeer->put_var(pack->get_data());
+						err = send_data_to(ppeer, pack->get_data());
 						if ((int)err) {
 							_log("Put input data failed with code: " + str((int)err), LogLevel::LL_ERROR);
 							goto end_send;
@@ -1888,7 +1889,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 				ping_sended = true;
 
 				auto pack = shared_new(GRPacketPing);
-				err = ppeer->put_var(pack->get_data());
+				err = send_data_to(ppeer, pack->get_data());
 				prev_ping_sending_time = time64;
 
 				if ((int)err) {
@@ -1901,10 +1902,10 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 			start_while_time = get_time_usec();
 			while (!send_queue.empty() && (get_time_usec() - start_while_time) <= send_data_time_us / 2) {
 				ZoneScopedNC("Send Queued Data", tracy::Color::DarkOliveGreen1);
-				std::shared_ptr<GRPacket> packet = _send_queue_pop_front();
+				std::shared_ptr<GRPacket> pack = _send_queue_pop_front();
 
-				if (packet) {
-					err = ppeer->put_var(packet->get_data());
+				if (pack) {
+					err = send_data_to(ppeer, pack->get_data());
 
 					if ((int)err) {
 						_log("Put data from queue failed with code: " + str((int)err), LogLevel::LL_ERROR);
@@ -1931,13 +1932,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 				ZoneScopedNC("Get Available Packet", tracy::Color::IndianRed4);
 				nothing_happens = false;
 
-#ifndef GDNATIVE_LIBRARY
-				Variant buf;
-				err = ppeer->get_var(buf);
-#else
-				Variant buf = ppeer->get_var();
-#endif
-
+				PoolByteArray buf;
+				err = recv_data_from(ppeer, &buf);
 				if ((int)err)
 					goto end_recv;
 
@@ -2040,7 +2036,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 					}
 					case GRPacket::PacketType::Ping: {
 						auto pack = shared_new(GRPacketPong);
-						err = ppeer->put_var(pack->get_data());
+						err = send_data_to(ppeer, pack->get_data());
 						if ((int)err) {
 							_log("Send pong failed with code: " + str((int)err), LogLevel::LL_NORMAL);
 							continue;
@@ -2084,6 +2080,8 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 		GRNotifications::add_notification("Disconnected", "Lost connection to " + address, GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
 	}
 
+	sync_time_client = 0;
+	sync_time_server = 0;
 	con_thread->break_connection = true;
 	con_thread->connection_finished = true;
 }
@@ -2121,11 +2119,11 @@ GRDevice::AuthResult GRClient::_auth_on_server(RefStd(PacketPeerStream) ppeer) {
 	wait_packet("first_packet");
 #ifndef GDNATIVE_LIBRARY
 	err = ppeer->get_var(ret);
-	packet_error_check("Can't get first authorization packet from server. Code: " + str((int)err));
 #else
-	err = Error::OK;
 	ret = ppeer->get_var();
+	err = ppeer->get_packet_error();
 #endif
+	packet_error_check("Can't get first authorization packet from server. Code: " + str((int)err));
 
 	if ((int)ret == (int)GRDevice::AuthResult::RefuseConnection) {
 		return GRDevice::AuthResult::RefuseConnection;
@@ -2146,8 +2144,8 @@ GRDevice::AuthResult GRClient::_auth_on_server(RefStd(PacketPeerStream) ppeer) {
 		err = ppeer->get_var(ret);
 		packet_error_check("Can't get final authorization packet from server. Code: " + str((int)err));
 #else
-		err = Error::OK;
 		ret = ppeer->get_var();
+		err = ppeer->get_packet_error();
 #endif
 
 		if ((int)ret == (int)GRDevice::AuthResult::OK) {

@@ -8,8 +8,10 @@ enum RateState{
 
 enum StatInfoState{
 	Hidden = 0,
-	Simple = 1,
-	Detailed = 2,
+	All = 1,
+	Simple = 2,
+	Detailed = 3,
+	Traffic = 4,
 }
 
 enum A_ProgressStatus{

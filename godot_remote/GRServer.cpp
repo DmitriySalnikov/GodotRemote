@@ -963,6 +963,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			!connection->is_queued_for_deletion() && connection->is_connected_to_host()) {
 		ZoneScopedNC("Server Loop", tracy::Color::OrangeRed4);
 
+		_update_avg_traffic(0, 0);
 		bool nothing_happens = true;
 		float fps = Engine::get_singleton()->get_frames_per_second();
 		if (fps == 0) {
@@ -994,7 +995,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			nothing_happens = false;
 			//prev_send_sync_time = time;
 			auto pack = shared_new(GRPacketSyncTime);
-			err = ppeer->put_var(pack->get_data());
+			err = send_data_to(ppeer, pack->get_data());
 			if ((int)err) {
 				_log("Can't send sync time data! Code: " + str((int)err), LogLevel::LL_ERROR);
 				goto end_send;
@@ -1016,7 +1017,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 				_adjust_viewport_scale();
 				prev_send_image_time = time64;
 
-				err = ppeer->put_var(pack->get_data());
+				err = send_data_to(ppeer, pack->get_data());
 
 				if ((int)err) {
 					_log("Can't send image data! Code: " + str((int)err), LogLevel::LL_ERROR);
@@ -1048,7 +1049,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_RENDER_SCALE, get_render_scale());
 				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_SKIP_FRAMES, get_skip_frames());
 
-				err = ppeer->put_var(pack->get_data());
+						err = send_data_to(ppeer, pack->get_data());
 				if ((int)err) {
 					_log("Send server settings failed with code: " + str((int)err), LogLevel::LL_ERROR);
 					goto end_send;
@@ -1065,7 +1066,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			auto pack = shared_new(GRPacketMouseModeSync);
 			pack->set_mouse_mode(mouse_mode);
 
-			err = ppeer->put_var(pack->get_data());
+						err = send_data_to(ppeer, pack->get_data());
 			if ((int)err) {
 				_log("Send mouse mode sync failed with code: " + str((int)err), LogLevel::LL_ERROR);
 				goto end_send;
@@ -1080,7 +1081,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			ping_sended = true;
 
 			auto pack = shared_new(GRPacketPing);
-			err = ppeer->put_var(pack->get_data());
+			err = send_data_to(ppeer, pack->get_data());
 
 			prev_ping_sending_time = time64;
 			if ((int)err) {
@@ -1101,7 +1102,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 				pack = shared_new(GRPacketCustomInputScene);
 			}
 
-			err = ppeer->put_var(pack->get_data());
+						err = send_data_to(ppeer, pack->get_data());
 
 			if ((int)err) {
 				_log("Send custom input failed with code: " + str((int)err), LogLevel::LL_ERROR);
@@ -1112,10 +1113,10 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		// SEND QUEUE
 		while (!send_queue.empty() && (get_time_usec() - start_while_time) <= send_data_time_us / 2) {
 			ZoneScopedNC("Send Queued Data", tracy::Color::Burlywood1);
-			std::shared_ptr<GRPacket> packet = _send_queue_pop_front();
+			std::shared_ptr<GRPacket> pack = _send_queue_pop_front();
 
-			if (packet) {
-				err = ppeer->put_var(packet->get_data());
+			if (pack) {
+				err = send_data_to(ppeer, pack->get_data());
 
 				if ((int)err) {
 					_log("Put data from queue failed with code: " + str((int)err), LogLevel::LL_ERROR);
@@ -1140,13 +1141,8 @@ void GRServer::_thread_connection(Variant p_userdata) {
 					(get_time_usec() - recv_start_time) < send_data_time_us / 2) {
 				ZoneScopedNC("Get Available Packet", tracy::Color::MintCream);
 				nothing_happens = false;
-				Variant res;
-#ifndef GDNATIVE_LIBRARY
-				err = (Error)(int)ppeer->get_var(res);
-#else
-				err = Error::OK;
-				res = ppeer->get_var();
-#endif
+				PoolByteArray res;
+				err = recv_data_from(ppeer, &res);
 
 				if ((int)err) {
 					_log("Can't receive packet!", LogLevel::LL_ERROR);
@@ -1258,7 +1254,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 					}
 					case GRPacket::PacketType::Ping: {
 						auto pack = shared_new(GRPacketPong);
-						err = ppeer->put_var(pack->get_data());
+						err = send_data_to(ppeer, pack->get_data());
 
 						if ((int)err) {
 							_log("Send pong failed with code: " + str((int)err), LogLevel::LL_ERROR);

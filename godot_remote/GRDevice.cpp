@@ -23,6 +23,16 @@ void GRDevice::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_min_fps)), &GRDevice::get_min_fps);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_max_fps)), &GRDevice::get_max_fps);
 
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_avg_recv_mbyte)), &GRDevice::get_avg_recv_mbyte);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_min_recv_mbyte)), &GRDevice::get_min_recv_mbyte);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_max_recv_mbyte)), &GRDevice::get_max_recv_mbyte);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_avg_send_mbyte)), &GRDevice::get_avg_send_mbyte);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_min_send_mbyte)), &GRDevice::get_min_send_mbyte);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_max_send_mbyte)), &GRDevice::get_max_send_mbyte);
+
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_total_received_mbytes)), &GRDevice::get_total_received_mbytes);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_total_sended_mbytes)), &GRDevice::get_total_sended_mbytes);
+
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_port)), &GRDevice::get_port);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_port), "port"), &GRDevice::set_port, DEFVAL(52341));
 
@@ -74,6 +84,16 @@ void GRDevice::_register_methods() {
 	METHOD_REG(GRDevice, get_min_fps);
 	METHOD_REG(GRDevice, get_max_fps);
 
+	METHOD_REG(GRDevice, get_avg_recv_mbyte);
+	METHOD_REG(GRDevice, get_min_recv_mbyte);
+	METHOD_REG(GRDevice, get_max_recv_mbyte);
+	METHOD_REG(GRDevice, get_avg_send_mbyte);
+	METHOD_REG(GRDevice, get_min_send_mbyte);
+	METHOD_REG(GRDevice, get_max_send_mbyte);
+
+	METHOD_REG(GRDevice, get_total_received_mbytes);
+	METHOD_REG(GRDevice, get_total_sended_mbytes);
+
 	METHOD_REG(GRDevice, get_port);
 	METHOD_REG(GRDevice, set_port);
 
@@ -109,6 +129,42 @@ void GRDevice::_notification(int p_notification) {
 void GRDevice::_reset_counters() {
 	fps_counter.reset();
 	ping_counter.reset();
+	traffic_recv_counter.reset();
+	traffic_send_counter.reset();
+
+	total_bytes_received = 0;
+	total_bytes_sended = 0;
+}
+
+Error GRDevice::send_data_to(RefStd(PacketPeerStream) ppeer, PoolByteArray data) {
+	Error e = ppeer->put_var(data);
+	if (e == Error::OK) {
+		_update_avg_traffic(data.size(), 0);
+		total_bytes_sended += data.size();
+	} else {
+		_update_avg_traffic(0, 0);
+	}
+	return e;
+}
+
+Error GRDevice::recv_data_from(RefStd(PacketPeerStream) ppeer, PoolByteArray *data) {
+	Error e;
+#ifndef GDNATIVE_LIBRARY
+	Variant v;
+	e = ppeer->get_var(v);
+	*data = v;
+#else
+	*data = ppeer->get_var();
+	e = ppeer->get_packet_error();
+#endif
+
+	if (e == Error::OK) {
+		_update_avg_traffic(0, data->size());
+		total_bytes_received += data->size();
+	} else {
+		_update_avg_traffic(0, 0);
+	}
+	return e;
 }
 
 void GRDevice::_update_avg_ping(uint64_t ping) {
@@ -117,6 +173,19 @@ void GRDevice::_update_avg_ping(uint64_t ping) {
 
 void GRDevice::_update_avg_fps(uint64_t frametime) {
 	fps_counter.update(frametime, (int)round(Engine::get_singleton()->get_frames_per_second()));
+}
+
+void GRDevice::_update_avg_traffic(uint32_t bytes_sended, uint32_t bytes_received) {
+	current_sec_bytes_received += bytes_received;
+	current_sec_bytes_sended += bytes_sended;
+
+	if (get_time_usec() - prev_traffic_counter_time > 1000_ms) {
+		traffic_recv_counter.update(current_sec_bytes_received);
+		traffic_send_counter.update(current_sec_bytes_sended);
+		current_sec_bytes_received = 0;
+		current_sec_bytes_sended = 0;
+		prev_traffic_counter_time = get_time_usec();
+	}
 }
 
 void GRDevice::send_user_data(Variant packet_id, Variant user_data, bool full_objects) {
@@ -149,28 +218,60 @@ void GRDevice::set_status(WorkingStatus status) {
 	emit_signal("status_changed", working_status);
 }
 
-float GRDevice::get_avg_ping() {
+real_t GRDevice::get_avg_ping() {
 	return ping_counter.get_avg();
 }
 
-float GRDevice::get_min_ping() {
+real_t GRDevice::get_min_ping() {
 	return ping_counter.get_min();
 }
 
-float GRDevice::get_max_ping() {
+real_t GRDevice::get_max_ping() {
 	return ping_counter.get_max();
 }
 
-float GRDevice::get_avg_fps() {
+real_t GRDevice::get_avg_fps() {
 	return fps_counter.get_avg();
 }
 
-float GRDevice::get_min_fps() {
+real_t GRDevice::get_min_fps() {
 	return fps_counter.get_min();
 }
 
-float GRDevice::get_max_fps() {
+real_t GRDevice::get_max_fps() {
 	return fps_counter.get_max();
+}
+
+real_t GRDevice::get_avg_recv_mbyte() {
+	return traffic_recv_counter.get_avg();
+}
+
+real_t GRDevice::get_min_recv_mbyte() {
+	return traffic_recv_counter.get_min();
+}
+
+real_t GRDevice::get_max_recv_mbyte() {
+	return traffic_recv_counter.get_max();
+}
+
+real_t GRDevice::get_avg_send_mbyte() {
+	return traffic_send_counter.get_avg();
+}
+
+real_t GRDevice::get_min_send_mbyte() {
+	return traffic_send_counter.get_min();
+}
+
+real_t GRDevice::get_max_send_mbyte() {
+	return traffic_send_counter.get_max();
+}
+
+real_t GRDevice::get_total_sended_mbytes() {
+	return real_t(total_bytes_sended / (double)MB_SIZE);
+}
+
+real_t GRDevice::get_total_received_mbytes() {
+	return real_t(total_bytes_received / (double)MB_SIZE);
 }
 
 uint16_t GRDevice::get_port() {

@@ -31,88 +31,281 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Grid" type="GridContainer" parent="."]
+[node name="V" type="VBoxContainer" parent="."]
 margin_left = 2.0
-margin_right = 154.0
-margin_bottom = 66.0
+margin_right = 303.0
+margin_bottom = 210.0
+size_flags_horizontal = 0
+size_flags_vertical = 0
+custom_constants/separation = 0
+
+[node name="Grid" type="GridContainer" parent="V"]
+margin_right = 301.0
+margin_bottom = 150.0
 mouse_filter = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
 custom_constants/vseparation = 0
 custom_constants/hseparation = 4
-columns = 3
+columns = 4
 
-[node name="FPS" type="Label" parent="Grid"]
-margin_right = 89.0
-margin_bottom = 22.0
+[node name="FPS" type="Label" parent="V/Grid" groups=[
+"simple",
+]]
+margin_right = 163.0
+margin_bottom = 30.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+text = "FPS:"
+
+[node name="FPS_avg" type="Label" parent="V/Grid" groups=[
+"simple",
+]]
+margin_left = 167.0
+margin_right = 209.0
+margin_bottom = 30.0
 size_flags_vertical = 1
 custom_colors/font_color = Color( 0.827451, 0.941176, 1, 1 )
-text = "FPS:231"
+text = "N/A"
 
-[node name="FPS_min" type="Label" parent="Grid"]
-margin_left = 93.0
-margin_right = 115.0
-margin_bottom = 22.0
+[node name="FPS_min" type="Label" parent="V/Grid" groups=[
+"detailed",
+]]
+margin_left = 213.0
+margin_right = 255.0
+margin_bottom = 30.0
 size_flags_vertical = 1
 custom_colors/font_color = Color( 0.737255, 1, 0.713726, 1 )
-text = "21"
+text = "N/A"
 
-[node name="FPS_max" type="Label" parent="Grid"]
-margin_left = 119.0
-margin_right = 152.0
-margin_bottom = 22.0
+[node name="FPS_max" type="Label" parent="V/Grid" groups=[
+"detailed",
+]]
+margin_left = 259.0
+margin_right = 301.0
+margin_bottom = 30.0
 size_flags_vertical = 1
 custom_colors/font_color = Color( 1, 0.709804, 0.709804, 1 )
-text = "124"
+text = "N/A"
 
-[node name="Ping" type="Label" parent="Grid"]
-margin_top = 22.0
-margin_right = 89.0
-margin_bottom = 44.0
+[node name="Ping" type="Label" parent="V/Grid" groups=[
+"simple",
+]]
+margin_top = 30.0
+margin_right = 163.0
+margin_bottom = 60.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+text = "Ping:"
+
+[node name="Ping_avg" type="Label" parent="V/Grid" groups=[
+"simple",
+]]
+margin_left = 167.0
+margin_top = 30.0
+margin_right = 209.0
+margin_bottom = 60.0
 size_flags_vertical = 1
 custom_colors/font_color = Color( 0.827451, 0.941176, 1, 1 )
-text = "PING:321"
+text = "N/A"
 
-[node name="Ping_min" type="Label" parent="Grid"]
-margin_left = 93.0
-margin_top = 22.0
-margin_right = 115.0
-margin_bottom = 44.0
+[node name="Ping_min" type="Label" parent="V/Grid" groups=[
+"detailed",
+]]
+margin_left = 213.0
+margin_top = 30.0
+margin_right = 255.0
+margin_bottom = 60.0
 size_flags_vertical = 1
 custom_colors/font_color = Color( 0.737255, 1, 0.713726, 1 )
-text = "12"
+text = "N/A"
 
-[node name="Ping_max" type="Label" parent="Grid"]
-margin_left = 119.0
-margin_top = 22.0
-margin_right = 152.0
-margin_bottom = 44.0
+[node name="Ping_max" type="Label" parent="V/Grid" groups=[
+"detailed",
+]]
+margin_left = 259.0
+margin_top = 30.0
+margin_right = 301.0
+margin_bottom = 60.0
 size_flags_vertical = 1
 custom_colors/font_color = Color( 1, 0.709804, 0.709804, 1 )
-text = "333"
+text = "N/A"
 
-[node name="Delay" type="Label" parent="Grid"]
-margin_top = 44.0
-margin_right = 89.0
-margin_bottom = 66.0
+[node name="Delay" type="Label" parent="V/Grid" groups=[
+"detailed",
+]]
+margin_top = 60.0
+margin_right = 163.0
+margin_bottom = 90.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+text = "Delay (ms):"
+
+[node name="Delay_avg" type="Label" parent="V/Grid" groups=[
+"detailed",
+]]
+margin_left = 167.0
+margin_top = 60.0
+margin_right = 209.0
+margin_bottom = 90.0
 size_flags_vertical = 1
 custom_colors/font_color = Color( 0.827451, 0.941176, 1, 1 )
-text = "Delay:321"
+text = "N/A"
 
-[node name="Delay_min" type="Label" parent="Grid"]
-margin_left = 93.0
-margin_top = 44.0
-margin_right = 115.0
-margin_bottom = 66.0
+[node name="Delay_min" type="Label" parent="V/Grid" groups=[
+"detailed",
+]]
+margin_left = 213.0
+margin_top = 60.0
+margin_right = 255.0
+margin_bottom = 90.0
 size_flags_vertical = 1
 custom_colors/font_color = Color( 0.737255, 1, 0.713726, 1 )
-text = "12"
+text = "N/A"
 
-[node name="Delay_max" type="Label" parent="Grid"]
-margin_left = 119.0
-margin_top = 44.0
-margin_right = 152.0
-margin_bottom = 66.0
+[node name="Delay_max" type="Label" parent="V/Grid" groups=[
+"detailed",
+]]
+margin_left = 259.0
+margin_top = 60.0
+margin_right = 301.0
+margin_bottom = 90.0
 size_flags_vertical = 1
 custom_colors/font_color = Color( 1, 0.709804, 0.709804, 1 )
-text = "333"
+text = "N/A"
+
+[node name="T_Send" type="Label" parent="V/Grid" groups=[
+"traffic",
+]]
+margin_top = 90.0
+margin_right = 163.0
+margin_bottom = 120.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+text = "Sended (MB/s):"
+
+[node name="T_Send_avg" type="Label" parent="V/Grid" groups=[
+"traffic",
+]]
+margin_left = 167.0
+margin_top = 90.0
+margin_right = 209.0
+margin_bottom = 120.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 0.827451, 0.941176, 1, 1 )
+text = "N/A"
+
+[node name="T_Send_min" type="Label" parent="V/Grid" groups=[
+"traffic",
+]]
+margin_left = 213.0
+margin_top = 90.0
+margin_right = 255.0
+margin_bottom = 120.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 0.737255, 1, 0.713726, 1 )
+text = "N/A"
+
+[node name="T_Send_max" type="Label" parent="V/Grid" groups=[
+"traffic",
+]]
+margin_left = 259.0
+margin_top = 90.0
+margin_right = 301.0
+margin_bottom = 120.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 1, 0.709804, 0.709804, 1 )
+text = "N/A"
+
+[node name="T_Recv" type="Label" parent="V/Grid" groups=[
+"traffic",
+]]
+margin_top = 120.0
+margin_right = 163.0
+margin_bottom = 150.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+text = "Received (MB/s):"
+
+[node name="T_Recv_avg" type="Label" parent="V/Grid" groups=[
+"traffic",
+]]
+margin_left = 167.0
+margin_top = 120.0
+margin_right = 209.0
+margin_bottom = 150.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 0.827451, 0.941176, 1, 1 )
+text = "N/A"
+
+[node name="T_Recv_min" type="Label" parent="V/Grid" groups=[
+"traffic",
+]]
+margin_left = 213.0
+margin_top = 120.0
+margin_right = 255.0
+margin_bottom = 150.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 0.737255, 1, 0.713726, 1 )
+text = "N/A"
+
+[node name="T_Recv_max" type="Label" parent="V/Grid" groups=[
+"traffic",
+]]
+margin_left = 259.0
+margin_top = 120.0
+margin_right = 301.0
+margin_bottom = 150.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 1, 0.709804, 0.709804, 1 )
+text = "N/A"
+
+[node name="HS" type="HBoxContainer" parent="V"]
+margin_top = 150.0
+margin_right = 301.0
+margin_bottom = 180.0
+
+[node name="T_Send_t" type="Label" parent="V/HS" groups=[
+"traffic",
+]]
+margin_right = 255.0
+margin_bottom = 30.0
+size_flags_horizontal = 3
+size_flags_vertical = 1
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+text = "Total Sended (MB):"
+
+[node name="T_Send_total" type="Label" parent="V/HS" groups=[
+"traffic",
+]]
+margin_left = 259.0
+margin_right = 301.0
+margin_bottom = 30.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 0.827451, 0.941176, 1, 1 )
+text = "N/A"
+
+[node name="HR" type="HBoxContainer" parent="V"]
+margin_top = 180.0
+margin_right = 301.0
+margin_bottom = 210.0
+
+[node name="T_Recv_t" type="Label" parent="V/HR" groups=[
+"traffic",
+]]
+margin_right = 255.0
+margin_bottom = 30.0
+size_flags_horizontal = 3
+size_flags_vertical = 1
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+text = "Total Received (MB):"
+
+[node name="T_Recv_total" type="Label" parent="V/HR" groups=[
+"traffic",
+]]
+margin_left = 259.0
+margin_right = 301.0
+margin_bottom = 30.0
+size_flags_vertical = 1
+custom_colors/font_color = Color( 0.827451, 0.941176, 1, 1 )
+text = "N/A"

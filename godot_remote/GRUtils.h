@@ -254,6 +254,8 @@ typedef Directory _Directory;
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
 
 #define AUTO_CONNECTION_PORT 57360
+#define MB_SIZE 1000000
+#define MiB_SIZE 1048576
 
 enum LogLevel : int {
 	LL_DEBUG = 0,

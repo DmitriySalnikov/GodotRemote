@@ -145,7 +145,7 @@ func update_values():
 	wifi_ip_line.text = d.get_address()
 	stretch_mode.selected = d.stretch_mode
 	fps.value = d.target_send_fps
-	stats.selected = G.show_stats
+	stats.select(stats.get_item_index(G.show_stats))
 	filtering.pressed = G.texture_filtering
 	password.text = G.password
 	sync_orient.pressed = G.sync_viewport_orientation
@@ -352,7 +352,8 @@ func _on_stretch_Type_item_selected(index):
 	G.stretch_mode = index
 	emit_signal("stretch_mode_changed")
 
-func _on_stats_State_selected_id(id : int):
+func _on_stats_State_selected_index(value : int):
+	var id = stats.get_item_id(value)
 	G.show_stats = id
 
 func _on_FPS_value_changed(value):
