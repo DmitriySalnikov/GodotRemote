@@ -112,7 +112,7 @@ class GRPacketStreamDataImage : public GRPacketStreamData {
 	friend GRPacket;
 
 	Size2 size;
-	int format = 0;
+	int format = 0; // TODO use this var to store image type(jpg, mb dxt1, etc)
 	PoolByteArray img_data;
 	uint64_t start_time = 0;
 	uint64_t frametime = 0;

@@ -158,6 +158,7 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 			sleep_usec(1_ms);
 		}
 	};
+	bool is_lost_image_sended = false;
 
 	while (is_update_thread_active) {
 		ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
@@ -183,12 +184,14 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 			if (buf->is_ready) {
 				uint64_t time = get_time_usec();
 				uint64_t next_frame = prev_shown_frame_time + buf->frametime;
-				buffer.pop();
-				// TODO fix fps
 				if (buf->is_end) {
+					buffer.pop();
 					gr_client->_image_lost();
+					is_lost_image_sended = true;
 				} else if (time > next_frame) {
+					buffer.pop();
 					ts_lock.unlock();
+					is_lost_image_sended = false;
 
 					prev_shown_frame_time = time;
 
@@ -201,6 +204,7 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 						gr_client->_display_new_image(buf->img_data, buf->img_width, buf->img_height, delay);
 					} else {
 						gr_client->_image_lost();
+						is_lost_image_sended = true;
 					}
 
 					wait_next_frame();
@@ -213,8 +217,9 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 		ts_lock.unlock();
 
 		// check if image displayed less then few seconds ago. if not then remove texture
-		if (get_time_usec() > uint64_t(prev_shown_frame_time + uint64_t(1000_ms * image_loss_time))) {
+		if ((get_time_usec() - prev_shown_frame_time > 1000_ms * image_loss_time) && !is_lost_image_sended) {
 			gr_client->_image_lost();
+			is_lost_image_sended = true;
 			continue;
 		}
 

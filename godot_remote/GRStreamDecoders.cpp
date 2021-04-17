@@ -26,18 +26,12 @@ using namespace GRUtils;
 // MANAGER
 
 void GRStreamDecodersManager::_bind_methods() {
-	//ClassDB::bind_method(D_METHOD("_load_settings"), &GRStreamDecoders::_load_settings);
-	//ADD_PROPERTY(PropertyInfo(Variant::INT, "password"), "set_password", "get_password");
-	//ADD_SIGNAL(MethodInfo("client_connected", PropertyInfo(Variant::STRING, "device_id")));
 }
 
 #else
 
 void GRStreamDecodersManager::_register_methods() {
 	METHOD_REG(GRStreamDecodersManager, _notification);
-	//METHOD_REG(GRStreamDecoders, _notification);
-	//register_property<GRStreamDecoders, String>("password", &GRStreamDecoders::set_password, &GRStreamDecoders::get_password, "");
-	//register_signal<GRStreamDecoders>("client_connected", "device_id", GODOT_VARIANT_TYPE_STRING);
 }
 
 #endif
@@ -173,7 +167,7 @@ void GRStreamDecoder::_register_methods() {
 
 void GRStreamDecoder::_sleep_waiting_next_frame(uint64_t frametime) {
 	if (frametime > 0) {
-		int wait_time = int(frametime - get_time_usec() - prev_shown_frame_time);
+		int wait_time = (int(get_time_usec() - prev_shown_frame_time - frametime));
 		if (wait_time > (int)1_ms && wait_time < (int)frametime) {
 			sleep_usec(wait_time - 500);
 		}
