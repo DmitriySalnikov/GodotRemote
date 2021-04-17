@@ -34,10 +34,14 @@
 using namespace godot;
 #endif
 
+#if defined(GODOT_REMOTE_LIBJPEG_TURBO_ENABLED)
+#define STREAM_SIZE_STEP 4
+#else
 #if !(defined(GODOT_REMOTE_USE_SSE2) && (defined(_M_AMD64) || defined(_M_X64) || _M_IX86_FP == 2))
 #define STREAM_SIZE_STEP 4
 #else
 #define STREAM_SIZE_STEP 32
+#endif
 #endif
 
 using namespace GRUtils;
@@ -632,11 +636,12 @@ void GRServer::_reset_counters() {
 
 #ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 void GRServer::_thread_udp_connection(Variant p_userdata) {
+	Thread_set_name("Server UDP Broadcaster");
 	ListenerThreadParamsServer *this_thread_info = VARIANT_OBJ_CAST_TO(p_userdata, ListenerThreadParamsServer);
 
 	const int duplicate_udp_packets = 2;
 	Error err = Error::OK;
-	Ref<StreamPeerBuffer> udp_data_buf = newref(StreamPeerBuffer);
+	RefStd(StreamPeerBuffer) udp_data_buf = newref_std(StreamPeerBuffer);
 	int prev_tcp_server_port = 0;
 
 	auto update_packet_data = [&]() {
@@ -727,8 +732,10 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 	_log("UDP Broadcast thread inited with " + str(available_sockets.size()) + " available addresses", LogLevel::LL_DEBUG);
 
 	while (!this_thread_info->stop_thread) {
+		ZoneScopedNC("Sending UDP server data", tracy::Color::DarkMagenta);
 		if (available_sockets.size() && client_connected == 0) {
-			ZoneScopedNC("Sending UDP server data", tracy::Color::DarkMagenta);
+			ZoneScopedNC("Actual Work", tracy::Color::Magenta4);
+
 			std::vector<std::shared_ptr<UdpBroadcast> > sockets_to_delete;
 			//if (prev_tcp_server_port != current_listening_port) {
 			//	update_packet_data();
@@ -838,7 +845,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 		listening_error_notification_shown = false;
 
 		if (connection_thread_info) {
-			if (connection_thread_info->ppeer.is_null()) {
+			if (!connection_thread_info->ppeer) {
 				connection_thread_info->break_connection = true;
 			}
 
@@ -855,7 +862,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 			con->set_no_delay(true);
 			String address = CONNECTION_ADDRESS(con);
 
-			Ref<PacketPeerStream> ppeer = newref(PacketPeerStream);
+			RefStd(PacketPeerStream) ppeer = newref_std(PacketPeerStream);
 			ppeer->set_stream_peer(con);
 			ppeer->set_output_buffer_max_size((1024 * 1024) * ((int)GET_PS(GodotRemote::ps_server_jpg_buffer_mb_size_name)));
 
@@ -925,7 +932,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 void GRServer::_thread_connection(Variant p_userdata) {
 	ConnectionThreadParamsServer *thread_info = VARIANT_OBJ_CAST_TO(p_userdata, ConnectionThreadParamsServer);
 	Ref<StreamPeerTCP> connection = thread_info->ppeer->get_stream_peer();
-	Ref<PacketPeerStream> ppeer = thread_info->ppeer;
+	RefStd(PacketPeerStream) ppeer = thread_info->ppeer;
 	_reset_counters();
 	_send_queue_resize(0);
 
@@ -1294,11 +1301,8 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		GRNotifications::add_notification("Disconnected", "Client disconnected: " + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
 	}
 
-	if (ppeer.is_valid()) {
-		ppeer.unref();
-	}
-
-	thread_info->ppeer.unref();
+	ppeer = nullptr;
+	thread_info->ppeer = nullptr;
 	thread_info->break_connection = true;
 	client_connected--;
 
@@ -1312,7 +1316,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	thread_info->finished = true;
 }
 
-GRServer::AuthResult GRServer::_auth_client(Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection) {
+GRServer::AuthResult GRServer::_auth_client(RefStd(PacketPeerStream) ppeer, Dictionary &ret_data, bool refuse_connection) {
 	// _v - variable definition, _n - dict key, _c - fail condition, _e - error message, _r - return value on fail condition
 #define packet_error_check(_t)              \
 	if ((int)err) {                         \

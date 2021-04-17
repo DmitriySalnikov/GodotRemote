@@ -68,7 +68,7 @@ public:
 
 	public:
 		Ref<StreamPeerTCP> peer;
-		Ref<PacketPeerStream> ppeer;
+		RefStd(PacketPeerStream) ppeer;
 
 		Ref<_Thread> thread_ref;
 
@@ -99,9 +99,7 @@ public:
 			if (peer.is_valid()) {
 				peer.unref();
 			}
-			if (ppeer.is_valid()) {
-				ppeer.unref();
-			}
+			ppeer = nullptr;
 		};
 	};
 
@@ -216,7 +214,7 @@ private:
 	void _thread_connection(Variant p_userdata);
 
 	void _connection_loop(ConnectionThreadParamsClient *con_thread);
-	GRDevice::AuthResult _auth_on_server(Ref<PacketPeerStream> &con);
+	GRDevice::AuthResult _auth_on_server(RefStd(PacketPeerStream) con);
 
 protected:
 	virtual void _internal_call_only_deffered_start() override;

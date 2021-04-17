@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=2]
+[gd_scene load_steps=23 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalBoldSmaller.tres" type="DynamicFont" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalSettings.tres" type="DynamicFont" id=2]
@@ -34,7 +34,25 @@ border_width_right = 2
 border_width_bottom = 2
 border_color = Color( 0.0862745, 0.0941176, 0.101961, 1 )
 
-[sub_resource type="StyleBoxFlat" id=3]
+[sub_resource type="AtlasTexture" id=3]
+flags = 13
+atlas = ExtResource( 15 )
+region = Rect2( 0, 0, 64, 64 )
+margin = Rect2( 0, 8, 0, 16 )
+
+[sub_resource type="AtlasTexture" id=4]
+flags = 13
+atlas = ExtResource( 7 )
+region = Rect2( 0, 0, 64, 64 )
+margin = Rect2( 0, 8, 0, 16 )
+
+[sub_resource type="AtlasTexture" id=5]
+flags = 13
+atlas = ExtResource( 6 )
+region = Rect2( 0, 0, 64, 64 )
+margin = Rect2( 0, 8, 0, 16 )
+
+[sub_resource type="StyleBoxFlat" id=6]
 bg_color = Color( 0.219608, 0.247059, 0.266667, 1 )
 draw_center = false
 border_width_top = 2
@@ -43,7 +61,7 @@ border_color = Color( 0.219608, 0.247059, 0.266667, 1 )
 shadow_color = Color( 0, 0, 0, 0.572549 )
 shadow_size = 2
 
-[sub_resource type="GDScript" id=4]
+[sub_resource type="GDScript" id=7]
 script/source = "extends PopupMenu
 
 var touches : Dictionary = {}
@@ -284,12 +302,12 @@ margin_top = 50.0
 margin_right = 752.0
 margin_bottom = 96.0
 size_flags_horizontal = 3
-text = "WiFi"
-icon = ExtResource( 7 )
+text = "Auto"
+icon = SubResource( 3 )
 align = 1
 expand_icon = true
-items = [ "Auto", ExtResource( 15 ), false, 2, null, "WiFi", ExtResource( 7 ), false, 0, null, "ADB", ExtResource( 6 ), false, 1, null ]
-selected = 1
+items = [ "Auto", SubResource( 3 ), false, 2, null, "WiFi", SubResource( 4 ), false, 0, null, "ADB", SubResource( 5 ), false, 1, null ]
+selected = 0
 
 [node name="Auto" type="VBoxContainer" parent="V/Scroll/H/Grid"]
 margin_top = 240.0
@@ -505,7 +523,7 @@ margin_bottom = 1072.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
-custom_styles/separator = SubResource( 3 )
+custom_styles/separator = SubResource( 6 )
 
 [node name="Empty13" type="Control" parent="V/Scroll/H/Grid"]
 margin_top = 1096.0
@@ -804,7 +822,7 @@ margin_bottom = 1940.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
-custom_styles/separator = SubResource( 3 )
+custom_styles/separator = SubResource( 6 )
 
 [node name="Empty10" type="Control" parent="V/Scroll/H/Grid"]
 margin_top = 1964.0
@@ -844,7 +862,7 @@ margin_bottom = 2136.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
-custom_styles/separator = SubResource( 3 )
+custom_styles/separator = SubResource( 6 )
 
 [node name="Empty8" type="Control" parent="V/Scroll/H/Grid"]
 margin_top = 2160.0
@@ -1038,7 +1056,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 5
 text = "100 %"
 align = 1
-items = [ "100 %", null, false, 0, false, "50 %", null, false, 1, false, "33.3 %", null, false, 2, null, "25 %", null, false, 3, null, "20 %", null, false, 4, null, "16.6 %", null, false, 5, null, "14.3 %", null, false, 6, null, "12.5 %", null, false, 7, null, "11.1 %", null, false, 8, null, "10 %", null, false, 9, null ]
+items = [ "100 %", null, false, 0, false, "50 %", null, false, 1, false, "33.3 %", null, false, 2, null, "25 %", null, false, 3, null, "20 %", null, false, 4, null, "16.6 %", null, false, 5, null, "12.5 %", null, false, 7, null, "10 %", null, false, 9, null ]
 selected = 0
 
 [node name="CompressionType" type="HBoxContainer" parent="V/Scroll/H/Grid"]
@@ -1120,7 +1138,7 @@ margin_top = 6.73477
 margin_right = -9.63458
 margin_bottom = 275.735
 items = [ "Log Level", null, 0, false, true, -1, 0, null, "", false, "Debug", null, 0, false, false, 0, 0, null, "", false, "Normal", null, 0, false, false, 1, 0, null, "", false, "Warning", null, 0, false, false, 2, 0, null, "", false, "Error", null, 0, false, false, 3, 0, null, "", false, "None", null, 0, false, false, 4, 0, null, "", false ]
-script = SubResource( 4 )
+script = SubResource( 7 )
 __meta__ = {
 "_edit_use_anchors_": false
 }

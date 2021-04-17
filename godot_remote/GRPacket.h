@@ -39,12 +39,12 @@ public:
 	};
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() {
-		Ref<StreamPeerBuffer> buf = newref(StreamPeerBuffer);
+	virtual RefStd(StreamPeerBuffer) _get_data() {
+		RefStd(StreamPeerBuffer) buf = newref_std(StreamPeerBuffer);
 		buf->put_8((uint8_t)get_type());
 		return buf;
 	};
-	virtual bool _create(Ref<StreamPeerBuffer> buf) {
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) {
 		buf->get_8();
 		return true;
 	};
@@ -65,8 +65,8 @@ class GRPacketSyncTime : public GRPacket {
 	uint64_t time = 0;
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override;
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+	virtual RefStd(StreamPeerBuffer) _get_data() override;
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::SyncTime; };
@@ -85,8 +85,8 @@ class GRPacketStreamData : public GRPacket {
 	bool is_stream_end = false;
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override;
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+	virtual RefStd(StreamPeerBuffer) _get_data() override;
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::StreamData; };
@@ -118,8 +118,8 @@ class GRPacketStreamDataImage : public GRPacketStreamData {
 	uint64_t frametime = 0;
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override;
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+	virtual RefStd(StreamPeerBuffer) _get_data() override;
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::StreamDataImage; };
@@ -170,8 +170,8 @@ class GRPacketStreamDataH264 : public GRPacketStreamData {
 	Dictionary additional_data;
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override;
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+	virtual RefStd(StreamPeerBuffer) _get_data() override;
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::StreamDataH264; };
@@ -236,8 +236,8 @@ class GRPacketInputData : public GRPacket {
 	std::vector<std::shared_ptr<GRInputData> > inputs;
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override;
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+	virtual RefStd(StreamPeerBuffer) _get_data() override;
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::InputData; };
@@ -273,8 +273,8 @@ class GRPacketServerSettings : public GRPacket {
 	std::map<int, Variant> settings;
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override;
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+	virtual RefStd(StreamPeerBuffer) _get_data() override;
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::ServerSettings; };
@@ -300,8 +300,8 @@ class GRPacketMouseModeSync : public GRPacket {
 	Input::MouseMode mouse_mode;
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override;
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+	virtual RefStd(StreamPeerBuffer) _get_data() override;
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::MouseModeSync; };
@@ -327,8 +327,8 @@ class GRPacketCustomInputScene : public GRPacket {
 	PoolByteArray scene_data;
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override;
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+	virtual RefStd(StreamPeerBuffer) _get_data() override;
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::CustomInputScene; };
@@ -374,8 +374,8 @@ class GRPacketClientStreamOrientation : public GRPacket {
 	bool vertical;
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override;
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+	virtual RefStd(StreamPeerBuffer) _get_data() override;
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::ClientStreamOrientation; };
@@ -397,8 +397,8 @@ class GRPacketStreamAspectRatio : public GRPacket {
 	float stream_aspect;
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override;
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+	virtual RefStd(StreamPeerBuffer) _get_data() override;
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::StreamAspectRatio; };
@@ -420,8 +420,8 @@ class GRPacketServerStreamQualityHint : public GRPacket {
 	String quality_hint;
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override;
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+	virtual RefStd(StreamPeerBuffer) _get_data() override;
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::ServerStreamQualityHint; };
@@ -445,8 +445,8 @@ class GRPacketCustomUserData : public GRPacket {
 	Variant user_data;
 
 protected:
-	virtual Ref<StreamPeerBuffer> _get_data() override;
-	virtual bool _create(Ref<StreamPeerBuffer> buf) override;
+	virtual RefStd(StreamPeerBuffer) _get_data() override;
+	virtual bool _create(RefStd(StreamPeerBuffer) buf) override;
 
 public:
 	virtual PacketType get_type() override { return PacketType::CustomUserData; };
@@ -481,16 +481,16 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // REQUESTS AND RESPONSES
 
-#define BASIC_PACKET(_name, _type)                                                            \
-	class _name : public GRPacket {                                                           \
-		friend GRPacket;                                                                      \
-                                                                                              \
-	protected:                                                                                \
-		virtual Ref<StreamPeerBuffer> _get_data() override { return GRPacket::_get_data(); }; \
-		virtual bool _create(Ref<StreamPeerBuffer> buf) override { return true; };            \
-                                                                                              \
-	public:                                                                                   \
-		virtual PacketType get_type() override { return _type; };                             \
+#define BASIC_PACKET(_name, _type)                                                               \
+	class _name : public GRPacket {                                                              \
+		friend GRPacket;                                                                         \
+                                                                                                 \
+	protected:                                                                                   \
+		virtual RefStd(StreamPeerBuffer) _get_data() override { return GRPacket::_get_data(); }; \
+		virtual bool _create(RefStd(StreamPeerBuffer) buf) override { return true; };            \
+                                                                                                 \
+	public:                                                                                      \
+		virtual PacketType get_type() override { return _type; };                                \
 	}
 
 BASIC_PACKET(GRPacketPing, PacketType::Ping);

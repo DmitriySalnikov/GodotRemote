@@ -394,7 +394,7 @@ void GRClient::_internal_call_only_deffered_start() {
 		thread_connection = nullptr;
 	}
 	thread_connection = memnew(ConnectionThreadParamsClient);
-	thread_connection->peer.instance();
+	thread_connection->peer = newref(StreamPeerTCP);
 	Thread_start(thread_connection->thread_ref, this, _thread_connection, thread_connection);
 
 	call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_SIGNAL);
@@ -1198,11 +1198,12 @@ int64_t GRClient::get_current_auto_connected_server_uid() {
 
 #ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 void GRClient::_thread_udp_listener(Variant p_userdata) {
+	Thread_set_name("Client UDP Listener");
 	ConnectionThreadParamsClient *con_thread = VARIANT_OBJ_CAST_TO(p_userdata, ConnectionThreadParamsClient);
 
 	std::shared_ptr<UdpListen> udp_server;
 	iterable_queue<int64_t> received_packs_uids;
-	Ref<StreamPeerBuffer> udp_server_buf = newref(StreamPeerBuffer);
+	RefStd(StreamPeerBuffer) udp_server_buf = newref_std(StreamPeerBuffer);
 	bool is_udp_cant_be_started = false;
 	int prev_connection_type = -1;
 
@@ -1273,183 +1274,184 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 				continue;
 			}
 
-			bool is_list_changed = false;
+			{
+				ZoneScopedNC("Actual Work", tracy::Color::Magenta4);
 
-			// get info from connections
-			uint64_t start_time = get_time_usec();
-			while (get_time_usec() - start_time < 16_ms) {
-				size_t size;
-				IpAddress adrs;
+				bool is_list_changed = false;
 
-				const char *ptr = udp_server->Read(size, adrs, 0);
-				if (!ptr) {
-					break;
-				} else {
-					PoolByteArray data;
-					data.resize((int)size);
-					{
-						auto dw = data.write();
-						memcpy(dw.ptr(), ptr, size);
-					}
+				// get info from connections
+				uint64_t start_time = get_time_usec();
+				while (get_time_usec() - start_time < 16_ms) {
+					size_t size;
+					IpAddress adrs;
 
-					if (data.size() > 12) {
-						udp_server_buf->set_data_array(data);
-						udp_server_buf->seek(12);
-
-						if (GRUtils::validate_packet(data.read().ptr())) {
-							Variant var = udp_server_buf->get_var(false);
-							if (var.get_type() == Variant::Type::DICTIONARY) {
-								Dictionary dict = var;
-								if (dict.empty()) {
-									continue;
-								}
-
-								// leave if packet already processed
-								udp_server_buf->seek(4);
-								int64_t pack_uid = udp_server_buf->get_64();
-								if (is_vector_contains(received_packs_uids, pack_uid)) {
-									continue;
-								}
-								received_packs_uids.push(pack_uid);
-								while (received_packs_uids.size() > 16) {
-									received_packs_uids.pop();
-								}
-
-								String version;
-								String project_name;
-								int port = 0;
-								int64_t server_uid = 0;
-								PoolByteArray icon_data;
-								PoolByteArray preview_data;
-
-								if (dict.has("version")) {
-									PoolByteArray ver = dict["version"];
-									if (!GRUtils::validate_version(ver)) {
-										continue;
-									} else {
-										version = str(ver[0]) + "." + str(ver[1]) + "." + str(ver[2]);
-									}
-								}
-
-								if (dict.has("project_name"))
-									project_name = dict["project_name"];
-								if (dict.has("port"))
-									port = dict["port"];
-								if (dict.has("server_uid"))
-									server_uid = dict["server_uid"];
-								if (dict.has("icon_data"))
-									icon_data = dict["icon_data"];
-								if (dict.has("preview_data"))
-									preview_data = dict["preview_data"];
-
-								{
-									ts_lock.lock();
-
-									std::shared_ptr<AvailableServer> available_server;
-									for (auto a : found_server_addresses) {
-										if (a->server_uid == server_uid) {
-											available_server = a;
-										}
-									}
-
-									bool list_changed = false;
-									if (!available_server) {
-										available_server = shared_new(AvailableServer);
-										available_server->port = port;
-										available_server->version = version;
-										available_server->project_name = project_name;
-										available_server->server_uid = server_uid;
-
-										found_server_addresses.push_back(available_server);
-										//is_list_changed = true;
-									}
-									available_server->icon_data = icon_data;
-									available_server->preview_data = preview_data;
-
-									// add or update IPs of sender
-									bool is_contains = false;
-									for (auto a : available_server->recieved_from_addresses) {
-										if (a->ip == adrs.GetText()) {
-											is_contains = true;
-											a->time_added = get_time_usec();
-										}
-									}
-									if (!is_contains) {
-										available_server->recieved_from_addresses.push_back(shared_new(AvailableServerAddress, get_time_usec(), adrs.GetText()));
-										//is_list_changed = true;
-									}
-
-									ts_lock.unlock();
-								}
-								is_list_changed = true;
-							}
-						}
+					const char *ptr = udp_server->Read(size, adrs, 0);
+					if (!ptr) {
+						break;
 					} else {
-						// just ignore any wrong packet
+						PoolByteArray data;
+						data.resize((int)size);
+						{
+							auto dw = data.write();
+							memcpy(dw.ptr(), ptr, size);
+						}
+
+						if (data.size() > 12) {
+							udp_server_buf->set_data_array(data);
+							udp_server_buf->seek(12);
+
+							if (GRUtils::validate_packet(data.read().ptr())) {
+								Variant var = udp_server_buf->get_var(false);
+								if (var.get_type() == Variant::Type::DICTIONARY) {
+									Dictionary dict = var;
+									if (dict.empty()) {
+										continue;
+									}
+
+									// leave if packet already processed
+									udp_server_buf->seek(4);
+									int64_t pack_uid = udp_server_buf->get_64();
+									if (is_vector_contains(received_packs_uids, pack_uid)) {
+										continue;
+									}
+									received_packs_uids.push(pack_uid);
+									while (received_packs_uids.size() > 16) {
+										received_packs_uids.pop();
+									}
+
+									String version;
+									String project_name;
+									int port = 0;
+									int64_t server_uid = 0;
+									PoolByteArray icon_data;
+									PoolByteArray preview_data;
+
+									if (dict.has("version")) {
+										PoolByteArray ver = dict["version"];
+										if (!GRUtils::validate_version(ver)) {
+											continue;
+										} else {
+											version = str(ver[0]) + "." + str(ver[1]) + "." + str(ver[2]);
+										}
+									}
+
+									if (dict.has("project_name"))
+										project_name = dict["project_name"];
+									if (dict.has("port"))
+										port = dict["port"];
+									if (dict.has("server_uid"))
+										server_uid = dict["server_uid"];
+									if (dict.has("icon_data"))
+										icon_data = dict["icon_data"];
+									if (dict.has("preview_data"))
+										preview_data = dict["preview_data"];
+
+									{
+										ts_lock.lock();
+
+										std::shared_ptr<AvailableServer> available_server;
+										for (auto a : found_server_addresses) {
+											if (a->server_uid == server_uid) {
+												available_server = a;
+											}
+										}
+
+										bool list_changed = false;
+										if (!available_server) {
+											available_server = shared_new(AvailableServer);
+											available_server->port = port;
+											available_server->version = version;
+											available_server->project_name = project_name;
+											available_server->server_uid = server_uid;
+
+											found_server_addresses.push_back(available_server);
+											//is_list_changed = true;
+										}
+										available_server->icon_data = icon_data;
+										available_server->preview_data = preview_data;
+
+										// add or update IPs of sender
+										bool is_contains = false;
+										for (auto a : available_server->recieved_from_addresses) {
+											if (a->ip == adrs.GetText()) {
+												is_contains = true;
+												a->time_added = get_time_usec();
+											}
+										}
+										if (!is_contains) {
+											available_server->recieved_from_addresses.push_back(shared_new(AvailableServerAddress, get_time_usec(), adrs.GetText()));
+											//is_list_changed = true;
+										}
+
+										ts_lock.unlock();
+									}
+									is_list_changed = true;
+								}
+							}
+						} else {
+							// just ignore any wrong packet
+						}
 					}
 				}
-			}
 
-			// clear outdated servers
-			ts_lock.lock();
-			for (int i = (int)found_server_addresses.size() - 1; i >= 0; i--) {
-				auto as = found_server_addresses[i];
-				for (int j = (int)as->recieved_from_addresses.size() - 1; j >= 0; j--) {
-					if (get_time_usec() - as->recieved_from_addresses[j]->time_added > 2000_ms) {
-						as->recieved_from_addresses.erase(as->recieved_from_addresses.begin() + j);
+				// clear outdated servers
+				ts_lock.lock();
+				for (int i = (int)found_server_addresses.size() - 1; i >= 0; i--) {
+					auto as = found_server_addresses[i];
+					for (int j = (int)as->recieved_from_addresses.size() - 1; j >= 0; j--) {
+						if (get_time_usec() - as->recieved_from_addresses[j]->time_added > 2000_ms) {
+							as->recieved_from_addresses.erase(as->recieved_from_addresses.begin() + j);
+							is_list_changed = true;
+						}
+					}
+					if (as->recieved_from_addresses.size() == 0) {
+						found_server_addresses.erase(found_server_addresses.begin() + i);
 						is_list_changed = true;
 					}
 				}
-				if (as->recieved_from_addresses.size() == 0) {
-					found_server_addresses.erase(found_server_addresses.begin() + i);
-					is_list_changed = true;
-				}
-			}
 
-			// search for currently selected address
-			{
-				bool need_to_found_exact_uid = (get_time_usec() - auto_connecting_server_select_time) < 1250_ms ||
-											   con_thread->is_first_connection_try ||
-											   con_thread->connect_to_exact_server;
-				
-				if ((con_thread->auto_connected_server_uid == 0 && !con_thread->is_auto_connected)) {
-					_log(need_to_found_exact_uid, LogLevel::LL_NORMAL);
+				// search for currently selected address
+				{
+					bool need_to_found_exact_uid = (get_time_usec() - auto_connecting_server_select_time) < 1250_ms ||
+												   con_thread->is_first_connection_try ||
+												   con_thread->connect_to_exact_server;
 
-					for (auto s : found_server_addresses) {
-						if (need_to_found_exact_uid ?
-										  (s->port == current_auto_connect_server_port &&
-												s->project_name == current_auto_connect_project_name &&
-												compare_addresses(s->recieved_from_addresses, current_auto_connect_server_addresses)) :
-										  (s->project_name == current_auto_connect_project_name &&
-												is_vector_contains_if(s->recieved_from_addresses, [&](std::shared_ptr<AvailableServerAddress> i) {
-													for (int x = 0; x < current_auto_connect_server_addresses.size(); x++) {
-														if (i->ip == current_auto_connect_server_addresses[x]) {
-															return true;
+					if ((con_thread->auto_connected_server_uid == 0 && !con_thread->is_auto_connected)) {
+						for (auto s : found_server_addresses) {
+							if (need_to_found_exact_uid ?
+											  (s->port == current_auto_connect_server_port &&
+													s->project_name == current_auto_connect_project_name &&
+													compare_addresses(s->recieved_from_addresses, current_auto_connect_server_addresses)) :
+											  (s->project_name == current_auto_connect_project_name &&
+													is_vector_contains_if(s->recieved_from_addresses, [&](std::shared_ptr<AvailableServerAddress> i) {
+														for (int x = 0; x < current_auto_connect_server_addresses.size(); x++) {
+															if (i->ip == current_auto_connect_server_addresses[x]) {
+																return true;
+															}
 														}
-													}
-													return false;
-												}))) {
-							break_connection_async();
+														return false;
+													}))) {
+								break_connection_async();
 
-							ts_lock.lock();
-							auto_connecting_server_select_time = 0;
-							con_thread->auto_mode_ready_to_connect = true;
-							con_thread->auto_found_server_uid = s->server_uid;
-							con_thread->is_first_connection_try = true;
-							ts_lock.unlock();
-							goto out_of_search;
+								ts_lock.lock();
+								auto_connecting_server_select_time = 0;
+								con_thread->auto_mode_ready_to_connect = true;
+								con_thread->auto_found_server_uid = s->server_uid;
+								con_thread->is_first_connection_try = true;
+								ts_lock.unlock();
+								goto out_of_search;
+							}
 						}
 					}
+					con_thread->auto_mode_ready_to_connect = false;
 				}
-				con_thread->auto_mode_ready_to_connect = false;
+			out_of_search:
+
+				if (is_list_changed)
+					emit_auto_connection_list_changed();
+
+				ts_lock.unlock();
 			}
-		out_of_search:
-
-			if (is_list_changed)
-				emit_auto_connection_list_changed();
-
-			ts_lock.unlock();
-
 			sleep_usec(50_ms);
 		} else {
 			sleep_usec(125_ms);
@@ -1535,6 +1537,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 		}
 
 		if (con->get_status() != StreamPeerTCP::STATUS_CONNECTED) {
+			ZoneScopedNC("Sleep for next try...", tracy::Color::DeepSkyBlue4);
 			_log("Connection timed out with " + address, LogLevel::LL_DEBUG);
 			if (prev_auth_error != GRDevice::AuthResult::Timeout ||
 					prev_connection_type != (int)connection_type ||
@@ -1693,7 +1696,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 		}
 
 		bool long_wait = false;
-		Ref<PacketPeerStream> ppeer = newref(PacketPeerStream);
+		RefStd(PacketPeerStream) ppeer = newref_std(PacketPeerStream);
 		ppeer->set_stream_peer(con);
 		ppeer->set_input_buffer_max_size(input_buffer_size_in_mb * 1024 * 1024);
 
@@ -1729,7 +1732,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				_connection_loop(con_thread);
 
 				con_thread->peer.unref();
-				con_thread->ppeer.unref();
+				con_thread->ppeer = nullptr;
 				con_thread->auto_connected_server_uid = 0;
 
 				is_connection_working = false;
@@ -1824,7 +1827,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	Ref<StreamPeerTCP> connection = con_thread->peer;
-	Ref<PacketPeerStream> ppeer = con_thread->ppeer;
+	RefStd(PacketPeerStream) ppeer = con_thread->ppeer;
 
 	Error err = Error::OK;
 	String address = CONNECTION_ADDRESS(connection);
@@ -2085,7 +2088,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 	con_thread->connection_finished = true;
 }
 
-GRDevice::AuthResult GRClient::_auth_on_server(Ref<PacketPeerStream> &ppeer) {
+GRDevice::AuthResult GRClient::_auth_on_server(RefStd(PacketPeerStream) ppeer) {
 #define wait_packet(_n)                                                                            \
 	{                                                                                              \
 		ZoneScopedNC("Wait Auth Packet: " #_n, tracy::Color::DarkCyan);                            \

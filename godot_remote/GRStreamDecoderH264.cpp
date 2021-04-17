@@ -154,7 +154,7 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 		ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
 		ts_lock.lock();
 
-		if (buffer.size()) {
+		if (buffer.size() != 0) {
 			auto buf = buffer.front();
 			buffer.pop();
 

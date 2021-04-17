@@ -15,14 +15,14 @@ using namespace godot;
 using namespace GRUtils;
 
 void GRInputDeviceSensorsData::set_sensors(PoolVector3Array _sensors) {
-	Ref<StreamPeerBuffer> data = newref(StreamPeerBuffer);
+	RefStd(StreamPeerBuffer) data = newref_std(StreamPeerBuffer);
 	data->put_8((uint8_t)get_type());
 	data->put_var(_sensors);
 	input_data = data->get_data_array();
 }
 
 PoolVector3Array GRInputDeviceSensorsData::get_sensors() {
-	Ref<StreamPeerBuffer> data = newref(StreamPeerBuffer);
+	RefStd(StreamPeerBuffer) data = newref_std(StreamPeerBuffer);
 	data->set_data_array(input_data);
 
 	data->seek(0);
@@ -98,7 +98,7 @@ std::shared_ptr<GRInputDataEvent> GRInputDataEvent::parse_event(const Ref<InputE
 			return in_data;                               \
 		}                                                 \
 	}
-	Ref<StreamPeerBuffer> data = newref(StreamPeerBuffer);
+	RefStd(StreamPeerBuffer) data = newref_std(StreamPeerBuffer);
 
 	PARSE(InputEventKey, GRIEDataKey);
 	PARSE(InputEventMouseButton, GRIEDataMouseButton);
@@ -126,7 +126,7 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 		Ref<_i> ev = newref(_i);                    \
 		return _construct_event(data, ev, vp_size); \
 	}
-	Ref<StreamPeerBuffer> data = newref(StreamPeerBuffer);
+	RefStd(StreamPeerBuffer) data = newref_std(StreamPeerBuffer);
 	data->set_data_array(input_data);
 
 	InputType type = _get_type();
@@ -186,8 +186,8 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 #define restore(_e) ((Vector2(_e) * rect.size) + ((rect.position - rect.size) / 2.f))
 #define restore_rel(_e) (Vector2(_e) * rect.size)
 
-#define CONSTRUCT(_type) Ref<InputEvent> _type::_construct_event(Ref<StreamPeerBuffer> data, Ref<InputEvent> ev, const Rect2 &rect)
-#define PARSE(_type) void _type::_parse_event(Ref<StreamPeerBuffer> data, const Ref<InputEvent> &ev, const Rect2 &rect)
+#define CONSTRUCT(_type) Ref<InputEvent> _type::_construct_event(RefStd(StreamPeerBuffer) data, Ref<InputEvent> ev, const Rect2 &rect)
+#define PARSE(_type) void _type::_parse_event(RefStd(StreamPeerBuffer) data, const Ref<InputEvent> &ev, const Rect2 &rect)
 
 //////////////////////////////////////////////////////////////////////////
 // InputEventWithModifiers

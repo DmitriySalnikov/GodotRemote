@@ -40,13 +40,16 @@ void __log(const Variant &val, int lvl, String func, String file, int line) {
 	if (lvl >= (_grutils_data ? _grutils_data->current_loglevel : LogLevel::LL_DEBUG) && lvl < LogLevel::LL_NONE) {
 		if (lvl == LogLevel::LL_ERROR) {
 			auto val_str = "[GodotRemote Error] " + str(val);
-			GodotRemote::get_singleton()->call_deferred("print_error_str", val_str, func, file, line);
+			//GodotRemote::get_singleton()->call_deferred("print_error_str", val_str, func, file, line);
+			GodotRemote::get_singleton()->print_error_str(val_str, func, file, line);
 		} else if (lvl == LogLevel::LL_WARNING) {
 			auto val_str = "[GodotRemote Warning] " + str(val);
-			GodotRemote::get_singleton()->call_deferred("print_warning_str", val_str, func, file, line);
+			//GodotRemote::get_singleton()->call_deferred("print_warning_str", val_str, func, file, line);
+			GodotRemote::get_singleton()->print_warning_str(val_str, func, file, line);
 		} else {
 			auto val_str = "[GodotRemote] " + str(val);
-			GodotRemote::get_singleton()->call_deferred("print_str", val_str);
+			//GodotRemote::get_singleton()->call_deferred("print_str", val_str);
+			GodotRemote::get_singleton()->print_str(val_str);
 		}
 	}
 

@@ -210,13 +210,18 @@ void GRStreamEncoderImageSequence::_processing_thread(Variant p_userdata) {
 
 		switch (pack->get_compression_type()) {
 			case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
-				ZoneScopedNC("Image processed: JPG", tracy::Color::VioletRed3);
 				Error err = Error::OK;
 
 #ifdef GODOT_REMOTE_LIBJPEG_TURBO_ENABLED
-				err = GRUtilsJPGCodec::_compress_jpg_turbo(img_data, com_image.img_data, jpg_buffer, com_image.img_width, com_image.img_height, bytes_in_color, stream_quality);
+				{
+					ZoneScopedNC("Image processed: JPG Turbo", tracy::Color::VioletRed3);
+					err = GRUtilsJPGCodec::_compress_jpg_turbo(img_data, com_image.img_data, jpg_buffer, com_image.img_width, com_image.img_height, bytes_in_color, stream_quality);
+				}
 #else
-				err = GRUtilsJPGCodec::_compress_jpg(img_data, com_image.img_data, jpg_buffer, com_image.img_width, com_image.img_height, bytes_in_color, stream_quality);
+				{
+					ZoneScopedNC("Image processed: JPG jpge.cpp", tracy::Color::VioletRed3);
+					err = GRUtilsJPGCodec::_compress_jpg(img_data, com_image.img_data, jpg_buffer, com_image.img_width, com_image.img_height, bytes_in_color, stream_quality);
+				}
 #endif
 
 				if ((int)err) {

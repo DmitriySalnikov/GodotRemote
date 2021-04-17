@@ -149,16 +149,22 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 	Thread_set_name("Image Sequence Update Thread");
 	auto wait_next_frame = [&]() {
 		ts_lock.lock();
-		uint64_t ft = buffer.size() ? buffer.front()->frametime : 0;
-		ts_lock.unlock();
-		_sleep_waiting_next_frame(ft);
+		if (buffer.size() && !buffer.front()->is_end) {
+			uint64_t ft = buffer.front()->frametime;
+			ts_lock.unlock();
+			_sleep_waiting_next_frame(ft);
+		} else {
+			ts_lock.unlock();
+			sleep_usec(1_ms);
+		}
 	};
 
 	while (is_update_thread_active) {
 		ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
 		ts_lock.lock();
 
-		if (buffer.size()) {
+		if (buffer.size() != 0) {
+			ZoneScopedNC("Buffer Not Empty", tracy::Color::DeepSkyBlue1);
 			int count = 0;
 			for (auto d : buffer) {
 				if (d->is_ready)
@@ -200,6 +206,8 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 					wait_next_frame();
 					continue;
 				}
+			} else {
+				ZoneScopedN("Not Ready");
 			}
 		}
 		ts_lock.unlock();
@@ -266,12 +274,18 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 			switch (type) {
 				case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
 #ifdef GODOT_REMOTE_LIBJPEG_TURBO_ENABLED
-					err = GRUtilsJPGCodec::_decompress_jpg_turbo(img_data, jpg_buffer, &out_img_data, &out_width, &out_height);
+					{
+						ZoneScopedN("Decompress JPG Turbo");
+						err = GRUtilsJPGCodec::_decompress_jpg_turbo(img_data, jpg_buffer, &out_img_data, &out_width, &out_height);
+					}
 #else
 					Ref<Image> img = newref(Image);
-					err = img->load_jpg_from_buffer(img_data);
-					if (err == Error::OK) {
-						out_img_data = img->get_data();
+					{
+						ZoneScopedN("Decompress JPG Godot Internal");
+						err = img->load_jpg_from_buffer(img_data);
+						if (err == Error::OK) {
+							out_img_data = img->get_data();
+						}
 					}
 #endif
 

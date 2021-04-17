@@ -65,10 +65,19 @@ func _resize_for_mobile():
 		for n in nodes:
 			if n is Control:
 				n.rect_min_size = Vector2(n.rect_min_size.x, height if n.rect_min_size.y < height else n.rect_min_size.y)
+		
 		nodes = get_tree().get_nodes_in_group("menus_that_should_be_higher")
+		var tex = ImageTexture.new()
+		var img = Image.new()
+		img.create(1, height, false, Image.FORMAT_RGBA8)
+		tex.create_from_image(img)
+		
 		for n in nodes:
 			if n is OptionButton:
-				n.get_popup().add_constant_override("vseparation", height / 3)
+				#n.get_popup().add_constant_override("vseparation", height / 3)
+				for i in range(n.get_item_count()):
+					if not n.get_item_icon(i) or not n.get_item_icon(i).get_data() or n.get_item_icon(i).get_data().is_empty():
+						n.set_item_icon(i, tex)
 
 func _touches_to_open_settings_changed(count : int) -> void:
 	no_signal_hint_text.text = orig_hint_text % count

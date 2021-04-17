@@ -225,6 +225,9 @@ typedef Directory _Directory;
 
 #define newref(_class) Ref<_class>(memnew(_class))
 
+#define RefStd(_class) std::shared_ptr<_class>
+#define newref_std(_class) std::shared_ptr<_class>(memnew(_class), [](_class *o) { memdelete(o); })
+
 #define GR_VERSION(x, y, z)                            \
 	if (_grutils_data->internal_VERSION.size() == 0) { \
 		_grutils_data->internal_VERSION.append(x);     \

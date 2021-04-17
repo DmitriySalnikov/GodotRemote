@@ -185,6 +185,8 @@ func _status_changed(_status : int):
 	if _status:
 		if GodotRemote.get_device().connection_type == C.GRClient_CONNECTION_AUTO:
 			G.auto_port = GodotRemote.get_device().get_current_auto_connect_port()
+			G.auto_addresses = GodotRemote.get_device().get_current_auto_connect_addresses()
+			G.auto_project_name = GodotRemote.get_device().get_current_auto_connect_project_name()
 	
 	if timer.is_stopped():
 		_set_buttons_disabled(_status == C.GRDevice_STATUS_STARTING or _status == C.GRDevice_STATUS_STOPPING)

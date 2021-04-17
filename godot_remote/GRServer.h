@@ -62,7 +62,7 @@ public:
 
 	public:
 		String device_id = "";
-		Ref<PacketPeerStream> ppeer;
+		RefStd(PacketPeerStream) ppeer;
 
 		Ref<_Thread> thread_ref;
 
@@ -80,9 +80,7 @@ public:
 		~ConnectionThreadParamsServer() {
 			LEAVE_IF_EDITOR();
 			close_thread();
-			if (ppeer.is_valid()) {
-				ppeer.unref();
-			}
+			ppeer = nullptr;
 		}
 	};
 
@@ -128,7 +126,7 @@ private:
 	void _thread_listen(Variant p_userdata);
 	void _thread_connection(Variant p_userdata);
 
-	AuthResult _auth_client(Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection DEF_ARG(= false));
+	AuthResult _auth_client(RefStd(PacketPeerStream) ppeer, Dictionary &ret_data, bool refuse_connection DEF_ARG(= false));
 
 	std::shared_ptr<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress DEF_ARG(= true), ENUM_ARG(Compression::Mode) compression_type DEF_ARG(= ENUM_CONV(Compression::Mode) 0));
 	void _scan_resource_for_dependencies_recursive(String _dir, std::vector<String> &_arr);
