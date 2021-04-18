@@ -174,10 +174,10 @@ typedef Directory _Directory;
 #define _log(val, logLevel)
 #endif // DEBUG_ENABLED
 
-#ifdef TRACY_ENABLE
+#if defined(TRACY_ENABLE) && defined(GODOT_REMOTE_TRACY_ENABLED)
 #define Thread_set_name(_name) tracy::SetThreadName(_name)
 
-#if defined(GODOT_REMOTE_TRACY_ENABLED) && defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
+#if defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
 #define MANUAL_TRACY
 #define START_TRACY tracy::StartupProfiler();
 #define STOP_TRACY tracy::ShutdownProfiler();
@@ -227,9 +227,9 @@ typedef Directory _Directory;
 #define shared_new(type, ...) std::make_shared<type>(__VA_ARGS__)
 
 #define newref(_class) Ref<_class>(memnew(_class))
+#define newref_std(_class) std::shared_ptr<_class>(memnew(_class), [](_class *o) { memdelete(o); })
 
 #define RefStd(_class) std::shared_ptr<_class>
-#define newref_std(_class) std::shared_ptr<_class>(memnew(_class), [](_class *o) { memdelete(o); })
 
 #define GR_VERSION(x, y, z)                            \
 	if (_grutils_data->internal_VERSION.size() == 0) { \

@@ -301,6 +301,7 @@ void GRClient::_notification(int p_notification) {
 		}
 		case NOTIFICATION_PROCESS: {
 			FrameMark;
+			// small 'debug' for pools
 			//_log(get_stream_peer_buffer_pool()->size(), LogLevel::LL_NORMAL);
 			break;
 		}
@@ -344,7 +345,7 @@ void GRClient::_init() {
 #endif
 
 	Scoped_lock(stream_mutex);
-	stream_manager = shared_new(GRStreamDecodersManager);
+	stream_manager = newref_std(GRStreamDecodersManager);
 	stream_manager->set_gr_client(this);
 	stream_manager->set_threads_count(default_decoder_threads_count);
 }
@@ -1283,7 +1284,7 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 				// get info from connections
 				uint64_t start_time = get_time_usec();
 				while (get_time_usec() - start_time < 16_ms) {
-					size_t size;
+					uint64_t size;
 					IpAddress adrs;
 
 					const char *ptr = udp_server->Read(size, adrs, 0);
@@ -1357,7 +1358,6 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 											}
 										}
 
-										bool list_changed = false;
 										if (!available_server) {
 											available_server = shared_new(AvailableServer);
 											available_server->port = port;
@@ -1660,6 +1660,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 								ts_lock.lock();
 
 								current_auto_connect_server_port = s.port;
+								con_thread->is_first_connection_try = false;
 								con_thread->auto_connected_server_uid = s.uid;
 								con_thread->is_auto_connected = true;
 								con_thread->auto_found_server_uid = 0;
@@ -1849,7 +1850,6 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 		Scoped_lock(connection_mutex);
 
 		_update_avg_traffic(0, 0);
-		uint64_t cycle_start_time = get_time_usec();
 
 		bool nothing_happens = true;
 		uint64_t start_while_time = 0;

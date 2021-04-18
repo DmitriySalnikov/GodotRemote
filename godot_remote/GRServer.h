@@ -86,6 +86,7 @@ public:
 
 private:
 	Mutex_define(connection_mutex, "Connection Lock");
+	Mutex_define(udp_lock, "UDP Thread Lock");
 	ListenerThreadParamsServer *server_thread_listen = nullptr;
 	Ref<TCP_Server> tcp_server;
 	class GRSViewport *resize_viewport = nullptr;
@@ -111,6 +112,8 @@ private:
 	custom_input_pck_compression_type = ENUM_CONV(Compression::Mode) 0;
 	const String custom_input_scene_regex_resource_finder_pattern = "\\\"(res://.*?)\\\"";
 	Ref<RegEx> custom_input_scene_regex_resource_finder;
+	PoolByteArray preview_image_data;
+	PoolByteArray project_icon_image_data;
 
 	float prev_avg_fps = 0;
 	void _adjust_viewport_scale();

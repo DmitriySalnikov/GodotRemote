@@ -172,7 +172,41 @@ void GRServer::_notification(int p_notification) {
 			udp_preview_viewport->set_max_viewport_size(Vector2(32, 32));
 			udp_preview_viewport->set_use_size_snapping(false);
 			add_child(udp_preview_viewport);
+
+			// get project icon for udp
+			String proj_icon = GET_PS("application/config/icon");
+			if (proj_icon != "") {
+#ifndef GDNATIVE_LIBRARY
+				Ref<Resource> resource = ResourceLoader::load(proj_icon);
+#else
+				Ref<Resource> resource = ResourceLoader::get_singleton()->load(proj_icon);
 #endif
+				Ref<Image> out_img;
+
+				Ref<Texture> tex = resource;
+				if (tex.is_valid()) {
+					out_img = tex->get_data();
+				}
+				Ref<Image> img = resource;
+				if (img.is_valid()) {
+					out_img = img;
+				}
+
+				if (out_img.is_valid() && !img_is_empty(out_img)) {
+					out_img->resize(32, 32, ENUM_CONV(Image::Interpolation) 4); // INTERPOLATE_LANCZOS = 4 slowest interpolation
+					project_icon_image_data = out_img->save_png_to_buffer();
+					Scoped_lock(udp_lock);
+
+					// too big
+					if (project_icon_image_data.size() > 1024 * 4) {
+						project_icon_image_data.resize(0);
+					}
+				} else {
+					_log("No project icon found.", LogLevel::LL_DEBUG);
+				}
+			}
+#endif
+			break;
 		}
 		case NOTIFICATION_EXIT_TREE: {
 			if (get_status() == (int)WorkingStatus::STATUS_WORKING) {
@@ -182,6 +216,18 @@ void GRServer::_notification(int p_notification) {
 		}
 		case NOTIFICATION_PROCESS: {
 			FrameMark;
+
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+			// get image for UDP preview
+			if (client_connected == 0 && udp_preview_viewport && !udp_preview_viewport->is_queued_for_deletion() && udp_preview_viewport->is_inside_tree()) {
+				Scoped_lock(udp_lock);
+				preview_image_data = udp_preview_viewport->get_texture()->get_data()->save_png_to_buffer();
+				// too big
+				if (preview_image_data.size() > 1024 * 4) {
+					preview_image_data.resize(0);
+				}
+			}
+#endif
 			break;
 		}
 	}
@@ -645,54 +691,17 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 	int prev_tcp_server_port = 0;
 
 	auto update_packet_data = [&]() {
-		String proj_icon = GET_PS("application/config/icon");
-		PoolByteArray icon_png_buffer;
-		PoolByteArray preview_png_buffer;
-		if (proj_icon != "") {
-#ifndef GDNATIVE_LIBRARY
-			Ref<Resource> resource = ResourceLoader::load(proj_icon);
-#else
-			Ref<Resource> resource = ResourceLoader::get_singleton()->load(proj_icon);
-#endif
-			Ref<Image> out_img;
-
-			Ref<Texture> tex = resource;
-			if (tex.is_valid()) {
-				out_img = tex->get_data();
-			}
-			Ref<Image> img = resource;
-			if (img.is_valid()) {
-				out_img = img;
-			}
-
-			if (out_img.is_valid() && !img_is_empty(out_img)) {
-				out_img->resize(32, 32, ENUM_CONV(Image::Interpolation) 4); // INTERPOLATE_LANCZOS = 4 slowest interpolation
-				icon_png_buffer = out_img->save_png_to_buffer();
-
-				// too big
-				if (icon_png_buffer.size() > 1024 * 4) {
-					icon_png_buffer.resize(0);
-				}
-			} else {
-				_log("No project icon found.", LogLevel::LL_DEBUG);
-			}
-		}
-
-		if (udp_preview_viewport && !udp_preview_viewport->is_queued_for_deletion() && udp_preview_viewport->is_inside_tree()) {
-			preview_png_buffer = udp_preview_viewport->get_texture()->get_data()->save_png_to_buffer();
-			// too big
-			if (preview_png_buffer.size() > 1024 * 4) {
-				preview_png_buffer.resize(0);
-			}
-		}
-
 		Dictionary server_udp_dict;
 		server_udp_dict["version"] = get_gr_version();
 		server_udp_dict["project_name"] = GET_PS("application/config/name");
 		server_udp_dict["port"] = current_listening_port;
 		server_udp_dict["server_uid"] = unique_server_id;
-		server_udp_dict["icon_data"] = icon_png_buffer;
-		server_udp_dict["preview_data"] = preview_png_buffer;
+
+		{
+			Scoped_lock(udp_lock);
+			server_udp_dict["icon_data"] = project_icon_image_data;
+			server_udp_dict["preview_data"] = preview_image_data;
+		}
 
 		PoolByteArray udp_data;
 		udp_data.append_array(get_packet_header());
@@ -733,33 +742,38 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 
 	while (!this_thread_info->stop_thread) {
 		ZoneScopedNC("Sending UDP server data", tracy::Color::DarkMagenta);
-		if (available_sockets.size() && client_connected == 0) {
-			ZoneScopedNC("Actual Work", tracy::Color::Magenta4);
+		if (available_sockets.size()) {
+			if (client_connected == 0) {
+				ZoneScopedNC("Actual Work", tracy::Color::Magenta4);
 
-			std::vector<std::shared_ptr<UdpBroadcast> > sockets_to_delete;
-			//if (prev_tcp_server_port != current_listening_port) {
-			//	update_packet_data();
-			//	prev_tcp_server_port = current_listening_port;
-			//}
-			update_packet_data();
+				std::vector<std::shared_ptr<UdpBroadcast> > sockets_to_delete;
+				//if (prev_tcp_server_port != current_listening_port) {
+				//	update_packet_data();
+				//	prev_tcp_server_port = current_listening_port;
+				//}
+				update_packet_data();
 
-			for (auto u : available_sockets) {
-				int64_t rnd_num = rand64();
-				udp_data_buf->seek(4);
-				udp_data_buf->put_64(rnd_num);
-				for (int i = 0; i < duplicate_udp_packets; i++) {
-					if (u->Send(AUTO_CONNECTION_PORT, udp_data_buf->get_data_array().read().ptr(), udp_data_buf->get_data_array().size()) == -1) {
-						sockets_to_delete.push_back(u);
-						break;
+				for (auto u : available_sockets) {
+					int64_t rnd_num = rand64();
+					udp_data_buf->seek(4);
+					udp_data_buf->put_64(rnd_num);
+					for (int i = 0; i < duplicate_udp_packets; i++) {
+						if (u->Send(AUTO_CONNECTION_PORT, udp_data_buf->get_data_array().read().ptr(), udp_data_buf->get_data_array().size()) == -1) {
+							sockets_to_delete.push_back(u);
+							break;
+						}
 					}
 				}
-			}
 
-			for (auto u : sockets_to_delete) {
-				vec_remove_obj(available_sockets, u);
-			}
+				for (auto u : sockets_to_delete) {
+					vec_remove_obj(available_sockets, u);
+				}
 
-			_log("Broadcasting Server Info", LogLevel::LL_DEBUG);
+				_log("Broadcasting Server Info", LogLevel::LL_DEBUG);
+			}
+		} else {
+			// stop this thread if no available sockets
+			break;
 		}
 
 		sleep_usec(400_ms);
@@ -1049,7 +1063,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_RENDER_SCALE, get_render_scale());
 				pack->add_setting((int)TypesOfServerSettings::SERVER_SETTINGS_SKIP_FRAMES, get_skip_frames());
 
-						err = send_data_to(ppeer, pack->get_data());
+				err = send_data_to(ppeer, pack->get_data());
 				if ((int)err) {
 					_log("Send server settings failed with code: " + str((int)err), LogLevel::LL_ERROR);
 					goto end_send;
@@ -1066,7 +1080,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 			auto pack = shared_new(GRPacketMouseModeSync);
 			pack->set_mouse_mode(mouse_mode);
 
-						err = send_data_to(ppeer, pack->get_data());
+			err = send_data_to(ppeer, pack->get_data());
 			if ((int)err) {
 				_log("Send mouse mode sync failed with code: " + str((int)err), LogLevel::LL_ERROR);
 				goto end_send;
@@ -1102,7 +1116,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 				pack = shared_new(GRPacketCustomInputScene);
 			}
 
-						err = send_data_to(ppeer, pack->get_data());
+			err = send_data_to(ppeer, pack->get_data());
 
 			if ((int)err) {
 				_log("Send custom input failed with code: " + str((int)err), LogLevel::LL_ERROR);
@@ -1874,7 +1888,7 @@ void GRSViewport::_init() {
 	set_shadow_atlas_quadrant_subdiv(3, Viewport::SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
 
 	Scoped_lock(stream_mutex);
-	stream_manager = shared_new(GRStreamEncodersManager);
+	stream_manager = newref_std(GRStreamEncodersManager);
 }
 
 void GRSViewport::_deinit() {

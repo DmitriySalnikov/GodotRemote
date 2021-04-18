@@ -252,6 +252,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="godot_remote\config.py" />
+    <None Include="godot_remote\default_sources.json" />
+    <None Include="godot_remote\lib_utils.py" />
     <None Include="godot_remote\SCsub" />
     <None Include="README.md" />
     <None Include="SConstruct" />
