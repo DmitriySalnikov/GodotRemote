@@ -15,14 +15,15 @@ using namespace godot;
 using namespace GRUtils;
 
 void GRInputDeviceSensorsData::set_sensors(PoolVector3Array _sensors) {
-	RefStd(StreamPeerBuffer) data = newref_std(StreamPeerBuffer);
+	auto data = get_stream_peer_buffer_pool()->get();
+
 	data->put_8((uint8_t)get_type());
 	data->put_var(_sensors);
 	input_data = data->get_data_array();
 }
 
 PoolVector3Array GRInputDeviceSensorsData::get_sensors() {
-	RefStd(StreamPeerBuffer) data = newref_std(StreamPeerBuffer);
+	auto data = get_stream_peer_buffer_pool()->get();
 	data->set_data_array(input_data);
 
 	data->seek(0);
@@ -93,12 +94,12 @@ std::shared_ptr<GRInputDataEvent> GRInputDataEvent::parse_event(const Ref<InputE
 		Ref<_i> ie = ev;                                  \
 		if (ie.is_valid()) {                              \
 			std::shared_ptr<_d> in_data = shared_new(_d); \
-			in_data->_parse_event(data, ie, rect);        \
+			in_data->_parse_event(data.ptr(), ie, rect);  \
 			in_data->input_data = data->get_data_array(); \
 			return in_data;                               \
 		}                                                 \
 	}
-	RefStd(StreamPeerBuffer) data = newref_std(StreamPeerBuffer);
+	auto data = get_stream_peer_buffer_pool()->get();
 
 	PARSE(InputEventKey, GRIEDataKey);
 	PARSE(InputEventMouseButton, GRIEDataMouseButton);
@@ -124,9 +125,9 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 #define CONSTRUCT(_i)                               \
 	{                                               \
 		Ref<_i> ev = newref(_i);                    \
-		return _construct_event(data, ev, vp_size); \
+		return _construct_event(data.ptr(), ev, vp_size); \
 	}
-	RefStd(StreamPeerBuffer) data = newref_std(StreamPeerBuffer);
+	auto data = get_stream_peer_buffer_pool()->get();
 	data->set_data_array(input_data);
 
 	InputType type = _get_type();
@@ -186,8 +187,8 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 #define restore(_e) ((Vector2(_e) * rect.size) + ((rect.position - rect.size) / 2.f))
 #define restore_rel(_e) (Vector2(_e) * rect.size)
 
-#define CONSTRUCT(_type) Ref<InputEvent> _type::_construct_event(RefStd(StreamPeerBuffer) data, Ref<InputEvent> ev, const Rect2 &rect)
-#define PARSE(_type) void _type::_parse_event(RefStd(StreamPeerBuffer) data, const Ref<InputEvent> &ev, const Rect2 &rect)
+#define CONSTRUCT(_type) Ref<InputEvent> _type::_construct_event(StreamPeerBuffer* data, Ref<InputEvent> ev, const Rect2 &rect)
+#define PARSE(_type) void _type::_parse_event(StreamPeerBuffer* data, const Ref<InputEvent> &ev, const Rect2 &rect)
 
 //////////////////////////////////////////////////////////////////////////
 // InputEventWithModifiers

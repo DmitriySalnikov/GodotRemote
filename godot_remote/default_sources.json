@@ -5,6 +5,7 @@
 	"GRDevice.cpp",
 	"GRInputData.cpp",
 	"GRNotifications.cpp",
+	"GRObjectPool.cpp",
 	"GRPacket.cpp",
 	"GRProfiler.cpp",
 	"GRProfilerViewportMiniPreview.cpp",

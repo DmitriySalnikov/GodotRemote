@@ -1,6 +1,7 @@
 /* GRUtils.h */
 #pragma once
 
+#include "GRObjectPool.h"
 #include "GRProfiler.h"
 #include <algorithm>
 #include <deque>
@@ -14,6 +15,7 @@
 #include "core/bind/core_bind.h"
 #include "core/image.h"
 #include "core/io/marshalls.h"
+#include "core/io/stream_peer.h"
 #include "core/os/os.h"
 #include "core/print_string.h"
 #include "core/project_settings.h"
@@ -38,6 +40,7 @@
 #include <Object.hpp>
 #include <PoolArrays.hpp>
 #include <ProjectSettings.hpp>
+#include <StreamPeerBuffer.hpp>
 #include <String.hpp>
 #include <Thread.hpp>
 #include <Variant.hpp>
@@ -280,6 +283,7 @@ public:
 	int current_loglevel;
 	PoolByteArray internal_PACKET_HEADER;
 	PoolByteArray internal_VERSION;
+	std::shared_ptr<GRObjectPool<StreamPeerBuffer> > streamPeerBufferPool;
 };
 
 extern std::shared_ptr<GRUtilsData> _grutils_data;
@@ -300,6 +304,7 @@ extern String str_arr(const Array arr, const bool force_full = false, const int 
 extern String str_arr(const Dictionary arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ");
 extern String str_arr(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64, String separator = ", ");
 
+extern std::shared_ptr<GRObjectPool<StreamPeerBuffer> > get_stream_peer_buffer_pool();
 extern bool validate_packet(const uint8_t *data);
 extern bool validate_version(const PoolByteArray &data);
 extern bool validate_version(const uint8_t *data);

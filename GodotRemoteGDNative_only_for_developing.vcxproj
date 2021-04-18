@@ -191,6 +191,7 @@
     <ClCompile Include="godot_remote\GRDevice.cpp" />
     <ClCompile Include="godot_remote\GRInputData.cpp" />
     <ClCompile Include="godot_remote\GRNotifications.cpp" />
+    <ClCompile Include="godot_remote\GRObjectPool.cpp" />
     <ClCompile Include="godot_remote\GRPacket.cpp" />
     <ClCompile Include="godot_remote\GRProfiler.cpp" />
     <ClCompile Include="godot_remote\GRProfilerViewportMiniPreview.cpp" />
@@ -220,6 +221,7 @@
     <ClInclude Include="godot_remote\GRDevice.h" />
     <ClInclude Include="godot_remote\GRInputData.h" />
     <ClInclude Include="godot_remote\GRNotifications.h" />
+    <ClInclude Include="godot_remote\GRObjectPool.h" />
     <ClInclude Include="godot_remote\GRPacket.h" />
     <ClInclude Include="godot_remote\GRProfiler.h" />
     <ClInclude Include="godot_remote\GRProfilerViewportMiniPreview.h" />

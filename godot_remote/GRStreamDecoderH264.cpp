@@ -152,7 +152,7 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 	bool is_lost_image_sended = false;
 
 	while (is_update_thread_active) {
-		ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
+		//ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
 		ts_lock.lock();
 
 		if (buffer.size() != 0) {
@@ -161,6 +161,7 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 
 			uint64_t time = get_time_usec();
 			if (buf.is_end) {
+				TracyMessage("Buffered image marked as end of stream.", 40);
 				gr_client->_image_lost();
 				is_lost_image_sended = true;
 			} else {
@@ -176,6 +177,7 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 
 					gr_client->_display_new_image(buf.img_data, buf.img_width, buf.img_height, delay);
 				} else {
+					TracyMessage("Image is broken. Ending stream..", 33);
 					gr_client->_image_lost();
 					is_lost_image_sended = true;
 				}
@@ -188,6 +190,7 @@ void GRStreamDecoderH264::_update_thread(Variant p_userdata) {
 
 		// check if image displayed less then few seconds ago. if not then remove texture
 		if ((get_time_usec() - prev_shown_frame_time > 1000_ms * image_loss_time) && !is_lost_image_sended) {
+			TracyMessage("Image is lost.", 15);
 			gr_client->_image_lost();
 			is_lost_image_sended = true;
 		}

@@ -14,13 +14,13 @@ std::shared_ptr<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 	}
 
 	PacketType type = (PacketType)((PoolByteArray)bytes)[0];
-	RefStd(StreamPeerBuffer) buf = newref_std(StreamPeerBuffer);
+	auto buf = get_stream_peer_buffer_pool()->get();
 	buf->set_data_array(bytes);
 
 #define CREATE(type)                                     \
 	{                                                    \
 		std::shared_ptr<type> packet = shared_new(type); \
-		if (packet->_create(buf)) {                      \
+		if (packet->_create(buf.ptr())) {                \
 			return packet;                               \
 		} else {                                         \
 			return std::shared_ptr<GRPacket>();          \
@@ -68,16 +68,18 @@ std::shared_ptr<GRPacket> GRPacket::create(const PoolByteArray &bytes) {
 	return std::shared_ptr<GRPacket>();
 }
 
+#define GET_DATA(_class) void _class::_get_data(StreamPeerBuffer *buf)
+#define CREATE_PACK(_class) bool _class::_create(StreamPeerBuffer *buf)
+
 //////////////////////////////////////////////////////////////////////////
 // STREAM DATA
-RefStd(StreamPeerBuffer) GRPacketStreamData::_get_data() {
-	auto buf = GRPacket::_get_data();
+GET_DATA(GRPacketStreamData) {
+	GRPacket::_get_data(buf);
 	buf->put_8(is_stream_end);
 	buf->put_32((int)compression);
-	return buf;
 }
 
-bool GRPacketStreamData::_create(RefStd(StreamPeerBuffer) buf) {
+CREATE_PACK(GRPacketStreamData) {
 	GRPacket::_create(buf);
 	is_stream_end = (bool)buf->get_8();
 	compression = (int)buf->get_32();
@@ -86,17 +88,16 @@ bool GRPacketStreamData::_create(RefStd(StreamPeerBuffer) buf) {
 
 //////////////////////////////////////////////////////////////////////////
 // STREAM DATA IMAGE
-RefStd(StreamPeerBuffer) GRPacketStreamDataImage::_get_data() {
-	auto buf = GRPacketStreamData::_get_data();
+GET_DATA(GRPacketStreamDataImage) {
+	GRPacketStreamData::_get_data(buf);
 	buf->put_var(size);
 	buf->put_var(format);
 	buf->put_var(img_data);
 	buf->put_var(start_time);
 	buf->put_var(frametime);
-	return buf;
 }
 
-bool GRPacketStreamDataImage::_create(RefStd(StreamPeerBuffer) buf) {
+CREATE_PACK(GRPacketStreamDataImage) {
 	GRPacketStreamData::_create(buf);
 	size = buf->get_var();
 	format = buf->get_var();
@@ -108,8 +109,8 @@ bool GRPacketStreamDataImage::_create(RefStd(StreamPeerBuffer) buf) {
 
 //////////////////////////////////////////////////////////////////////////
 // STREAM DATA H264
-RefStd(StreamPeerBuffer) GRPacketStreamDataH264::_get_data() {
-	auto buf = GRPacketStreamData::_get_data();
+GET_DATA(GRPacketStreamDataH264) {
+	GRPacketStreamData::_get_data(buf);
 	buf->put_var(start_time);
 	buf->put_var(frametime);
 	buf->put_var(frame_type);
@@ -122,10 +123,9 @@ RefStd(StreamPeerBuffer) GRPacketStreamDataH264::_get_data() {
 	for (auto i : data_layers) {
 		buf->put_var(i);
 	}
-	return buf;
 }
 
-bool GRPacketStreamDataH264::_create(RefStd(StreamPeerBuffer) buf) {
+CREATE_PACK(GRPacketStreamDataH264) {
 	GRPacketStreamData::_create(buf);
 	start_time = buf->get_var();
 	frametime = buf->get_var();
@@ -144,13 +144,12 @@ bool GRPacketStreamDataH264::_create(RefStd(StreamPeerBuffer) buf) {
 
 //////////////////////////////////////////////////////////////////////////
 // SYNC TIME
-RefStd(StreamPeerBuffer) GRPacketSyncTime::_get_data() {
-	auto buf = GRPacket::_get_data();
+GET_DATA(GRPacketSyncTime) {
+	GRPacket::_get_data(buf);
 	buf->put_var(get_time_usec());
-	return buf;
 }
 
-bool GRPacketSyncTime::_create(RefStd(StreamPeerBuffer) buf) {
+CREATE_PACK(GRPacketSyncTime) {
 	GRPacket::_create(buf);
 	time = buf->get_var();
 	return true;
@@ -158,8 +157,8 @@ bool GRPacketSyncTime::_create(RefStd(StreamPeerBuffer) buf) {
 
 //////////////////////////////////////////////////////////////////////////
 // INPUT DATA
-RefStd(StreamPeerBuffer) GRPacketInputData::_get_data() {
-	auto buf = GRPacket::_get_data();
+GET_DATA(GRPacketInputData) {
+	GRPacket::_get_data(buf);
 	int count = 0;
 
 	for (int i = 0; i < (int)inputs.size(); i++) {
@@ -177,10 +176,9 @@ RefStd(StreamPeerBuffer) GRPacketInputData::_get_data() {
 	for (int i = 0; i < (int)inputs.size(); i++) {
 		buf->put_var(((std::shared_ptr<GRInputData>)inputs[i])->get_data());
 	}
-	return buf;
 }
 
-bool GRPacketInputData::_create(RefStd(StreamPeerBuffer) buf) {
+CREATE_PACK(GRPacketInputData) {
 	GRPacket::_create(buf);
 	int size = (int)buf->get_32(); // get size
 	for (int i = 0; i < size; i++) {
@@ -194,13 +192,12 @@ bool GRPacketInputData::_create(RefStd(StreamPeerBuffer) buf) {
 
 //////////////////////////////////////////////////////////////////////////
 // SERVER SETTINGS
-RefStd(StreamPeerBuffer) GRPacketServerSettings::_get_data() {
-	auto buf = GRPacket::_get_data();
+GET_DATA(GRPacketServerSettings) {
+	GRPacket::_get_data(buf);
 	buf->put_var(map_to_dict(settings));
-	return buf;
 }
 
-bool GRPacketServerSettings::_create(RefStd(StreamPeerBuffer) buf) {
+CREATE_PACK(GRPacketServerSettings) {
 	GRPacket::_create(buf);
 	settings = dict_to_map<int, Variant>(buf->get_var());
 	return true;
@@ -209,13 +206,12 @@ bool GRPacketServerSettings::_create(RefStd(StreamPeerBuffer) buf) {
 //////////////////////////////////////////////////////////////////////////
 // MOUSE MODE SYNC
 
-RefStd(StreamPeerBuffer) GRPacketMouseModeSync::_get_data() {
-	auto buf = GRPacket::_get_data();
+GET_DATA(GRPacketMouseModeSync) {
+	GRPacket::_get_data(buf);
 	buf->put_8(mouse_mode);
-	return buf;
 }
 
-bool GRPacketMouseModeSync::_create(RefStd(StreamPeerBuffer) buf) {
+CREATE_PACK(GRPacketMouseModeSync) {
 	GRPacket::_create(buf);
 	mouse_mode = (Input::MouseMode)buf->get_8();
 	return true;
@@ -223,18 +219,16 @@ bool GRPacketMouseModeSync::_create(RefStd(StreamPeerBuffer) buf) {
 
 //////////////////////////////////////////////////////////////////////////
 // CUSTOM INPUT SCENE
-
-RefStd(StreamPeerBuffer) GRPacketCustomInputScene::_get_data() {
-	auto buf = GRPacket::_get_data();
+GET_DATA(GRPacketCustomInputScene) {
+	GRPacket::_get_data(buf);
 	buf->put_string(scene_path);
 	buf->put_8(compressed);
 	buf->put_8(compression_type);
 	buf->put_32(original_data_size);
 	buf->put_var(scene_data);
-	return buf;
 }
 
-bool GRPacketCustomInputScene::_create(RefStd(StreamPeerBuffer) buf) {
+CREATE_PACK(GRPacketCustomInputScene) {
 	GRPacket::_create(buf);
 	scene_path = buf->get_string();
 	compressed = buf->get_8();
@@ -246,14 +240,12 @@ bool GRPacketCustomInputScene::_create(RefStd(StreamPeerBuffer) buf) {
 
 //////////////////////////////////////////////////////////////////////////
 // CLIENT DEVICE ROTATION
-
-RefStd(StreamPeerBuffer) GRPacketClientStreamOrientation::_get_data() {
-	auto buf = GRPacket::_get_data();
+GET_DATA(GRPacketClientStreamOrientation) {
+	GRPacket::_get_data(buf);
 	buf->put_8(vertical);
-	return buf;
 }
 
-bool GRPacketClientStreamOrientation::_create(RefStd(StreamPeerBuffer) buf) {
+CREATE_PACK(GRPacketClientStreamOrientation) {
 	GRPacket::_create(buf);
 	vertical = buf->get_8();
 	return true;
@@ -261,14 +253,12 @@ bool GRPacketClientStreamOrientation::_create(RefStd(StreamPeerBuffer) buf) {
 
 //////////////////////////////////////////////////////////////////////////
 // CLIENT SCREEN ASCPECT
-
-RefStd(StreamPeerBuffer) GRPacketStreamAspectRatio::_get_data() {
-	auto buf = GRPacket::_get_data();
+GET_DATA(GRPacketStreamAspectRatio) {
+	GRPacket::_get_data(buf);
 	buf->put_float(stream_aspect);
-	return buf;
 }
 
-bool GRPacketStreamAspectRatio::_create(RefStd(StreamPeerBuffer) buf) {
+CREATE_PACK(GRPacketStreamAspectRatio) {
 	GRPacket::_create(buf);
 	stream_aspect = buf->get_float();
 	return true;
@@ -276,16 +266,14 @@ bool GRPacketStreamAspectRatio::_create(RefStd(StreamPeerBuffer) buf) {
 
 //////////////////////////////////////////////////////////////////////////
 // CUSTOM USER DATA
-
-RefStd(StreamPeerBuffer) GRPacketCustomUserData::_get_data() {
-	auto buf = GRPacket::_get_data();
+GET_DATA(GRPacketCustomUserData) {
+	GRPacket::_get_data(buf);
 	buf->put_var(packet_id);
 	buf->put_8(full_objects);
 	buf->put_var(user_data, full_objects);
-	return buf;
 }
 
-bool GRPacketCustomUserData::_create(RefStd(StreamPeerBuffer) buf) {
+CREATE_PACK(GRPacketCustomUserData) {
 	GRPacket::_create(buf);
 	packet_id = buf->get_var();
 	full_objects = buf->get_8();
@@ -295,14 +283,12 @@ bool GRPacketCustomUserData::_create(RefStd(StreamPeerBuffer) buf) {
 
 //////////////////////////////////////////////////////////////////////////
 // SERVER STREAM QUALITY HINT
-
-RefStd(StreamPeerBuffer) GRPacketServerStreamQualityHint::_get_data() {
-	auto buf = GRPacket::_get_data();
+GET_DATA(GRPacketServerStreamQualityHint) {
+	GRPacket::_get_data(buf);
 	buf->put_string(quality_hint);
-	return buf;
 }
 
-bool GRPacketServerStreamQualityHint::_create(RefStd(StreamPeerBuffer) buf) {
+CREATE_PACK(GRPacketServerStreamQualityHint) {
 	GRPacket::_create(buf);
 	quality_hint = buf->get_string();
 	return true;

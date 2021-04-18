@@ -161,11 +161,10 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 	bool is_lost_image_sended = false;
 
 	while (is_update_thread_active) {
-		ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
+		//ZoneScopedNC("Update Image Sequence", tracy::Color::DeepSkyBlue1);
 		ts_lock.lock();
 
 		if (buffer.size() != 0) {
-			ZoneScopedNC("Buffer Not Empty", tracy::Color::DeepSkyBlue1);
 			int count = 0;
 			for (auto d : buffer) {
 				if (d->is_ready)
@@ -185,39 +184,47 @@ void GRStreamDecoderImageSequence::_update_thread(Variant p_userdata) {
 				uint64_t time = get_time_usec();
 				uint64_t next_frame = prev_shown_frame_time + buf->frametime;
 				if (buf->is_end) {
+					TracyMessage("Buffered image marked as end of stream.", 40);
 					buffer.pop();
 					gr_client->_image_lost();
 					is_lost_image_sended = true;
-				} else if (time > next_frame) {
-					buffer.pop();
-					ts_lock.unlock();
-					is_lost_image_sended = false;
+				} else {
+					if (time >= next_frame) {
+						buffer.pop();
+						ts_lock.unlock();
+						is_lost_image_sended = false;
 
-					prev_shown_frame_time = time;
+						prev_shown_frame_time = time;
 
-					if (buf->img_data.size() != 0) {
-						int64_t delay = _calc_delay(time, buf->frame_added_time, buf->frametime);
-						if (delay < 0) {
-							delay = 0;
+						if (buf->img_data.size() != 0) {
+							int64_t delay = _calc_delay(time, buf->frame_added_time, buf->frametime);
+							if (delay < 0) {
+								delay = 0;
+							}
+
+							gr_client->_display_new_image(buf->img_data, buf->img_width, buf->img_height, delay);
+						} else {
+							TracyMessage("Image is broken. Ending stream..", 33);
+							gr_client->_image_lost();
+							is_lost_image_sended = true;
 						}
-
-						gr_client->_display_new_image(buf->img_data, buf->img_width, buf->img_height, delay);
+						wait_next_frame();
+						continue;
 					} else {
-						gr_client->_image_lost();
-						is_lost_image_sended = true;
+						ts_lock.unlock();
+						wait_next_frame();
+						continue;
 					}
-
-					wait_next_frame();
-					continue;
 				}
 			} else {
-				ZoneScopedN("Not Ready");
+				//ZoneScopedN("Not Ready");
 			}
 		}
 		ts_lock.unlock();
 
 		// check if image displayed less then few seconds ago. if not then remove texture
 		if ((get_time_usec() - prev_shown_frame_time > 1000_ms * image_loss_time) && !is_lost_image_sended) {
+			TracyMessage("Image is lost.", 15);
 			gr_client->_image_lost();
 			is_lost_image_sended = true;
 			continue;
@@ -233,6 +240,10 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 
 	PoolByteArray jpg_buffer;
 	jpg_buffer.resize((1024 * 1024) * 4);
+
+#ifndef GODOT_REMOTE_LIBJPEG_TURBO_ENABLED
+	Ref<Image> tmp_img = newref(Image);
+#endif
 
 	while (is_threads_active) {
 		ts_lock.lock();
@@ -284,12 +295,11 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 						err = GRUtilsJPGCodec::_decompress_jpg_turbo(img_data, jpg_buffer, &out_img_data, &out_width, &out_height);
 					}
 #else
-					Ref<Image> img = newref(Image);
 					{
 						ZoneScopedN("Decompress JPG Godot Internal");
-						err = img->load_jpg_from_buffer(img_data);
+						err = tmp_img->load_jpg_from_buffer(img_data);
 						if (err == Error::OK) {
-							out_img_data = img->get_data();
+							out_img_data = tmp_img->get_data();
 						}
 					}
 #endif

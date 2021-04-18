@@ -888,7 +888,7 @@ void GRServer::_thread_listen(Variant p_userdata) {
 						_log("New connection from " + address, LogLevel::LL_NORMAL);
 
 						call_deferred(NAMEOF(emit_signal), "client_connected", dev_id);
-						GRNotifications::add_notification("Connected", "Client connected: " + address + "\nDevice ID: " + connection_thread_info->device_id, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
+						GRNotifications::add_notification("Connected", "Client connected:\n" + address + "\nDevice ID: " + connection_thread_info->device_id, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 						break;
 					}
 					case GRDevice::AuthResult::VersionMismatch:
@@ -1159,7 +1159,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 
 				switch (type) {
 					case GRPacket::PacketType::SyncTime: {
-						ERR_PRINT("NOT IMPLEMENTED");
+						ERR_PRINT("SyncTime NOT IMPLEMENTED in server!");
 						break;
 					}
 					case GRPacket::PacketType::InputData: {
@@ -1291,10 +1291,10 @@ void GRServer::_thread_connection(Variant p_userdata) {
 		resize_viewport->_stop_encoder();
 
 	if (connection->is_connected_to_host()) {
-		GRNotifications::add_notification("Disconnected", "Closing connection with " + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
+		GRNotifications::add_notification("Disconnected", "Closing connection with\n" + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
 	} else {
 		_log("Connection lost to " + address + ". " + log_error_text, LogLevel::LL_ERROR);
-		GRNotifications::add_notification("Disconnected", "Client disconnected: " + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
+		GRNotifications::add_notification("Disconnected", "Client disconnected:\n" + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
 	}
 
 	ppeer = nullptr;

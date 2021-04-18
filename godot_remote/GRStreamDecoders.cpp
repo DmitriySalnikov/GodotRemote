@@ -166,13 +166,15 @@ void GRStreamDecoder::_register_methods() {
 #endif
 
 void GRStreamDecoder::_sleep_waiting_next_frame(uint64_t frametime) {
-	ZoneScopedN("Waiting next frame");
 	if (frametime > 0) {
-		int wait_time = (int(get_time_usec() - prev_shown_frame_time - frametime));
+		int wait_time = (int(frametime - (get_time_usec() - prev_shown_frame_time))) - 500;
 		if (wait_time > (int)1_ms && wait_time < (int)frametime) {
-			sleep_usec(wait_time - 500);
+			ZoneScopedN("Waiting next frame");
+			sleep_usec(wait_time);
+		} else {
 		}
 	} else {
+		ZoneScopedN("Waiting next frame 1 ms");
 		sleep_usec(1_ms);
 	}
 }

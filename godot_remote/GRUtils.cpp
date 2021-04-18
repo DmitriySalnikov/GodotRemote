@@ -19,6 +19,11 @@ void init() {
 	_grutils_data = shared_new(GRUtilsData);
 	_grutils_data->current_loglevel = LogLevel::LL_NORMAL;
 	GET_PS_SET(_grutils_data->current_loglevel, GodotRemote::ps_general_loglevel_name);
+	_grutils_data->streamPeerBufferPool = std::make_shared<GRObjectPool<StreamPeerBuffer> >(
+			[]() { return newref_std(StreamPeerBuffer); },
+			//[]() { return std::shared_ptr<StreamPeerBuffer>(memnew(StreamPeerBuffer), [](StreamPeerBuffer *o) { memdelete(o); _log("StreamPeerBuffer", LogLevel::LL_NORMAL); }); },
+			[](RefStd(StreamPeerBuffer) buf) { buf->set_data_array(PoolByteArray()); },
+			true, 0);
 
 	LEAVE_IF_EDITOR();
 
@@ -31,6 +36,9 @@ void deinit() {
 	if (_grutils_data) {
 		_grutils_data->internal_PACKET_HEADER.resize(0);
 		_grutils_data->internal_VERSION.resize(0);
+		if (_grutils_data->streamPeerBufferPool) {
+			_grutils_data->streamPeerBufferPool->clear();
+		}
 	}
 	LEAVE_IF_EDITOR();
 }
@@ -341,6 +349,10 @@ bool validate_version(const uint8_t *data) {
 	if (data[0] == _grutils_data->internal_VERSION[0] && data[1] == _grutils_data->internal_VERSION[1])
 		return true;
 	return false;
+}
+
+std::shared_ptr<GRObjectPool<StreamPeerBuffer> > get_stream_peer_buffer_pool() {
+	return _grutils_data->streamPeerBufferPool;
 }
 
 bool compare_pool_byte_arrays(const PoolByteArray &a, const PoolByteArray &b) {

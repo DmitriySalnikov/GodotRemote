@@ -301,6 +301,7 @@ void GRClient::_notification(int p_notification) {
 		}
 		case NOTIFICATION_PROCESS: {
 			FrameMark;
+			//_log(get_stream_peer_buffer_pool()->size(), LogLevel::LL_NORMAL);
 			break;
 		}
 	}
@@ -739,7 +740,7 @@ bool GRClient::set_address_port(String ip, uint16_t _port) {
 			all_ok = true;
 		} else {
 			_log("Address is invalid: " + ip, LogLevel::LL_ERROR);
-			GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + ip, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+			GRNotifications::add_notification("Resolve Address Error", "Address is invalid:\n" + ip, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 		}
 	} else {
 		adr = IP::get_singleton()->resolve_hostname(adr);
@@ -751,7 +752,7 @@ bool GRClient::set_address_port(String ip, uint16_t _port) {
 			all_ok = true;
 		} else {
 			_log("Can't resolve address for " + ip, LogLevel::LL_ERROR);
-			GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + ip, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+			GRNotifications::add_notification("Resolve Address Error", "Can't resolve address:\n" + ip, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 		}
 	}
 
@@ -1034,7 +1035,7 @@ void GRClient::_update_texture_from_image(Ref<Image> img) {
 			if (tex.is_valid()) {
 				tex->create_from_image(img);
 			} else {
-				tex.instance();
+				tex = newref(ImageTexture);
 				tex->create_from_image(img);
 				tex_shows_stream->set_texture(tex);
 			}
@@ -1544,7 +1545,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 					prev_connection_port != try_to_port ||
 					prev_connecting_address != try_to_adr) {
 
-				GRNotifications::add_notification(con_error_title, "Connection timed out: " + address, GRNotifications::NotificationIcon::ICON_WARNING, true, 1.f);
+				GRNotifications::add_notification(con_error_title, "Connection timed out:\n" + address, GRNotifications::NotificationIcon::ICON_WARNING, true, 1.f);
 				prev_auth_error = GRDevice::AuthResult::Timeout;
 				prev_connection_type = (int)connection_type;
 				prev_connection_port = try_to_port;
@@ -1590,7 +1591,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 					} else {
 						_log("Address is invalid: " + server_address, LogLevel::LL_ERROR);
 						if (prev_auth_error != GRDevice::AuthResult::Error)
-							GRNotifications::add_notification("Resolve Address Error", "Address is invalid: " + server_address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+							GRNotifications::add_notification("Resolve Address Error", "Address is invalid:\n" + server_address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 						prev_auth_error = GRDevice::AuthResult::Error;
 					}
 				} else {
@@ -1600,7 +1601,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 					} else {
 						_log("Can't resolve address for " + server_address, LogLevel::LL_ERROR);
 						if (prev_auth_error != GRDevice::AuthResult::Error)
-							GRNotifications::add_notification("Resolve Address Error", "Can't resolve address: " + server_address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
+							GRNotifications::add_notification("Resolve Address Error", "Can't resolve address:\n" + server_address, GRNotifications::NotificationIcon::ICON_ERROR, true, 1.f);
 						prev_auth_error = GRDevice::AuthResult::Error;
 					}
 				}
@@ -1724,7 +1725,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 				call_deferred(NAMEOF(emit_signal), "connection_state_changed", true);
 				call_deferred(NAMEOF(_force_update_stream_viewport_signals)); // force update screen aspect ratio and orientation
-				GRNotifications::add_notification("Connected", "Connected to " + address, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
+				GRNotifications::add_notification("Connected", "Connected to\n" + address, GRNotifications::NotificationIcon::ICON_SUCCESS, true, 1.f);
 
 				//////////////////////////////////////////////////////////////////////////
 				// Connection Loop Enter point
@@ -2074,10 +2075,10 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 
 	if (connection->is_connected_to_host()) {
 		_log("Closing connection to " + address, LogLevel::LL_NORMAL);
-		GRNotifications::add_notification("Disconnected", "Closing connection to " + address, GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
+		GRNotifications::add_notification("Disconnected", "Closing connection to\n" + address, GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
 	} else {
 		_log("Lost connection to " + address + ". " + log_error_text, LogLevel::LL_ERROR);
-		GRNotifications::add_notification("Disconnected", "Lost connection to " + address, GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
+		GRNotifications::add_notification("Disconnected", "Lost connection to\n" + address, GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
 	}
 
 	sync_time_client = 0;
@@ -2435,7 +2436,6 @@ void GRInputCollector::_notification(int p_notification) {
 			break;
 		}
 		case NOTIFICATION_PROCESS: {
-			ZoneScopedNC("Input Collector Sensors", tracy::Color::Goldenrod2);
 			Scoped_lock(ts_lock);
 			auto w = sensors.write();
 			w[0] = Input::get_singleton()->get_accelerometer();
