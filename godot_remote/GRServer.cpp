@@ -1307,7 +1307,7 @@ void GRServer::_thread_connection(Variant p_userdata) {
 	if (connection->is_connected_to_host()) {
 		GRNotifications::add_notification("Disconnected", "Closing connection with\n" + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
 	} else {
-		_log("Connection lost to " + address + ". " + log_error_text, LogLevel::LL_ERROR);
+		_log("Connection lost to " + address + ". " + log_error_text, LogLevel::LL_NORMAL);
 		GRNotifications::add_notification("Disconnected", "Client disconnected:\n" + address, GRNotifications::NotificationIcon::ICON_FAIL, false, 1.f);
 	}
 

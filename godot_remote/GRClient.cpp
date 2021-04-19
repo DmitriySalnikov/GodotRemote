@@ -1450,6 +1450,7 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 								con_thread->auto_mode_ready_to_connect = true;
 								con_thread->auto_found_server_uid = s->server_uid;
 								con_thread->is_first_connection_try = true;
+								con_thread->connect_to_exact_server = false;
 								ts_lock.unlock();
 								goto out_of_search;
 							}
@@ -2092,7 +2093,7 @@ void GRClient::_connection_loop(ConnectionThreadParamsClient *con_thread) {
 		_log("Closing connection to " + address, LogLevel::LL_NORMAL);
 		GRNotifications::add_notification("Disconnected", "Closing connection to\n" + address, GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
 	} else {
-		_log("Lost connection to " + address + ". " + log_error_text, LogLevel::LL_ERROR);
+		_log("Lost connection to " + address + ". " + log_error_text, LogLevel::LL_NORMAL);
 		GRNotifications::add_notification("Disconnected", "Lost connection to\n" + address, GRNotifications::NotificationIcon::ICON_FAIL, true, 1.f);
 	}
 
