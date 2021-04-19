@@ -33,7 +33,7 @@ size_flags_horizontal = 3
 custom_constants/separation = 0
 
 [node name="Nothing" type="Label" parent="H"]
-margin_right = 796.0
+margin_right = 398.0
 margin_bottom = 290.0
 rect_min_size = Vector2( 0, 290 )
 size_flags_horizontal = 3
@@ -44,7 +44,6 @@ align = 1
 valign = 1
 
 [node name="List" type="VBoxContainer" parent="H"]
-visible = false
 margin_left = 398.0
 margin_right = 796.0
 margin_bottom = 290.0

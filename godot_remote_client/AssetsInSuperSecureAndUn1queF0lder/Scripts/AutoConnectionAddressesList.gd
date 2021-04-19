@@ -7,12 +7,17 @@ onready var h = $H
 onready var nothing = $H/Nothing
 onready var vsep = $H/VSeparator
 var list_item : PackedScene = preload("res://AssetsInSuperSecureAndUn1queF0lder/Scenes/AutoConnectionListItem.tscn")
+var server_uid_to_button_map : Dictionary = {}
+var icons_cache : Dictionary = {}
 
 func _ready() -> void:
 	get_v_scrollbar().rect_min_size.x = 24
 	get_v_scrollbar().connect("visibility_changed", self, "_v_scroll_vis_changed")
 	connect("visibility_changed", self, "_update_rect_size")
 	GodotRemote.get_device().connect("auto_connection_list_changed", self, "_on_auto_connection_list_changed")
+	
+	GodotRemote.get_device().connect("auto_connection_server_connected", self, "_on_auto_connection_server_connected")
+	GodotRemote.get_device().connect("auto_connection_server_error", self, "_on_auto_connection_server_error")
 	_on_auto_connection_list_changed([])
 	_v_scroll_vis_changed()
 
@@ -59,9 +64,12 @@ func _on_auto_connection_list_changed(new_list):
 			tmp_item = list_item.instance()
 			tmp_item.set_meta("server_uid", server_uid)
 			tmp_item.connect("tree_exiting", self, "_update_rect_size")
+			tmp_item.connect("tree_exited", self, "_remove_button_from_map", [server_uid, project_name, port])
 			tmp_item.connect("server_selected", self, "_on_address_pressed")
 			list.add_child(tmp_item)
 			
+			icons_cache["%s:%d" % [project_name, port]] = G.create_tex_filtered(icon_img)
+			server_uid_to_button_map[server_uid] = tmp_item
 			tmp_item.appear()
 		
 		tmp_item.setup_params(server_uid, version, project_name, port, addresses, icon_img, preview_img)
@@ -71,6 +79,22 @@ func _on_auto_connection_list_changed(new_list):
 		current_children_map[uid].delayed_destroy()
 	
 	_update_rect_size()
+
+func _remove_button_from_map(uid : int, project_name : String, port : int):
+	if server_uid_to_button_map.has(uid):
+		server_uid_to_button_map.erase(uid)
+	
+	var icon_name = "%s:%d" % [project_name, port]
+	if icons_cache.has(icon_name):
+		icons_cache.erase(icon_name)
+
+func _on_auto_connection_server_connected(uid : int):
+	if server_uid_to_button_map.has(uid):
+		server_uid_to_button_map[uid].blink_with_color(Color(0.128686, 0.300781, 0.122192))
+
+func _on_auto_connection_server_error(uid : int):
+	if server_uid_to_button_map.has(uid):
+		server_uid_to_button_map[uid].blink_with_color(Color(0.34902, 0.133333, 0.133333))
 
 func _on_address_pressed(ips : PoolStringArray, port : int, project_name : String):
 	if ips.size() == 0:

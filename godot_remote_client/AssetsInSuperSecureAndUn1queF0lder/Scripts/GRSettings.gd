@@ -27,7 +27,8 @@ onready var wifi_ip_line = $V/Scroll/H/Grid/WiFi/Address/IP
 
 onready var auto_line = $V/Scroll/H/Grid/Auto
 onready var auto_status_icon = $V/Scroll/H/Grid/Auto/H/UDP_ListenerStatus
-onready var auto_prev_addr = $V/Scroll/H/Grid/Auto/LastConnected
+onready var auto_prev_icon = $V/Scroll/H/Grid/Auto/HC/TextureRect
+onready var auto_prev_addr = $V/Scroll/H/Grid/Auto/HC/LastConnected
 onready var auto_item_scroll = $V/Scroll/H/Grid/Auto/AvailableAddresses
 
 onready var fps = $V/Scroll/H/Grid/OutFps/FPS
@@ -182,12 +183,6 @@ func _set_all_server_settings():
 		d.set_server_setting(C.GRDevice_SERVER_PARAM_THREADS_NUMBER, encoder_threads.value)
 
 func _status_changed(_status : int):
-	if _status:
-		if GodotRemote.get_device().connection_type == C.GRClient_CONNECTION_AUTO:
-			G.auto_port = GodotRemote.get_device().get_current_auto_connect_port()
-			G.auto_addresses = GodotRemote.get_device().get_current_auto_connect_addresses()
-			G.auto_project_name = GodotRemote.get_device().get_current_auto_connect_project_name()
-	
 	if timer.is_stopped():
 		_set_buttons_disabled(_status == C.GRDevice_STATUS_STARTING or _status == C.GRDevice_STATUS_STOPPING)
 	_update_start_stop()
@@ -197,6 +192,13 @@ func _on_auto_list_address_changed():
 		auto_prev_addr.text = "%s\n%s\n%d" % [G.auto_project_name, G.auto_addresses.join(", "), G.auto_port]
 	else:
 		auto_prev_addr.text = "None"
+
+func _update_current_server_icon(icon : ImageTexture):
+	if icon != null:
+		auto_prev_icon.visible = true
+		auto_prev_icon.texture = icon
+	else:
+		auto_prev_icon.visible = false
 
 func _on_auto_connection_status_changed(is_listening):
 	if is_listening:
@@ -211,6 +213,22 @@ func _connection_changed(connected : bool):
 	else:
 		_game_scene_counter_increase()
 		quality_hint.visible = false
+	
+	if GodotRemote.get_device().connection_type == C.GRClient_CONNECTION_AUTO:
+		G.auto_port = GodotRemote.get_device().get_current_auto_connect_port()
+		G.auto_addresses = GodotRemote.get_device().get_current_auto_connect_addresses()
+		G.auto_project_name = GodotRemote.get_device().get_current_auto_connect_project_name()
+	
+	if connected:
+			var icon_name = "%s:%d" % [G.auto_project_name, G.auto_port]
+			if auto_item_scroll.icons_cache.has(icon_name):
+				_update_current_server_icon(auto_item_scroll.icons_cache[icon_name])
+			else:
+				_update_current_server_icon(null)
+			
+	else:
+		_update_current_server_icon(null)
+	_on_auto_list_address_changed()
 
 func _game_scene_counter_increase():
 	if not G.GameShowAfterConnectionErrors:

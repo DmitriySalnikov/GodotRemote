@@ -571,8 +571,13 @@ void GodotRemote::_prepare_editor() {
 
 void GodotRemote::_run_emitted() {
 	// call_deferred because debugger can't connect to game if process blocks thread on start
-	if ((bool)GET_PS(ps_server_config_adb_name))
-		call_deferred(NAMEOF(_adb_port_forwarding));
+	if ((bool)GET_PS(ps_server_config_adb_name)) {
+		if ((bool)GET_PS(ps_general_use_static_port_name)) {
+			call_deferred(NAMEOF(_adb_port_forwarding));
+		} else {
+			_log("\"debug/godot_remote/server/configure_adb_on_play\" option not available without \"debug/godot_remote/general/use_static_port\"")
+		}
+	}
 }
 
 void GodotRemote::_adb_port_forwarding() {

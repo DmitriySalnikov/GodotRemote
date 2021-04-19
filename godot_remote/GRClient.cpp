@@ -108,6 +108,8 @@ void GRClient::_bind_methods() {
 
 	ADD_SIGNAL(MethodInfo("custom_input_scene_added"));
 	ADD_SIGNAL(MethodInfo("custom_input_scene_removed"));
+	ADD_SIGNAL(MethodInfo("auto_connection_server_connected", PropertyInfo(Variant::INT, "uid")));
+	ADD_SIGNAL(MethodInfo("auto_connection_server_error", PropertyInfo(Variant::INT, "uid")));
 
 	ADD_SIGNAL(MethodInfo("auto_connection_listener_status_changed", PropertyInfo(Variant::BOOL, "is_listening")));
 	ADD_SIGNAL(MethodInfo("auto_connection_list_changed", PropertyInfo(Variant::ARRAY, "available_connections")));
@@ -223,6 +225,8 @@ void GRClient::_register_methods() {
 
 	register_signal<GRClient>("auto_connection_listener_status_changed", "is_listening", GODOT_VARIANT_TYPE_BOOL);
 	register_signal<GRClient>("auto_connection_list_changed", "available_connections", GODOT_VARIANT_TYPE_ARRAY);
+	register_signal<GRClient>("auto_connection_server_connected", "uid", GODOT_VARIANT_TYPE_INT);
+	register_signal<GRClient>("auto_connection_server_error", "uid", GODOT_VARIANT_TYPE_INT);
 
 	register_signal<GRClient>("custom_input_scene_added", Dictionary::make());
 	register_signal<GRClient>("custom_input_scene_removed", Dictionary::make());
@@ -1450,7 +1454,6 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 								con_thread->auto_mode_ready_to_connect = true;
 								con_thread->auto_found_server_uid = s->server_uid;
 								con_thread->is_first_connection_try = true;
-								con_thread->connect_to_exact_server = false;
 								ts_lock.unlock();
 								goto out_of_search;
 							}
@@ -1493,10 +1496,22 @@ void GRClient::_thread_connection(Variant p_userdata) {
 	int prev_connection_type = -1;
 	int prev_connection_type_unknown = -1;
 	int prev_connection_port = -1;
+	uint64_t prev_error_notif_shown_time = 0;
 
 #ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+	int64_t auto_connection_server_uid = 0;
 	Ref<_Thread> udp_thread;
 	Thread_start(udp_thread, this, _thread_udp_listener, p_userdata);
+	auto emit_auto_connection_connected = [&](int64_t uid) {
+		if (uid != 0) {
+			call_deferred(NAMEOF(emit_signal), "auto_connection_server_connected", uid);
+		}
+	};
+	auto emit_auto_connection_error = [&](int64_t uid) {
+		if (uid != 0) {
+			call_deferred(NAMEOF(emit_signal), "auto_connection_server_error", uid);
+		}
+	};
 #endif
 
 	GRDevice::AuthResult prev_auth_error = GRDevice::AuthResult::OK;
@@ -1517,7 +1532,6 @@ void GRClient::_thread_connection(Variant p_userdata) {
 		}
 		return false;
 	};
-
 	auto try_connect = [&](String try_to_adr, uint16_t try_to_port) {
 		address = try_to_adr + ":" + str(try_to_port);
 		err = con->connect_to_host(try_to_adr, try_to_port);
@@ -1640,12 +1654,13 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 				ts_lock.lock();
 				if (!con_thread->auto_mode_ready_to_connect) {
+					con_thread->auto_connected_server_uid = 0;
 					ts_lock.unlock();
 					sleep_usec(50_ms);
 					continue;
 				}
 
-				int64_t uid = con_thread->auto_found_server_uid;
+				auto_connection_server_uid = con_thread->auto_found_server_uid;
 				// here addresses must be copied because connection attempts can be very long
 				struct tmp_addrs {
 					std::vector<std::shared_ptr<AvailableServerAddress> > addresses;
@@ -1665,9 +1680,10 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				}
 				ts_lock.unlock();
 
+				err = Error::OK;
 				bool try_again = true;
 				for (auto s : copy_servers) {
-					if (s.uid == uid) {
+					if (s.uid == auto_connection_server_uid) {
 						for (auto adr : s.addresses) {
 							if (!need_to_cancel_connection() && try_connect(adr->ip, s.port)) {
 								try_again = false;
@@ -1687,11 +1703,14 @@ void GRClient::_thread_connection(Variant p_userdata) {
 						break;
 					}
 				}
+
 				con_thread->auto_connected_server_uid = 0;
 			search_end:
 
 				con_thread->is_first_connection_try = false;
 				if (try_again) {
+					emit_auto_connection_error(auto_connection_server_uid);
+
 					sleep_usec(50_ms);
 					continue;
 				}
@@ -1731,6 +1750,13 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				_log("Successful connected to " + address, LogLevel::LL_NORMAL);
 
 				call_deferred(NAMEOF(_update_stream_texture_state), StreamState::STREAM_NO_IMAGE);
+
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+				emit_auto_connection_connected(auto_connection_server_uid);
+				ts_lock.lock();
+				con_thread->connect_to_exact_server = false;
+				ts_lock.unlock();
+#endif
 
 				con_thread->break_connection = false;
 				con_thread->connection_finished = false;
@@ -1800,6 +1826,16 @@ void GRClient::_thread_connection(Variant p_userdata) {
 			case GRDevice::AuthResult::VersionMismatch:
 			case GRDevice::AuthResult::IncorrectPassword:
 			case GRDevice::AuthResult::PasswordRequired: {
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+				emit_auto_connection_error(auto_connection_server_uid);
+#endif
+				if (!force_show_error) {
+					if (get_time_usec() - prev_error_notif_shown_time > 5000_ms) {
+						force_show_error = true;
+						prev_error_notif_shown_time = get_time_usec();
+					}
+				}
+
 				long_wait = true;
 				emit_first_connection_error();
 				if (!notif_error_text.empty()) {
