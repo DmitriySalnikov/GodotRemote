@@ -66,7 +66,7 @@ public:
 		}
 	}
 
-	GRAVGCounter(const GRAVGCounter<TQueue, TValue> &other){
+	GRAVGCounter(const GRAVGCounter<TQueue, TValue> &other) {
 		avg_val = other.avg_val;
 		min_val = other.min_val;
 		max_val = other.max_val;

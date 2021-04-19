@@ -1031,7 +1031,7 @@ ratio_sync:
 
 void GRClient::_update_texture_from_image(Ref<Image> img) {
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
-		if (img.is_valid()) {
+		if (img.is_valid() && !img_is_empty(img)) {
 			Ref<ImageTexture> tex = tex_shows_stream->get_texture();
 			if (tex.is_valid()) {
 				tex->create_from_image(img);
@@ -1683,6 +1683,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 								goto search_end;
 							}
 						}
+						break;
 					}
 				}
 				con_thread->auto_connected_server_uid = 0;
@@ -2269,11 +2270,18 @@ void GRInputCollector::_release_pointers() {
 	{
 		auto buttons = mouse_buttons.keys();
 		for (int i = 0; i < buttons.size(); i++) {
-			if (mouse_buttons[buttons[i]]) {
-				Ref<InputEventMouseButton> iemb = newref(InputEventMouseButton);
-				iemb->set_button_index(buttons[i]);
-				iemb->set_pressed(false);
-				buttons[i] = false;
+			Variant key = buttons[i];
+			Ref<InputEventMouseButton> iemb;
+			if ((bool)mouse_buttons[key]) {
+				if (mouse_events.has(key)) {
+					iemb = mouse_events[key];
+				} else {
+					iemb = newref(InputEventMouseButton);
+					iemb->set_button_index(key);
+					iemb->set_pressed(false);
+					mouse_events[key] = iemb;
+				}
+				mouse_buttons[key] = false;
 				_collect_input(iemb);
 			}
 		}
@@ -2283,11 +2291,18 @@ void GRInputCollector::_release_pointers() {
 	{
 		auto touches = screen_touches.keys();
 		for (int i = 0; i < touches.size(); i++) {
-			if (screen_touches[touches[i]]) {
-				Ref<InputEventScreenTouch> iest = newref(InputEventScreenTouch);
-				iest->set_index(touches[i]);
-				iest->set_pressed(false);
-				touches[i] = false;
+			Variant key = touches[i];
+			Ref<InputEventScreenTouch> iest;
+			if ((bool)screen_touches[key]) {
+				if (screen_events.has(key)) {
+					iest = screen_events[key];
+				} else {
+					iest = newref(InputEventScreenTouch);
+					iest->set_index(key);
+					iest->set_pressed(false);
+					screen_events[key] = iest;
+				}
+				screen_touches[key] = false;
 				_collect_input(iest);
 			}
 		}
@@ -2534,6 +2549,9 @@ void GRInputCollector::_deinit() {
 		*this_in_client = nullptr;
 	mouse_buttons.clear();
 	screen_touches.clear();
+
+	mouse_events.clear();
+	screen_events.clear();
 }
 
 //////////////////////////////////////////////

@@ -122,9 +122,9 @@ std::shared_ptr<GRInputDataEvent> GRInputDataEvent::parse_event(const Ref<InputE
 Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 	ERR_FAIL_COND_V(!input_data.size(), Ref<InputEvent>());
 
-#define CONSTRUCT(_i)                               \
-	{                                               \
-		Ref<_i> ev = newref(_i);                    \
+#define CONSTRUCT(_i)                                     \
+	{                                                     \
+		Ref<_i> ev = newref(_i);                          \
 		return _construct_event(data.ptr(), ev, vp_size); \
 	}
 	auto data = get_stream_peer_buffer_pool()->get();
@@ -187,8 +187,8 @@ Ref<InputEvent> GRInputDataEvent::construct_event(const Rect2 &rect) {
 #define restore(_e) ((Vector2(_e) * rect.size) + ((rect.position - rect.size) / 2.f))
 #define restore_rel(_e) (Vector2(_e) * rect.size)
 
-#define CONSTRUCT(_type) Ref<InputEvent> _type::_construct_event(StreamPeerBuffer* data, Ref<InputEvent> ev, const Rect2 &rect)
-#define PARSE(_type) void _type::_parse_event(StreamPeerBuffer* data, const Ref<InputEvent> &ev, const Rect2 &rect)
+#define CONSTRUCT(_type) Ref<InputEvent> _type::_construct_event(StreamPeerBuffer *data, Ref<InputEvent> ev, const Rect2 &rect)
+#define PARSE(_type) void _type::_parse_event(StreamPeerBuffer *data, const Ref<InputEvent> &ev, const Rect2 &rect)
 
 //////////////////////////////////////////////////////////////////////////
 // InputEventWithModifiers

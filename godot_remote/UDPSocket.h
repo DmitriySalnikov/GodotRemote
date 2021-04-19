@@ -2,8 +2,8 @@
 #pragma once
 
 // https://github.com/wolfpld/tracy/blob/8f48d6e5802f0ec63c86aa6a3383d020ad0b9d44/common/TracySocket.hpp
-#include <atomic>
 #include <stdint.h>
+#include <atomic>
 
 struct addrinfo;
 struct sockaddr;

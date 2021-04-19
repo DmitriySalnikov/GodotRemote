@@ -4,8 +4,8 @@
 #include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
-#include "scene/gui/panel_container.h"
 #include "scene/gui/box_container.h"
+#include "scene/gui/panel_container.h"
 #include "scene/main/canvas_layer.h"
 #else
 #include <Button.hpp>
@@ -279,7 +279,6 @@ class GRNotificationListWithSafeZone : public VBoxContainer {
 	GD_CLASS(GRNotificationListWithSafeZone, VBoxContainer);
 
 private:
-
 protected:
 #ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
@@ -296,7 +295,6 @@ protected:
 	void _notification(int p_what);
 
 public:
-
 	void set_safe_zone(Rect2 rect);
 	void _init();
 	void _deinit();

@@ -4,7 +4,6 @@
 
 #include "GRClient.h"
 #include "GRNotifications.h"
-#include "GRViewportCaptureRect.h"
 #include "GRProfilerViewportMiniPreview.h"
 #include "GRServer.h"
 #include "GRStreamDecoderH264.h"
@@ -14,6 +13,7 @@
 #include "GRStreamEncoderImageSequence.h"
 #include "GRStreamEncoders.h"
 #include "GRToolMenuPlugin.h"
+#include "GRViewportCaptureRect.h"
 #include "GodotRemote.h"
 
 #if !defined(GDNATIVE_LIBRARY) && defined(TOOLS_ENABLED)

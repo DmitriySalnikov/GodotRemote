@@ -29,7 +29,6 @@ protected:
 	void _notification(int p_notification);
 
 public:
-
 	virtual void on_process() override;
 	void set_enabled_preview(bool state);
 	void _init();

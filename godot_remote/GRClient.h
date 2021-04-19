@@ -327,6 +327,9 @@ private:
 	Dictionary mouse_buttons;
 	Dictionary screen_touches;
 
+	Dictionary mouse_events;
+	Dictionary screen_events;
+
 protected:
 	void _collect_input(Ref<InputEvent> ie);
 	void _update_stream_rect();
