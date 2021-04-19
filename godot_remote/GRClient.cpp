@@ -1415,7 +1415,7 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 				for (int i = (int)found_server_addresses.size() - 1; i >= 0; i--) {
 					auto as = found_server_addresses[i];
 					for (int j = (int)as->recieved_from_addresses.size() - 1; j >= 0; j--) {
-						if (get_time_usec() - as->recieved_from_addresses[j]->time_added > 2250_ms) {
+						if (get_time_usec() - as->recieved_from_addresses[j]->time_added > 2350_ms) {
 							as->recieved_from_addresses.erase(as->recieved_from_addresses.begin() + j);
 							is_list_changed = true;
 						}

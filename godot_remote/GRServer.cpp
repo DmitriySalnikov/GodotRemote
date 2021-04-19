@@ -776,7 +776,7 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 			break;
 		}
 
-		sleep_usec(400_ms);
+		sleep_usec(250_ms);
 	}
 
 	available_sockets.resize(0);

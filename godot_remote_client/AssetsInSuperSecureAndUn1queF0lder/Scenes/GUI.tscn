@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=2]
+[gd_scene load_steps=24 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/GodotRemoteClient.gd" type="Script" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalLight.tres" type="DynamicFont" id=2]
@@ -43,6 +43,16 @@ Right = 16.0
 Bottom = 16.0
 IsRootObjectOfPanel = false
 ChangeParentSizeToFullwindow = false
+
+[sub_resource type="Resource" id=10]
+script = ExtResource( 14 )
+ControlToHandle = NodePath("../CustomPopupTextInput/Box")
+Left = 32.0
+Top = 32.0
+Right = 32.0
+Bottom = 32.0
+IsRootObjectOfPanel = true
+ChangeParentSizeToFullwindow = true
 
 [sub_resource type="StyleBoxFlat" id=4]
 bg_color = Color( 0.133333, 0.164706, 0.188235, 0.815686 )
@@ -104,7 +114,7 @@ __meta__ = {
 }
 
 [node name="SafeAreaSetter" parent="." instance=ExtResource( 13 )]
-Objects = [ SubResource( 1 ), SubResource( 2 ), SubResource( 3 ) ]
+Objects = [ SubResource( 1 ), SubResource( 2 ), SubResource( 3 ), SubResource( 10 ) ]
 
 [node name="BackgroundTouchHint" type="Control" parent="."]
 anchor_right = 1.0
@@ -225,6 +235,14 @@ margin_bottom = 64.0
 [node name="GRSettings" parent="." instance=ExtResource( 6 )]
 visible = false
 margin_bottom = 0.0
+
+[node name="TouchInputProtector" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [node name="CustomPopupTextInput" parent="." instance=ExtResource( 7 )]
 visible = false
@@ -562,3 +580,5 @@ text = "How do I update the server?"
 [connection signal="pressed" from="Welcome/VBox/HBoxContainer/Button3" to="." method="_on_no_this_is_a_game_pressed"]
 [connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button" to="Changelog" method="_on_Button_pressed"]
 [connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button2" to="Changelog" method="_on_Button2_pressed"]
+
+[editable path="CustomPopupTextInput"]
