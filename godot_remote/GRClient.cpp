@@ -1415,7 +1415,7 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 				for (int i = (int)found_server_addresses.size() - 1; i >= 0; i--) {
 					auto as = found_server_addresses[i];
 					for (int j = (int)as->recieved_from_addresses.size() - 1; j >= 0; j--) {
-						if (get_time_usec() - as->recieved_from_addresses[j]->time_added > 2000_ms) {
+						if (get_time_usec() - as->recieved_from_addresses[j]->time_added > 2250_ms) {
 							as->recieved_from_addresses.erase(as->recieved_from_addresses.begin() + j);
 							is_list_changed = true;
 						}
@@ -1554,8 +1554,6 @@ void GRClient::_thread_connection(Variant p_userdata) {
 			}
 
 			emit_first_connection_error();
-
-			sleep_usec(250_ms);
 			return false;
 		}
 
@@ -1581,8 +1579,6 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				prev_connecting_address = try_to_adr;
 			}
 			emit_first_connection_error();
-
-			sleep_usec(200_ms);
 			return false;
 		}
 		return true;
@@ -1636,6 +1632,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				}
 
 				if (!try_connect(adr, static_port)) {
+					sleep_usec(200_ms);
 					continue;
 				}
 				break;
@@ -1644,6 +1641,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				prev_connection_type_unknown = (int)connection_type;
 
 				if (!try_connect("127.0.0.1", static_port)) {
+					sleep_usec(200_ms);
 					continue;
 				}
 				break;

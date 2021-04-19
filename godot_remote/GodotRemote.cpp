@@ -575,7 +575,7 @@ void GodotRemote::_run_emitted() {
 		if ((bool)GET_PS(ps_general_use_static_port_name)) {
 			call_deferred(NAMEOF(_adb_port_forwarding));
 		} else {
-			_log("\"debug/godot_remote/server/configure_adb_on_play\" option not available without \"debug/godot_remote/general/use_static_port\"")
+			_log("\"debug/godot_remote/server/configure_adb_on_play\" option not available without \"debug/godot_remote/general/use_static_port\"", LogLevel::LL_WARNING);
 		}
 	}
 }

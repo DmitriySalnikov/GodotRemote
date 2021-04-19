@@ -618,7 +618,7 @@ focus_mode = 1
 mouse_filter = 1
 pressed = true
 enabled_focus_mode = 1
-text = "Texture Filtering"
+text = "Stream Texture Filtering"
 
 [node name="StretchMode" type="HBoxContainer" parent="V/Scroll/H/Grid"]
 margin_top = 1400.0
