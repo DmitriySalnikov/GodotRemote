@@ -1203,10 +1203,11 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 	Thread_set_name("Client UDP Listener");
 	ConnectionThreadParamsClient *con_thread = VARIANT_OBJ_CAST_TO(p_userdata, ConnectionThreadParamsClient);
 
-	std::shared_ptr<UdpListen> udp_server;
+	std::shared_ptr<UdpListen> udp_server = shared_new(UdpListen);
 	iterable_queue<int64_t> received_packs_uids;
+	String udp_mode_title = "Auto Connection Mode";
 	RefStd(StreamPeerBuffer) udp_server_buf = newref_std(StreamPeerBuffer);
-	bool is_udp_cant_be_started = false;
+	bool is_first_try_error_shown = false;
 	int prev_connection_type = -1;
 
 	// fixing time. thread start can be long.
@@ -1221,7 +1222,9 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 		call_deferred(NAMEOF(emit_signal), "auto_connection_list_changed", get_found_auto_connection_addresses());
 	};
 	auto close_udp_connection = [&]() {
-		udp_server = nullptr;
+		if (udp_server->IsListening()) {
+			udp_server->Close();
+		}
 		emit_auto_connections_status_changed(false);
 	};
 	static auto compare_addresses = [](const std::vector<std::shared_ptr<AvailableServerAddress> > &a, const PoolStringArray &b) {
@@ -1250,30 +1253,38 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 	while (!con_thread->stop_thread) {
 		if (prev_connection_type != (int)connection_type) {
 			prev_connection_type = (int)connection_type;
-			is_udp_cant_be_started = false;
+			is_first_try_error_shown = false;
+			if (connection_type != ConnectionType::CONNECTION_AUTO) {
+				close_udp_connection();
+			}
 		}
 
 		if (connection_type == ConnectionType::CONNECTION_AUTO) {
 			ZoneScopedNC("Scanning for available servers", tracy::Color::DarkMagenta);
 
-			if (!is_udp_cant_be_started) {
-				if (!udp_server) {
-					udp_server = shared_new(UdpListen);
-					if (!udp_server->Listen(AUTO_CONNECTION_PORT)) {
-						udp_server = nullptr;
-						is_udp_cant_be_started = true;
+			if (!udp_server->IsListening()) {
+				if (!udp_server->Listen(AUTO_CONNECTION_PORT)) {
+					is_auto_mode_active = false;
+
+					if (!is_first_try_error_shown) {
 						_log("Can't start listening on port " + str(AUTO_CONNECTION_PORT) + " for auto connection mode.", LogLevel::LL_ERROR);
-						is_auto_mode_active = false;
+						GRNotifications::add_notification(udp_mode_title, "Can't start listening on port\n" + str(AUTO_CONNECTION_PORT), GRNotifications::NotificationIcon::ICON_WARNING, true, 1.f);
+						is_first_try_error_shown = true;
 						emit_auto_connections_status_changed(false);
-						sleep_usec(250_ms);
-						continue;
 					}
-					emit_auto_connections_status_changed(true);
+
+					sleep_usec(400_ms);
+					continue;
+				} else {
+					if (is_first_try_error_shown) {
+						_log("Now listens on port " + str(AUTO_CONNECTION_PORT), LogLevel::LL_DEBUG);
+						GRNotifications::add_notification(udp_mode_title, "Now listens on port " + str(AUTO_CONNECTION_PORT), GRNotifications::NotificationIcon::ICON_SUCCESS, true, 0.8f);
+					}
+
+					is_first_try_error_shown = false;
 					is_auto_mode_active = true;
+					emit_auto_connections_status_changed(true);
 				}
-			} else {
-				sleep_usec(250_ms);
-				continue;
 			}
 
 			{
@@ -1463,6 +1474,7 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 	found_server_addresses.resize(0);
 	emit_auto_connection_list_changed();
 	close_udp_connection();
+	udp_server = nullptr;
 	ts_lock.unlock();
 }
 #endif
@@ -1495,8 +1507,10 @@ void GRClient::_thread_connection(Variant p_userdata) {
 		}
 	};
 	auto need_to_cancel_connection = [&]() {
-		if (con_thread->cancel_connection) {
-			con->disconnect_from_host();
+		if (con_thread->stop_thread || con_thread->cancel_connection) {
+			if (con->is_connected_to_host()) {
+				con->disconnect_from_host();
+			}
 			con_thread->auto_connected_server_uid = 0;
 			return true;
 		}
@@ -1654,7 +1668,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				for (auto s : copy_servers) {
 					if (s.uid == uid) {
 						for (auto adr : s.addresses) {
-							if (try_connect(adr->ip, s.port)) {
+							if (!need_to_cancel_connection() && try_connect(adr->ip, s.port)) {
 								try_again = false;
 
 								ts_lock.lock();

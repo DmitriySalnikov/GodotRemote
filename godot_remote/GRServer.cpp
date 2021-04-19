@@ -194,8 +194,8 @@ void GRServer::_notification(int p_notification) {
 
 				if (out_img.is_valid() && !img_is_empty(out_img)) {
 					out_img->resize(32, 32, ENUM_CONV(Image::Interpolation) 4); // INTERPOLATE_LANCZOS = 4 slowest interpolation
-					project_icon_image_data = out_img->save_png_to_buffer();
 					Scoped_lock(udp_lock);
+					project_icon_image_data = out_img->save_png_to_buffer();
 
 					// too big
 					if (project_icon_image_data.size() > 1024 * 4) {

@@ -220,6 +220,10 @@ bool UdpListen::Listen(uint16_t port) {
 	return true;
 }
 
+bool UdpListen::IsListening() {
+	return m_sock != -1;
+}
+
 void UdpListen::Close() {
 	assert(m_sock != -1);
 #ifdef _WIN32

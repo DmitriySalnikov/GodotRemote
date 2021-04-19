@@ -106,9 +106,9 @@ func _update_rect_size():
 	
 	#var style = get_stylebox("bg")
 	#var sum_height = h.rect_size.y + style.content_margin_bottom + style.content_margin_top + 4*3
-	#if sum_height < 238:
+	#if sum_height < 294:
 	#	rect_min_size.y = sum_height
 	#else:
-	#	rect_min_size.y = 238
+	#	rect_min_size.y = 294
 	
 	#minimum_size_changed()

@@ -54,6 +54,7 @@ public:
 	~UdpListen();
 
 	bool Listen(uint16_t port);
+	bool IsListening();
 	void Close();
 
 	const char *Read(uint64_t &len, IpAddress &addr, int timeout);
