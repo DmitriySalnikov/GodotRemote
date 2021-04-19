@@ -189,6 +189,8 @@ public:
 	virtual void set_data(GRNotifications *_owner, String title, String text, GRNotifications::NotificationIcon icon, float duration_multiplier DEF_ARG(= 1.f), Ref<GRNotificationStyle> _style DEF_ARG(= Ref<GRNotificationStyle>()));
 	String get_title();
 	String get_text();
+	ENUM_ARG(GRNotifications::NotificationIcon)
+	get_icon_id();
 	void update_text(String text);
 
 	void _init();

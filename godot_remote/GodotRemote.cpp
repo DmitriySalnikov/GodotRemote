@@ -161,6 +161,8 @@ void GodotRemote::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_gdnative)), &GodotRemote::is_gdnative);
 
 	// GRNotifications
+	ClassDB::bind_method(D_METHOD(NAMEOF(notifications_connect), "signal", "inst", "method", "binds", "flags"), &GodotRemote::notifications_connect);
+
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_notification), "title"), &GodotRemote::get_notification);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_all_notifications)), &GodotRemote::get_all_notifications);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_notifications_with_title), "title"), &GodotRemote::get_notifications_with_title);
@@ -236,8 +238,9 @@ void GodotRemote::_register_methods() {
 	METHOD_REG(GodotRemote, is_gdnative);
 
 	// GRNotifications
-	METHOD_REG(GodotRemote, get_notification);
+	METHOD_REG(GodotRemote, notifications_connect);
 
+	METHOD_REG(GodotRemote, get_notification);
 	METHOD_REG(GodotRemote, get_all_notifications);
 	METHOD_REG(GodotRemote, get_notifications_with_title);
 
@@ -611,11 +614,26 @@ void GodotRemote::_adb_start_timer_timeout() {
 //////////////////////////////////////////////////////////////////////////
 // EXTERNAL FUNCTIONS
 
+// GRNotifications
 GRNotificationPanel *GodotRemote::get_notification(String title) {
 	return GRNotifications::get_notification(title);
 }
 
-// GRNotifications
+int GodotRemote::GodotRemote::notifications_connect(String signal, Object *inst, String method, Array binds, int64_t flags) {
+	if (GRNotifications::get_singleton()) {
+#ifndef GDNATIVE_LIBRARY
+		Vector<Variant> b;
+		for (int i = 0; i < binds.size(); i++) {
+			b.push_back(binds[i]);
+		}
+		return (int)GRNotifications::get_singleton()->connect(signal, inst, method, b, flags);
+#else
+		return (int)GRNotifications::get_singleton()->connect(signal, inst, method, binds, flags);
+#endif
+	}
+	return (int)Error::FAILED;
+}
+
 Array GodotRemote::get_all_notifications() {
 	return GRNotifications::get_all_notifications();
 }

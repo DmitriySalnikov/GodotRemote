@@ -174,6 +174,7 @@ public:
 
 	// GRNotifications
 	class GRNotificationPanel *get_notification(String title);
+	int notifications_connect(String signal, Object *inst, String method, Array binds, int64_t flags);
 	Array get_all_notifications();
 	Array get_notifications_with_title(String title);
 
