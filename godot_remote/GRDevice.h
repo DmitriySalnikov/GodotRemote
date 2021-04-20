@@ -111,7 +111,8 @@ protected:
 	void _notification(int p_notification);
 
 public:
-	uint16_t static_port = 52341;
+	uint16_t static_port = PORT_STATIC_CONNECTION;
+	uint16_t auto_connection_port = PORT_AUTO_CONNECTION;
 
 	real_t get_avg_ping();
 	real_t get_min_ping();
@@ -132,6 +133,8 @@ public:
 
 	virtual uint16_t get_port();
 	virtual void set_port(uint16_t _port);
+	virtual uint16_t get_auto_connection_port();
+	virtual void set_auto_connection_port(uint16_t _port);
 
 	void send_packet(std::shared_ptr<GRPacket> packet);
 	void send_user_data(Variant packet_id, Variant user_data, bool full_objects = false);

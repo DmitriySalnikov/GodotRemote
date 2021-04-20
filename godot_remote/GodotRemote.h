@@ -51,6 +51,7 @@ public:
 	static GR_PS_NAME_TYPE ps_general_autoload_name;
 	static GR_PS_NAME_TYPE ps_general_use_static_port_name;
 	static GR_PS_NAME_TYPE ps_general_port_name;
+	static GR_PS_NAME_TYPE ps_general_auto_connection_port_name;
 	static GR_PS_NAME_TYPE ps_general_loglevel_name;
 
 	static GR_PS_NAME_TYPE ps_notifications_enabled_name;

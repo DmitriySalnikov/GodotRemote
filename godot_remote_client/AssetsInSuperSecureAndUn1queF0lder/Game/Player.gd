@@ -13,6 +13,7 @@ var is_playing = false
 var score = 0
 var velocity : float = 0
 var viewport_size : Vector2
+var is_jump_pressed : bool = false
 
 func _ready() -> void:
 	set_process_input(false)
@@ -53,7 +54,11 @@ func _input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	velocity = clamp(velocity + acceleration, -max_velocity, max_velocity)
 	if Input.is_mouse_button_pressed(BUTTON_LEFT):
-		velocity = -jump_velocity
+		if not is_jump_pressed:
+			velocity = -jump_velocity
+			is_jump_pressed = true
+	else:
+		is_jump_pressed = false
 	
 	var force_dead = false
 	var rel_vec = Vector2.DOWN * velocity * delta

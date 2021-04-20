@@ -52,9 +52,10 @@ var TouchesToOpenSettings : int = 5 setget set_touches_to_open_settings
 var UserRateState : int = RateState.NotNow setget set_user_rate_state
 
 var device_id : String = "" setget set_device_id
-var connection_type : int = 0 setget set_con_type
+var connection_type : int = 2 setget set_con_type
 var ip : String = "127.0.0.1" setget set_ip
-var port : int = 52341 setget set_port
+var port : int = 22766 setget set_port
+var auto_listener_port : int = 22765 setget set_auto_listener_port
 var auto_addresses : PoolStringArray = [] setget set_auto_addresses
 var auto_port : int = 0 setget set_auto_port
 var auto_project_name : String = "" setget set_auto_project_name
@@ -171,6 +172,7 @@ func _set_all_values():
 	dev.set_address_port(ip, port)
 	dev.set_decoder_threads_count(decoder_threads_number)
 	dev.set_current_auto_connect_server(auto_project_name, auto_addresses, auto_port, false)
+	dev.auto_connection_port = auto_listener_port
 	dev.connection_type = connection_type
 	dev.stretch_mode = stretch_mode
 	dev.target_send_fps = target_send_fps
@@ -216,6 +218,7 @@ func _save_settings():
 	d["con_type"] = connection_type
 	d["ip"] = ip
 	d["port"] = port
+	d["auto_listener_port"] = auto_listener_port
 	d["auto_addresses"] = auto_addresses
 	d["auto_port"] = auto_port
 	d["auto_project_name"] = auto_project_name
@@ -286,6 +289,7 @@ func _load_settings():
 			connection_type = _safe_get_from_dict(d, "con_type", connection_type)
 			ip = _safe_get_from_dict(d, "ip", ip)
 			port = _safe_get_from_dict(d, "port", port)
+			auto_listener_port = _safe_get_from_dict(d, "auto_listener_port", auto_listener_port)
 			auto_addresses = _safe_get_from_dict(d, "auto_addresses", auto_addresses)
 			auto_port = _safe_get_from_dict(d, "auto_port", auto_port)
 			auto_project_name = _safe_get_from_dict(d, "auto_project_name", auto_project_name)
@@ -424,6 +428,10 @@ func set_ip(val : String):
 
 func set_port(val : int):
 	port = val
+	_save_settings()
+
+func set_auto_listener_port(val : int):
+	auto_listener_port = val
 	_save_settings()
 
 func set_auto_addresses(val : PoolStringArray):

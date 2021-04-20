@@ -219,7 +219,7 @@ void GRServer::_notification(int p_notification) {
 
 #ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 			// get image for UDP preview
-			if (client_connected == 0 && udp_preview_viewport && !udp_preview_viewport->is_queued_for_deletion() && udp_preview_viewport->is_inside_tree()) {
+			if (client_connected == 0 && tcp_server.is_valid() && tcp_server->is_listening() && udp_preview_viewport && !udp_preview_viewport->is_queued_for_deletion() && udp_preview_viewport->is_inside_tree()) {
 				Scoped_lock(udp_lock);
 				preview_image_data = udp_preview_viewport->get_texture()->get_data()->save_png_to_buffer();
 				// too big
@@ -729,7 +729,7 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 
 				if (err == Error::OK) {
 					auto udp = shared_new(UdpBroadcast);
-					if (udp->Open(address.ascii().get_data(), AUTO_CONNECTION_PORT)) {
+					if (udp->Open(address.ascii().get_data(), auto_connection_port)) {
 						available_sockets.push_back(udp);
 					}
 				} else {
@@ -743,33 +743,35 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 	while (!this_thread_info->stop_thread) {
 		ZoneScopedNC("Sending UDP server data", tracy::Color::DarkMagenta);
 		if (available_sockets.size()) {
-			if (client_connected == 0) {
-				ZoneScopedNC("Actual Work", tracy::Color::Magenta4);
+			if (tcp_server.is_valid() && tcp_server->is_listening()) {
+				if (client_connected == 0) {
+					ZoneScopedNC("Actual Work", tracy::Color::Magenta4);
 
-				std::vector<std::shared_ptr<UdpBroadcast> > sockets_to_delete;
-				//if (prev_tcp_server_port != current_listening_port) {
-				//	update_packet_data();
-				//	prev_tcp_server_port = current_listening_port;
-				//}
-				update_packet_data();
+					std::vector<std::shared_ptr<UdpBroadcast> > sockets_to_delete;
+					//if (prev_tcp_server_port != current_listening_port) {
+					//	update_packet_data();
+					//	prev_tcp_server_port = current_listening_port;
+					//}
+					update_packet_data();
 
-				for (auto u : available_sockets) {
-					int64_t rnd_num = rand64();
-					udp_data_buf->seek(4);
-					udp_data_buf->put_64(rnd_num);
-					for (int i = 0; i < duplicate_udp_packets; i++) {
-						if (u->Send(AUTO_CONNECTION_PORT, udp_data_buf->get_data_array().read().ptr(), udp_data_buf->get_data_array().size()) == -1) {
-							sockets_to_delete.push_back(u);
-							break;
+					for (auto u : available_sockets) {
+						int64_t rnd_num = rand64();
+						udp_data_buf->seek(4);
+						udp_data_buf->put_64(rnd_num);
+						for (int i = 0; i < duplicate_udp_packets; i++) {
+							if (u->Send(auto_connection_port, udp_data_buf->get_data_array().read().ptr(), udp_data_buf->get_data_array().size()) == -1) {
+								sockets_to_delete.push_back(u);
+								break;
+							}
 						}
 					}
-				}
 
-				for (auto u : sockets_to_delete) {
-					vec_remove_obj(available_sockets, u);
-				}
+					for (auto u : sockets_to_delete) {
+						vec_remove_obj(available_sockets, u);
+					}
 
-				_log("Broadcasting Server Info", LogLevel::LL_DEBUG);
+					_log("Broadcasting Server Info", LogLevel::LL_DEBUG);
+				}
 			}
 		} else {
 			// stop this thread if no available sockets
@@ -835,8 +837,14 @@ void GRServer::_thread_listen(Variant p_userdata) {
 					if (err == Error::OK) {
 						break;
 					} else {
-						_log("TCP Server. Port: " + str(tmp_port) + ". " + listener_error_to_text(err), LogLevel::LL_ERROR);
+						// print debug log
+						_log("TCP Server. Port: " + str(tmp_port) + ". " + listener_error_to_text(err), LogLevel::LL_DEBUG);
 					}
+				}
+
+				// print only last error to avoid spamming
+				if (err != Error::OK) {
+					_log("TCP Server. Port: " + str(tmp_port) + ". " + listener_error_to_text(err), LogLevel::LL_ERROR);
 				}
 			}
 

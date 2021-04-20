@@ -21,7 +21,7 @@
 #endif
 
 // clumsy settings to test
-// outbound and ip.DstAddr >= 127.0.0.1 and ip.DstAddr <= 127.255.255.255 and (tcp.DstPort == 52341 or tcp.SrcPort == 52341)
+// outbound and ip.DstAddr >= 127.0.0.1 and ip.DstAddr <= 127.255.255.255 and (tcp.DstPort == 22766 or tcp.SrcPort == 22766)
 
 /*
 * // TODO livepp needs more work. Like sync points lpp::lppSyncPoint(moduleReturnedFromLoadLibraryFunction); where i can restart server.

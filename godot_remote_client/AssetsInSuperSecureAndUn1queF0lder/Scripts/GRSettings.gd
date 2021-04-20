@@ -25,6 +25,7 @@ onready var adb_port_line = $V/Scroll/H/Grid/ADB/Port
 onready var wifi_port_line = $V/Scroll/H/Grid/WiFi/Address/Port
 onready var wifi_ip_line = $V/Scroll/H/Grid/WiFi/Address/IP
 
+onready var auto_udp_port = $V/Scroll/H/Grid/AutoPort/Port
 onready var auto_line = $V/Scroll/H/Grid/Auto
 onready var auto_status_icon = $V/Scroll/H/Grid/Auto/H/UDP_ListenerStatus
 onready var auto_prev_icon = $V/Scroll/H/Grid/Auto/HC/TextureRect
@@ -143,6 +144,7 @@ func update_values():
 	device_id.text = d.device_id
 	con_type_menu.selected = con_type_menu.get_item_index(d.connection_type)
 	adb_port_line.value = d.port
+	auto_udp_port.value = d.auto_connection_port
 	wifi_port_line.value = d.port
 	wifi_ip_line.text = d.get_address()
 	stretch_mode.selected = d.stretch_mode
@@ -247,6 +249,17 @@ func _update_quality_hint_text(hint_text):
 func _update_scale_hint_text(scale : float):
 	scale_hint.text = "%.0f %%" % (scale * 100)
 
+func _update_con_types_visibility(group : String):
+	var con = get_tree().get_nodes_in_group("con")
+	for c in con:
+		if c is Control:
+			c.visible = false
+	
+	con = get_tree().get_nodes_in_group(group)
+	for c in con:
+		if c is Control:
+			c.visible = true
+
 func _server_settings_received(_settings : Dictionary):
 	updated_by_code = true
 	
@@ -346,6 +359,10 @@ func _on_adb_SetAddress_pressed():
 	GodotRemote.get_device().port = adb_port_line.value
 	G.port = adb_port_line.value
 
+func _on_auto_connection_Port_value_changed(value: float) -> void:
+	G.auto_listener_port = value
+	GodotRemote.get_device().auto_connection_port = value
+
 func _on_con_Type_item_selected(index):
 	var id = con_type_menu.get_item_id(index)
 	G.connection_type = id
@@ -353,18 +370,11 @@ func _on_con_Type_item_selected(index):
 	
 	match id:
 		0:
-			wifi.visible = true
-			adb.visible = false
-			auto_line.visible = false
+			_update_con_types_visibility("con_wifi")
 		1:
-			wifi.visible = false
-			adb.visible = true
-			auto_line.visible = false
+			_update_con_types_visibility("con_adb")
 		2:
-			wifi.visible = false
-			adb.visible = false
-			auto_line.visible = true
-			
+			_update_con_types_visibility("con_auto")
 
 func _on_stretch_Type_item_selected(index):
 	GodotRemote.get_device().stretch_mode = index

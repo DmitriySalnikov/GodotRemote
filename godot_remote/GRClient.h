@@ -147,7 +147,7 @@ private:
 	String server_address = String("127.0.0.1");
 	PoolStringArray current_auto_connect_server_addresses;
 	String current_auto_connect_project_name = "";
-	int current_auto_connect_server_port = 52341;
+	int current_auto_connect_server_port = 0;
 	std::vector<std::shared_ptr<AvailableServer> > found_server_addresses;
 	bool is_auto_mode_active = false;
 

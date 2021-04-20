@@ -28,6 +28,7 @@ bool GodotRemote::is_init_completed = false;
 GR_PS_NAME_TYPE GodotRemote::ps_general_autoload_name = "debug/godot_remote/general/autostart";
 GR_PS_NAME_TYPE GodotRemote::ps_general_use_static_port_name = "debug/godot_remote/general/use_static_port";
 GR_PS_NAME_TYPE GodotRemote::ps_general_port_name = "debug/godot_remote/general/port";
+GR_PS_NAME_TYPE GodotRemote::ps_general_auto_connection_port_name = "debug/godot_remote/general/auto_connection_port";
 GR_PS_NAME_TYPE GodotRemote::ps_general_loglevel_name = "debug/godot_remote/general/log_level";
 
 GR_PS_NAME_TYPE GodotRemote::ps_notifications_enabled_name = "debug/godot_remote/notifications/notifications_enabled";
@@ -499,7 +500,8 @@ void GodotRemote::register_and_load_settings() {
 
 	DEF_SET(is_autostart, ps_general_autoload_name, true, Variant::BOOL, PROPERTY_HINT_NONE, "");
 	DEF_(ps_general_use_static_port_name, false, Variant::BOOL, PROPERTY_HINT_RANGE, "");
-	DEF_(ps_general_port_name, 52341, Variant::INT, PROPERTY_HINT_RANGE, "0,65535");
+	DEF_(ps_general_port_name, PORT_STATIC_CONNECTION, Variant::INT, PROPERTY_HINT_RANGE, "0,65535");
+	DEF_(ps_general_auto_connection_port_name, PORT_AUTO_CONNECTION, Variant::INT, PROPERTY_HINT_RANGE, "0,65535");
 	DEF_(ps_general_loglevel_name, LogLevel::LL_NORMAL, Variant::INT, PROPERTY_HINT_ENUM, "Debug,Normal,Warning,Error,None");
 
 	DEF_(ps_notifications_enabled_name, true, Variant::BOOL, PROPERTY_HINT_NONE, "");

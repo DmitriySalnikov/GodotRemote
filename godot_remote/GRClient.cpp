@@ -1208,6 +1208,7 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 	ConnectionThreadParamsClient *con_thread = VARIANT_OBJ_CAST_TO(p_userdata, ConnectionThreadParamsClient);
 
 	std::shared_ptr<UdpListen> udp_server = shared_new(UdpListen);
+	uint16_t current_auto_listener_port = 0;
 	iterable_queue<int64_t> received_packs_uids;
 	String udp_mode_title = "Auto Connection Mode";
 	RefStd(StreamPeerBuffer) udp_server_buf = newref_std(StreamPeerBuffer);
@@ -1266,13 +1267,23 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 		if (connection_type == ConnectionType::CONNECTION_AUTO) {
 			ZoneScopedNC("Scanning for available servers", tracy::Color::DarkMagenta);
 
+			if (auto_connection_port != current_auto_listener_port) {
+				if (udp_server && udp_server->IsListening()) {
+					close_udp_connection();
+					ts_lock.lock();
+					found_server_addresses.resize(0);
+					emit_auto_connection_list_changed();
+					ts_lock.unlock();
+				}
+			}
+
 			if (!udp_server->IsListening()) {
-				if (!udp_server->Listen(AUTO_CONNECTION_PORT)) {
+				if (!udp_server->Listen(auto_connection_port)) {
 					is_auto_mode_active = false;
 
 					if (!is_first_try_error_shown) {
-						_log("Can't start listening on port " + str(AUTO_CONNECTION_PORT) + " for auto connection mode.", LogLevel::LL_ERROR);
-						GRNotifications::add_notification(udp_mode_title, "Can't start listening on port\n" + str(AUTO_CONNECTION_PORT), GRNotifications::NotificationIcon::ICON_WARNING, true, 1.f);
+						_log("Can't start listening on port " + str(auto_connection_port) + " for auto connection mode.", LogLevel::LL_ERROR);
+						GRNotifications::add_notification(udp_mode_title, "Can't start listening on port\n" + str(auto_connection_port), GRNotifications::NotificationIcon::ICON_WARNING, true, 1.f);
 						is_first_try_error_shown = true;
 						emit_auto_connections_status_changed(false);
 					}
@@ -1281,10 +1292,11 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 					continue;
 				} else {
 					if (is_first_try_error_shown) {
-						_log("Now listens on port " + str(AUTO_CONNECTION_PORT), LogLevel::LL_DEBUG);
-						GRNotifications::add_notification(udp_mode_title, "Now listens on port " + str(AUTO_CONNECTION_PORT), GRNotifications::NotificationIcon::ICON_SUCCESS, true, 0.8f);
+						_log("Now listens on port " + str(auto_connection_port), LogLevel::LL_DEBUG);
+						GRNotifications::add_notification(udp_mode_title, "Now listens on port " + str(auto_connection_port), GRNotifications::NotificationIcon::ICON_SUCCESS, true, 0.8f);
 					}
 
+					current_auto_listener_port = auto_connection_port;
 					is_first_try_error_shown = false;
 					is_auto_mode_active = true;
 					emit_auto_connections_status_changed(true);

@@ -256,7 +256,8 @@ typedef Directory _Directory;
 #define GET_PS_SET(variable_to_store, setting_name) \
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
 
-#define AUTO_CONNECTION_PORT 57360
+#define PORT_AUTO_CONNECTION 22765
+#define PORT_STATIC_CONNECTION 22766
 #define MB_SIZE 1000000
 #define MiB_SIZE 1048576
 

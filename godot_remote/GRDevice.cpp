@@ -34,7 +34,9 @@ void GRDevice::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_total_sended_mbytes)), &GRDevice::get_total_sended_mbytes);
 
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_port)), &GRDevice::get_port);
-	ClassDB::bind_method(D_METHOD(NAMEOF(set_port), "port"), &GRDevice::set_port, DEFVAL(52341));
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_port), "port"), &GRDevice::set_port, DEFVAL(PORT_STATIC_CONNECTION));
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_auto_connection_port)), &GRDevice::get_auto_connection_port);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_auto_connection_port), "port"), &GRDevice::set_auto_connection_port, DEFVAL(PORT_AUTO_CONNECTION));
 
 	//ClassDB::bind_method(D_METHOD(NAMEOF(send_packet), "packet"), &GRDevice::send_packet);
 	ClassDB::bind_method(D_METHOD(NAMEOF(send_user_data), "packet_id", "user_data", "full_objects"), &GRDevice::send_user_data, DEFVAL(false));
@@ -48,6 +50,7 @@ void GRDevice::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("user_data_received", PropertyInfo(Variant::NIL, "packet_id"), PropertyInfo(Variant::NIL, "user_data")));
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "port"), NAMEOF(set_port), NAMEOF(get_port));
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "auto_connection_port"), NAMEOF(set_auto_connection_port), NAMEOF(get_auto_connection_port));
 
 	BIND_ENUM_CONSTANT(STATUS_STARTING);
 	BIND_ENUM_CONSTANT(STATUS_STOPPING);
@@ -108,7 +111,8 @@ void GRDevice::_register_methods() {
 	register_signal<GRDevice>("status_changed", "status", GODOT_VARIANT_TYPE_INT);
 	register_signal<GRDevice>("user_data_received", "packet_id", GODOT_VARIANT_TYPE_NIL, "user_data", GODOT_VARIANT_TYPE_NIL);
 
-	register_property<GRDevice, uint16_t>("port", &GRDevice::set_port, &GRDevice::get_port, 52341);
+	register_property<GRDevice, uint16_t>("port", &GRDevice::set_port, &GRDevice::get_port, PORT_STATIC_CONNECTION);
+	register_property<GRDevice, uint16_t>("auto_connection_port", &GRDevice::set_auto_connection_port, &GRDevice::get_auto_connection_port, PORT_AUTO_CONNECTION);
 }
 
 #endif
@@ -282,6 +286,14 @@ void GRDevice::set_port(uint16_t _port) {
 	static_port = _port;
 }
 
+uint16_t GRDevice::get_auto_connection_port() {
+	return auto_connection_port;
+}
+
+void GRDevice::set_auto_connection_port(uint16_t _port) {
+	auto_connection_port = _port;
+}
+
 void GRDevice::send_packet(std::shared_ptr<GRPacket> packet) {
 	ERR_FAIL_COND(!packet);
 	Scoped_lock(send_queue_mutex);
@@ -317,6 +329,7 @@ GRDevice::WorkingStatus GRDevice::get_status() {
 void GRDevice::_init() {
 	LEAVE_IF_EDITOR();
 	static_port = GET_PS(GodotRemote::ps_general_port_name);
+	auto_connection_port = GET_PS(GodotRemote::ps_general_auto_connection_port_name);
 }
 
 void GRDevice::_deinit() {

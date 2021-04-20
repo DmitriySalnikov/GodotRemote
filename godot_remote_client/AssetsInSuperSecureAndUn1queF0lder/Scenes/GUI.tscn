@@ -44,7 +44,7 @@ Bottom = 16.0
 IsRootObjectOfPanel = false
 ChangeParentSizeToFullwindow = false
 
-[sub_resource type="Resource" id=10]
+[sub_resource type="Resource" id=4]
 script = ExtResource( 14 )
 ControlToHandle = NodePath("../CustomPopupTextInput/Box")
 Left = 32.0
@@ -54,7 +54,7 @@ Bottom = 32.0
 IsRootObjectOfPanel = true
 ChangeParentSizeToFullwindow = true
 
-[sub_resource type="StyleBoxFlat" id=4]
+[sub_resource type="StyleBoxFlat" id=5]
 bg_color = Color( 0.133333, 0.164706, 0.188235, 0.815686 )
 border_width_left = 4
 border_width_top = 4
@@ -63,24 +63,24 @@ border_width_bottom = 4
 border_color = Color( 0.0901961, 0.109804, 0.12549, 0.847059 )
 corner_detail = 1
 
-[sub_resource type="Theme" id=5]
+[sub_resource type="Theme" id=6]
 default_font = ExtResource( 2 )
 
-[sub_resource type="GDScript" id=6]
+[sub_resource type="GDScript" id=7]
 script/source = "extends Button
 
 func _pressed() -> void:
 	OS.shell_open(\"https://github.com/DmitriySalnikov/GodotRemote#godot-remote\")
 "
 
-[sub_resource type="GDScript" id=7]
+[sub_resource type="GDScript" id=8]
 script/source = "extends Button
 
 func _pressed() -> void:
 	get_parent().get_parent().get_parent().get_parent().show_changelogs()
 "
 
-[sub_resource type="GDScript" id=8]
+[sub_resource type="GDScript" id=9]
 script/source = "extends Button
 
 func _pressed() -> void:
@@ -90,7 +90,7 @@ func _pressed() -> void:
 		G.a_progression_event(G.A_ProgressStatus.Complete, \"WelcomeScreen\")
 "
 
-[sub_resource type="GDScript" id=9]
+[sub_resource type="GDScript" id=10]
 script/source = "extends Button
 
 func _ready() -> void:
@@ -114,7 +114,7 @@ __meta__ = {
 }
 
 [node name="SafeAreaSetter" parent="." instance=ExtResource( 13 )]
-Objects = [ SubResource( 1 ), SubResource( 2 ), SubResource( 3 ), SubResource( 10 ) ]
+Objects = [ SubResource( 1 ), SubResource( 2 ), SubResource( 3 ), SubResource( 4 ) ]
 
 [node name="BackgroundTouchHint" type="Control" parent="."]
 anchor_right = 1.0
@@ -131,7 +131,7 @@ anchor_bottom = 1.0
 grow_horizontal = 0
 grow_vertical = 0
 mouse_filter = 2
-custom_styles/panel = SubResource( 4 )
+custom_styles/panel = SubResource( 5 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
@@ -160,7 +160,7 @@ grow_horizontal = 0
 grow_vertical = 0
 focus_mode = 2
 mouse_filter = 1
-theme = SubResource( 5 )
+theme = SubResource( 6 )
 __meta__ = {
 "_edit_lock_": true,
 "_edit_use_anchors_": false
@@ -229,6 +229,8 @@ __meta__ = {
 }
 
 [node name="GRStats" parent="Stats" instance=ExtResource( 3 )]
+margin_left = 25.0
+margin_top = 25.0
 margin_right = 96.0
 margin_bottom = 64.0
 
@@ -441,7 +443,7 @@ margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "Open documentation page"
-script = SubResource( 6 )
+script = SubResource( 7 )
 
 [node name="Button2" type="Button" parent="Welcome/VBox/HBoxContainer2" groups=[
 "nodes_that_should_be_higher",
@@ -451,7 +453,7 @@ margin_right = 756.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 text = "Open Changelogs"
-script = SubResource( 7 )
+script = SubResource( 8 )
 
 [node name="Label2" type="Label" parent="Welcome/VBox"]
 margin_top = 414.0
@@ -485,7 +487,7 @@ size_flags_horizontal = 3
 custom_colors/font_color = Color( 0.588235, 0.964706, 0.466667, 1 )
 custom_colors/font_color_hover = Color( 0.290196, 1, 0.231373, 1 )
 text = "Okay, I get it!"
-script = SubResource( 8 )
+script = SubResource( 9 )
 
 [node name="Button3" type="Button" parent="Welcome/VBox/HBoxContainer" groups=[
 "nodes_that_should_be_higher",
@@ -498,7 +500,7 @@ custom_colors/font_color = Color( 0.635294, 0.458824, 0.458824, 1 )
 custom_colors/font_color_hover = Color( 0.768627, 0.211765, 0.211765, 1 )
 custom_colors/font_color_pressed = Color( 1, 0.0784314, 0.0784314, 1 )
 text = "No, I think this is a game!"
-script = SubResource( 9 )
+script = SubResource( 10 )
 
 [node name="Changelog" type="Panel" parent="."]
 margin_left = -1643.4

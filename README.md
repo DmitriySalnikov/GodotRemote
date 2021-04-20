@@ -385,7 +385,7 @@ Base class for client and server
 # --- Properties
 
 # Connection port
-# type int, default 52341
+# type int, default 22766
 port
 
 # --- Methods
