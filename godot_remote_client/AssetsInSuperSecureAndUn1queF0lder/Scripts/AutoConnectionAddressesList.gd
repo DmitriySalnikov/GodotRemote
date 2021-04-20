@@ -101,7 +101,7 @@ func _on_address_pressed(ips : PoolStringArray, port : int, project_name : Strin
 		return
 	var d = GodotRemote.get_device()
 	
-	if d.set_current_auto_connect_server(project_name, ips, port, true):
+	if d.set_current_auto_connect_server(project_name, ips, port, true, 0, false):
 		G.auto_addresses = ips
 		G.auto_port = port
 		G.auto_project_name = project_name

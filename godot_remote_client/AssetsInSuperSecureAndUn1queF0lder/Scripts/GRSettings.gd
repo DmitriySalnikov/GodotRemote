@@ -4,6 +4,8 @@ signal stretch_mode_changed
 
 var button_red_theme = preload("res://AssetsInSuperSecureAndUn1queF0lder/Styles/ButtonRed.tres")
 var button_green_theme = preload("res://AssetsInSuperSecureAndUn1queF0lder/Styles/ButtonGreen.tres")
+var auto_mode_current_connected = preload("res://AssetsInSuperSecureAndUn1queF0lder/Styles/AutoModeCurrentServerConnected.tres")
+var auto_mode_current_disconnected = preload("res://AssetsInSuperSecureAndUn1queF0lder/Styles/AutoModeCurrentServerNotConnected.tres")
 
 var game_open_counter := 0
 
@@ -28,8 +30,9 @@ onready var wifi_ip_line = $V/Scroll/H/Grid/WiFi/Address/IP
 onready var auto_udp_port = $V/Scroll/H/Grid/AutoPort/Port
 onready var auto_line = $V/Scroll/H/Grid/Auto
 onready var auto_status_icon = $V/Scroll/H/Grid/Auto/H/UDP_ListenerStatus
-onready var auto_prev_icon = $V/Scroll/H/Grid/Auto/HC/TextureRect
-onready var auto_prev_addr = $V/Scroll/H/Grid/Auto/HC/LastConnected
+onready var auto_current_server_panel = $V/Scroll/H/Grid/Auto/PC
+onready var auto_prev_icon = $V/Scroll/H/Grid/Auto/PC/HC/TextureRect
+onready var auto_prev_addr = $V/Scroll/H/Grid/Auto/PC/HC/LastConnected
 onready var auto_item_scroll = $V/Scroll/H/Grid/Auto/AvailableAddresses
 
 onready var fps = $V/Scroll/H/Grid/OutFps/FPS
@@ -55,6 +58,8 @@ onready var scale_hint = $V/Scroll/H/Grid/RenderScale/HBox/ScaleHint
 onready var target_server_fps = $V/Scroll/H/Grid/TargetFramerate/fps
 onready var compression = $V/Scroll/H/Grid/CompressionType/State2
 onready var encoder_threads = $V/Scroll/H/Grid/EncoderThreadsNumber/threads
+
+var is_update_on_vis_changed = false
 
 # Names of LineEdits in custom touch input menu
 onready var line_edits_to_touch_input = [
@@ -90,6 +95,7 @@ func _ready():
 	update_values()
 	_on_auto_list_address_changed()
 	_update_current_server_icon(null)
+	_update_current_server_color(false)
 	_on_auto_connection_status_changed(false)
 	_set_buttons_disabled(false)
 	_update_start_stop()
@@ -126,6 +132,7 @@ func _server_settings_visibility(val : bool):
 			o.visible = val
 
 func _on_GRSettings_visibility_changed():
+	is_update_on_vis_changed = true
 	_update_start_stop()
 	if visible:
 		update_values()
@@ -137,6 +144,8 @@ func _on_GRSettings_visibility_changed():
 		# yield needs to wait next frame and not instant close app
 		yield(get_tree(), "idle_frame")
 		GodotRemote.get_device().capture_input = true
+	
+	is_update_on_vis_changed = false
 
 func update_values():
 	var d = GodotRemote.get_device()
@@ -203,6 +212,12 @@ func _update_current_server_icon(icon : ImageTexture):
 	else:
 		auto_prev_icon.visible = false
 
+func _update_current_server_color(connected : bool):
+	if connected:
+		auto_current_server_panel.add_stylebox_override("panel", auto_mode_current_connected)
+	else:
+		auto_current_server_panel.add_stylebox_override("panel", auto_mode_current_disconnected)
+
 func _on_auto_connection_status_changed(is_listening):
 	if is_listening:
 		auto_status_icon.modulate = Color(0.439216, 0.819608, 0.360784)
@@ -216,6 +231,8 @@ func _connection_changed(connected : bool):
 	else:
 		_game_scene_counter_increase()
 		quality_hint.visible = false
+	
+	_update_current_server_color(connected)
 	
 	if GodotRemote.get_device().connection_type == C.GRClient_CONNECTION_AUTO:
 		G.auto_port = GodotRemote.get_device().get_current_auto_connect_port()
@@ -285,17 +302,21 @@ func _on_button_disable_Timer_timeout():
 	_set_buttons_disabled(_status == C.GRDevice_STATUS_STARTING or _status == C.GRDevice_STATUS_STOPPING)
 
 func _update_start_stop():
-	match GodotRemote.get_device().get_status():
-		C.GRDevice_STATUS_STARTING: 
+	var d = GodotRemote.get_device()
+	
+	match d.get_status():
+		C.GRDevice_STATUS_STARTING:
 			start_stop.text = "   Starting Client   "
 			start_stop.theme = button_green_theme
-		C.GRDevice_STATUS_STOPPING: 
+		C.GRDevice_STATUS_STOPPING:
 			start_stop.text = "   Stopping Client   "
 			start_stop.theme = button_red_theme
-		C.GRDevice_STATUS_WORKING: 
+		C.GRDevice_STATUS_WORKING:
+			if !is_update_on_vis_changed:
+				d.set_current_auto_connect_server(G.auto_project_name, G.auto_addresses, G.auto_port, true, 2.5, true)
 			start_stop.text = "     Stop Client     "
 			start_stop.theme = button_green_theme
-		C.GRDevice_STATUS_STOPPED: 
+		C.GRDevice_STATUS_STOPPED:
 			start_stop.text = "    Launch Client    "
 			start_stop.theme = button_red_theme
 
@@ -359,7 +380,7 @@ func _on_adb_SetAddress_pressed():
 	GodotRemote.get_device().port = adb_port_line.value
 	G.port = adb_port_line.value
 
-func _on_auto_connection_Port_value_changed(value: float) -> void:
+func _on_auto_connection_Port_value_changed(value: int) -> void:
 	G.auto_listener_port = value
 	GodotRemote.get_device().auto_connection_port = value
 

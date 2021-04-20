@@ -83,6 +83,7 @@ public:
 		bool is_auto_connected = false;
 		bool is_first_connection_try = false;
 		bool connect_to_exact_server = false;
+		real_t connect_to_exact_server_time_limit = 0;
 
 		void close_thread() {
 			break_connection = true;
@@ -291,7 +292,7 @@ public:
 	void break_connection_async();
 	void break_connection();
 
-	bool set_current_auto_connect_server(String _project_name, PoolStringArray _addresses, int _port, bool connect_to_exact_server = true);
+	bool set_current_auto_connect_server(String _project_name, PoolStringArray _addresses, int _port, bool connect_to_exact_server = true, real_t exact_connect_max_time = 0, bool force_update = false);
 	PoolStringArray get_current_auto_connect_addresses();
 	String get_current_auto_connect_project_name();
 	int get_current_auto_connect_port();

@@ -171,7 +171,7 @@ func _set_all_values():
 	dev.device_id = device_id
 	dev.set_address_port(ip, port)
 	dev.set_decoder_threads_count(decoder_threads_number)
-	dev.set_current_auto_connect_server(auto_project_name, auto_addresses, auto_port, false)
+	dev.set_current_auto_connect_server(auto_project_name, auto_addresses, auto_port, false, 0, true)
 	dev.auto_connection_port = auto_listener_port
 	dev.connection_type = connection_type
 	dev.stretch_mode = stretch_mode

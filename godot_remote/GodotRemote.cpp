@@ -583,22 +583,34 @@ void GodotRemote::_run_emitted() {
 }
 
 void GodotRemote::_adb_port_forwarding() {
-	String adb = EditorSettings::get_singleton()->get_setting("export/android/adb");
+	String sdk = EditorSettings::get_singleton()->get_setting("export/android/android_sdk_path");
 
-	if (!adb.empty()) {
+#if defined(_MSC_VER) || defined(_WIN64) || defined(_WIN32)
+#else
+	sdk = "ok?"
+#endif
+
+	if (!sdk.empty()) {
 		if (!is_adb_timer_active) {
 			is_adb_timer_active = true;
 			ST()->create_timer(1.f)->connect("timeout", this, NAMEOF(_adb_start_timer_timeout));
 		}
 	} else {
-		_log("ADB path not specified.", LogLevel::LL_DEBUG);
+		_log("Android SDK path not specified.", LogLevel::LL_DEBUG);
 	}
 }
 
 void GodotRemote::_adb_start_timer_timeout() {
 	is_adb_timer_active = false;
 
-	String adb = EditorSettings::get_singleton()->get_setting("export/android/adb");
+	String adb = (String(EditorSettings::get_singleton()->get_setting("export/android/android_sdk_path")) + "/platform-tools/adb").replace("//", "/");
+
+#if defined(_MSC_VER) || defined(_WIN64) || defined(_WIN32)
+	adb += ".exe";
+#else
+	adb = "adb"
+#endif
+
 	List<String> args;
 	args.push_back("reverse");
 	args.push_back("--no-rebind");

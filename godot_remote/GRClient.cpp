@@ -27,6 +27,7 @@
 #include "scene/resources/material.h"
 #include "scene/resources/packed_scene.h"
 #include "scene/resources/texture.h"
+#include "core/method_bind_ext.gen.inc"
 #else
 
 #include <Control.hpp>
@@ -101,7 +102,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(break_connection)), &GRClient::break_connection);
 	ClassDB::bind_method(D_METHOD(NAMEOF(break_connection_async)), &GRClient::break_connection_async);
 
-	ClassDB::bind_method(D_METHOD(NAMEOF(set_current_auto_connect_server), "project_name", "addresses", "port", "connect_to_exact_server"), &GRClient::set_current_auto_connect_server, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_current_auto_connect_server), "project_name", "addresses", "port", "connect_to_exact_server", "exact_time_limit", "force_update"), &GRClient::set_current_auto_connect_server, DEFVAL(true), DEFVAL(0), DEFVAL(false));
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_current_auto_connect_addresses)), &GRClient::get_current_auto_connect_addresses);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_current_auto_connect_project_name)), &GRClient::get_current_auto_connect_project_name);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_current_auto_connect_port)), &GRClient::get_current_auto_connect_port);
@@ -1154,13 +1155,13 @@ void GRClient::break_connection() {
 	}
 }
 
-bool GRClient::set_current_auto_connect_server(String _project_name, PoolStringArray _addresses, int _port, bool connect_to_exact_server) {
+bool GRClient::set_current_auto_connect_server(String _project_name, PoolStringArray _addresses, int _port, bool connect_to_exact_server, real_t exact_connect_max_time, bool force_update) {
 	Scoped_lock(ts_lock);
 	bool same_addr = compare_pool_string_arrays(current_auto_connect_server_addresses, _addresses);
 
 	if (current_auto_connect_project_name != _project_name ||
 			current_auto_connect_server_port != _port ||
-			!same_addr) {
+			!same_addr || force_update) {
 		break_connection_async();
 		current_auto_connect_project_name = _project_name;
 		current_auto_connect_server_addresses = _addresses;
@@ -1168,6 +1169,7 @@ bool GRClient::set_current_auto_connect_server(String _project_name, PoolStringA
 
 		if (thread_connection) {
 			thread_connection->connect_to_exact_server = connect_to_exact_server;
+			thread_connection->connect_to_exact_server_time_limit = exact_connect_max_time;
 		}
 		auto_connecting_server_select_time = get_time_usec();
 		return true;
@@ -1442,7 +1444,10 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 				{
 					bool need_to_found_exact_uid = (get_time_usec() - auto_connecting_server_select_time) < 1250_ms ||
 												   con_thread->is_first_connection_try ||
-												   con_thread->connect_to_exact_server;
+												   (con_thread->connect_to_exact_server &&
+														   (con_thread->connect_to_exact_server_time_limit != 0 ?
+																			 ((get_time_usec() - auto_connecting_server_select_time) < int(con_thread->connect_to_exact_server_time_limit * 1000_ms)) :
+																			 true));
 
 					if ((con_thread->auto_connected_server_uid == 0 && !con_thread->is_auto_connected)) {
 						for (auto s : found_server_addresses) {
