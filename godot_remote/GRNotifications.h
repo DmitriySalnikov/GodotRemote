@@ -297,7 +297,7 @@ protected:
 	void _notification(int p_what);
 
 public:
-	void set_safe_zone(Rect2 rect);
+	void set_safe_zone();
 	void _init();
 	void _deinit();
 };

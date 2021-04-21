@@ -207,6 +207,7 @@ void GodotRemote::_bind_methods() {
 	BIND_ENUM_CONSTANT(LL_ERROR);
 
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_log_level), "level"), &GodotRemote::set_log_level);
+	ClassDB::bind_method(D_METHOD(NAMEOF(get_2d_safe_area), "canvas_item"), &GodotRemote::get_2d_safe_area);
 
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_gravity), "value"), &GodotRemote::set_gravity);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_accelerometer), "value"), &GodotRemote::set_accelerometer);
@@ -272,6 +273,7 @@ void GodotRemote::_register_methods() {
 	register_signal<GodotRemote>("device_removed", Dictionary::make());
 
 	METHOD_REG(GodotRemote, set_log_level);
+	METHOD_REG(GodotRemote, get_2d_safe_area);
 
 	METHOD_REG(GodotRemote, set_gravity);
 	METHOD_REG(GodotRemote, set_accelerometer);
@@ -833,6 +835,9 @@ void GodotRemote::clear_notifications() {
 // GRUtils functions binds for GDScript
 void GodotRemote::set_log_level(ENUM_ARG(LogLevel) lvl) {
 	GRUtils::set_log_level((LogLevel)lvl);
+}
+Rect2 GodotRemote::GodotRemote::get_2d_safe_area(CanvasItem *ci) {
+	return GRUtils::get_2d_safe_area(ci);
 }
 void GodotRemote::set_gravity(const Vector3 &p_gravity) {
 	GRUtils::set_gravity(p_gravity);

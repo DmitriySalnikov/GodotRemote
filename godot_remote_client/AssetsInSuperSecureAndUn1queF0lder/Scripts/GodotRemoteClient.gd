@@ -59,7 +59,7 @@ func _ready():
 		G.a_progression_event(G.A_ProgressStatus.Start, "WelcomeScreen")
 
 func _resize_for_mobile():
-	if G.IsMobile:
+	#if G.IsMobile:
 		var height = 82
 		var nodes = get_tree().get_nodes_in_group("nodes_that_should_be_higher")
 		for n in nodes:
@@ -100,7 +100,7 @@ func _mouse_mode_changed(_mode):
 		Input.set_mouse_mode(mouse_mode)
 
 func _stream_aspect_ratio_changed(_ratio):
-	var safe_rect = G.get_safe_rect(bg_touch_hint)
+	var safe_rect = GodotRemote.get_2d_safe_area(bg_touch_hint)
 	
 	if _ratio == 0 or GodotRemote.get_device().stretch_mode == C.GRClient_STRETCH_FILL:
 		bg_touch_hint.rect_size = safe_rect.size

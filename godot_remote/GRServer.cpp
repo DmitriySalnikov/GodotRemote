@@ -778,7 +778,8 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 			break;
 		}
 
-		sleep_usec(250_ms);
+		// MUST BE LOWER 200ms TO AVOID RANDOM REMOVES FROM SERVER LIST ON CLIENT
+		sleep_usec(100_ms);
 	}
 
 	available_sockets.resize(0);

@@ -22,11 +22,13 @@
 #include "core/variant.h"
 #include "core/version_generated.gen.h"
 #include "main/input_default.h"
+#include "scene/2d/canvas_item.h"
 //#define VERSION_MINOR 3
 
 #else
 
 #include <Array.hpp>
+#include <CanvasItem.hpp>
 #include <Dictionary.hpp>
 #include <Directory.hpp>
 #include <Engine.hpp>
@@ -299,6 +301,8 @@ extern Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolB
 #ifdef DEBUG_ENABLED
 extern void __log(const Variant &val, int lvl = 1 /*LogLevel::LL_NORMAL*/, String func = "", String file = "", int line = 0);
 #endif
+
+extern Rect2 get_2d_safe_area(class CanvasItem *ci);
 
 extern String str(const Variant &val);
 extern String str_arr(const Array arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true);

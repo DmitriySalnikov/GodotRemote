@@ -1,6 +1,6 @@
-[gd_scene load_steps=24 format=2]
+[gd_scene load_steps=25 format=2]
 
-[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalBoldSmaller.tres" type="DynamicFont" id=1]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Fonts/Roboto-Bold.ttf" type="DynamicFontData" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalSettings.tres" type="DynamicFont" id=2]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/GRSettings.gd" type="Script" id=3]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/EmptySep.tres" type="StyleBox" id=4]
@@ -53,6 +53,12 @@ atlas = ExtResource( 6 )
 region = Rect2( 0, 0, 64, 64 )
 margin = Rect2( 0, 8, 0, 16 )
 
+[sub_resource type="DynamicFont" id=8]
+size = 18
+use_filter = true
+extra_spacing_top = -1
+font_data = ExtResource( 1 )
+
 [sub_resource type="StyleBoxFlat" id=6]
 bg_color = Color( 0.219608, 0.247059, 0.266667, 1 )
 draw_center = false
@@ -104,7 +110,7 @@ func _input(e: InputEvent) -> void:
 [node name="GRSettings" type="Control"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_bottom = 2869.0
+margin_bottom = 3824.0
 grow_horizontal = 0
 grow_vertical = 0
 focus_mode = 2
@@ -142,7 +148,7 @@ __meta__ = {
 
 [node name="H" type="HBoxContainer" parent="V"]
 margin_right = 768.0
-margin_bottom = 80.0
+margin_bottom = 82.0
 __meta__ = {
 "_edit_use_anchors_": false
 }
@@ -152,7 +158,8 @@ __meta__ = {
 "nodes_that_should_be_higher",
 ]]
 margin_right = 150.0
-margin_bottom = 80.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 theme = ExtResource( 10 )
 text = "StartStop"
 __meta__ = {
@@ -162,7 +169,7 @@ __meta__ = {
 [node name="VSeparator" type="VSeparator" parent="V/H"]
 margin_left = 154.0
 margin_right = 166.0
-margin_bottom = 80.0
+margin_bottom = 82.0
 rect_min_size = Vector2( 12, 0 )
 custom_styles/separator = ExtResource( 4 )
 
@@ -171,7 +178,8 @@ custom_styles/separator = ExtResource( 4 )
 ]]
 margin_left = 170.0
 margin_right = 345.0
-margin_bottom = 80.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 mouse_filter = 1
 size_flags_horizontal = 3
 size_flags_vertical = 5
@@ -182,7 +190,7 @@ text = "Your Points: 100"
 [node name="empty" type="Control" parent="V/H"]
 margin_left = 349.0
 margin_right = 431.0
-margin_bottom = 80.0
+margin_bottom = 82.0
 mouse_filter = 1
 size_flags_horizontal = 3
 size_flags_vertical = 5
@@ -192,7 +200,8 @@ size_flags_vertical = 5
 ]]
 margin_left = 435.0
 margin_right = 628.0
-margin_bottom = 80.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 custom_fonts/font = ExtResource( 5 )
 custom_colors/font_color = Color( 0.384314, 0.407843, 0.423529, 1 )
@@ -202,7 +211,7 @@ align = 2
 [node name="VSeparator2" type="VSeparator" parent="V/H"]
 margin_left = 632.0
 margin_right = 683.0
-margin_bottom = 80.0
+margin_bottom = 82.0
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.63
 custom_styles/separator = ExtResource( 4 )
@@ -210,7 +219,7 @@ custom_styles/separator = ExtResource( 4 )
 [node name="Close" type="Button" parent="V/H"]
 margin_left = 687.0
 margin_right = 767.0
-margin_bottom = 80.0
+margin_bottom = 82.0
 grow_horizontal = 0
 grow_vertical = 0
 rect_min_size = Vector2( 80, 80 )
@@ -222,15 +231,15 @@ __meta__ = {
 }
 
 [node name="sep" type="Control" parent="V"]
-margin_top = 80.0
+margin_top = 82.0
 margin_right = 768.0
-margin_bottom = 88.0
+margin_bottom = 90.0
 rect_min_size = Vector2( 0, 8 )
 
 [node name="Scroll" type="ScrollContainer" parent="V"]
-margin_top = 88.0
+margin_top = 90.0
 margin_right = 768.0
-margin_bottom = 3637.0
+margin_bottom = 4592.0
 size_flags_vertical = 3
 custom_styles/bg = SubResource( 2 )
 __meta__ = {
@@ -241,14 +250,14 @@ __meta__ = {
 margin_left = 2.0
 margin_top = 2.0
 margin_right = 766.0
-margin_bottom = 3157.0
+margin_bottom = 4118.0
 grow_horizontal = 0
 grow_vertical = 0
 size_flags_horizontal = 3
 
 [node name="Grid" type="GridContainer" parent="V/Scroll/H"]
 margin_right = 752.0
-margin_bottom = 3155.0
+margin_bottom = 4116.0
 size_flags_horizontal = 3
 custom_constants/vseparation = 24
 __meta__ = {
@@ -257,7 +266,7 @@ __meta__ = {
 
 [node name="DeviceID" type="VBoxContainer" parent="V/Scroll/H/Grid"]
 margin_right = 752.0
-margin_bottom = 96.0
+margin_bottom = 132.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/DeviceID"]
@@ -275,15 +284,16 @@ __meta__ = {
 ]]
 margin_top = 50.0
 margin_right = 752.0
-margin_bottom = 96.0
+margin_bottom = 132.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 text = "ABRACADABRA"
 max_length = 128
 
 [node name="ConnectionType" type="VBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 120.0
+margin_top = 156.0
 margin_right = 752.0
-margin_bottom = 216.0
+margin_bottom = 288.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/ConnectionType"]
@@ -301,7 +311,8 @@ __meta__ = {
 ]]
 margin_top = 50.0
 margin_right = 752.0
-margin_bottom = 96.0
+margin_bottom = 132.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 text = "Auto"
 icon = SubResource( 3 )
@@ -314,9 +325,9 @@ selected = 0
 "con",
 "con_auto",
 ]]
-margin_top = 240.0
+margin_top = 312.0
 margin_right = 752.0
-margin_bottom = 714.0
+margin_bottom = 795.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/Auto"]
@@ -332,27 +343,27 @@ __meta__ = {
 [node name="PC" type="PanelContainer" parent="V/Scroll/H/Grid/Auto"]
 margin_top = 50.0
 margin_right = 752.0
-margin_bottom = 126.0
+margin_bottom = 135.0
 custom_styles/panel = ExtResource( 16 )
 
 [node name="HC" type="HBoxContainer" parent="V/Scroll/H/Grid/Auto/PC"]
 margin_left = 4.0
 margin_top = 4.0
 margin_right = 748.0
-margin_bottom = 72.0
+margin_bottom = 81.0
 
 [node name="TextureRect" type="TextureRect" parent="V/Scroll/H/Grid/Auto/PC/HC"]
 margin_right = 68.0
-margin_bottom = 68.0
+margin_bottom = 77.0
 rect_min_size = Vector2( 68, 68 )
 stretch_mode = 6
 
 [node name="LastConnected" type="Label" parent="V/Scroll/H/Grid/Auto/PC/HC"]
 margin_left = 72.0
 margin_right = 744.0
-margin_bottom = 68.0
+margin_bottom = 77.0
 size_flags_horizontal = 3
-custom_fonts/font = ExtResource( 1 )
+custom_fonts/font = SubResource( 8 )
 custom_colors/font_color = Color( 0.713726, 0.713726, 0.713726, 1 )
 text = "PROJECT NAME HERE
 255.255.255.255, 255.255.255.255, 255.255.255.255, 255.255.255.255
@@ -363,9 +374,9 @@ __meta__ = {
 }
 
 [node name="H" type="HBoxContainer" parent="V/Scroll/H/Grid/Auto"]
-margin_top = 130.0
+margin_top = 139.0
 margin_right = 752.0
-margin_bottom = 176.0
+margin_bottom = 185.0
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/Auto/H"]
 margin_right = 556.0
@@ -400,17 +411,17 @@ stretch_mode = 4
 [node name="AvailableAddresses" parent="V/Scroll/H/Grid/Auto" instance=ExtResource( 14 )]
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_top = 180.0
+margin_top = 189.0
 margin_right = 752.0
-margin_bottom = 474.0
+margin_bottom = 483.0
 
 [node name="AutoPort" type="VBoxContainer" parent="V/Scroll/H/Grid" groups=[
 "con",
 "con_auto",
 ]]
-margin_top = 738.0
+margin_top = 819.0
 margin_right = 752.0
-margin_bottom = 907.0
+margin_bottom = 1024.0
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/AutoPort" groups=[
 "nodes_that_should_be_higher",
@@ -444,8 +455,8 @@ __meta__ = {
 ]]
 margin_top = 123.0
 margin_right = 752.0
-margin_bottom = 169.0
-rect_min_size = Vector2( 128, 0 )
+margin_bottom = 205.0
+rect_min_size = Vector2( 128, 82 )
 size_flags_horizontal = 3
 size_flags_vertical = 5
 min_value = 1.0
@@ -457,9 +468,9 @@ align = 1
 "con",
 "con_wifi",
 ]]
-margin_top = 931.0
+margin_top = 1048.0
 margin_right = 752.0
-margin_bottom = 1086.0
+margin_bottom = 1275.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/WiFi"]
@@ -474,13 +485,14 @@ __meta__ = {
 [node name="Address" type="HBoxContainer" parent="V/Scroll/H/Grid/WiFi"]
 margin_top = 50.0
 margin_right = 752.0
-margin_bottom = 96.0
+margin_bottom = 132.0
 
 [node name="IP" type="LineEdit" parent="V/Scroll/H/Grid/WiFi/Address" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_right = 586.0
-margin_bottom = 46.0
+margin_right = 576.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 custom_fonts/font = ExtResource( 2 )
 text = "255.255.255.255"
@@ -494,18 +506,18 @@ __meta__ = {
 [node name="Port" type="SpinBox" parent="V/Scroll/H/Grid/WiFi/Address" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_left = 590.0
+margin_left = 580.0
 margin_right = 752.0
-margin_bottom = 46.0
-rect_min_size = Vector2( 162, 0 )
+margin_bottom = 82.0
+rect_min_size = Vector2( 162, 82 )
 max_value = 65535.0
 value = 65535.0
 align = 1
 
 [node name="Empty9" type="Control" parent="V/Scroll/H/Grid/WiFi"]
-margin_top = 100.0
+margin_top = 136.0
 margin_right = 752.0
-margin_bottom = 105.0
+margin_bottom = 141.0
 rect_min_size = Vector2( 0, 5 )
 mouse_filter = 2
 size_flags_horizontal = 3
@@ -515,9 +527,10 @@ size_flags_vertical = 0
 "buttons_to_disable",
 "nodes_that_should_be_higher",
 ]]
-margin_top = 109.0
+margin_top = 145.0
 margin_right = 752.0
-margin_bottom = 155.0
+margin_bottom = 227.0
+rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
 size_flags_horizontal = 3
@@ -532,9 +545,9 @@ __meta__ = {
 "con",
 "con_adb",
 ]]
-margin_top = 1110.0
+margin_top = 1299.0
 margin_right = 752.0
-margin_bottom = 1265.0
+margin_bottom = 1526.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/ADB"]
@@ -551,17 +564,17 @@ __meta__ = {
 ]]
 margin_top = 50.0
 margin_right = 752.0
-margin_bottom = 96.0
-rect_min_size = Vector2( 128, 0 )
+margin_bottom = 132.0
+rect_min_size = Vector2( 128, 82 )
 size_flags_horizontal = 3
 max_value = 65535.0
 value = 65535.0
 align = 1
 
 [node name="Empty9" type="Control" parent="V/Scroll/H/Grid/ADB"]
-margin_top = 100.0
+margin_top = 136.0
 margin_right = 752.0
-margin_bottom = 105.0
+margin_bottom = 141.0
 rect_min_size = Vector2( 0, 5 )
 mouse_filter = 2
 size_flags_horizontal = 3
@@ -571,9 +584,10 @@ size_flags_vertical = 0
 "buttons_to_disable",
 "nodes_that_should_be_higher",
 ]]
-margin_top = 109.0
+margin_top = 145.0
 margin_right = 752.0
-margin_bottom = 155.0
+margin_bottom = 227.0
+rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
 size_flags_horizontal = 3
@@ -589,42 +603,43 @@ __meta__ = {
 "con_adb",
 "con_wifi",
 ]]
-margin_top = 1289.0
+margin_top = 1550.0
 margin_right = 752.0
-margin_bottom = 1301.0
+margin_bottom = 1562.0
 rect_min_size = Vector2( 0, 12 )
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 
 [node name="Empty6" type="HSeparator" parent="V/Scroll/H/Grid"]
-margin_top = 1325.0
+margin_top = 1586.0
 margin_right = 752.0
-margin_bottom = 1329.0
+margin_bottom = 1590.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 custom_styles/separator = SubResource( 6 )
 
 [node name="Empty13" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 1353.0
+margin_top = 1614.0
 margin_right = 752.0
-margin_bottom = 1365.0
+margin_bottom = 1626.0
 rect_min_size = Vector2( 0, 12 )
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 
 [node name="OutFps" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 1389.0
+margin_top = 1650.0
 margin_right = 752.0
-margin_bottom = 1435.0
+margin_bottom = 1732.0
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/OutFps" groups=[
 "nodes_that_should_be_higher",
 ]]
+margin_top = 18.0
 margin_right = 374.0
-margin_bottom = 46.0
+margin_bottom = 64.0
 size_flags_horizontal = 3
 text = "Output Frequency"
 valign = 1
@@ -637,8 +652,8 @@ __meta__ = {
 ]]
 margin_left = 378.0
 margin_right = 752.0
-margin_bottom = 46.0
-rect_min_size = Vector2( 128, 0 )
+margin_bottom = 82.0
+rect_min_size = Vector2( 128, 82 )
 size_flags_horizontal = 3
 size_flags_vertical = 5
 min_value = 1.0
@@ -647,16 +662,17 @@ value = 60.0
 align = 1
 
 [node name="PassRow" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 1459.0
+margin_top = 1756.0
 margin_right = 752.0
-margin_bottom = 1505.0
+margin_bottom = 1838.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/PassRow" groups=[
 "nodes_that_should_be_higher",
 ]]
+margin_top = 18.0
 margin_right = 374.0
-margin_bottom = 46.0
+margin_bottom = 64.0
 size_flags_horizontal = 3
 text = "Password"
 valign = 1
@@ -669,7 +685,8 @@ __meta__ = {
 ]]
 margin_left = 378.0
 margin_right = 752.0
-margin_bottom = 46.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 text = "asdadfhsd"
 max_length = 128
@@ -679,10 +696,10 @@ placeholder_text = "Password"
 [node name="Filtering" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 1529.0
+margin_top = 1862.0
 margin_right = 752.0
-margin_bottom = 1577.0
-rect_min_size = Vector2( 128, 0 )
+margin_bottom = 1944.0
+rect_min_size = Vector2( 128, 82 )
 focus_mode = 1
 mouse_filter = 1
 pressed = true
@@ -690,15 +707,16 @@ enabled_focus_mode = 1
 text = "Stream Texture Filtering"
 
 [node name="StretchMode" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 1601.0
+margin_top = 1968.0
 margin_right = 752.0
-margin_bottom = 1647.0
+margin_bottom = 2050.0
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/StretchMode" groups=[
 "nodes_that_should_be_higher",
 ]]
+margin_top = 18.0
 margin_right = 374.0
-margin_bottom = 46.0
+margin_bottom = 64.0
 size_flags_horizontal = 3
 text = "Stretch Mode"
 valign = 1
@@ -712,7 +730,8 @@ __meta__ = {
 ]]
 margin_left = 378.0
 margin_right = 752.0
-margin_bottom = 46.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 size_flags_vertical = 5
 text = "Keep Aspect"
@@ -721,15 +740,16 @@ items = [ "Keep Aspect", null, false, 0, null, "Fill", null, false, 1, null ]
 selected = 0
 
 [node name="ShowStats" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 1671.0
+margin_top = 2074.0
 margin_right = 752.0
-margin_bottom = 1717.0
+margin_bottom = 2156.0
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/ShowStats" groups=[
 "nodes_that_should_be_higher",
 ]]
+margin_top = 18.0
 margin_right = 374.0
-margin_bottom = 46.0
+margin_bottom = 64.0
 size_flags_horizontal = 3
 text = "Show Stats"
 valign = 1
@@ -743,7 +763,8 @@ __meta__ = {
 ]]
 margin_left = 378.0
 margin_right = 752.0
-margin_bottom = 46.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 size_flags_vertical = 5
 text = "Hidden"
@@ -754,9 +775,10 @@ selected = 0
 [node name="KeepScreen" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 1741.0
+margin_top = 2180.0
 margin_right = 752.0
-margin_bottom = 1789.0
+margin_bottom = 2262.0
+rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
 size_flags_vertical = 4
@@ -770,9 +792,10 @@ __meta__ = {
 [node name="CaptureInput" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 1813.0
+margin_top = 2286.0
 margin_right = 752.0
-margin_bottom = 1861.0
+margin_bottom = 2368.0
+rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
 size_flags_vertical = 4
@@ -785,9 +808,9 @@ __meta__ = {
 }
 
 [node name="TouchesToOpenSettings" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 1885.0
+margin_top = 2392.0
 margin_right = 752.0
-margin_bottom = 1931.0
+margin_bottom = 2474.0
 __meta__ = {
 "_edit_use_anchors_": false
 }
@@ -795,9 +818,9 @@ __meta__ = {
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/TouchesToOpenSettings" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 4.0
+margin_top = 22.0
 margin_right = 534.0
-margin_bottom = 41.0
+margin_bottom = 59.0
 size_flags_horizontal = 3
 custom_fonts/font = ExtResource( 9 )
 text = "Number of touches to open settings"
@@ -812,7 +835,8 @@ __meta__ = {
 ]]
 margin_left = 538.0
 margin_right = 752.0
-margin_bottom = 46.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 size_flags_vertical = 5
 size_flags_stretch_ratio = 0.4
@@ -824,9 +848,10 @@ selected = 0
 [node name="SyncOrientation" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 1955.0
+margin_top = 2498.0
 margin_right = 752.0
-margin_bottom = 2003.0
+margin_bottom = 2580.0
+rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
 size_flags_vertical = 4
@@ -840,9 +865,10 @@ __meta__ = {
 [node name="SyncAspect" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 2027.0
+margin_top = 2604.0
 margin_right = 752.0
-margin_bottom = 2075.0
+margin_bottom = 2686.0
+rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
 size_flags_vertical = 4
@@ -854,9 +880,9 @@ __meta__ = {
 }
 
 [node name="DecoderThreads" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 2099.0
+margin_top = 2710.0
 margin_right = 752.0
-margin_bottom = 2145.0
+margin_bottom = 2792.0
 __meta__ = {
 "_edit_use_anchors_": false
 }
@@ -864,8 +890,9 @@ __meta__ = {
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/DecoderThreads" groups=[
 "nodes_that_should_be_higher",
 ]]
+margin_top = 18.0
 margin_right = 534.0
-margin_bottom = 46.0
+margin_bottom = 64.0
 size_flags_horizontal = 3
 text = "Number of decoder threads"
 valign = 1
@@ -879,7 +906,8 @@ __meta__ = {
 ]]
 margin_left = 538.0
 margin_right = 752.0
-margin_bottom = 46.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 size_flags_vertical = 5
 size_flags_stretch_ratio = 0.4
@@ -889,26 +917,26 @@ items = [ "1", null, false, 0, null, "2", null, false, 1, null, "3", null, false
 selected = 0
 
 [node name="Empty11" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 2169.0
+margin_top = 2816.0
 margin_right = 752.0
-margin_bottom = 2169.0
+margin_bottom = 2816.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 
 [node name="Empty7" type="HSeparator" parent="V/Scroll/H/Grid"]
-margin_top = 2193.0
+margin_top = 2840.0
 margin_right = 752.0
-margin_bottom = 2197.0
+margin_bottom = 2844.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 custom_styles/separator = SubResource( 6 )
 
 [node name="Empty10" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 2221.0
+margin_top = 2868.0
 margin_right = 752.0
-margin_bottom = 2221.0
+margin_bottom = 2868.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
@@ -916,9 +944,10 @@ size_flags_vertical = 0
 [node name="OverrideServerSetting" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 2245.0
+margin_top = 2892.0
 margin_right = 752.0
-margin_bottom = 2293.0
+margin_bottom = 2974.0
+rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
 pressed = true
@@ -928,35 +957,36 @@ text = "Override Server Settings"
 [node name="SyncServerSettings" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 2317.0
+margin_top = 2998.0
 margin_right = 752.0
-margin_bottom = 2365.0
+margin_bottom = 3080.0
+rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
 enabled_focus_mode = 1
 text = "Sync Server Settings"
 
 [node name="Empty5" type="HSeparator" parent="V/Scroll/H/Grid"]
-margin_top = 2389.0
+margin_top = 3104.0
 margin_right = 752.0
-margin_bottom = 2393.0
+margin_bottom = 3108.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 custom_styles/separator = SubResource( 6 )
 
 [node name="Empty8" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 2417.0
+margin_top = 3132.0
 margin_right = 752.0
-margin_bottom = 2417.0
+margin_bottom = 3132.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 
 [node name="ServerSettings" type="Label" parent="V/Scroll/H/Grid"]
-margin_top = 2441.0
+margin_top = 3156.0
 margin_right = 752.0
-margin_bottom = 2487.0
+margin_bottom = 3202.0
 size_flags_horizontal = 3
 text = "Server Settings:"
 align = 1
@@ -966,9 +996,9 @@ __meta__ = {
 }
 
 [node name="Empty2" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 2511.0
+margin_top = 3226.0
 margin_right = 752.0
-margin_bottom = 2511.0
+margin_bottom = 3226.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
@@ -976,9 +1006,10 @@ size_flags_vertical = 0
 [node name="VideoStream" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 2535.0
+margin_top = 3250.0
 margin_right = 752.0
-margin_bottom = 2583.0
+margin_bottom = 3332.0
+rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
 pressed = true
@@ -989,17 +1020,17 @@ __meta__ = {
 }
 
 [node name="Empty4" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 2607.0
+margin_top = 3356.0
 margin_right = 752.0
-margin_bottom = 2607.0
+margin_bottom = 3356.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 
 [node name="Quality" type="VBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 2631.0
+margin_top = 3380.0
 margin_right = 752.0
-margin_bottom = 2729.0
+margin_bottom = 3512.0
 size_flags_horizontal = 3
 
 [node name="HBox" type="HBoxContainer" parent="V/Scroll/H/Grid/Quality"]
@@ -1030,17 +1061,17 @@ valign = 1
 ]]
 margin_top = 50.0
 margin_right = 752.0
-margin_bottom = 98.0
-rect_min_size = Vector2( 0, 32 )
+margin_bottom = 132.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 min_value = 1.0
 value = 50.0
 tick_count = 5
 
 [node name="RenderScale" type="VBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 2753.0
+margin_top = 3536.0
 margin_right = 752.0
-margin_bottom = 2851.0
+margin_bottom = 3668.0
 size_flags_horizontal = 3
 
 [node name="HBox" type="HBoxContainer" parent="V/Scroll/H/Grid/RenderScale"]
@@ -1071,8 +1102,8 @@ valign = 1
 ]]
 margin_top = 50.0
 margin_right = 752.0
-margin_bottom = 98.0
-rect_min_size = Vector2( 0, 32 )
+margin_bottom = 132.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 min_value = 0.05
 max_value = 1.0
@@ -1081,16 +1112,17 @@ value = 0.53
 tick_count = 5
 
 [node name="TargetFramerate" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 2875.0
+margin_top = 3692.0
 margin_right = 752.0
-margin_bottom = 2921.0
+margin_bottom = 3774.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/TargetFramerate" groups=[
 "nodes_that_should_be_higher",
 ]]
+margin_top = 18.0
 margin_right = 374.0
-margin_bottom = 46.0
+margin_bottom = 64.0
 size_flags_horizontal = 3
 text = "Target FPS"
 valign = 1
@@ -1100,7 +1132,8 @@ valign = 1
 ]]
 margin_left = 378.0
 margin_right = 752.0
-margin_bottom = 46.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 size_flags_vertical = 5
 min_value = 1.0
@@ -1110,17 +1143,17 @@ rounded = true
 align = 1
 
 [node name="SkipFrames" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 2945.0
+margin_top = 3798.0
 margin_right = 752.0
-margin_bottom = 2991.0
+margin_bottom = 3880.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/SkipFrames" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 4.0
+margin_top = 22.0
 margin_right = 374.0
-margin_bottom = 41.0
+margin_bottom = 59.0
 size_flags_horizontal = 3
 custom_fonts/font = ExtResource( 9 )
 text = "Number of processing frames"
@@ -1132,7 +1165,8 @@ valign = 1
 ]]
 margin_left = 378.0
 margin_right = 752.0
-margin_bottom = 46.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 size_flags_vertical = 5
 text = "100 %"
@@ -1141,16 +1175,17 @@ items = [ "100 %", null, false, 0, false, "50 %", null, false, 1, false, "33.3 %
 selected = 0
 
 [node name="CompressionType" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 3015.0
+margin_top = 3904.0
 margin_right = 752.0
-margin_bottom = 3061.0
+margin_bottom = 3986.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/CompressionType" groups=[
 "nodes_that_should_be_higher",
 ]]
+margin_top = 18.0
 margin_right = 374.0
-margin_bottom = 46.0
+margin_bottom = 64.0
 size_flags_horizontal = 3
 text = "Encoder"
 valign = 1
@@ -1161,8 +1196,8 @@ valign = 1
 ]]
 margin_left = 378.0
 margin_right = 752.0
-margin_bottom = 46.0
-rect_min_size = Vector2( 0, 32 )
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 text = "JPG"
 align = 1
@@ -1170,16 +1205,17 @@ items = [ "JPG", null, false, 1, null, "H264", null, false, 3, null ]
 selected = 0
 
 [node name="EncoderThreadsNumber" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 3085.0
+margin_top = 4010.0
 margin_right = 752.0
-margin_bottom = 3131.0
+margin_bottom = 4092.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/EncoderThreadsNumber" groups=[
 "nodes_that_should_be_higher",
 ]]
+margin_top = 18.0
 margin_right = 374.0
-margin_bottom = 46.0
+margin_bottom = 64.0
 size_flags_horizontal = 3
 text = "Encoder Threads"
 valign = 1
@@ -1189,7 +1225,8 @@ valign = 1
 ]]
 margin_left = 378.0
 margin_right = 752.0
-margin_bottom = 46.0
+margin_bottom = 82.0
+rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 size_flags_vertical = 5
 max_value = 16.0
@@ -1197,9 +1234,9 @@ rounded = true
 align = 1
 
 [node name="Empty3" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 3155.0
+margin_top = 4116.0
 margin_right = 752.0
-margin_bottom = 3155.0
+margin_bottom = 4116.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
@@ -1207,7 +1244,7 @@ size_flags_vertical = 0
 [node name="VSeparator" type="VSeparator" parent="V/Scroll/H"]
 margin_left = 756.0
 margin_right = 764.0
-margin_bottom = 3155.0
+margin_bottom = 4116.0
 rect_min_size = Vector2( 8, 0 )
 custom_styles/separator = ExtResource( 4 )
 

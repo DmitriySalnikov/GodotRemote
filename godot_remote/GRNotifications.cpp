@@ -1013,12 +1013,14 @@ void GRNotificationListWithSafeZone::_notification(int p_notification) {
 #ifndef GDNATIVE_LIBRARY
 
 void GRNotificationListWithSafeZone::_bind_methods() {
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_safe_zone)), &GRNotificationListWithSafeZone::set_safe_zone);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_on_resize)), &GRNotificationListWithSafeZone::_on_resize);
 }
 
 #else
 
 void GRNotificationListWithSafeZone::_register_methods() {
+	METHOD_REG(GRNotificationListWithSafeZone, set_safe_zone);
 	METHOD_REG(GRNotificationListWithSafeZone, _notification);
 	METHOD_REG(GRNotificationListWithSafeZone, _on_resize);
 }
@@ -1027,12 +1029,14 @@ void GRNotificationListWithSafeZone::_register_methods() {
 
 void GRNotificationListWithSafeZone::_on_resize() {
 	if (!is_manual_changing) {
-		set_safe_zone(OS::get_singleton()->get_window_safe_area());
+		set_safe_zone();
 	}
 }
 
-void GRNotificationListWithSafeZone::set_safe_zone(Rect2 rect) {
+void GRNotificationListWithSafeZone::set_safe_zone() {
+	Rect2 rect = get_2d_safe_area(this);
 	Vector2 vp_size = get_parent_area_size();
+
 	is_manual_changing = true;
 	set_anchor_and_margin(MARGIN_LEFT, 0.f, rect.position.x + 8);
 	set_anchor_and_margin(MARGIN_RIGHT, 1.f, -(vp_size.x - (rect.position.x + rect.size.x)) - 8);
@@ -1044,7 +1048,7 @@ void GRNotificationListWithSafeZone::set_safe_zone(Rect2 rect) {
 void GRNotificationListWithSafeZone::_init() {
 	set_h_grow_direction(Control::GROW_DIRECTION_BOTH);
 	set_mouse_filter(Control::MouseFilter::MOUSE_FILTER_IGNORE);
-	set_safe_zone(OS::get_singleton()->get_window_safe_area());
+	call_deferred(NAMEOF(set_safe_zone));
 	add_constant_override("separation", 3);
 	connect("resized", this, NAMEOF(_on_resize));
 }

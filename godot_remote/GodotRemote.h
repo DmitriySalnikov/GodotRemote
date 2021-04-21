@@ -204,6 +204,8 @@ public:
 
 	// GRUtils functions binds for GDScript
 	void set_log_level(ENUM_ARG(LogLevel) lvl);
+	Rect2 get_2d_safe_area(CanvasItem *ci);
+
 	void set_gravity(const Vector3 &p_gravity);
 	void set_accelerometer(const Vector3 &p_accel);
 	void set_magnetometer(const Vector3 &p_magnetometer);

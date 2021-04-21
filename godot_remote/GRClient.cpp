@@ -1314,7 +1314,7 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 
 				// get info from connections
 				uint64_t start_time = get_time_usec();
-				while (get_time_usec() - start_time < 16_ms) {
+				while (get_time_usec() - start_time < 50_ms) {
 					uint64_t size;
 					IpAddress adrs;
 

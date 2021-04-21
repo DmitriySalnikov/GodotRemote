@@ -76,6 +76,12 @@ void __log(const Variant &val, int lvl, String func, String file, int line) {
 }
 #endif
 
+Rect2 get_2d_safe_area(CanvasItem *ci) {
+	Rect2 safe_area = OS::get_singleton()->get_window_safe_area();
+	Vector2 safe_rect_ratio = (ci->get_viewport_rect().size * (safe_area.size / OS::get_singleton()->get_window_size())) / safe_area.size;
+	return Rect2(safe_area.position * safe_rect_ratio, safe_rect_ratio * safe_area.size);
+}
+
 String str_arr(const Array arr, const bool force_full, const int max_shown_items, String separator, bool add_braces) {
 	int s = (int)arr.size(), ss = (int)arr.size();
 	DEFAULT_STR_ARR_BODY;

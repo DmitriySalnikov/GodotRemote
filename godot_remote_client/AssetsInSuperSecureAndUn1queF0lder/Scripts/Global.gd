@@ -335,14 +335,8 @@ func _safe_get_from_dict(dict:Dictionary, val, def):
 func get_version() -> String:
 	return "%s.%d" % [GodotRemote.get_version(), CLIENT_VERSION]
 
-func get_safe_rect(node : CanvasItem) -> Rect2:
-	var safe_area = OS.get_window_safe_area()
-	var safe_rect_ratio = (node.get_viewport_rect().size * (safe_area.size / OS.window_size)) / safe_area.size
-	
-	return Rect2(safe_area.position * safe_rect_ratio, safe_rect_ratio * safe_area.size)
-
 func get_margin_rect(vp_size : Vector2, ControlToHandle : Control, custom_left : float, custom_top : float, custom_right : float, custom_bottom : float) -> Rect2:
-	var rect = G.get_safe_rect(ControlToHandle)
+	var rect = GodotRemote.get_2d_safe_area(ControlToHandle)
 	#var vp_size = ControlToHandle.get_parent_area_size()
 	
 	return Rect2(
