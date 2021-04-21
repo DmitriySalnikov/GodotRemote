@@ -725,7 +725,7 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 
 			if (split.size() == 4) {
 				split.set(3, "255");
-				String address = split[0] + "." + split[1] + "." + split[2] + "." + split[3];
+				String address = str_arr(split, true, 0, ".", false);
 
 				if (err == Error::OK) {
 					auto udp = shared_new(UdpBroadcast);

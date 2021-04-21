@@ -435,7 +435,6 @@ custom_fonts/font = ExtResource( 9 )
 custom_colors/font_color = Color( 0.513726, 0.513726, 0.513726, 1 )
 text = "Not recommended to change.
 Default value: 22765"
-valign = 1
 __meta__ = {
 "_edit_use_anchors_": false
 }

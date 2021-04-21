@@ -301,9 +301,9 @@ extern void __log(const Variant &val, int lvl = 1 /*LogLevel::LL_NORMAL*/, Strin
 #endif
 
 extern String str(const Variant &val);
-extern String str_arr(const Array arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ");
-extern String str_arr(const Dictionary arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ");
-extern String str_arr(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64, String separator = ", ");
+extern String str_arr(const Array arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true);
+extern String str_arr(const Dictionary arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true);
+extern String str_arr(const uint8_t *arr, const int size, const bool force_full = false, const int max_shown_items = 64, String separator = ", ", bool add_braces = true);
 
 extern std::shared_ptr<GRObjectPool<StreamPeerBuffer> > get_stream_peer_buffer_pool();
 extern bool validate_packet(const uint8_t *data);
@@ -323,33 +323,40 @@ extern Ref<_Thread> utils_thread_create(Object *instance, String func_name, cons
 
 // IMPLEMENTATINS
 
+#define DEFAULT_STR_ARR_BODY                            \
+	String res = add_braces ? "[ " : "";                \
+	bool is_long = false;                               \
+	if (s > max_shown_items && !force_full) {           \
+		s = max_shown_items;                            \
+		is_long = true;                                 \
+	}                                                   \
+                                                        \
+	for (int i = 0; i < s; i++) {                       \
+		res += str(arr[i]);                             \
+		if (i != s - 1 || is_long) {                    \
+			res += separator;                           \
+		}                                               \
+	}                                                   \
+                                                        \
+	if (is_long) {                                      \
+		res += str(int64_t(ss) - s) + " more items..."; \
+	}                                                   \
+                                                        \
+	if (add_braces) {                                   \
+		return res + " ]";                              \
+	} else {                                            \
+		return res;                                     \
+	}
+
 template <class T>
-extern String str_arr(const std::vector<T> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ") {
-	String res = "[ ";
-	int s = (int)arr.size();
-	bool is_long = false;
-	if (s > max_shown_items && !force_full) {
-		s = max_shown_items;
-		is_long = true;
-	}
-
-	for (int i = 0; i < s; i++) {
-		res += str(arr[i]);
-		if (i != s - 1 || is_long) {
-			res += separator;
-		}
-	}
-
-	if (is_long) {
-		res += str(int64_t(arr.size()) - s) + " more items...";
-	}
-
-	return res + " ]";
+extern String str_arr(const std::vector<T> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true) {
+	int s = (int)arr.size(), ss = (int)arr.size();
+	DEFAULT_STR_ARR_BODY;
 }
 
 template <class K, class V>
-extern String str_arr(const std::map<K, V> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ") {
-	String res = "{ ";
+extern String str_arr(const std::map<K, V> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true) {
+	String res = add_braces ? "{ " : "";
 	int s = (int)arr.size();
 	bool is_long = false;
 	if (s > max_shown_items && !force_full) {
@@ -371,13 +378,23 @@ extern String str_arr(const std::map<K, V> arr, const bool force_full = false, c
 		res += String::num_int64(int64_t(arr.size()) - s) + " more items...";
 	}
 
-	return res + " }";
+	if (add_braces) {
+		return res + " }";
+	} else {
+		return res;
+	}
 }
 
 #ifndef GDNATIVE_LIBRARY
 template <class T>
-static String str_arr(PoolVector<T> arr, const bool force_full = false, const int max_shown_items = 64, String separator = ", ") {
-	String res = "[ ";
+extern String str_arr(const Vector<T> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true) {
+	int s = (int)arr.size(), ss = (int)arr.size();
+	DEFAULT_STR_ARR_BODY;
+}
+
+template <class T>
+static String str_arr(PoolVector<T> arr, const bool force_full = false, const int max_shown_items = 64, String separator = ", ", bool add_braces = true) {
+	String res = add_braces ? "[ " : "";
 	int s = arr.size();
 	bool is_long = false;
 	if (s > max_shown_items && !force_full) {
@@ -398,34 +415,42 @@ static String str_arr(PoolVector<T> arr, const bool force_full = false, const in
 		res += str(int64_t(arr.size()) - s) + " more items...";
 	}
 
-	return res + " ]";
+	if (add_braces) {
+		return res + " ]";
+	} else {
+		return res;
+	}
 };
 #else
 
-#define POOLARRAYS_STR_ARR(TYPE)                                                                                              \
-	static String str_arr(TYPE arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ") { \
-		String res = "[ ";                                                                                                    \
-		int s = arr.size();                                                                                                   \
-		bool is_long = false;                                                                                                 \
-		if (s > max_shown_items && !force_full) {                                                                             \
-			s = max_shown_items;                                                                                              \
-			is_long = true;                                                                                                   \
-		}                                                                                                                     \
-                                                                                                                              \
-		auto r = arr.read();                                                                                                  \
-		for (int i = 0; i < s; i++) {                                                                                         \
-			res += str(r[i]);                                                                                                 \
-			if (i != s - 1 || is_long) {                                                                                      \
-				res += separator;                                                                                             \
-			}                                                                                                                 \
-		}                                                                                                                     \
-		release_pva_read(r);                                                                                                  \
-                                                                                                                              \
-		if (is_long) {                                                                                                        \
-			res += str(int64_t(arr.size()) - s) + " more items...";                                                           \
-		}                                                                                                                     \
-                                                                                                                              \
-		return res + " ]";                                                                                                    \
+#define POOLARRAYS_STR_ARR(TYPE)                                                                                                                      \
+	static String str_arr(TYPE arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true) { \
+		String res = add_braces ? "[ " : "";                                                                                                          \
+		int s = arr.size();                                                                                                                           \
+		bool is_long = false;                                                                                                                         \
+		if (s > max_shown_items && !force_full) {                                                                                                     \
+			s = max_shown_items;                                                                                                                      \
+			is_long = true;                                                                                                                           \
+		}                                                                                                                                             \
+                                                                                                                                                      \
+		auto r = arr.read();                                                                                                                          \
+		for (int i = 0; i < s; i++) {                                                                                                                 \
+			res += str(r[i]);                                                                                                                         \
+			if (i != s - 1 || is_long) {                                                                                                              \
+				res += separator;                                                                                                                     \
+			}                                                                                                                                         \
+		}                                                                                                                                             \
+		release_pva_read(r);                                                                                                                          \
+                                                                                                                                                      \
+		if (is_long) {                                                                                                                                \
+			res += str(int64_t(arr.size()) - s) + " more items...";                                                                                   \
+		}                                                                                                                                             \
+                                                                                                                                                      \
+		if (add_braces) {                                                                                                                             \
+			return res + " ]";                                                                                                                        \
+		} else {                                                                                                                                      \
+			return res;                                                                                                                               \
+		}                                                                                                                                             \
 	}
 
 POOLARRAYS_STR_ARR(PoolByteArray);

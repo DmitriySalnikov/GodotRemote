@@ -19,6 +19,7 @@ def get_sources():
 # Tools
 if module_env['tools']:
     src_files.append('GRToolMenuPlugin.cpp')
+    src_files.append('TinyProcessLib.cpp')
 
 # Tracy
 if module_env['godot_remote_tracy_enabled']:

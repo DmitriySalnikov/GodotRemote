@@ -88,14 +88,12 @@ void GodotRemote::_init() {
 }
 
 void GodotRemote::_deinit() {
+#if !defined(GDNATIVE_LIBRARY) && defined(TOOLS_ENABLED)
+	Thread_close(adb_config_thread);
+#endif
+
 	LEAVE_IF_EDITOR();
 	remove_remote_device();
-
-#ifndef GDNATIVE_LIBRARY
-#ifdef TOOLS_ENABLED
-	call_deferred(NAMEOF(_adb_start_timer_timeout));
-#endif
-#endif
 
 	if (singleton == this) {
 		singleton = nullptr;
@@ -145,11 +143,11 @@ void GodotRemote::GodotRemote::print_warning_str(String txt, String func, String
 
 void GodotRemote::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(_create_autoload_nodes)), &GodotRemote::_create_autoload_nodes);
-#ifdef TOOLS_ENABLED
+#if defined(TOOLS_ENABLED)
 	ClassDB::bind_method(D_METHOD(NAMEOF(_adb_port_forwarding)), &GodotRemote::_adb_port_forwarding);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_run_emitted)), &GodotRemote::_run_emitted);
 	ClassDB::bind_method(D_METHOD(NAMEOF(_prepare_editor)), &GodotRemote::_prepare_editor);
-	ClassDB::bind_method(D_METHOD(NAMEOF(_adb_start_timer_timeout)), &GodotRemote::_adb_start_timer_timeout);
+	ClassDB::bind_method(D_METHOD(NAMEOF(_adb_config_thread), "user_data"), &GodotRemote::_adb_config_thread);
 #endif
 
 	ClassDB::bind_method(D_METHOD(NAMEOF(create_and_start_device), "device_type"), &GodotRemote::create_and_start_device, DEFVAL(DeviceType::DEVICE_AUTO));
@@ -368,7 +366,7 @@ GRDevice *GodotRemote::get_device() {
 
 String GodotRemote::get_version() {
 	PoolByteArray ver = get_gr_version();
-	return str(ver[0]) + "." + str(ver[1]) + "." + str(ver[2]);
+	return str_arr(ver, true, 0, ".", false);
 }
 
 bool GodotRemote::is_gdnative() {
@@ -558,9 +556,9 @@ void GodotRemote::create_and_start_device(ENUM_ARG(DeviceType) type) {
 	start_remote_device();
 }
 
-#ifndef GDNATIVE_LIBRARY
-#ifdef TOOLS_ENABLED
+#if !defined(GDNATIVE_LIBRARY) && defined(TOOLS_ENABLED)
 // TODO need to try get every device IDs and setup forwarding for each
+#include "TinyProcessLib.hpp"
 #include "editor/editor_export.h"
 #include "editor/editor_settings.h"
 
@@ -583,7 +581,11 @@ void GodotRemote::_run_emitted() {
 }
 
 void GodotRemote::_adb_port_forwarding() {
+#if VERSION_MINOR >= 3 || (VERSION_MINOR >= 2 && VERSION_PATCH > 3)
 	String sdk = EditorSettings::get_singleton()->get_setting("export/android/android_sdk_path");
+#else
+	String sdk = EditorSettings::get_singleton()->get_setting("export/android/adb");
+#endif
 
 #if defined(_MSC_VER) || defined(_WIN64) || defined(_WIN32)
 #else
@@ -593,17 +595,23 @@ void GodotRemote::_adb_port_forwarding() {
 	if (!sdk.empty()) {
 		if (!is_adb_timer_active) {
 			is_adb_timer_active = true;
-			ST()->create_timer(1.f)->connect("timeout", this, NAMEOF(_adb_start_timer_timeout));
+			Thread_close(adb_config_thread);
+			Thread_start(adb_config_thread, this, _adb_config_thread, Variant());
 		}
 	} else {
 		_log("Android SDK path not specified.", LogLevel::LL_DEBUG);
 	}
 }
 
-void GodotRemote::_adb_start_timer_timeout() {
+void GodotRemote::_adb_config_thread(Variant user_data) {
+	Thread_set_name("ADB Configuration thread");
 	is_adb_timer_active = false;
 
+#if VERSION_MINOR >= 3 || (VERSION_MINOR >= 2 && VERSION_PATCH > 3)
 	String adb = (String(EditorSettings::get_singleton()->get_setting("export/android/android_sdk_path")) + "/platform-tools/adb").replace("//", "/");
+#else
+	String adb = EditorSettings::get_singleton()->get_setting("export/android/adb");
+#endif
 
 #if defined(_MSC_VER) || defined(_WIN64) || defined(_WIN32)
 	adb += ".exe";
@@ -611,30 +619,139 @@ void GodotRemote::_adb_start_timer_timeout() {
 	adb = "adb"
 #endif
 
-	List<String> args;
-	args.push_back("reverse");
-	args.push_back("--no-rebind");
-	args.push_back("tcp:" + str(GET_PS(ps_general_port_name)));
-	args.push_back("tcp:" + str(GET_PS(ps_general_port_name)));
+	Mutex_define(adb_lock, "ADB Mutex lock");
+	std::shared_ptr<TinyProcessLib::Process> proc;
+	String std_output = "";
+	int exit_code = 0;
 
-	Error err = OS::get_singleton()->execute(adb, args, true); // TODO freezes editor process on closing!!!!
+	auto wait_adb = [&]() {
+		uint64_t start_time = get_time_usec();
+		while (!proc->try_get_exit_status(exit_code)) {
+			if (get_time_usec() - start_time > 5000_ms) {
+				proc->kill(true);
+				return true;
+			}
 
-	if (err) {
-		String start_url = String("\"{0}\" reverse --no-rebind tcp:{1} tcp:{2}").format(varray(adb, GET_PS(ps_general_port_name), GET_PS(ps_general_port_name)));
-		_log("Can't execute adb port forwarding: '" + start_url + "' error code: " + str(err), LogLevel::LL_ERROR);
+			sleep_usec(50_ms);
+		}
+		return false;
+	};
+
+	auto start_adb = [&](String start_line) {
+		exit_code = 0;
+		auto c = TinyProcessLib::Config();
+		c.show_window = TinyProcessLib::Config::ShowWindow::hide;
+
+		proc = std::make_shared<TinyProcessLib::Process>(
+				(start_line).utf8().get_data(),
+				TinyProcessLib::Process::string_type(),
+				[&](const char *bytes, size_t n) {
+					Scoped_lock(adb_lock);
+					std_output += std::string(bytes, n).c_str();
+				},
+				[&](const char *bytes, size_t n) {
+					Scoped_lock(adb_lock);
+					std_output += std::string(bytes, n).c_str();
+				},
+				true,
+				c);
+	};
+
+	auto is_output_with_error = [&]() {
+		Vector<String> lines = std_output.replace("\r\n", "\n").replace("\r", "\n").split("\n");
+		for (int i = 0; i < lines.size(); i++) {
+			if (lines[i].begins_with("adb.exe:") || lines[i].begins_with("adb:")) {
+				return true;
+			}
+		}
+		return false;
+	};
+
+	auto print_adb_not_found = [&]() {
+#if defined(_MSC_VER) || defined(_WIN64) || defined(_WIN32)
+		_log("ADB: Can't start " + adb, LogLevel::LL_ERROR);
+#else
+		_log("ADB: Can't start adb", LogLevel::LL_ERROR);
+#endif
+	};
+
+	int port = GET_PS(ps_general_port_name);
+
+	// 1) get all available devices
+	String devices_cmd = String("\"{0}\" devices").format(varray(adb));
+	std_output = "";
+	start_adb(devices_cmd);
+
+	if (proc->get_id() == 0) {
+		print_adb_not_found();
+		return;
 	} else {
-		_log("ADB port configuring completed", LogLevel::LL_NORMAL);
+
+		if (!wait_adb()) {
+			// 2) check for errors
+			if (exit_code != 0 || is_output_with_error()) {
+				_log("ADB error:\n" + std_output, LogLevel::LL_ERROR);
+				return;
+			}
+
+			std::vector<String> devices;
+			String string = std_output.replace("\r\n", "\n").replace("\r", "\n");
+			Vector<String> lines = string.split("\n");
+			for (int i = 0; i < lines.size(); i++) {
+				String line = lines[i];
+				if (line.ends_with("device")) {
+					line = line.trim_suffix("device").strip_edges();
+					if (line.length() > 0) {
+						devices.push_back(line);
+					}
+				}
+			}
+
+			if (devices.size() == 0) {
+				_log("ADB: No devices found", LogLevel::LL_NORMAL);
+				return;
+			}
+
+			_log("ADB Devices: " + str_arr(devices, true, 0, ", ", false), LogLevel::LL_NORMAL);
+
+			// 3) run 'adb reverse' for each device
+			for (auto dev : devices) {
+				String reverse_cmd = String("\"{0}\" -s {1} reverse tcp:{2} tcp:{3}").format(varray(adb, dev, port, port));
+				std_output = "";
+				start_adb(reverse_cmd);
+
+				if (proc->get_id() == 0) {
+					print_adb_not_found();
+					return;
+				} else {
+					if (wait_adb()) {
+						_log("ADB freeze detected. Kill and ignore.", LogLevel::LL_WARNING);
+						return;
+					}
+					if (exit_code != 0 || is_output_with_error()) {
+						_log("ADB error:\n" + std_output, LogLevel::LL_ERROR);
+						return;
+					} else {
+						_log("ADB port reverse configured for " + dev, LogLevel::LL_NORMAL);
+					}
+				}
+			}
+
+			_log("ADB configuration completed.", LogLevel::LL_DEBUG);
+		} else {
+			_log("ADB freeze detected. Kill and ignore.", LogLevel::LL_WARNING);
+			return;
+		}
 	}
 }
-
-#endif
 #endif
 
 //////////////////////////////////////////////////////////////////////////
 // EXTERNAL FUNCTIONS
 
 // GRNotifications
-GRNotificationPanel *GodotRemote::get_notification(String title) {
+GRNotificationPanel *
+GodotRemote::get_notification(String title) {
 	return GRNotifications::get_notification(title);
 }
 

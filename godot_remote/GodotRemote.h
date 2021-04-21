@@ -6,7 +6,6 @@
 #include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
-
 #else
 #include "GRClient.h"
 #include <Node.hpp>
@@ -87,16 +86,16 @@ private:
 
 	void _create_autoload_nodes();
 
-#ifndef GDNATIVE_LIBRARY
-#ifdef TOOLS_ENABLED
+#if !defined(GDNATIVE_LIBRARY) && defined(TOOLS_ENABLED)
 	int64_t adb_pid = 0;
 	bool is_adb_timer_active = false;
+	Ref<_Thread> adb_config_thread;
 
 	void _prepare_editor();
 	void _run_emitted();
 	void _adb_port_forwarding();
-	void _adb_start_timer_timeout();
-#endif
+	void _adb_config_thread(Variant user_data);
+	int _adb_try_configure(String adb_path);
 #endif
 
 protected:

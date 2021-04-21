@@ -76,31 +76,13 @@ void __log(const Variant &val, int lvl, String func, String file, int line) {
 }
 #endif
 
-String str_arr(const Array arr, const bool force_full, const int max_shown_items, String separator) {
-	String res = "[ ";
-	int s = arr.size();
-	bool is_long = false;
-	if (s > max_shown_items && !force_full) {
-		s = max_shown_items;
-		is_long = true;
-	}
-
-	for (int i = 0; i < s; i++) {
-		res += str(arr[i]);
-		if (i != s - 1 || is_long) {
-			res += separator;
-		}
-	}
-
-	if (is_long) {
-		res += String::num_int64(int64_t(arr.size()) - s) + " more items...";
-	}
-
-	return res + " ]";
+String str_arr(const Array arr, const bool force_full, const int max_shown_items, String separator, bool add_braces) {
+	int s = (int)arr.size(), ss = (int)arr.size();
+	DEFAULT_STR_ARR_BODY;
 };
 
-String str_arr(const Dictionary arr, const bool force_full, const int max_shown_items, String separator) {
-	String res = "{ ";
+String str_arr(const Dictionary arr, const bool force_full, const int max_shown_items, String separator, bool add_braces) {
+	String res = add_braces ? "{ " : "";
 	int s = arr.size();
 	bool is_long = false;
 	if (s > max_shown_items && !force_full) {
@@ -125,30 +107,16 @@ String str_arr(const Dictionary arr, const bool force_full, const int max_shown_
 		res += String::num_int64(int64_t(arr.size()) - s) + " more items...";
 	}
 
-	return res + " }";
+	if (add_braces) {
+		return res + " }";
+	} else {
+		return res;
+	}
 };
 
-String str_arr(const uint8_t *data, const int size, const bool force_full, const int max_shown_items, String separator) {
-	String res = "[ ";
-	int s = size;
-	bool is_long = false;
-	if (s > max_shown_items && !force_full) {
-		s = max_shown_items;
-		is_long = true;
-	}
-
-	for (int i = 0; i < s; i++) {
-		res += str(data[i]);
-		if (i != s - 1 || is_long) {
-			res += separator;
-		}
-	}
-
-	if (is_long) {
-		res += String::num_int64(int64_t(size) - s) + " more bytes...";
-	}
-
-	return res + " ]";
+String str_arr(const uint8_t *arr, const int size, const bool force_full, const int max_shown_items, String separator, bool add_braces) {
+	int s = size, ss = size;
+	DEFAULT_STR_ARR_BODY;
 };
 
 uint64_t get_time_usec() {

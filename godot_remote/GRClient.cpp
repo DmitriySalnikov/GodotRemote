@@ -543,7 +543,7 @@ void GRClient::_display_new_image(PoolByteArray data, int width, int height, uin
 #else
 	img->create_from_data(width, height, false, Image::Format::FORMAT_RGB8, data);
 #endif
-
+	
 	if (!img_is_empty(img)) {
 		call_deferred(NAMEOF(_update_texture_from_image), img);
 		TracyPlot("FPS", int64_t(float(1000000.0 / (get_time_usec() - prev_shown_frame_time))));
@@ -1037,6 +1037,8 @@ ratio_sync:
 void GRClient::_update_texture_from_image(Ref<Image> img) {
 	if (tex_shows_stream && !tex_shows_stream->is_queued_for_deletion()) {
 		if (img.is_valid() && !img_is_empty(img)) {
+			ZoneScopedNC("Updating Texture", tracy::Color::Red3);
+
 			Ref<ImageTexture> tex = tex_shows_stream->get_texture();
 			if (tex.is_valid()) {
 				tex->create_from_image(img);
@@ -1362,7 +1364,7 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 										if (!GRUtils::validate_version(ver)) {
 											continue;
 										} else {
-											version = str(ver[0]) + "." + str(ver[1]) + "." + str(ver[2]);
+											version = str_arr(ver, true, 0, ".", false);
 										}
 									}
 
