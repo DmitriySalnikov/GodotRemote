@@ -238,6 +238,7 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 	int thread_idx = p_userdata;
 	Thread_set_name(("Stream Decoder: Image Sequence " + str(thread_idx)).ascii().get_data());
 
+	// jpg_buffer will be auto expanded if needed
 	PoolByteArray jpg_buffer;
 	jpg_buffer.resize((1024 * 1024) * 4);
 
@@ -291,15 +292,17 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 				case GRDevice::ImageCompressionType::COMPRESSION_JPG: {
 #ifdef GODOT_REMOTE_LIBJPEG_TURBO_ENABLED
 					{
-						ZoneScopedN("Decompress JPG Turbo");
+						ZoneScopedN("Decompress: JPG Turbo");
 						err = GRUtilsJPGCodec::_decompress_jpg_turbo(img_data, jpg_buffer, &out_img_data, &out_width, &out_height);
 					}
 #else
 					{
-						ZoneScopedN("Decompress JPG Godot Internal");
+						ZoneScopedN("Decompress: JPG Godot Internal");
 						err = tmp_img->load_jpg_from_buffer(img_data);
 						if (err == Error::OK) {
 							out_img_data = tmp_img->get_data();
+							out_width = tmp_img->get_width();
+							out_height = tmp_img->get_height();
 						}
 					}
 #endif

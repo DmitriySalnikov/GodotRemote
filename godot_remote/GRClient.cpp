@@ -17,6 +17,7 @@
 #include "core/io/resource_loader.h"
 #include "core/io/tcp_server.h"
 #include "core/io/udp_server.h"
+#include "core/method_bind_ext.gen.inc"
 #include "core/os/input_event.h"
 #include "core/os/thread_safe.h"
 #include "main/input_default.h"
@@ -27,7 +28,6 @@
 #include "scene/resources/material.h"
 #include "scene/resources/packed_scene.h"
 #include "scene/resources/texture.h"
-#include "core/method_bind_ext.gen.inc"
 #else
 
 #include <Control.hpp>
@@ -538,12 +538,8 @@ void GRClient::_image_lost() {
 void GRClient::_display_new_image(PoolByteArray data, int width, int height, uint64_t delay) {
 	ZoneScopedNC("Displaying new Image", tracy::Color::LightGoldenrod3);
 	Ref<Image> img = newref(Image);
-#ifndef GDNATIVE_LIBRARY
-	img->create(width, height, false, Image::Format::FORMAT_RGB8, data);
-#else
-	img->create_from_data(width, height, false, Image::Format::FORMAT_RGB8, data);
-#endif
-	
+	img_create_from_data(img, width, height, false, Image::Format::FORMAT_RGB8, data);
+
 	if (!img_is_empty(img)) {
 		call_deferred(NAMEOF(_update_texture_from_image), img);
 		TracyPlot("FPS", int64_t(float(1000000.0 / (get_time_usec() - prev_shown_frame_time))));
@@ -692,11 +688,15 @@ String GRClient::get_address() {
 
 Array GRClient::get_found_auto_connection_addresses() {
 	Scoped_lock(ts_lock);
-	static auto load_png = [](PoolByteArray data) {
+	static auto load_img = [&](PoolByteArray data, bool png) {
 		Ref<Image> img;
 		if (data.size() > 0) {
 			img = newref(Image);
-			img->load_png_from_buffer(data);
+			if (png) {
+				img->load_png_from_buffer(data);
+			} else {
+				GRUtilsJPGCodec::decompress_image(img, data, server_preview_jpg_buffer);
+			}
 		}
 		return img;
 	};
@@ -715,8 +715,8 @@ Array GRClient::get_found_auto_connection_addresses() {
 		}
 		dict["addresses"] = adrss;
 
-		dict["icon"] = load_png(i->icon_data);
-		dict["preview"] = load_png(i->preview_data);
+		dict["icon"] = load_img(i->icon_data, true);
+		dict["preview"] = load_img(i->preview_data, false);
 
 		arr.append(dict);
 	}

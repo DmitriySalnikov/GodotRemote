@@ -8,6 +8,7 @@
 #include "GRViewportCaptureRect.h"
 #include "GodotRemote.h"
 #include "UDPSocket.h"
+#include "GRUtilsJPGCodec.h"
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/input_map.h"
@@ -169,9 +170,11 @@ void GRServer::_notification(int p_notification) {
 		case NOTIFICATION_ENTER_TREE: {
 #ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 			udp_preview_viewport = memnew(GRViewportCaptureRect);
-			udp_preview_viewport->set_max_viewport_size(Vector2(32, 32));
+			udp_preview_viewport->set_max_viewport_size(Vector2(48, 48));
 			udp_preview_viewport->set_use_size_snapping(false);
+
 			add_child(udp_preview_viewport);
+			preview_image_data_jpg_buffer.resize(1024 * 16);
 
 			// get project icon for udp
 			String proj_icon = GET_PS("application/config/icon");
@@ -220,10 +223,12 @@ void GRServer::_notification(int p_notification) {
 #ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 			// get image for UDP preview
 			if (client_connected == 0 && tcp_server.is_valid() && tcp_server->is_listening() && udp_preview_viewport && !udp_preview_viewport->is_queued_for_deletion() && udp_preview_viewport->is_inside_tree()) {
+				ZoneScopedN("Get JPG Preview");
 				Scoped_lock(udp_lock);
-				preview_image_data = udp_preview_viewport->get_texture()->get_data()->save_png_to_buffer();
+				GRUtilsJPGCodec::compress_image(udp_preview_viewport->get_texture()->get_data(), preview_image_data, preview_image_data_jpg_buffer, 90);
+
 				// too big
-				if (preview_image_data.size() > 1024 * 4) {
+				if (preview_image_data.size() > 1024 * 6) {
 					preview_image_data.resize(0);
 				}
 			}

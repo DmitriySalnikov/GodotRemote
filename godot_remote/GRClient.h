@@ -150,6 +150,7 @@ private:
 	String current_auto_connect_project_name = "";
 	int current_auto_connect_server_port = 0;
 	std::vector<std::shared_ptr<AvailableServer> > found_server_addresses;
+	PoolByteArray server_preview_jpg_buffer;
 	bool is_auto_mode_active = false;
 
 	uint64_t auto_connecting_server_select_time = 0;

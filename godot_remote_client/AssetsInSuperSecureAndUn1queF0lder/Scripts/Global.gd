@@ -347,7 +347,7 @@ func get_margin_rect(vp_size : Vector2, ControlToHandle : Control, custom_left :
 	)
 
 func create_tex_filtered(img : Image):
-	if img and not img.is_empty():
+	if img and not img.is_empty() and img.get_width() > 0 and img.get_height() > 0:
 		var tex = ImageTexture.new()
 		tex.create_from_image(img, Texture.FLAG_FILTER)
 		return tex

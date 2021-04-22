@@ -3,6 +3,48 @@
 #include "GRUtilsJPGCodec.h"
 using namespace GRUtils;
 
+Error GRUtilsJPGCodec::compress_image(Ref<Image> img, PoolByteArray &ret, PoolByteArray &jpg_buffer, int quality) {
+	Error err = Error::OK;
+	PoolByteArray img_data = img->get_data();
+	int bytes_in_color = img->get_format() == Image::FORMAT_RGB8 ? 3 : 4;
+
+#ifdef GODOT_REMOTE_LIBJPEG_TURBO_ENABLED
+	ZoneScopedNC("Compress: JPG Turbo", tracy::Color::VioletRed3);
+	return GRUtilsJPGCodec::_compress_jpg_turbo(ret, img_data, jpg_buffer, (int)img->get_width(), (int)img->get_height(), bytes_in_color, quality);
+#else
+	ZoneScopedNC("Compress: JPG jpge.cpp", tracy::Color::VioletRed3);
+	return GRUtilsJPGCodec::_compress_jpg(ret, img_data, jpg_buffer, (int)img->get_width(), (int)img->get_height(), bytes_in_color, quality);
+#endif
+}
+
+Error GRUtilsJPGCodec::decompress_image(Ref<Image> &img, PoolByteArray &img_buffer, PoolByteArray &jpg_buffer) {
+	// jpg_buffer will be auto expanded if needed
+#ifdef GODOT_REMOTE_LIBJPEG_TURBO_ENABLED
+	ZoneScopedN("Decompress: JPG Turbo");
+	Error err = Error::OK;
+	int out_width, out_height;
+	PoolByteArray out_img_data;
+
+	err = GRUtilsJPGCodec::_decompress_jpg_turbo(img_buffer, jpg_buffer, &out_img_data, &out_width, &out_height);
+	if (err == Error::OK) {
+		if (img.is_null()) {
+			img = newref(Image);
+		}
+
+		img_create_from_data(img, out_width, out_height, false, Image::Format::FORMAT_RGB8, out_img_data);
+		if (img_is_empty(img)) {
+			return Error::FAILED;
+		}
+
+		return Error::OK;
+	}
+	return err;
+#else
+	ZoneScopedN("Decompress: JPG Godot Internal");
+	return img->load_jpg_from_buffer(img_buffer);
+#endif
+}
+
 #ifdef GODOT_REMOTE_LIBJPEG_TURBO_ENABLED
 
 #include "libjpeg-turbo/include/turbojpeg.h"

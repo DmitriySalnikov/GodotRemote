@@ -53,13 +53,13 @@ atlas = ExtResource( 6 )
 region = Rect2( 0, 0, 64, 64 )
 margin = Rect2( 0, 8, 0, 16 )
 
-[sub_resource type="DynamicFont" id=8]
+[sub_resource type="DynamicFont" id=6]
 size = 18
 use_filter = true
 extra_spacing_top = -1
 font_data = ExtResource( 1 )
 
-[sub_resource type="StyleBoxFlat" id=6]
+[sub_resource type="StyleBoxFlat" id=7]
 bg_color = Color( 0.219608, 0.247059, 0.266667, 1 )
 draw_center = false
 border_width_top = 2
@@ -68,7 +68,7 @@ border_color = Color( 0.219608, 0.247059, 0.266667, 1 )
 shadow_color = Color( 0, 0, 0, 0.572549 )
 shadow_size = 2
 
-[sub_resource type="GDScript" id=7]
+[sub_resource type="GDScript" id=8]
 script/source = "extends PopupMenu
 
 var touches : Dictionary = {}
@@ -353,17 +353,17 @@ margin_right = 748.0
 margin_bottom = 81.0
 
 [node name="TextureRect" type="TextureRect" parent="V/Scroll/H/Grid/Auto/PC/HC"]
-margin_right = 68.0
+margin_right = 77.0
 margin_bottom = 77.0
-rect_min_size = Vector2( 68, 68 )
+rect_min_size = Vector2( 77, 77 )
 stretch_mode = 6
 
 [node name="LastConnected" type="Label" parent="V/Scroll/H/Grid/Auto/PC/HC"]
-margin_left = 72.0
+margin_left = 81.0
 margin_right = 744.0
 margin_bottom = 77.0
 size_flags_horizontal = 3
-custom_fonts/font = SubResource( 8 )
+custom_fonts/font = SubResource( 6 )
 custom_colors/font_color = Color( 0.713726, 0.713726, 0.713726, 1 )
 text = "PROJECT NAME HERE
 255.255.255.255, 255.255.255.255, 255.255.255.255, 255.255.255.255
@@ -618,7 +618,7 @@ margin_bottom = 1590.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
-custom_styles/separator = SubResource( 6 )
+custom_styles/separator = SubResource( 7 )
 
 [node name="Empty13" type="Control" parent="V/Scroll/H/Grid"]
 margin_top = 1614.0
@@ -931,7 +931,7 @@ margin_bottom = 2844.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
-custom_styles/separator = SubResource( 6 )
+custom_styles/separator = SubResource( 7 )
 
 [node name="Empty10" type="Control" parent="V/Scroll/H/Grid"]
 margin_top = 2868.0
@@ -973,7 +973,7 @@ margin_bottom = 3108.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
-custom_styles/separator = SubResource( 6 )
+custom_styles/separator = SubResource( 7 )
 
 [node name="Empty8" type="Control" parent="V/Scroll/H/Grid"]
 margin_top = 3132.0
@@ -1256,7 +1256,7 @@ margin_top = 6.73477
 margin_right = -9.63458
 margin_bottom = 275.735
 items = [ "Log Level", null, 0, false, true, -1, 0, null, "", false, "Debug", null, 0, false, false, 0, 0, null, "", false, "Normal", null, 0, false, false, 1, 0, null, "", false, "Warning", null, 0, false, false, 2, 0, null, "", false, "Error", null, 0, false, false, 3, 0, null, "", false, "None", null, 0, false, false, 4, 0, null, "", false ]
-script = SubResource( 7 )
+script = SubResource( 8 )
 __meta__ = {
 "_edit_use_anchors_": false
 }

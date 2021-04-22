@@ -112,6 +112,7 @@ private:
 	custom_input_pck_compression_type = ENUM_CONV(Compression::Mode) 0;
 	const String custom_input_scene_regex_resource_finder_pattern = "\\\"(res://.*?)\\\"";
 	Ref<RegEx> custom_input_scene_regex_resource_finder;
+	PoolByteArray preview_image_data_jpg_buffer;
 	PoolByteArray preview_image_data;
 	PoolByteArray project_icon_image_data;
 

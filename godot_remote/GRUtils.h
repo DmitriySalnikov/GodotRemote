@@ -71,6 +71,7 @@ using namespace godot;
 
 #define queue_del queue_delete
 #define img_is_empty(img) img->empty()
+#define img_create_from_data(img, __width, __height, __mipmaps, __format, __data) img->create(__width, __height, __mipmaps, __format, __data);
 #define is_valid_ip is_valid
 #define release_pva_read(pva) pva.release()
 #define release_pva_write(pva) pva.release()
@@ -130,6 +131,7 @@ typedef Directory _Directory;
 #define queue_del queue_free
 #define is_valid_ip is_valid_ip_address
 #define img_is_empty(img) img->is_empty()
+#define img_create_from_data(img, __width, __height, __mipmaps, __format, __data) img->create_from_data(__width, __height, __mipmaps, __format, __data);
 #define release_pva_read(pva)
 #define release_pva_write(pva)
 #define store_data_to_file(p, size) _gdn_convert_native_pointer_array_to_pba(p, size)
