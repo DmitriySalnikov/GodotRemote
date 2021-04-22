@@ -74,7 +74,7 @@ script/source = "extends PopupMenu
 var touches : Dictionary = {}
 
 func _process(_delta: float) -> void:
-	if not OS.has_feature(\"standalone\"):
+	if OS.has_feature(\"debug\"):
 		if get_parent().visible:
 			if Input.is_key_pressed(KEY_F1) and Input.is_key_pressed(KEY_SHIFT):
 				call_deferred(\"popup_centered\")
