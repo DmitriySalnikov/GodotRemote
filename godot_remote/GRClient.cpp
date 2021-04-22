@@ -721,8 +721,17 @@ Array GRClient::get_found_auto_connection_addresses() {
 		}
 		dict["addresses"] = adrss;
 
-		dict["icon"] = load_img(i->icon_data, true);
 		dict["preview"] = auto_connection_preview_processing ? load_img(i->preview_data, false) : Ref<Image>();
+
+		if (i->icon.is_null()) {
+			i->icon = newref(ImageTexture);
+			auto img = load_img(i->icon_data, true);
+			if (img.is_valid() && !img_is_empty(img)) {
+				i->icon->create_from_image(img);
+				i->icon->set_flags(i->icon_flags);
+			}
+		}
+		dict["icon"] = i->icon;
 
 		arr.append(dict);
 	}
@@ -1370,6 +1379,7 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 									String project_name;
 									int port = 0;
 									int64_t server_uid = 0;
+									int64_t icon_flags = 4;
 									PoolByteArray icon_data;
 									PoolByteArray preview_data;
 
@@ -1392,6 +1402,8 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 										icon_data = dict["icon_data"];
 									if (dict.has("preview_data"))
 										preview_data = dict["preview_data"];
+									if (dict.has("icon_flags"))
+										icon_flags = dict["icon_flags"];
 
 									{
 										ts_lock.lock();
@@ -1409,11 +1421,12 @@ void GRClient::_thread_udp_listener(Variant p_userdata) {
 											available_server->version = version;
 											available_server->project_name = project_name;
 											available_server->server_uid = server_uid;
+											available_server->icon_data = icon_data;
+											available_server->icon_flags = icon_flags;
 
 											found_server_addresses.push_back(available_server);
 											//is_list_changed = true;
 										}
-										available_server->icon_data = icon_data;
 										available_server->preview_data = preview_data;
 
 										// add or update IPs of sender

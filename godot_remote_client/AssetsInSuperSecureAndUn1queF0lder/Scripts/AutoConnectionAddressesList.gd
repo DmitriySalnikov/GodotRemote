@@ -53,7 +53,7 @@ func _on_auto_connection_list_changed(new_list):
 		var port : int = _dict_safe_get(dict, "port", 0)
 		var server_uid : int = _dict_safe_get(dict, "server_uid", 0)
 		var addresses : PoolStringArray =  _dict_safe_get(dict, "addresses", [])
-		var icon_img : Image = _dict_safe_get(dict, "icon", null)
+		var icon_img : ImageTexture = _dict_safe_get(dict, "icon", null)
 		var preview_img : Image = _dict_safe_get(dict, "preview", null)
 		
 		var tmp_item : Node = null
@@ -68,7 +68,7 @@ func _on_auto_connection_list_changed(new_list):
 			tmp_item.connect("server_selected", self, "_on_address_pressed")
 			list.add_child(tmp_item)
 			
-			icons_cache["%s:%d" % [project_name, port]] = G.create_tex_filtered(icon_img)
+			icons_cache["%s:%d" % [project_name, port]] = icon_img
 			server_uid_to_button_map[server_uid] = tmp_item
 			tmp_item.appear()
 		

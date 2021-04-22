@@ -27,13 +27,13 @@ func appear():
 func _pressed() -> void:
 	emit_signal("server_selected", server_ips, server_port, server_project_name)
 
-func setup_params(server_uid : int, version : String, project_name : String, port : int, addresses : PoolStringArray, icon_img : Image, preview_img : Image):
+func setup_params(server_uid : int, version : String, project_name : String, port : int, addresses : PoolStringArray, icon_img : ImageTexture, preview_img : Image):
 	server_ips = addresses
 	server_port = port
 	server_project_name = project_name
 	server_server_uid = server_uid
 	
-	$H/Icon.texture = G.create_tex_filtered(icon_img)
+	$H/Icon.texture = icon_img
 	$H/P/Preview.texture = G.create_tex_filtered(preview_img)
 	
 	$H/V/ProjectName.text = project_name

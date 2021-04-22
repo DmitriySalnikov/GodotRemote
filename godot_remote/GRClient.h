@@ -18,6 +18,7 @@
 #include <PacketPeerStream.hpp>
 #include <ShaderMaterial.hpp>
 #include <StreamPeerTCP.hpp>
+#include <ImageTexture.hpp>
 #include <TextureRect.hpp>
 #include <Thread.hpp>
 using namespace godot;
@@ -124,6 +125,8 @@ private:
 		std::vector<std::shared_ptr<AvailableServerAddress> > recieved_from_addresses;
 		int64_t server_uid;
 		PoolByteArray icon_data;
+		int64_t icon_flags;
+		Ref<ImageTexture> icon;
 		PoolByteArray preview_data;
 
 		AvailableServer() {

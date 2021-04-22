@@ -115,6 +115,7 @@ private:
 	PoolByteArray preview_image_data_jpg_buffer;
 	PoolByteArray preview_image_data;
 	PoolByteArray project_icon_image_data;
+	int64_t project_icon_image_flags = 4; // only filtering
 
 	float prev_avg_fps = 0;
 	void _adjust_viewport_scale();

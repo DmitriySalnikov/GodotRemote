@@ -5,10 +5,10 @@
 #include "GRServer.h"
 #include "GRNotifications.h"
 #include "GRPacket.h"
+#include "GRUtilsJPGCodec.h"
 #include "GRViewportCaptureRect.h"
 #include "GodotRemote.h"
 #include "UDPSocket.h"
-#include "GRUtilsJPGCodec.h"
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/input_map.h"
@@ -189,6 +189,7 @@ void GRServer::_notification(int p_notification) {
 				Ref<Texture> tex = resource;
 				if (tex.is_valid()) {
 					out_img = tex->get_data();
+					project_icon_image_flags = tex->get_flags();
 				}
 				Ref<Image> img = resource;
 				if (img.is_valid()) {
@@ -196,13 +197,19 @@ void GRServer::_notification(int p_notification) {
 				}
 
 				if (out_img.is_valid() && !img_is_empty(out_img)) {
-					out_img->resize(32, 32, ENUM_CONV(Image::Interpolation) 4); // INTERPOLATE_LANCZOS = 4 slowest interpolation
-					Scoped_lock(udp_lock);
-					project_icon_image_data = out_img->save_png_to_buffer();
+					if (out_img->is_compressed()) {
+						out_img->decompress();
+					}
+					if (!out_img->is_compressed()) {
+						out_img->resize(32, 32, ENUM_CONV(Image::Interpolation) 4); // INTERPOLATE_LANCZOS = 4 slowest interpolation
 
-					// too big
-					if (project_icon_image_data.size() > 1024 * 4) {
-						project_icon_image_data.resize(0);
+						Scoped_lock(udp_lock);
+						project_icon_image_data = out_img->save_png_to_buffer();
+
+						// too big
+						if (project_icon_image_data.size() > 1024 * 4) {
+							project_icon_image_data.resize(0);
+						}
 					}
 				} else {
 					_log("No project icon found.", LogLevel::LL_DEBUG);
@@ -690,7 +697,7 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 	Thread_set_name("Server UDP Broadcaster");
 	ListenerThreadParamsServer *this_thread_info = VARIANT_OBJ_CAST_TO(p_userdata, ListenerThreadParamsServer);
 
-	const int duplicate_udp_packets = 2;
+	const int duplicate_udp_packets = 1;
 	Error err = Error::OK;
 	RefStd(StreamPeerBuffer) udp_data_buf = newref_std(StreamPeerBuffer);
 	int prev_tcp_server_port = 0;
@@ -705,6 +712,7 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 		{
 			Scoped_lock(udp_lock);
 			server_udp_dict["icon_data"] = project_icon_image_data;
+			server_udp_dict["icon_flags"] = project_icon_image_flags;
 			server_udp_dict["preview_data"] = preview_image_data;
 		}
 
