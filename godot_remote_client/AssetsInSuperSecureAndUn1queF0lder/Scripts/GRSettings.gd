@@ -132,18 +132,21 @@ func _server_settings_visibility(val : bool):
 			o.visible = val
 
 func _on_GRSettings_visibility_changed():
+	var d = GodotRemote.get_device()
 	is_update_on_vis_changed = true
 	_update_start_stop()
+	
+	d.auto_connection_preview_processing = visible
 	if visible:
 		update_values()
 		grab_focus()
 		
 		yield(get_tree(), "idle_frame")
-		GodotRemote.get_device().capture_input = false
+		d.capture_input = false
 	else:
 		# yield needs to wait next frame and not instant close app
 		yield(get_tree(), "idle_frame")
-		GodotRemote.get_device().capture_input = true
+		d.capture_input = true
 	
 	is_update_on_vis_changed = false
 

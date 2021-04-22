@@ -746,11 +746,10 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 	_log("UDP Broadcast thread inited with " + str(available_sockets.size()) + " available addresses", LogLevel::LL_DEBUG);
 
 	while (!this_thread_info->stop_thread) {
-		ZoneScopedNC("Sending UDP server data", tracy::Color::DarkMagenta);
 		if (available_sockets.size()) {
 			if (tcp_server.is_valid() && tcp_server->is_listening()) {
 				if (client_connected == 0) {
-					ZoneScopedNC("Actual Work", tracy::Color::Magenta4);
+					ZoneScopedNC("Sending UDP server data", tracy::Color::DarkMagenta);
 
 					std::vector<std::shared_ptr<UdpBroadcast> > sockets_to_delete;
 					//if (prev_tcp_server_port != current_listening_port) {

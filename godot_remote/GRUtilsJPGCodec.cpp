@@ -78,7 +78,7 @@ Error GRUtilsJPGCodec::_compress_jpg_turbo(PoolByteArray &ret, const PoolByteArr
 			release_pva_write(wr);
 		}
 
-		_log("JPG size: " + str(res.size()), LogLevel::LL_DEBUG);
+		//_log("JPG size: " + str(res.size()), LogLevel::LL_DEBUG);
 		ret = res;
 		return Error::OK;
 	} else {
@@ -177,7 +177,7 @@ Error GRUtilsJPGCodec::_compress_jpg(PoolByteArray &ret, const PoolByteArray &im
 		release_pva_write(wr);
 	}
 
-	_log("JPG size: " + str(res.size()), LogLevel::LL_DEBUG);
+	//_log("JPG size: " + str(res.size()), LogLevel::LL_DEBUG);
 
 	ret = res;
 	return Error::OK;

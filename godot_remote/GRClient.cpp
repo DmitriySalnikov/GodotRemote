@@ -136,6 +136,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_viewport_orientation_syncing), "is_syncing"), &GRClient::set_viewport_orientation_syncing);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_viewport_aspect_ratio_syncing), "is_syncing"), &GRClient::set_viewport_aspect_ratio_syncing);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_server_settings_syncing), "is_syncing"), &GRClient::set_server_settings_syncing);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_auto_connection_preview_processing), "processing"), &GRClient::set_auto_connection_preview_processing);
 
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_on_focus)), &GRClient::is_capture_on_focus);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_when_hover)), &GRClient::is_capture_when_hover);
@@ -150,6 +151,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_viewport_orientation_syncing)), &GRClient::is_viewport_orientation_syncing);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_viewport_aspect_ratio_syncing)), &GRClient::is_viewport_aspect_ratio_syncing);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_server_settings_syncing)), &GRClient::is_server_settings_syncing);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_auto_connection_preview_processing)), &GRClient::is_auto_connection_preview_processing);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_on_focus"), NAMEOF(set_capture_on_focus), NAMEOF(is_capture_on_focus));
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), NAMEOF(set_capture_when_hover), NAMEOF(is_capture_when_hover));
@@ -164,6 +166,7 @@ void GRClient::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_orientation_syncing"), NAMEOF(set_viewport_orientation_syncing), NAMEOF(is_viewport_orientation_syncing));
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "viewport_aspect_ratio_syncing"), NAMEOF(set_viewport_aspect_ratio_syncing), NAMEOF(is_viewport_aspect_ratio_syncing));
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "server_settings_syncing"), NAMEOF(set_server_settings_syncing), NAMEOF(is_server_settings_syncing));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_connection_preview_processing"), NAMEOF(set_auto_connection_preview_processing), NAMEOF(is_auto_connection_preview_processing));
 
 	BIND_ENUM_CONSTANT(CONNECTION_ADB);
 	BIND_ENUM_CONSTANT(CONNECTION_WiFi);
@@ -253,6 +256,7 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, set_viewport_orientation_syncing);
 	METHOD_REG(GRClient, set_viewport_aspect_ratio_syncing);
 	METHOD_REG(GRClient, set_server_settings_syncing);
+	METHOD_REG(GRClient, set_auto_connection_preview_processing);
 
 	METHOD_REG(GRClient, is_capture_on_focus);
 	METHOD_REG(GRClient, is_capture_when_hover);
@@ -267,6 +271,7 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, is_viewport_orientation_syncing);
 	METHOD_REG(GRClient, is_viewport_aspect_ratio_syncing);
 	METHOD_REG(GRClient, is_server_settings_syncing);
+	METHOD_REG(GRClient, is_auto_connection_preview_processing);
 
 	register_property<GRClient, bool>("capture_on_focus", &GRClient::set_capture_on_focus, &GRClient::is_capture_on_focus, false);
 	register_property<GRClient, bool>("capture_when_hover", &GRClient::set_capture_when_hover, &GRClient::is_capture_when_hover, false);
@@ -281,6 +286,7 @@ void GRClient::_register_methods() {
 	register_property<GRClient, bool>("viewport_orientation_syncing", &GRClient::set_viewport_orientation_syncing, &GRClient::is_viewport_orientation_syncing, true);
 	register_property<GRClient, bool>("viewport_aspect_ratio_syncing", &GRClient::set_viewport_aspect_ratio_syncing, &GRClient::is_viewport_aspect_ratio_syncing, true);
 	register_property<GRClient, bool>("server_settings_syncing", &GRClient::set_server_settings_syncing, &GRClient::is_server_settings_syncing, true);
+	register_property<GRClient, bool>("auto_connection_preview_processing", &GRClient::set_auto_connection_preview_processing, &GRClient::is_auto_connection_preview_processing, false);
 }
 
 #endif
@@ -716,7 +722,7 @@ Array GRClient::get_found_auto_connection_addresses() {
 		dict["addresses"] = adrss;
 
 		dict["icon"] = load_img(i->icon_data, true);
-		dict["preview"] = load_img(i->preview_data, false);
+		dict["preview"] = auto_connection_preview_processing ? load_img(i->preview_data, false) : Ref<Image>();
 
 		arr.append(dict);
 	}
@@ -1200,6 +1206,14 @@ int64_t GRClient::get_current_auto_connected_server_uid() {
 		return thread_connection->auto_connected_server_uid;
 	}
 	return 0;
+}
+
+void GRClient::set_auto_connection_preview_processing(bool processing) {
+	auto_connection_preview_processing = processing;
+}
+
+bool GRClient::is_auto_connection_preview_processing() {
+	return auto_connection_preview_processing;
 }
 
 //////////////////////////////////////////////

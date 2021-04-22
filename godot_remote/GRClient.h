@@ -149,6 +149,7 @@ private:
 	PoolStringArray current_auto_connect_server_addresses;
 	String current_auto_connect_project_name = "";
 	int current_auto_connect_server_port = 0;
+	bool auto_connection_preview_processing = false;
 	std::vector<std::shared_ptr<AvailableServer> > found_server_addresses;
 	PoolByteArray server_preview_jpg_buffer;
 	bool is_auto_mode_active = false;
@@ -267,6 +268,8 @@ public:
 	String get_password();
 	void set_device_id(String _id);
 	String get_device_id();
+	void set_auto_connection_preview_processing(bool processing);
+	bool is_auto_connection_preview_processing();
 
 	ENUM_ARG(StreamState)
 	get_stream_state();
