@@ -8,6 +8,7 @@
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/timer.h"
+#include "scene/main/viewport.h"
 #else
 #include <GlobalConstants.hpp>
 #include <ProjectSettings.hpp>
@@ -214,10 +215,9 @@ void GodotRemote::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_magnetometer), "value"), &GodotRemote::set_magnetometer);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_gyroscope), "value"), &GodotRemote::set_gyroscope);
 
-	ClassDB::bind_method(D_METHOD(NAMEOF(print_str), "str"), &GodotRemote::print_str);
-	ClassDB::bind_method(D_METHOD(NAMEOF(print_error_str), "str", "file", "line"), &GodotRemote::print_error_str);
-	ClassDB::bind_method(D_METHOD(NAMEOF(print_warning_str), "str", "file", "line"), &GodotRemote::print_warning_str);
-
+	ClassDB::bind_method(D_METHOD(NAMEOF(print_str), "txt"), &GodotRemote::print_str);
+	ClassDB::bind_method(D_METHOD(NAMEOF(print_error_str), "txt", "func", "file", "line"), &GodotRemote::print_error_str);
+	ClassDB::bind_method(D_METHOD(NAMEOF(print_warning_str), "txt", "func", "file", "line"), &GodotRemote::print_warning_str);
 	// Other Enums
 }
 

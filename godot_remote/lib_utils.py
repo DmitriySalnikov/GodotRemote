@@ -11,14 +11,14 @@ import json
 def setup_options(env, opts, gen_help, is_gdnative = False):
     from SCons.Variables import BoolVariable, EnumVariable
 
-    opts.Add(BoolVariable("godot_remote_tracy_enabled", "Godot Remote. Enable tracy profiler.", False))
-    opts.Add(BoolVariable("godot_remote_libjpeg_turbo_enabled", "Godot Remote. Enable libjpeg-turbo.", True))
-    opts.Add(BoolVariable("godot_remote_h264_enabled", "Godot Remote. Enable OpenH264 codec.", True))
-    opts.Add(BoolVariable("godot_remote_no_default_resources", "Godot Remote. Remove default resources.", False))
     opts.Add(BoolVariable("godot_remote_disable_server", "Godot Remote. Remove server.", False))
     opts.Add(BoolVariable("godot_remote_disable_client", "Godot Remote. Remove client.", False))
-    opts.Add(BoolVariable("godot_remote_use_sse2", "Godot Remote. Use SSE2 to convert YUV to RGB for the H264 codec. Only on PC and without libjpeg-turbo.", True))
+    opts.Add(BoolVariable("godot_remote_no_default_resources", "Godot Remote. Remove default resources.", False))
     opts.Add(BoolVariable("godot_remote_auto_connection_enabled", "Godot Remote. Enable auto connection mode using UDP broadcasting.", True))
+    opts.Add(BoolVariable("godot_remote_libjpeg_turbo_enabled", "Godot Remote. Enable libjpeg-turbo.", True))
+    opts.Add(BoolVariable("godot_remote_h264_enabled", "Godot Remote. Enable OpenH264 codec.", True))
+    opts.Add(BoolVariable("godot_remote_use_sse2", "Godot Remote. Use SSE2 to convert YUV to RGB for the H264 codec. Only on PC and without libjpeg-turbo.", True))
+    opts.Add(BoolVariable("godot_remote_tracy_enabled", "Godot Remote. Enable tracy profiler.", False))
     #opts.Add(BoolVariable("godot_remote_livepp", "Godot Remote. Live++ support... Windows only", False))
     opts.Update(env)
 
@@ -60,7 +60,7 @@ def gdnative_get_library_object(env):
     #######################################################
     # platform specific
 
-    if env['platform'] == 'linux' or env['platform'] == 'freebsd':
+    if env['platform'] in ['x11', 'linux', 'freebsd']:
         env['SHLIBSUFFIX'] = '.so'
 
     elif env['platform'] == 'osx':

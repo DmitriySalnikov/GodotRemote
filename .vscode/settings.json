@@ -1,0 +1,15 @@
+{
+    "files.exclude": {
+        "**/*.obj": true,
+        "**/*.pdb": true,
+        "**/*.o": true,
+        "**/*.so": true,
+        "**/*.a": true,
+        "**/*.lib": true,
+        "**/*.pyc": true,
+        "**/*.exe": true,
+        "**/*.dblite": true,
+        "**/*.vcxproj.user": true,
+        "**/*.vcxproj.filters": true,
+    }
+}

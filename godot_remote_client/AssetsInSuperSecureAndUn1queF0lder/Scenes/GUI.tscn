@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=2]
+[gd_scene load_steps=26 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/GodotRemoteClient.gd" type="Script" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalLight.tres" type="DynamicFont" id=2]
@@ -57,6 +57,16 @@ ChangeParentSizeToFullwindow = true
 [sub_resource type="Resource" id=5]
 script = ExtResource( 14 )
 ControlToHandle = NodePath("../Stream")
+Left = 0.0
+Top = 0.0
+Right = 0.0
+Bottom = 0.0
+IsRootObjectOfPanel = false
+ChangeParentSizeToFullwindow = false
+
+[sub_resource type="Resource" id=12]
+script = ExtResource( 14 )
+ControlToHandle = NodePath("../Stats")
 Left = 0.0
 Top = 0.0
 Right = 0.0
@@ -124,7 +134,7 @@ __meta__ = {
 }
 
 [node name="SafeAreaSetter" parent="." instance=ExtResource( 13 )]
-Objects = [ SubResource( 1 ), SubResource( 2 ), SubResource( 3 ), SubResource( 4 ), SubResource( 5 ) ]
+Objects = [ SubResource( 1 ), SubResource( 2 ), SubResource( 3 ), SubResource( 4 ), SubResource( 5 ), SubResource( 12 ) ]
 
 [node name="BackgroundTouchHint" type="Control" parent="."]
 anchor_right = 1.0
@@ -239,10 +249,10 @@ __meta__ = {
 }
 
 [node name="GRStats" parent="Stats" instance=ExtResource( 3 )]
-margin_left = 25.0
-margin_top = 25.0
-margin_right = 96.0
-margin_bottom = 64.0
+margin_left = 22.0
+margin_top = 22.0
+margin_right = 325.0
+margin_bottom = 232.0
 
 [node name="GRSettings" parent="." instance=ExtResource( 6 )]
 visible = false

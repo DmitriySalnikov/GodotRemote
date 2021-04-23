@@ -1,5 +1,8 @@
 # Android.mk
-# TODO outdated.
+
+# TODO outdated
+# Need to add openh264, libjpeg-turbo and tracy libs integrations
+
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
@@ -23,19 +26,34 @@ LOCAL_MODULE := godot_remote.android.release.$(TARGET_ARCH_ABI)
 LOCAL_CPPFLAGS := -std=c++14
 LOCAL_CPP_FEATURES := rtti exceptions
 LOCAL_LDLIBS := -llog 
+LOCAL_CFLAGS := -DGODOT_REMOTE_AUTO_CONNECTION_ENABLED
 
 LOCAL_SRC_FILES := \
-godot_remote/GodotRemote.cpp \
-godot_remote/GRClient.cpp \
-godot_remote/GRDevice.cpp \
-godot_remote/GRInputData.cpp \
-godot_remote/GRNotifications.cpp \
-godot_remote/GRPacket.cpp \
-godot_remote/GRResources.cpp \
-godot_remote/GRServer.cpp \
-godot_remote/GRUtils.cpp \
-godot_remote/jpge.cpp \
-godot_remote/register_types.cpp
+GodotRemote.cpp \
+GRAVGCounter.cpp \
+GRClient.cpp \
+GRDevice.cpp \
+GRInputData.cpp \
+GRNotifications.cpp \
+GRObjectPool.cpp \
+GRPacket.cpp \
+GRProfiler.cpp \
+GRProfilerViewportMiniPreview.cpp \
+GRResources.cpp \
+GRServer.cpp \
+GRStreamDecoders.cpp \
+GRStreamDecoderH264.cpp \
+GRStreamDecoderImageSequence.cpp \
+GRStreamEncoders.cpp \
+GRStreamEncoderH264.cpp \
+GRStreamEncoderImageSequence.cpp \
+GRUtils.cpp \
+GRUtilsH264Codec.cpp \
+GRUtilsJPGCodec.cpp \
+GRViewportCaptureRect.cpp \
+UDPSocket.cpp \
+iterable_queue.cpp \
+register_types.cpp 
 
 LOCAL_C_INCLUDES := \
 godot-cpp/godot-headers \
