@@ -2,7 +2,7 @@
 
 This is cross platform native module for [Godot Engine](https://github.com/godotengine/godot) v3 for control apps and games over WiFi or ADB.
 
-If you are developing on a non-touch device, this module is the best way to quickly test touch input or test mobile sensors data.
+If you are developing on a non-touch device, this module is the best way to quickly test touch input or test mobile sensors data (accelerometer, gyroscope, etc.).
 
 API references can be found here: [API.md](API.md)
 
@@ -26,11 +26,15 @@ Changelogs can be found inside the mobile app or on the [github releases](https:
 
 ### Editor with Built-in Module
 
-<iframe frameborder="0" src="https://itch.io/embed/1010487?border_width=2" width="554" height="169"><a href="https://dmitriysalnikov.itch.io/godot-remote">Godot Remote by Dmitriy Salnikov</a></iframe>
+[![itch.io fake embed](Images/fake_itch_io_embed.png)](https://dmitriysalnikov.itch.io/godot-remote)
 
 ### Mobile app
 
-The mobile app can be found on [Google Play](https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote), as well as on [itch.io](https://dmitriysalnikov.itch.io/godot-remote).
+The mobile app can be found on [Google Play](https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1), as well as on [itch.io](https://dmitriysalnikov.itch.io/godot-remote).
+
+<a href='https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png' width="256"/></a>
+
+<h6>Google Play and the Google Play logo are trademarks of Google LLC.</h6>
 
 ## Mobile Client Configuration
 
