@@ -13,27 +13,27 @@
 2. compile the engine according to the instructions in the Godot documentation with an additional argument `module_godot_remote_enabled=yes` (e.g. `scons p=windows tools=yes module_godot_remote_enabled=yes -j[place here count of your CPU threads]`)
 3. run `bin/godot[based on config]`
 
-If everything compiles successfully, you'll find the new category in project settings `Debug/Godot Remote` where you can configure server.
+If everything compiles successfully, you'll find a new category in project settings `Debug/Godot Remote` where you can configure the server.
 
 ![Settings](Images/Screenshots/settings.png)
 
 ### As a GDNative library
 
 1. (Optional)
-   1. Generate api.json for GDNative api. `bin/godot --gdnative-generate-json-api api.json`
-   2. Copy api.json to the root directory of this repository (or just use existing one from `godot-cpp/godot-headers` folder)
+   1. Generate `api.json` for GDNative api. `bin/godot --gdnative-generate-json-api api.json`
+   2. Copy `api.json` to the root directory of this repository (or just use existing one from `godot-cpp/godot-headers` folder)
 2. Compile godot-cpp (e.g. in `godot-cpp` directory run `scons generate_bindings=true platform=windows target=release bits=64 -j8 custom_api_file="../api.json"` (remove `custom_api_file` argument if using default one))
-3. Compile module for your platform (Available platforms: windows, osx, linux, ios, android. Tested and verified platforms: windows, linux, android)
-   1. For android: Run in root directory `[path to your android ndk root dir]/ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk  APP_PLATFORM=android-21`
-   2. For all other platforms: `scons platform=windows target=release -j8`
+3. Compile module for your platform (Available platforms: windows, osx, linux, ios, android. Tested and verified platforms: windows, linux)
+   1. For android: Run in root directory `[path to your android ndk root dir]/ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk  APP_PLATFORM=android-21` (currently broken)
+   2. For all other platforms: `scons platform=[your platform] target=release -j8`
 4. Use produced library in `bin/`
 
 GDNative has limitations so here `GodotRemote` is not a singleton and you need to create autoload NativeScript for `GodotRemote` class. Also there is no any settings in `Debug/Godot Remote`.
 
-Enum constants in this version changed too (see API.md )
+Enum constants in this version changed too (see [API.md](API.md) )
 
 **Currently, the GDNative version does not support the assignment of sensor data, so the editor will not support accelerometer, gyroscope, etc.
-Also, this version may crash at a random moment.**
+Also, this version may fail at any time.**
 
 If GDNative becomes more stable, I will add the necessary code to easily integrate this module into any project, but now it just works.. sometimes.
 

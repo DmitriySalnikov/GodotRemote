@@ -13,19 +13,28 @@ const UPD_EDITOR = "force_update_editor"
 var changelog : Dictionary = {
 "1.0.2.0" : 
 { "text" : """Client:
-Added detailed Ping and FPS stats. Added Delay stats in detailed mode.
+The UI has become more adapted for mobile.
+UI now respects screen safe area.
+Added auto connection mode UI.
+Added more stats.
 Added the ability to change the number of touches to open the settings.
-Changed the 'Welcome' screen to be more clear. Now it can be reopened by clicking on 'Godot Remote' version in the settings.
-Added the ability to open settings when the broadcast is not active.
-Changed the text of the 'Connect' button. The Start/Stop client button now changes color to visually indicate the client status.
+Changed the 'Welcome' screen to be more clear. It can be reopened by clicking on 'Godot Remote' version in the settings.
+Added changelog window.
+Added the ability to open settings when the broadcast is not active by clicking button.
+Changed the text of the 'Connect' buttons.
+The Start/Stop client button now changes color to visually indicate the client status.
 Added built-in game :-)
 Module:
 Fixed multithreading issues.
-Improved fps and ping counters.
+Added auto connection mode with live preview and project icons.
+Improved fps and ping counters. Added traffic counter and delay counter.
+Improved notification logic.
 Most enums have been renamed and moved.
 Significantly improved JPG compression/decompression performance.
-Exposed all classes in GDScript, but did not expose their methods.
+Added H.264 codec. Currently only in software mode.
+Removed Uncompressed and PNG codecs.
 Custom input scenes now adding '.md5' files from '.import' folder.
+Added many optimizations to avoid memory allocation and improve performance.
 Added 'tracy' profiler.
 """, UPD_EDITOR = true },
 "1.0.1.0" : 

@@ -29,31 +29,31 @@ LOCAL_LDLIBS := -llog
 LOCAL_CFLAGS := -DGODOT_REMOTE_AUTO_CONNECTION_ENABLED
 
 LOCAL_SRC_FILES := \
-GodotRemote.cpp \
-GRAVGCounter.cpp \
-GRClient.cpp \
-GRDevice.cpp \
-GRInputData.cpp \
-GRNotifications.cpp \
-GRObjectPool.cpp \
-GRPacket.cpp \
-GRProfiler.cpp \
-GRProfilerViewportMiniPreview.cpp \
-GRResources.cpp \
-GRServer.cpp \
-GRStreamDecoders.cpp \
-GRStreamDecoderH264.cpp \
-GRStreamDecoderImageSequence.cpp \
-GRStreamEncoders.cpp \
-GRStreamEncoderH264.cpp \
-GRStreamEncoderImageSequence.cpp \
-GRUtils.cpp \
-GRUtilsH264Codec.cpp \
-GRUtilsJPGCodec.cpp \
-GRViewportCaptureRect.cpp \
-UDPSocket.cpp \
-iterable_queue.cpp \
-register_types.cpp 
+godot_remote/GodotRemote.cpp \
+godot_remote/GRAVGCounter.cpp \
+godot_remote/GRClient.cpp \
+godot_remote/GRDevice.cpp \
+godot_remote/GRInputData.cpp \
+godot_remote/GRNotifications.cpp \
+godot_remote/GRObjectPool.cpp \
+godot_remote/GRPacket.cpp \
+godot_remote/GRProfiler.cpp \
+godot_remote/GRProfilerViewportMiniPreview.cpp \
+godot_remote/GRResources.cpp \
+godot_remote/GRServer.cpp \
+godot_remote/GRStreamDecoders.cpp \
+godot_remote/GRStreamDecoderH264.cpp \
+godot_remote/GRStreamDecoderImageSequence.cpp \
+godot_remote/GRStreamEncoders.cpp \
+godot_remote/GRStreamEncoderH264.cpp \
+godot_remote/GRStreamEncoderImageSequence.cpp \
+godot_remote/GRUtils.cpp \
+godot_remote/GRUtilsH264Codec.cpp \
+godot_remote/GRUtilsJPGCodec.cpp \
+godot_remote/GRViewportCaptureRect.cpp \
+godot_remote/UDPSocket.cpp \
+godot_remote/iterable_queue.cpp \
+godot_remote/register_types.cpp 
 
 LOCAL_C_INCLUDES := \
 godot-cpp/godot-headers \

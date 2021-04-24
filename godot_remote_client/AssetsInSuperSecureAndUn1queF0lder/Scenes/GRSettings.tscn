@@ -1201,7 +1201,7 @@ rect_min_size = Vector2( 0, 82 )
 size_flags_horizontal = 3
 text = "JPG"
 align = 1
-items = [ "JPG", null, false, 1, null, "H264", null, false, 3, null ]
+items = [ "JPG", null, false, 1, null, "H.264", null, false, 3, null ]
 selected = 0
 
 [node name="EncoderThreadsNumber" type="HBoxContainer" parent="V/Scroll/H/Grid"]

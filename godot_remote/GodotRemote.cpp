@@ -7,13 +7,11 @@
 #include "editor/editor_node.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
-#include "scene/main/timer.h"
 #include "scene/main/viewport.h"
 #else
 #include <GlobalConstants.hpp>
 #include <ProjectSettings.hpp>
 #include <SceneTree.hpp>
-#include <Timer.hpp>
 using namespace godot;
 #endif
 

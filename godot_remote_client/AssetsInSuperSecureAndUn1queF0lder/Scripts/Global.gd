@@ -215,7 +215,7 @@ func _save_settings():
 	d["touches_to_open_settings"] = TouchesToOpenSettings
 	d["user_rate_state"] = UserRateState
 	d["device_id"] = device_id
-	d["con_type"] = connection_type
+	d["connection_type"] = connection_type
 	d["ip"] = ip
 	d["port"] = port
 	d["auto_listener_port"] = auto_listener_port
@@ -286,7 +286,7 @@ func _load_settings():
 			UserRateState = _safe_get_from_dict(d, "user_rate_state", UserRateState)
 			
 			device_id = _safe_get_from_dict(d, "device_id", device_id)
-			connection_type = _safe_get_from_dict(d, "con_type", connection_type)
+			connection_type = _safe_get_from_dict(d, "connection_type", connection_type)
 			ip = _safe_get_from_dict(d, "ip", ip)
 			port = _safe_get_from_dict(d, "port", port)
 			auto_listener_port = _safe_get_from_dict(d, "auto_listener_port", auto_listener_port)

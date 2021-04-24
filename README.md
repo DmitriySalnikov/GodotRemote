@@ -4,9 +4,13 @@ This is cross platform native module for [Godot Engine](https://github.com/godot
 
 If you are developing on a non-touch device, this module is the best way to quickly test touch input or test mobile sensors data.
 
-[Video Demonstration](https://youtu.be/LbFcQnS3z3E)
+API references can be found here: [API.md](API.md)
 
-[Custom Packets Demo](https://youtu.be/RmhppDWZZk8)
+Building instructions placed here: [BUILDING.md](BUILDING.md)
+
+| Video Demonstration                                                                                                             | Custom Packets Demo                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| [<img src="https://img.youtube.com/vi/LbFcQnS3z3E/0.jpg" alt="Video Demonstration" width="200"/>](https://youtu.be/LbFcQnS3z3E) | [<img src="https://img.youtube.com/vi/RmhppDWZZk8/0.jpg" alt="Custom Packets Demo" width="200"/>](https://youtu.be/RmhppDWZZk8) |
 
 ## Support
 
@@ -14,26 +18,42 @@ If you are developing on a non-touch device, this module is the best way to quic
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://paypal.me/dmitriysalnikov)
 
+## Changelog
+
+Changelogs can be found inside the mobile app or on the [github releases](https://github.com/DmitriySalnikov/GodotRemote/releases) page
+
 ## Download
 
-Precompiled binaries can be found on [GitHub Releases](https://github.com/DmitriySalnikov/GodotRemote/releases) page
+### Editor with Built-in Module
+
+<iframe frameborder="0" src="https://itch.io/embed/1010487?border_width=2" width="554" height="169"><a href="https://dmitriysalnikov.itch.io/godot-remote">Godot Remote by Dmitriy Salnikov</a></iframe>
 
 ### Mobile app
 
-On releases page you can found precompiled mobile app but also it can be downloaded from [Google Play](https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote)
+The mobile app can be found on [Google Play](https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote), as well as on [itch.io](https://dmitriysalnikov.itch.io/godot-remote).
 
-## Configure Mobile App
+## Mobile Client Configuration
 
-To open settings menu you need to touch the screen with 5 fingers at once.
+### Quick Setup
 
-Then you'll see this settings menu:
+1. Open the app and accept the agreement that you understand that this is not a game. Sorry for that, but random people from Google Play just download this app and think it's a game, then rate it 1 star. ![Quick Setup 0](Images/Screenshots/quick_setup_0.jpg)
+2. Then you'll see the main screen where you need to click on the `Open Settings` ![Quick Setup 1](Images/Screenshots/quick_setup_1.jpg)
+3. Now you need to start Godot Editor with `Godot Remote` module and run one or many projects. ![Quick Setup 2](Images/Screenshots/quick_setup_2.jpg)
+4. If everything went well, all running projects will be added to the `Available Servers` list in the mobile app. ![Quick Setup 3](Images/Screenshots/quick_setup_3.jpg)
+5. Just click on one of them from this list. ![Quick Setup 4](Images/Screenshots/quick_setup_4.jpg)
+6. Close the settings menu and you're ready to go! ![Quick Setup 5](Images/Screenshots/quick_setup_5.jpg)
 
-![Settings](Images/Screenshots/mobile_settings.png)
+**Important:** The client and server (smartphone and PC with the Godot editor) must be on the same local network, for example, the PC can be connected to the router via a LAN cable, and the smartphone can be connected via Wi-Fi.
 
-**Important:** after entering server address you should apply it by pressing `Set Type and Address` or `Set Type and Port`
+**Important:** `Godot Editor with 'Godot Remote' module`  means that you should see the module settings category in your projects settings.
+![Settings](Images/Screenshots/settings.png)
 
+Also, starting from version 1.0.2, you can find the `Godot Remote` tool menu in the editor.
+![Settings](Images/Screenshots/tool_menu.png)
 
-## Custom client
+## Advanced
+
+### Custom Client
 
 If need to support other platforms or you need a specific version of module integrated to the client app, you can build client from source code placed [here](godot_remote_client).
 
@@ -41,7 +61,7 @@ If you don't want to use my client app you can check the [example client project
 
 Or you can donate me some money with request to buy iPhone and adapt a client for it 🙂
 
-## Custom Input Scenes
+### Custom Input Scenes
 
 In custom input scenes you can use everything you want but to send InputEvent's from client to server you must emulate input. Or use the `send_user_data` method and `user_data_received` signal for send and receive custom packets.
 Example:
