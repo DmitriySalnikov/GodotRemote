@@ -59,61 +59,69 @@ Also, starting from version 1.0.2, you can find the `Godot Remote` tool menu in 
 
 Here you can find info about every setting in project and in client app.
 
-Mobile App Settings:
+#### Mobile App Settings
 
-| Name                                     | Default Value     | Description                                                                                                                                                                                                    |
-| ---------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Device ID                                | Random Hex String | String ID of device. Currently using only in connection notification.                                                                                                                                          |
-| Connection Type                          | Auto              | Type of the connection: Auto Connection, WiFi Manual Connection, ADB Connection                                                                                                                                |
-| Auto: Listener Port                      | 22765             | The port on which the auto connection mode will work                                                                                                                                                           |
-| WiFi: Server Address                     | 127.0.0.1:22766   | The exact address and port of the server                                                                                                                                                                       |
-| ADB: Server Port                         | 22766             | The exact port of the server                                                                                                                                                                                   |
-| Password                                 |                   | Password used to connect to the server                                                                                                                                                                         |
-| Output Frequency                         | 120               | Frequency of sending data to the server                                                                                                                                                                        |
-| Stretch Mode                             | Keep Aspect       | Stream image stretching mode: Keep Aspect, Fill                                                                                                                                                                |
-| Stream Texture Filtering                 | on                | Specifies the filtered or pixelated image of the stream                                                                                                                                                        |
-| Show Stats                               | Hidden            | Amount and type of statistical information: Hidden, Simple (FPS, Ping), Detailed (FPS, Ping, Delay with avg/min/max values), Traffic (Sended data, Received data, Total sended data, Total received data), All |
-| Number of touches to open settings       | 5                 | Indicates how many simultaneous touches are required to open settings during an active connection                                                                                                              |
-| Keep Screen On                           | on                | Specifies whether to keep the screen on without an active connection                                                                                                                                           |
-| Capture pointer when custom scene active | on                | Specifies whether to capture touches if a custom input scene is active                                                                                                                                         |
-| Sync Viewport Orientation                | on                | Specifies whether to send data about the orientation of the device                                                                                                                                             |
-| Sync Viewport Aspect                     | on                | Specifies whether to send data about the device's aspect ratio                                                                                                                                                 |
-| Number of decoder threads                | 2                 | The number of threads used to decode the stream image                                                                                                                                                          |
-| Override Server Settings                 | off               | Shows or hides the server settings that will be applied after the connection.                                                                                                                                  |
-| Sync Server Settings                     | off               | Specifies whether the server should send the settings to the client                                                                                                                                            |
-| Video Stream                             | on                | Specifies whether the video stream is active                                                                                                                                                                   |
-| Image Quality                            | 50                | Image quality of the stream                                                                                                                                                                                    |
-| Image Scale                              | 0.5               | Server viewport resolution multiplier                                                                                                                                                                          |
-| Target FPS                               | 60                | Server FPS lock                                                                                                                                                                                                |
-| Number of processing frames              | 100%              | Specifies how many frames should be displayed                                                                                                                                                                  |
-| Encoder                                  | JPG               | Encoder type                                                                                                                                                                                                   |
-| Encoder Threads                          | 2                 | Number of threads used by the encoder                                                                                                                                                                          |
+| Name                                     | Default Value     | Description                                                                                       |
+| ---------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------- |
+| Device ID                                | Random Hex String | String ID of device. Currently using only in connection notification.                             |
+| Connection Type                          | Auto              | Type of the connection: Auto Connection, WiFi Manual Connection, ADB Connection                   |
+| Auto: Listener Port                      | 22765             | The port on which the auto connection mode will work                                              |
+| WiFi: Server Address                     | 127.0.0.1:22766   | The exact address and port of the server                                                          |
+| ADB: Server Port                         | 22766             | The exact port of the server                                                                      |
+| Password                                 |                   | Password used to connect to the server                                                            |
+| Output Frequency                         | 120               | Frequency of sending data to the server                                                           |
+| Stretch Mode                             | Keep Aspect       | Stream image stretching mode: Keep Aspect, Fill                                                   |
+| Stream Texture Filtering                 | on                | Specifies the filtered or pixelated image of the stream                                           |
+| Show Stats                               | Hidden            | Amount and type of statistical information                                                        |
+| Number of touches to open settings       | 5                 | Indicates how many simultaneous touches are required to open settings during an active connection |
+| Keep Screen On                           | on                | Specifies whether to keep the screen on without an active connection                              |
+| Capture pointer when custom scene active | on                | Specifies whether to capture touches if a custom input scene is active                            |
+| Sync Viewport Orientation                | on                | Specifies whether to send data about the orientation of the device                                |
+| Sync Viewport Aspect                     | on                | Specifies whether to send data about the device's aspect ratio                                    |
+| Number of decoder threads                | 2                 | The number of threads used to decode the stream image                                             |
+| Override Server Settings                 | off               | Shows or hides the server settings that will be applied after the connection                      |
+| Sync Server Settings                     | off               | Specifies whether the server should send the settings to the client                               |
+| Video Stream                             | on                | Specifies whether the video stream is active                                                      |
+| Image Quality                            | 50                | Image quality of the stream                                                                       |
+| Image Scale                              | 0.5               | Server viewport resolution multiplier                                                             |
+| Target FPS                               | 60                | Server FPS lock                                                                                   |
+| Number of processing frames              | 100%              | Specifies how many frames should be displayed                                                     |
+| Encoder                                  | JPG               | Encoder type                                                                                      |
+| Encoder Threads                          | 2                 | Number of threads used by the encoder                                                             |
 
-Project Settings (`Debug/Godot Remote`):
+##### Show Stats
 
-| Name                                                          | Description                                                                                                                                                                                             |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| general/autostart                                             | Automatically start server right after project launched                                                                                                                                                 |
-| general/use_static_port                                       | Use static port instead of dynamic                                                                                                                                                                      |
-| general/port                                                  | Server listener port                                                                                                                                                                                    |
-| general/auto_connection_port                                  | Auto connection broadcasting port                                                                                                                                                                       |
-| general/log_level                                             | Logging level                                                                                                                                                                                           |
-| notifications/notifications_enabled                           | Enable notifications                                                                                                                                                                                    |
-| notifications/notifications_position                          | Position of notifications                                                                                                                                                                               |
-| notifications/notifications_duration                          | Notification display time                                                                                                                                                                               |
-| server/image_encoder_threads_count                            | Number of image encoding threads                                                                                                                                                                        |
-| server/configure_adb_on_play                                  | Configuring ADB at project startup. Only available with `general/use_static_port` and requires the correct path to the Android SDK specified in the editor settings (`export/android/android_sdk_path`) |
-| server/jpg_compress_buffer_size_mbytes                        | JPG compression buffer size                                                                                                                                                                             |
-| server/password                                               | Server password                                                                                                                                                                                         |
-| server/target_fps                                             | Target FPS with active connection                                                                                                                                                                       |
-| server/video_stream_enabled                                   | Enable video stream                                                                                                                                                                                     |
-| server/compression_type                                       | Encoder type                                                                                                                                                                                            |
-| server/skip_frames                                            | Specifies how many frames should be displayed                                                                                                                                                           |
-| server/scale_of_sending_stream                                | Viewport resolution multiplier                                                                                                                                                                          |
-| server/stream_quality                                         | Image quality of the stream                                                                                                                                                                             |
-| server_custom_input_scene/custom_input_scene                  | Path to the custom input scene                                                                                                                                                                          |
-| server_custom_input_scene/send_custom_input_scene_compressed  | Enable compression of a custom input scene                                                                                                                                                              |
-| server_custom_input_scene/custom_input_scene_compression_type | Compression type of the custom input scene                                                                                                                                                              |
+Available options: Hidden, Simple (FPS, Ping), Detailed (FPS, Ping, Delay with avg/min/max values), Traffic (Sended data, Received data, Total sended data, Total received data), All
+
+#### Project Settings (`Debug/Godot Remote`)
+
+| Name                                    | Description                                             |
+| --------------------------------------- | ------------------------------------------------------- |
+| general/autostart                       | Automatically start server right after project launched |
+| general/use_static_port                 | Use static port instead of dynamic                      |
+| general/port                            | Server listener port                                    |
+| general/auto_connection_port            | Auto connection broadcasting port                       |
+| general/log_level                       | Logging level                                           |
+| notifications/notifications_enabled     | Enable notifications                                    |
+| notifications/notifications_position    | Position of notifications                               |
+| notifications/notifications_duration    | Notification display time                               |
+| server/image_encoder_threads_count      | Number of image encoding threads                        |
+| server/configure_adb_on_play            | Configuring ADB at project startup.                     |
+| server/jpg_compress_buffer_size_mbytes  | JPG encoder buffer size                                 |
+| server/password                         | Server password                                         |
+| server/target_fps                       | Target FPS with active connection                       |
+| server/video_stream_enabled             | Enable video stream                                     |
+| server/compression_type                 | Encoder type                                            |
+| server/skip_frames                      | Specifies how many frames should be displayed           |
+| server/scale_of_sending_stream          | Viewport resolution multiplier                          |
+| server/stream_quality                   | Image quality of the stream                             |
+| .../custom_input_scene                  | Path to the custom input scene                          |
+| .../send_custom_input_scene_compressed  | Enable compression of a custom input scene              |
+| .../custom_input_scene_compression_type | Compression type of the custom input scene              |
+
+##### `server/configure_adb_on_play`
+
+This option only available with `general/use_static_port` and requires the correct path to the Android SDK specified in the editor settings (`export/android/android_sdk_path` or `export/android/adb` in Godot 3.2)
 
 ## Known Issues and Solutions
 
