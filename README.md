@@ -34,7 +34,7 @@ The mobile app can be found on [Google Play](https://play.google.com/store/apps/
 
 <a href='https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png' width="256"/></a>
 
-<h6>Google Play and the Google Play logo are trademarks of Google LLC.</h6>
+<p><h6>Google Play and the Google Play logo are trademarks of Google LLC.</h6></p>
 
 ## Module Configuration
 
@@ -59,12 +59,15 @@ Also, starting from version 1.0.2, you can find the `Godot Remote` tool menu in 
 
 Here you can find info about every setting in project and in client app.
 
+> Server = Your project launched through Godot Editor with `Godot Remote` module\
+> Client = Mobile App
+
 #### Mobile App Settings
 
 | Name                                     | Default Value     | Description                                                                                       |
 | ---------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------- |
 | Device ID                                | Random Hex String | String ID of device. Currently using only in connection notification.                             |
-| Connection Type                          | Auto              | Type of the connection: Auto Connection, WiFi Manual Connection, ADB Connection                   |
+| Connection Type                          | Auto              | Type of the connection: Auto, WiFi, ADB                                                           |
 | Auto: Listener Port                      | 22765             | The port on which the auto connection mode will work                                              |
 | WiFi: Server Address                     | 127.0.0.1:22766   | The exact address and port of the server                                                          |
 | ADB: Server Port                         | 22766             | The exact port of the server                                                                      |
@@ -89,9 +92,23 @@ Here you can find info about every setting in project and in client app.
 | Encoder                                  | JPG               | Encoder type                                                                                      |
 | Encoder Threads                          | 2                 | Number of threads used by the encoder                                                             |
 
+##### Connection Type
+
+**Available options:**
+
+* **Auto**</br>Automatic connection and search for servers. All you need for this to work: your computer and phone must be on the same local network.
+* **WiFi**</br>Manual connection to a specific server. You need to specify the exact ip address and port of the server. If you don't know the IP address of your computer on the local network, just google `How to find your IP address`.
+* **ADB**</br>Manual connection via ADB (just like WiFi mode, but without manual selection of the ip address)
+
 ##### Show Stats
 
-Available options: Hidden, Simple (FPS, Ping), Detailed (FPS, Ping, Delay with avg/min/max values), Traffic (Sended data, Received data, Total sended data, Total received data), All
+**Available options:**
+
+* Hidden
+* Simple (FPS, Ping)
+* Detailed (FPS, Ping, Delay with avg/min/max values)
+* Traffic (Sended data, Received data, Total sended data, Total received data)
+* All
 
 #### Project Settings (`Debug/Godot Remote`)
 
@@ -123,11 +140,9 @@ Available options: Hidden, Simple (FPS, Ping), Detailed (FPS, Ping, Delay with a
 
 This option only available with `general/use_static_port` and requires the correct path to the Android SDK specified in the editor settings (`export/android/android_sdk_path` or `export/android/adb` in Godot 3.2)
 
-## Known Issues and Solutions
-
-<!-- TODO -->
-
 ## Advanced
+
+Some examples are placed in the [examples](examples) folder.
 
 ### Custom Client
 
@@ -171,6 +186,25 @@ func _on_user_data_received(id, data):
 func _on_button_pressed():
     GodotRemote.get_device().send_user_data("bg_color", color, false)
 ```
+
+## Known Issues and Solutions
+
+* **Auto connection mode does not show any servers**
+    1. Make sure that your devices are connected to the same network and can ping each other.
+    2. `Listener Status` icon in the client should be green, which means that it is active. ![Listener Status](Images/Screenshots/auto_listener_status.png) If not, try changing the `Listener Port`. If this also does not help, then most likely this function is not available for you.
+* **Wi-Fi and ADB mode don't connect either**</br>
+    1. Make sure that your firewall does not block all the ports that the server writes to the console every time it starts.
+    2. The phone must not be connected to the guest network.
+* **The client crashes immediately after starting the video stream**</br>
+    The problem may be in the phone's firmware or hardware. Try changing the `Image Scale` or `Target FPS`, these settings will help you save RAM and avoid crashes.
+* **FPS is not stable, but the phone and PC are new and powerful**</br>
+    Make sure your Wi-Fi connection is relieble. I also recommend using a 5GHz router.
+* **The module built from the source code requires root rights on Android**</br>
+    This is because you enable the Tracy profiler, which requires root permissions for some operations.
+* **Custom input scenes doesn't load all assets**</br>
+    All paths in custom input scene scripts must be absolute.
+* **`Sync Viewport Orientation` and `Sync Viewport Aspect` does nothing**</br>
+    Check `Viewport Size Syncing` example. And don't forget to remove this code(or just disable it) before exporting your project.
 
 ## License
 
