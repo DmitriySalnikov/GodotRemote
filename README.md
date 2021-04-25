@@ -34,7 +34,7 @@ The mobile app can be found on [Google Play](https://play.google.com/store/apps/
 
 <a href='https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png' width="256"/></a>
 
-<p><h6>Google Play and the Google Play logo are trademarks of Google LLC.</h6></p>
+<h6>Google Play and the Google Play logo are trademarks of Google LLC.</h6>
 
 ## Module Configuration
 
@@ -191,7 +191,7 @@ func _on_button_pressed():
 
 * **Auto connection mode does not show any servers**
     1. Make sure that your devices are connected to the same network and can ping each other.
-    2. `Listener Status` icon in the client should be green, which means that it is active. ![Listener Status](Images/Screenshots/auto_listener_status.png) If not, try changing the `Listener Port`. If this also does not help, then most likely this function is not available for you.
+    2. `Listener Status` icon in the client should be green, which means that it is active. ![Listener Status](Images/Screenshots/auto_listener_status.png) If not, try changing the `Listener Port`, also don't forget to change `general/auto_connection_port` in project settings. If this also does not help, then most likely this function is not available for you.
 * **Wi-Fi and ADB mode don't connect either**</br>
     1. Make sure that your firewall does not block all the ports that the server writes to the console every time it starts.
     2. The phone must not be connected to the guest network.
@@ -204,7 +204,9 @@ func _on_button_pressed():
 * **Custom input scenes doesn't load all assets**</br>
     All paths in custom input scene scripts must be absolute.
 * **`Sync Viewport Orientation` and `Sync Viewport Aspect` does nothing**</br>
-    Check `Viewport Size Syncing` example. And don't forget to remove this code(or just disable it) before exporting your project.
+    Check `Viewport Size Syncing` example. And don't forget to remove `Godot Remote` code from your project(or just disable it) before exporting to the target platform.
+* **The stream works as in slow motion with the H.264 encoder**
+    This is due to the fact that only the OpenH264 codec is currently implemented, which does not use any hardware acceleration. Try lowering the `Image Quality` and `Image Scale` settings to get better FPS.
 
 ## License
 
