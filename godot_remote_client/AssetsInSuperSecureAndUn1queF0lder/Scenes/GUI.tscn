@@ -576,7 +576,7 @@ custom_constants/separation = 12
 [node name="Button" type="Button" parent="Changelog/HBoxContainer/HBoxContainer" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_right = 322.0
+margin_right = 310.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
@@ -585,12 +585,12 @@ text = "Okay, I get it!"
 [node name="Button2" type="Button" parent="Changelog/HBoxContainer/HBoxContainer" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_left = 334.0
+margin_left = 322.0
 margin_right = 747.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
-text = "How do I update the server?"
+text = "Download the updated editor"
 
 [connection signal="pressed" from="OpenSettingsWithoutSignal/OpenSettings" to="." method="_on_open_settings_pressed"]
 [connection signal="visibility_changed" from="PlsSupportPopup" to="PlsSupportPopup" method="_on_PlsSupportPopup_visibility_changed"]

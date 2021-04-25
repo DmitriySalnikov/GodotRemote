@@ -114,5 +114,5 @@ func _on_Button_pressed() -> void:
 	hide()
 
 func _on_Button2_pressed() -> void:
-	OS.shell_open("https://github.com/DmitriySalnikov/GodotRemote#download")
+	OS.shell_open("https://dmitriysalnikov.itch.io/godot-remote")
 	hide()

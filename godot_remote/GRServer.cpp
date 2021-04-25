@@ -567,7 +567,7 @@ void GRServer::_load_settings(bool force_hide_notifications) {
 	}
 
 	// can be updated by client
-	auto_adjust_scale = GET_PS(GodotRemote::ps_server_auto_adjust_scale_name); // TODO move to viewport
+	//auto_adjust_scale = GET_PS(GodotRemote::ps_server_auto_adjust_scale_name); // TODO move to viewport
 
 	IS_NOTIF_SHOWING GRNotifications::add_notification_or_update_line(title, "auto_scale", "Auto adjust scale: " + str(auto_adjust_scale), GRNotifications::NotificationIcon::ICON_NONE, 1.f); // TODO not completed
 	if (resize_viewport && !resize_viewport->is_queued_for_deletion()) {

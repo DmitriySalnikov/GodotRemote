@@ -30,8 +30,7 @@ void GRToolMenuPlugin::_menu_pressed(int id) {
 			OS::get_singleton()->shell_open("https://github.com/DmitriySalnikov/GodotRemote#godot-remote");
 			break;
 		case OpenDownloadPage:
-			// TODO change to itch.io
-			OS::get_singleton()->shell_open("https://github.com/DmitriySalnikov/GodotRemote/releases/latest");
+			OS::get_singleton()->shell_open("https://dmitriysalnikov.itch.io/godot-remote");
 			break;
 		default:
 			break;

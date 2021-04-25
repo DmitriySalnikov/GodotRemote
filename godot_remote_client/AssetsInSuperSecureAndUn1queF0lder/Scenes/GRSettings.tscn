@@ -429,7 +429,7 @@ margin_bottom = 1024.0
 margin_right = 752.0
 margin_bottom = 46.0
 size_flags_horizontal = 3
-text = "Listener port"
+text = "Listener Port"
 valign = 1
 __meta__ = {
 "_edit_use_anchors_": false
