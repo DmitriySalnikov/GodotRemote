@@ -24,6 +24,8 @@ Changelogs can be found inside the mobile app or on the [github releases](https:
 
 ## Download
 
+If you have any problems when starting the editor or connecting to the server, then please see the [list of problems and their solutions](#known-issues-and-solutions)
+
 ### Editor with Built-in Module
 
 [![itch.io fake embed](Images/fake_itch_io_embed.png)](https://dmitriysalnikov.itch.io/godot-remote)
@@ -189,6 +191,8 @@ func _on_button_pressed():
 
 ## Known Issues and Solutions
 
+* **The editor at startup shows an error about the absence of VCRUNTIME_140xx.dll**</br>
+    If you see a similar error</br><img src="Images/Screenshots/vcruntime_140.png" alt="VCRUNTIME error" width="75%"/></br>You just need to download the latest version of `vc_redist` from the [official site](https://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0).<img src="Images/Screenshots/vcruntime_download.png" alt="VCRUNTIME download" width="75%"/>
 * **Auto connection mode does not show any servers**
     1. Make sure that your devices are connected to the same network and can ping each other.
     2. `Listener Status` icon in the client should be green, which means that it is active. ![Listener Status](Images/Screenshots/auto_listener_status.png) If not, try changing the `Listener Port`, also don't forget to change `general/auto_connection_port` in project settings. If this also does not help, then most likely this function is not available for you.
@@ -196,7 +200,7 @@ func _on_button_pressed():
     1. Make sure that your firewall does not block all the ports that the server writes to the console every time it starts.
     2. The phone must not be connected to the guest network.
 * **The client crashes immediately after starting the video stream**</br>
-    The problem may be in the phone's firmware or hardware. Try changing the `Image Scale` or `Target FPS`, these settings will help you save RAM and avoid crashes.
+    Most likely, you have errors due to lack of memory. The problem may be in the phone's firmware or hardware. Try changing the `Image Scale` or `Target FPS`, these settings will help you save RAM and avoid crashes.
 * **FPS is not stable, but the phone and PC are new and powerful**</br>
     Make sure your Wi-Fi connection is relieble. I also recommend using a 5GHz router.
 * **The module built from the source code requires root rights on Android**</br>

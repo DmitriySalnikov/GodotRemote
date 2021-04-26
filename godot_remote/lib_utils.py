@@ -156,6 +156,7 @@ def gdnative_get_library_object(env):
 
 # original code from godot 3.x https://github.com/godotengine/godot/commit/6d022f813f2ee00dbde98946e596183ad67c0411
 def prepare_h264(env):
+    cwd = (os.path.dirname(os.path.abspath(__file__)) + "/").replace("\\", "/");
     lib_version = "openh264-2.1.1"
 
     if env["platform"] == "android":
@@ -178,7 +179,7 @@ def prepare_h264(env):
             old_lib = "openh264/" + lib_openh264
             if not os.path.exists(new_dir):
                 os.makedirs(new_dir)
-            copyfile(old_lib, new_dir + "/libopenh264.so")
+            copyfile(cwd + old_lib, cwd + new_dir + "/libopenh264.so")
     elif env["platform"] in ["windows", "x11", "linuxbsd", "osx"]:
         lib_openh264 = ""
         if env["platform"] == "windows":
@@ -186,12 +187,11 @@ def prepare_h264(env):
         elif env["platform"] in ["x11", "linuxbsd"]:
             lib_openh264 = "lib" + lib_version + ("-linux64.6.so" if env["bits"] == "64" else "-linux32.6.so")
 
-        new_dir = "../../bin/" 
+        new_dir = "/".join(cwd.split("/")[0:-3]) + "/bin/"
         old_lib = "openh264/" + lib_openh264
         if not os.path.exists(new_dir):
             os.makedirs(new_dir)
-        copyfile(old_lib, new_dir + lib_openh264)
-        lib_openh264 = ""
+        copyfile(cwd + old_lib, new_dir + lib_openh264)
 
 ######
 # for both types
@@ -228,7 +228,6 @@ def prepare_turbo_jpeg(env, is_gdnative = False):
         elif env['bits'] == '64':
             dir += 'linux/x64/'
         lib = dir + 'libturbojpeg.a'
-        need_to_use_hack = True
     
     # Android libs
     elif env['platform'] == 'android':

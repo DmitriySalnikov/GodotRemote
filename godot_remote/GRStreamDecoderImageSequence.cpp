@@ -261,6 +261,7 @@ void GRStreamDecoderImageSequence::_processing_thread(Variant p_userdata) {
 
 		if (image_pack->get_is_stream_end()) {
 			_commit_stream_end();
+			ts_lock.unlock();
 			continue;
 		}
 

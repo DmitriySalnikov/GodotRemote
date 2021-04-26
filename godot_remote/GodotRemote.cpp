@@ -589,7 +589,7 @@ void GodotRemote::_adb_port_forwarding() {
 
 #if defined(_MSC_VER) || defined(_WIN64) || defined(_WIN32)
 #else
-	sdk = "ok?"
+	sdk = "ok?";
 #endif
 
 	if (!sdk.empty()) {
@@ -616,7 +616,7 @@ void GodotRemote::_adb_config_thread(Variant user_data) {
 #if defined(_MSC_VER) || defined(_WIN64) || defined(_WIN32)
 	adb += ".exe";
 #else
-	adb = "adb"
+	adb = "adb";
 #endif
 
 	Mutex_define(adb_lock, "ADB Mutex lock");

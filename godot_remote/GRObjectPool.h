@@ -4,6 +4,7 @@
 #include <functional>
 #include <mutex>
 #include <queue>
+#include <memory>
 
 template <class TObject>
 class GRObjectPool {

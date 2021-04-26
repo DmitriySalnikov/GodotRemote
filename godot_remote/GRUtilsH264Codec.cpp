@@ -62,7 +62,12 @@ Error GRUtilsH264Codec::_encoder_create(ISVCEncoder **encoder) {
 	*encoder = nullptr;
 	int err = 0;
 
+#if defined(_MSC_VER) || defined(__ANDROID__) || defined(_WIN32)
 	openh264_handle_DLL = load_lib(lib_name, RTLD_NOW | RTLD_LOCAL);
+#elif defined(__linux__)
+	openh264_handle_DLL = load_lib((OS::get_singleton()->get_executable_path().get_base_dir() + "/" + lib_name).ascii().get_data(), RTLD_NOW | RTLD_LOCAL);
+#endif
+
 	if (openh264_handle_DLL == NULL) {
 		error_str = "";
 		goto failed;
