@@ -457,7 +457,7 @@ void GRStreamEncoderH264::_processing_thread(Variant p_userdata) {
 							++iLayer;
 						}
 
-						_log("H264 Encoder buffered image size: " + str(iFrameSize) + "\tType: " + str(h264_stream_info.eFrameType), LogLevel::LL_DEBUG);
+						//_log("H264 Encoder buffered image size: " + str(iFrameSize) + "\tType: " + str(h264_stream_info.eFrameType), LogLevel::LL_DEBUG);
 					}
 				} else {
 					_log("Can't encode RGB Image to YUV buffer", LogLevel::LL_ERROR);

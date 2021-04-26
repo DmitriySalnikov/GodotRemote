@@ -64,13 +64,13 @@ void __log(const Variant &val, int lvl, String func, String file, int line) {
 #ifdef GODOT_REMOTE_TRACY_ENABLED
 	auto val_str = str(val);
 	if (lvl == LogLevel::LL_ERROR) {
-		TracyMessageC(val_str.ascii().get_data(), val_str.length(), tracy::Color::Red2);
+		TracyMessageC(val_str.utf8().get_data(), val_str.length(), tracy::Color::Red2);
 	} else if (lvl == LogLevel::LL_WARNING) {
-		TracyMessageC(val_str.ascii().get_data(), val_str.length(), tracy::Color::Yellow2);
+		TracyMessageC(val_str.utf8().get_data(), val_str.length(), tracy::Color::Yellow2);
 	} else if (lvl == LogLevel::LL_DEBUG) {
-		TracyMessageC(val_str.ascii().get_data(), val_str.length(), tracy::Color::Gray55);
+		TracyMessageC(val_str.utf8().get_data(), val_str.length(), tracy::Color::Gray55);
 	} else {
-		TracyMessageC(val_str.ascii().get_data(), val_str.length(), tracy::Color::WhiteSmoke);
+		TracyMessageC(val_str.utf8().get_data(), val_str.length(), tracy::Color::WhiteSmoke);
 	}
 #endif // GODOT_REMOTE_TRACY_ENABLED
 }

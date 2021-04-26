@@ -36,7 +36,7 @@ The mobile app can be found on [Google Play](https://play.google.com/store/apps/
 
 <a href='https://play.google.com/store/apps/details?id=com.dmitriysalnikov.godotremote&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png' width="256"/></a>
 
-<h6>Google Play and the Google Play logo are trademarks of Google LLC.</h6>
+<sub><sup>Google Play and the Google Play logo are trademarks of Google LLC.</sup></sub>
 
 ## Module Configuration
 
@@ -51,10 +51,16 @@ The mobile app can be found on [Google Play](https://play.google.com/store/apps/
 
 **Important:** The client and server (smartphone and PC with the Godot editor) must be on the same local network, for example, the PC can be connected to the router via a LAN cable, and the smartphone can be connected via Wi-Fi.
 
-**Important:** `Godot Editor with 'Godot Remote' module` means that you should see the module settings category in your projects settings. This is the easiest way to check the integration of "Godot Remote" in the editor.
+**Important:** `Godot Editor with 'Godot Remote' module` means that you should see the module settings category in your projects settings. This is the easiest way to check the integration of `Godot Remote` into the editor.
+
 ![Settings](Images/Screenshots/settings.png)
 
+By default `Godot Remote` module in the running project displays a notification about the server status.
+
+![Settings](Images/Screenshots/server_notification.png)
+
 Also, starting from version 1.0.2, you can find the `Godot Remote` tool menu in the editor.
+
 ![Settings](Images/Screenshots/tool_menu.png)
 
 ### Detailed Setup
@@ -192,7 +198,7 @@ func _on_button_pressed():
 ## Known Issues and Solutions
 
 * **The editor at startup shows an error about the absence of VCRUNTIME_140xx.dll**</br>
-    If you see a similar error</br><img src="Images/Screenshots/vcruntime_140.png" alt="VCRUNTIME error" width="75%"/></br>You just need to download the latest version of `vc_redist` from the [official site](https://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0).<img src="Images/Screenshots/vcruntime_download.png" alt="VCRUNTIME download" width="75%"/>
+    If you see a similar error</br><img src="Images/Screenshots/vcruntime_140.png" alt="VCRUNTIME error" width="60%"/></br>You just need to download the latest version of `vc_redist` from the [official site](https://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0).<img src="Images/Screenshots/vcruntime_download.png" alt="VCRUNTIME download" width="75%"/>
 * **Auto connection mode does not show any servers**
     1. Make sure that your devices are connected to the same network and can ping each other.
     2. `Listener Status` icon in the client should be green, which means that it is active. ![Listener Status](Images/Screenshots/auto_listener_status.png) If not, try changing the `Listener Port`, also don't forget to change `general/auto_connection_port` in project settings. If this also does not help, then most likely this function is not available for you.

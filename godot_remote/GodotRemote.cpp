@@ -104,7 +104,7 @@ void GodotRemote::_deinit() {
 
 void GodotRemote::GodotRemote::print_str(String txt) {
 #ifndef GDNATIVE_LIBRARY
-	OS::get_singleton()->print(txt.ascii().get_data());
+	OS::get_singleton()->print(txt.utf8().get_data());
 	OS::get_singleton()->print("\n");
 
 #else
@@ -114,7 +114,7 @@ void GodotRemote::GodotRemote::print_str(String txt) {
 
 void GodotRemote::GodotRemote::print_error_str(String txt, String func, String file, int line) {
 #ifndef GDNATIVE_LIBRARY
-	OS::get_singleton()->print_error(func.ascii().get_data(), file.ascii().get_data(), line, 0, txt.ascii().get_data(), Logger::ErrorType::ERR_ERROR);
+	OS::get_singleton()->print_error(func.ascii().get_data(), file.ascii().get_data(), line, 0, txt.utf8().get_data(), Logger::ErrorType::ERR_ERROR);
 #else
 	if (file != "") {
 		int idx = file.find("godot_remote");
@@ -127,7 +127,7 @@ void GodotRemote::GodotRemote::print_error_str(String txt, String func, String f
 
 void GodotRemote::GodotRemote::print_warning_str(String txt, String func, String file, int line) {
 #ifndef GDNATIVE_LIBRARY
-	OS::get_singleton()->print_error(func.ascii().get_data(), file.ascii().get_data(), line, 0, txt.ascii().get_data(), Logger::ErrorType::ERR_WARNING);
+	OS::get_singleton()->print_error(func.ascii().get_data(), file.ascii().get_data(), line, 0, txt.utf8().get_data(), Logger::ErrorType::ERR_WARNING);
 #else
 	if (file != "") {
 		int idx = file.find("godot_remote");

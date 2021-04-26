@@ -13,16 +13,15 @@ using namespace GRUtils;
 // when updating just need to replace this string                              \/
 #define OPENH264_LIB const char *GRUtilsH264Codec::lib_name = LIB_PREFIX "openh264-2.1.1-"
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) // Windows
 #if _WIN64
 OPENH264_LIB "win64.dll";
 #else
 OPENH264_LIB "win32.dll";
 #endif
-// TODO mb that branches needed only on windows. Need tests.
-#elif defined(__ANDROID__)
+#elif defined(__ANDROID__) // Android
 const char *GRUtilsH264Codec::lib_name = "libopenh264.so";
-#elif defined(__linux__)
+#elif defined(__linux__) // Linux
 #if defined(__i386__)
 OPENH264_LIB "linux32.6.so";
 #elif defined(__x86_64__)
@@ -56,17 +55,26 @@ GRUtilsH264Codec::WelsDestroySVCEncoderFunc GRUtilsH264Codec::DestroyEncoderFunc
 GRUtilsH264Codec::WelsCreateDecoderFunc GRUtilsH264Codec::CreateDecoderFunc = nullptr;
 GRUtilsH264Codec::WelsDestroyDecoderFunc GRUtilsH264Codec::DestroyDecoderFunc = nullptr;
 
+#if defined(_MSC_VER) || defined(__ANDROID__) || defined(_WIN32) // Not Linux
+#define LOAD_LIB_BLOCK() openh264_handle_DLL = load_lib(lib_name, RTLD_NOW | RTLD_LOCAL);
+#define LOG_LIB_ERROR() _log("[OpenH264] No valid library named " + str(lib_name) + " was found. " + error_str, LogLevel::LL_WARNING);
+#elif defined(__linux__) // Linux
+#define LOAD_LIB_BLOCK()                                                                                  \
+	String linux_lib_name = (OS::get_singleton()->get_executable_path().get_base_dir() + "/" + lib_name); \
+	openh264_handle_DLL = load_lib(linux_lib_name.utf8().get_data(), RTLD_NOW | RTLD_LOCAL);
+#define LOG_LIB_ERROR() _log("[OpenH264] No valid library named " + linux_lib_name + " was found. " + error_str, LogLevel::LL_WARNING);
+#else // Not implemented
+#define LOAD_LIB_BLOCK()
+#define LOG_LIB_ERROR() _log("[OpenH264] Not supported platform.", LogLevel::LL_WARNING);
+#endif
+
 Error GRUtilsH264Codec::_encoder_create(ISVCEncoder **encoder) {
 	String error_str = "";
 	ISVCEncoder *enc = nullptr;
 	*encoder = nullptr;
 	int err = 0;
 
-#if defined(_MSC_VER) || defined(__ANDROID__) || defined(_WIN32)
-	openh264_handle_DLL = load_lib(lib_name, RTLD_NOW | RTLD_LOCAL);
-#elif defined(__linux__)
-	openh264_handle_DLL = load_lib((OS::get_singleton()->get_executable_path().get_base_dir() + "/" + lib_name).ascii().get_data(), RTLD_NOW | RTLD_LOCAL);
-#endif
+	LOAD_LIB_BLOCK();
 
 	if (openh264_handle_DLL == NULL) {
 		error_str = "";
@@ -95,7 +103,7 @@ Error GRUtilsH264Codec::_encoder_create(ISVCEncoder **encoder) {
 	return Error::OK;
 
 failed:
-	_log("[OpenH264] No valid library named " + str(lib_name) + " was found. " + error_str, LogLevel::LL_WARNING);
+	LOG_LIB_ERROR();
 	_clear();
 	return Error::FAILED;
 }
@@ -118,7 +126,8 @@ Error GRUtilsH264Codec::_decoder_create(ISVCDecoder **decoder) {
 	*decoder = nullptr;
 	int err = 0;
 
-	openh264_handle_DLL = load_lib(lib_name, RTLD_NOW | RTLD_LOCAL);
+	LOAD_LIB_BLOCK();
+
 	if (openh264_handle_DLL == NULL) {
 		error_str = "";
 		goto failed;
@@ -146,7 +155,7 @@ Error GRUtilsH264Codec::_decoder_create(ISVCDecoder **decoder) {
 	return Error::OK;
 
 failed:
-	_log("[OpenH264] No valid library named " + str(lib_name) + " was found. " + error_str, LogLevel::LL_WARNING);
+	LOG_LIB_ERROR();
 	_clear();
 	return Error::FAILED;
 }
