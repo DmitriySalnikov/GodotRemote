@@ -1545,6 +1545,14 @@ void GRClient::_thread_connection(Variant p_userdata) {
 	uint64_t prev_error_notif_shown_time = 0;
 
 #ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+#if defined(__ANDROID__)
+	std::shared_ptr<UdpBroadcast> udp_broadcast;
+	uint16_t udp_broadcast_port = (int)rnd_rng(49152, 65534);
+	int udp_broadcast_open_tries = 0;
+	uint8_t udp_broadcast_fake_data[1024] = { 0 };
+#endif
+
+	uint64_t prev_auto_connectio_time = get_time_usec();
 	int64_t auto_connection_server_uid = 0;
 	Ref<_Thread> udp_thread;
 	Thread_start(udp_thread, this, _thread_udp_listener, p_userdata);
@@ -1648,7 +1656,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 
 		switch (connection_type) {
 			case GRClient::CONNECTION_WiFi: {
-				prev_connection_type_unknown = (int)connection_type;
+				prev_connection_type = (int)connection_type;
 
 #ifndef GDNATIVE_LIBRARY
 				IP_Address adr;
@@ -1684,7 +1692,7 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				break;
 			}
 			case GRClient::CONNECTION_ADB: {
-				prev_connection_type_unknown = (int)connection_type;
+				prev_connection_type = (int)connection_type;
 
 				if (!try_connect("127.0.0.1", static_port)) {
 					sleep_usec(200_ms);
@@ -1694,7 +1702,32 @@ void GRClient::_thread_connection(Variant p_userdata) {
 			}
 #ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
 			case GRClient::CONNECTION_AUTO: {
-				prev_connection_type_unknown = (int)connection_type;
+				if (prev_connection_type != (int)connection_type) {
+					prev_connection_type = (int)connection_type;
+					prev_auto_connectio_time = get_time_usec();
+				}
+
+#if defined(__ANDROID__)
+				// hack to keep wifi active
+				// I hope it works
+				if (get_time_usec() - prev_auto_connectio_time > 250_ms && udp_broadcast_open_tries < 16) {
+					if (!udp_broadcast) {
+						udp_broadcast = shared_new(UdpBroadcast);
+						if (!udp_broadcast->Open("255.255.255.255", udp_broadcast_port)) {
+							udp_broadcast = nullptr;
+							udp_broadcast_port = (int)rnd_rng(49152, 65534);
+							udp_broadcast_open_tries++;
+						} else {
+							udp_broadcast_open_tries = 0;
+						}
+					}
+					prev_auto_connectio_time = get_time_usec();
+
+					if (udp_broadcast) {
+						udp_broadcast->Send(udp_broadcast_port, udp_broadcast_fake_data, 1024);
+					}
+				}
+#endif
 
 				ts_lock.lock();
 				if (!con_thread->auto_mode_ready_to_connect) {
@@ -1822,6 +1855,10 @@ void GRClient::_thread_connection(Variant p_userdata) {
 				con_thread->peer.unref();
 				con_thread->ppeer = nullptr;
 				con_thread->auto_connected_server_uid = 0;
+
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+				prev_auto_connectio_time = get_time_usec();
+#endif
 
 				is_connection_working = false;
 				call_deferred(NAMEOF(emit_signal), "connection_state_changed", false);

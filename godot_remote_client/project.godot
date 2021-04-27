@@ -28,6 +28,7 @@ _global_script_class_icons={
 
 config/name="Godot Remote"
 run/main_scene="res://AssetsInSuperSecureAndUn1queF0lder/Scenes/GUI.tscn"
+boot_splash/bg_color=Color( 0.164706, 0.188235, 0.207843, 1 )
 config/icon="res://AssetsInSuperSecureAndUn1queF0lder/Icon.png"
 
 [autoload]

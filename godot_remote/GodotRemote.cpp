@@ -104,8 +104,7 @@ void GodotRemote::_deinit() {
 
 void GodotRemote::GodotRemote::print_str(String txt) {
 #ifndef GDNATIVE_LIBRARY
-	OS::get_singleton()->print(txt.utf8().get_data());
-	OS::get_singleton()->print("\n");
+	OS::get_singleton()->print((txt + "\n").utf8().get_data());
 
 #else
 	Godot::print(txt);

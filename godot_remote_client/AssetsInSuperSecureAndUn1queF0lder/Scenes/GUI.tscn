@@ -153,6 +153,7 @@ grow_vertical = 0
 mouse_filter = 2
 custom_styles/panel = SubResource( 7 )
 __meta__ = {
+"_edit_lock_": true,
 "_edit_use_anchors_": false
 }
 
@@ -170,6 +171,7 @@ texture = ExtResource( 5 )
 expand = true
 stretch_mode = 4
 __meta__ = {
+"_edit_lock_": true,
 "_edit_use_anchors_": false
 }
 
