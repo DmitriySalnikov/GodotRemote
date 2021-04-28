@@ -8,9 +8,9 @@ API references can be found here: [API.md](API.md)
 
 Building instructions placed here: [BUILDING.md](BUILDING.md)
 
-| Video Demonstration                                                                                      | Custom Packets Demo                                                                                                |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| [<img src="Images/video_demo.jpg" alt="Video Demonstration" width="200"/>](https://youtu.be/LbFcQnS3z3E) | [<img src="Images/video_custom_packets.jpg" alt="Custom Packets Demo" width="200"/>](https://youtu.be/RmhppDWZZk8) |
+| Video Demonstration                                                                                      | 1.0.2 Update                                                                                       |
+| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| [<img src="Images/video_demo.jpg" alt="Video Demonstration" width="200"/>](https://youtu.be/LbFcQnS3z3E) | [<img src="Images/video_1_0_2.jpg" alt="1.0.2 Update" width="200"/>](https://youtu.be/8hUYtcY1Ijk) |
 
 ## Support
 
