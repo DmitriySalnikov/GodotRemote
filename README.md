@@ -146,7 +146,13 @@ Here you can find info about every setting in project and in client app.
 
 ##### `server/configure_adb_on_play`
 
-This option only available with `general/use_static_port` and requires the correct path to the Android SDK specified in the editor settings (`export/android/android_sdk_path` or `export/android/adb` in Godot 3.2)
+This option only available with `general/use_static_port` and requires the correct path to the Android SDK specified in the editor settings (`export/android/android_sdk_path` or `export/android/adb` in Godot 3.2).
+
+If you have any problems with this option, you can try manually execute `adb reverse tcp:[your static port] tcp:[your static port]`, for example `adb reverse tcp:22766 tcp:22766`.
+
+If you have multiple devices connected at the same time, you can add the `-s [device name]` argument. Execute the `adb devices` command to find out the name of the devices. Example of command `adb -s 192.168.0.1:5555 reverse tcp:22766 tcp:22766`.
+
+On windows, you will probably need to specify the full path to adb in the console: `[path to Android SDK]/platform-tools/adb.exe`
 
 ## Advanced
 
@@ -199,6 +205,8 @@ func _on_button_pressed():
 
 * **The editor at startup shows an error about the absence of VCRUNTIME_140xx.dll**</br>
     If you see a similar error</br><img src="Images/Screenshots/vcruntime_140.png" alt="VCRUNTIME error" width="60%"/></br>You just need to download the latest version of `vc_redist` from the [official site](https://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0).<img src="Images/Screenshots/vcruntime_download.png" alt="VCRUNTIME download" width="75%"/>
+* **The editor freezes on closing or at any other random moment with `server/configure_adb_on_play` enabled**
+    This may be caused by the fact that ADB completely blocks the execution of Godot Editor. The only solution I have found at the moment is to simply close adb.exe via the task manager.
 * **Auto connection mode does not show any servers**
     1. Make sure that your devices are connected to the same network and can ping each other.
     2. `Listener Status` icon in the client should be green, which means that it is active. ![Listener Status](Images/Screenshots/auto_listener_status.png) If not, try changing the `Listener Port`, also don't forget to change `general/auto_connection_port` in project settings. If this also does not help, then most likely this function is not available for you.
@@ -209,7 +217,7 @@ func _on_button_pressed():
     Most likely, you have errors due to lack of memory. The problem may be in the phone's firmware or hardware. Try changing the `Image Scale` or `Target FPS`, these settings will help you save RAM and avoid crashes.
 * **FPS is not stable, but the phone and PC are new and powerful**</br>
     Make sure your Wi-Fi connection is relieble. I also recommend using a 5GHz router.
-* **The module built from the source code requires root rights on Android**</br>
+* **The module built from the source code requires root permissions on Android**</br>
     This is because you enable the Tracy profiler, which requires root permissions for some operations.
 * **Custom input scenes doesn't load all assets**</br>
     All paths in custom input scene scripts must be absolute.
