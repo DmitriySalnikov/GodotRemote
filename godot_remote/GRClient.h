@@ -4,6 +4,7 @@
 #ifndef NO_GODOTREMOTE_CLIENT
 
 #include "GRDevice.h"
+#include "GRStreamDecoders.h"
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/io/ip_address.h"
@@ -15,18 +16,23 @@
 
 #include <Node.hpp>
 #include <PacketPeerStream.hpp>
-#include <Shader.hpp>
 #include <ShaderMaterial.hpp>
 #include <StreamPeerTCP.hpp>
+#include <ImageTexture.hpp>
 #include <TextureRect.hpp>
 #include <Thread.hpp>
 using namespace godot;
 #endif
 
 class GRClient : public GRDevice {
-	GD_S_CLASS(GRClient, GRDevice);
+	GD_CLASS(GRClient, GRDevice);
 
 	friend class GRTextureRect;
+	friend class GRStreamDecoder;
+	friend class GRStreamDecoderImageSequence;
+	friend class GRStreamDecoderH264;
+
+	Mutex_define(ts_lock, "GRClient Lock");
 
 	enum class ScreenOrientation : int {
 		NONE = 0,
@@ -38,6 +44,7 @@ public:
 	enum ConnectionType : int {
 		CONNECTION_WiFi = 0,
 		CONNECTION_ADB = 1,
+		CONNECTION_AUTO = 2,
 	};
 
 	enum StretchMode : int {
@@ -57,44 +64,27 @@ private:
 public:
 #endif
 
-	class ImgProcessingStorageClient : public Object {
-		GD_CLASS(ImgProcessingStorageClient, Object);
-
-	public:
-		GRClient *dev = nullptr;
-		PoolByteArray tex_data;
-		uint64_t framerate = 0;
-		int format = 0;
-		ImageCompressionType compression_type = ImageCompressionType::COMPRESSION_UNCOMPRESSED;
-		Size2 size;
-		bool _is_processing_img = false;
-		bool _thread_closing = false;
-
-		static void _register_methods(){};
-		void _init() {
-			LEAVE_IF_EDITOR();
-			tex_data = PoolByteArray();
-		};
-
-		~ImgProcessingStorageClient() {
-			LEAVE_IF_EDITOR();
-			tex_data.resize(0);
-		}
-	};
-
 	class ConnectionThreadParamsClient : public Object {
 		GD_CLASS(ConnectionThreadParamsClient, Object);
 
 	public:
-		GRClient *dev = nullptr;
 		Ref<StreamPeerTCP> peer;
-		Ref<PacketPeerStream> ppeer;
+		RefStd(PacketPeerStream) ppeer;
 
-		Thread_define(thread_ref);
+		Ref<_Thread> thread_ref;
 
 		bool break_connection = false;
 		bool stop_thread = false;
-		bool finished = false;
+		bool connection_finished = true;
+		bool cancel_connection = false;
+		bool auto_mode_ready_to_connect = false;
+		int64_t auto_found_server_uid = 0;
+		int64_t auto_connected_server_uid = 0;
+		int auto_connected_server_port = 0;
+		bool is_auto_connected = false;
+		bool is_first_connection_try = false;
+		bool connect_to_exact_server = false;
+		real_t connect_to_exact_server_time_limit = 0;
 
 		void close_thread() {
 			break_connection = true;
@@ -111,13 +101,42 @@ public:
 			if (peer.is_valid()) {
 				peer.unref();
 			}
-			if (ppeer.is_valid()) {
-				ppeer.unref();
-			}
+			ppeer = nullptr;
 		};
 	};
 
 private:
+	class AvailableServerAddress {
+	public:
+		uint64_t time_added;
+		String ip;
+
+		AvailableServerAddress(uint64_t time, String _ip) {
+			time_added = time;
+			ip = _ip;
+		}
+	};
+
+	class AvailableServer {
+	public:
+		String version;
+		String project_name;
+		int port;
+		std::vector<std::shared_ptr<AvailableServerAddress> > recieved_from_addresses;
+		int64_t server_uid;
+		PoolByteArray icon_data;
+		int64_t icon_flags;
+		Ref<ImageTexture> icon;
+		PoolByteArray preview_data;
+
+		AvailableServer() {
+			port = 0;
+			server_uid = 0;
+		}
+	};
+
+	const int default_decoder_threads_count = 3;
+
 	bool is_deleting = false;
 	bool is_connection_working = false;
 	Node *settings_menu_node = nullptr;
@@ -125,29 +144,45 @@ private:
 	class GRTextureRect *tex_shows_stream = nullptr;
 	class GRInputCollector *input_collector = nullptr;
 	ConnectionThreadParamsClient *thread_connection = nullptr;
-	ScreenOrientation is_vertical = ScreenOrientation::NONE;
+	std::shared_ptr<GRStreamDecodersManager> stream_manager;
+	uint64_t prev_shown_frame_time = 0;
 
 	String device_id = "UNKNOWN";
 	String server_address = String("127.0.0.1");
+	PoolStringArray current_auto_connect_server_addresses;
+	String current_auto_connect_project_name = "";
+	int current_auto_connect_server_port = 0;
+	bool auto_connection_preview_processing = false;
+	std::vector<std::shared_ptr<AvailableServer> > found_server_addresses;
+	PoolByteArray server_preview_jpg_buffer;
+	bool is_auto_mode_active = false;
+
+	uint64_t auto_connecting_server_select_time = 0;
+
+	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
+	ScreenOrientation is_vertical = ScreenOrientation::NONE;
+	ConnectionType connection_type = ConnectionType::CONNECTION_WiFi;
+	StreamState signal_connection_state = StreamState::STREAM_NO_SIGNAL;
 
 	String password;
 	bool is_filtering_enabled = true;
 	bool _viewport_orientation_syncing = true;
 	bool _viewport_aspect_ratio_syncing = true;
 	bool _server_settings_syncing = false;
-	StretchMode stretch_mode = StretchMode::STRETCH_KEEP_ASPECT;
 
-	Mutex_define(connection_mutex);
-	ConnectionType con_type = ConnectionType::CONNECTION_WiFi;
+	Mutex_define(connection_mutex, "Connection Lock");
+	Mutex_define(stream_mutex, "Stream Manager Mutex");
 	int input_buffer_size_in_mb = 4;
 	int send_data_fps = 60;
+	float _prev_stream_aspect_ratio = 0;
 
 	uint64_t sync_time_client = 0;
 	uint64_t sync_time_server = 0;
+	int64_t sync_time_delta = 0;
+	GRAVGCounter<uint64_t, float> delay_counter = GRAVGCounter<uint64_t, float>([](float i) -> float { return float(i * 0.001); });
 
 	// NO SIGNAL screen
 	uint64_t prev_valid_connection_time = 0;
-	StreamState signal_connection_state = StreamState::STREAM_NO_SIGNAL;
 	bool no_signal_is_vertical = false;
 	Ref<class Texture> custom_no_signal_texture;
 	Ref<class Texture> custom_no_signal_vertical_texture;
@@ -162,21 +197,30 @@ private:
 	Node *custom_input_scene = nullptr;
 	String custom_input_scene_tmp_pck_file = "user://custom_input_scene.pck";
 
+	void _stop_decoder();
+	void _push_pack_to_decoder(std::shared_ptr<GRPacketStreamData> pack);
+	void _image_lost();
+	void _display_new_image(PoolByteArray data, int width, int height, uint64_t delay);
+
 	void _force_update_stream_viewport_signals();
-	void _load_custom_input_scene(Ref<class GRPacketCustomInputScene> _data);
+	void _load_custom_input_scene(String path, PoolByteArray scene_data, int orig_size, bool is_compressed, int compression_type);
 	void _remove_custom_input_scene();
 	void _viewport_size_changed();
 	void _on_node_deleting(int var_name);
 
 	void _update_texture_from_image(Ref<Image> img);
 	void _update_stream_texture_state(ENUM_ARG(StreamState) _stream_state);
+
+	void _update_avg_delay(uint64_t delay);
 	virtual void _reset_counters() override;
 
-	THREAD_FUNC void _thread_connection(THREAD_DATA p_userdata);
-	THREAD_FUNC void _thread_image_decoder(THREAD_DATA p_userdata);
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+	void _thread_udp_listener(Variant p_userdata);
+#endif
+	void _thread_connection(Variant p_userdata);
 
-	static void _connection_loop(ConnectionThreadParamsClient *con_thread);
-	static GRDevice::AuthResult _auth_on_server(GRClient *dev, Ref<PacketPeerStream> &con);
+	void _connection_loop(ConnectionThreadParamsClient *con_thread);
+	GRDevice::AuthResult _auth_on_server(RefStd(PacketPeerStream) con);
 
 protected:
 	virtual void _internal_call_only_deffered_start() override;
@@ -227,6 +271,8 @@ public:
 	String get_password();
 	void set_device_id(String _id);
 	String get_device_id();
+	void set_auto_connection_preview_processing(bool processing);
+	bool is_auto_connection_preview_processing();
 
 	ENUM_ARG(StreamState)
 	get_stream_state();
@@ -234,9 +280,30 @@ public:
 	bool is_connected_to_host();
 	Node *get_custom_input_scene();
 	String get_address();
+	Array get_found_auto_connection_addresses();
 	bool set_address(String ip);
 	bool set_address_port(String ip, uint16_t _port);
-	void set_input_buffer(int mb);
+	void set_input_buffer_size(int mb);
+
+	float get_avg_delay();
+	float get_min_delay();
+	float get_max_delay();
+	float get_stream_aspect_ratio();
+
+	virtual uint16_t get_port() override;
+	virtual void set_port(uint16_t _port) override;
+
+	void set_decoder_threads_count(int count);
+	int get_decoder_threads_count();
+
+	void break_connection_async();
+	void break_connection();
+
+	bool set_current_auto_connect_server(String _project_name, PoolStringArray _addresses, int _port, bool connect_to_exact_server = true, real_t exact_connect_max_time = 0, bool force_update = false);
+	PoolStringArray get_current_auto_connect_addresses();
+	String get_current_auto_connect_project_name();
+	int get_current_auto_connect_port();
+	int64_t get_current_auto_connected_server_uid();
 
 	void set_server_setting(ENUM_ARG(TypesOfServerSettings) param, Variant value);
 	void disable_overriding_server_settings();
@@ -249,15 +316,14 @@ class GRInputCollector : public Node {
 	GD_CLASS(GRInputCollector, Node);
 	friend GRClient;
 
-	_TS_CLASS_;
+	Mutex_define(ts_lock, "GRInputCollector Lock");
 
 private:
 	GRClient *dev = nullptr;
 	GRInputCollector **this_in_client = nullptr; //somebody help
 
 	class TextureRect *texture_rect = nullptr;
-	//Array collected_input_data; // Ref<GRInputData>
-	std::vector<Ref<GRInputData> > collected_input_data;
+	std::vector<std::shared_ptr<GRInputData> > collected_input_data;
 	class Control *parent;
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
@@ -268,6 +334,9 @@ private:
 
 	Dictionary mouse_buttons;
 	Dictionary screen_touches;
+
+	Dictionary mouse_events;
+	Dictionary screen_events;
 
 protected:
 	void _collect_input(Ref<InputEvent> ie);
@@ -298,7 +367,7 @@ public:
 
 	void set_tex_rect(class TextureRect *tr);
 
-	Ref<class GRPacketInputData> get_collected_input_data();
+	std::shared_ptr<GRPacketInputData> get_collected_input_data();
 
 	void _init();
 	void _deinit();
@@ -335,4 +404,4 @@ VARIANT_ENUM_CAST(GRClient::StretchMode)
 VARIANT_ENUM_CAST(GRClient::StreamState)
 #endif
 
-#endif // !NO_GODOTREMOTE_CLIENT
+#endif // NO_GODOTREMOTE_CLIENT

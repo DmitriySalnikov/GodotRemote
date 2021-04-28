@@ -4,6 +4,7 @@ extends Control
 
 onready var label := $Box/Label
 onready var line := $Box/LineEdit
+onready var protector : Control
 
 var Title := "" setget _set_title
 var IsSecret := false setget _set_is_secret
@@ -26,7 +27,9 @@ func _ready():
 	
 	set_process(false)
 	if not Engine.editor_hint:
+		protector = get_parent().get_node("TouchInputProtector")
 		visible = false
+		protector.visible = false
 		line_style = line.get_stylebox("normal")
 
 func _process(_delta):
@@ -39,10 +42,12 @@ func _process(_delta):
 			if not is_shown:
 				is_shown = true
 				visible = true
+				protector.visible = true
 		else:
 			if is_shown or force_close:
 				is_shown = false
 				visible = false
+				protector.visible = false
 				
 				if LineEditToReturn:
 					LineEditToReturn.text = line.text
@@ -56,6 +61,7 @@ func _process(_delta):
 		if force_close:
 			is_shown = false
 			visible = false
+			protector.visible = false
 			
 			if LineEditToReturn:
 				LineEditToReturn.text = line.text
@@ -75,8 +81,6 @@ func popup_text_edit(title : String, line_to_return : LineEdit):
 	self.LineFont = line_to_return.get_font("font")
 	self.MaxLength = line_to_return.max_length
 	
-	line.caret_position = line.text.length()
-	
 	var f = get_font("font").get_height() 
 	line.rect_min_size = Vector2(0, f * 2.5)
 	line_style.content_margin_left = f * 0.75
@@ -87,8 +91,12 @@ func popup_text_edit(title : String, line_to_return : LineEdit):
 	
 	if not _is_mobile:
 		visible = true
+		protector.visible = true
 	
+	yield(get_tree(), "idle_frame")
 	line.grab_focus()
+	line.caret_position = line.text.length()
+	line.select_all()
 	set_process(true)
 
 func _set_is_secret(val : bool):

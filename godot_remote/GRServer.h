@@ -4,31 +4,30 @@
 #ifndef NO_GODOTREMOTE_SERVER
 
 #include "GRDevice.h"
+#include "GRStreamEncoders.h"
 
 #ifndef GDNATIVE_LIBRARY
-
 #include "core/io/compression.h"
 #include "core/io/stream_peer_tcp.h"
 #include "core/io/tcp_server.h"
 #include "modules/regex/regex.h"
+#include "scene/2d/node_2d.h"
 #include "scene/gui/control.h"
 #include "scene/main/viewport.h"
 #else
-
 #include <Control.hpp>
+#include <Node2D.hpp>
 #include <PacketPeerStream.hpp>
 #include <RegEx.hpp>
 #include <RegExMatch.hpp>
 #include <StreamPeerTCP.hpp>
 #include <TCP_Server.hpp>
-#include <Thread.hpp>
 #include <Viewport.hpp>
-#include <ViewportTexture.hpp>
 using namespace godot;
 #endif
 
 class GRServer : public GRDevice {
-	GD_S_CLASS(GRServer, GRDevice);
+	GD_CLASS(GRServer, GRDevice);
 
 private:
 #ifndef GDNATIVE_LIBRARY
@@ -39,8 +38,7 @@ public:
 		GD_CLASS(ListenerThreadParamsServer, Object);
 
 	public:
-		GRServer *dev = nullptr;
-		Thread_define(thread_ref);
+		Ref<_Thread> thread_ref;
 
 		bool stop_thread = false;
 		bool finished = false;
@@ -64,10 +62,9 @@ public:
 
 	public:
 		String device_id = "";
-		GRServer *dev = nullptr;
-		Ref<PacketPeerStream> ppeer;
+		RefStd(PacketPeerStream) ppeer;
 
-		Thread_define(thread_ref);
+		Ref<_Thread> thread_ref;
 
 		bool break_connection = false;
 		bool finished = false;
@@ -83,19 +80,25 @@ public:
 		~ConnectionThreadParamsServer() {
 			LEAVE_IF_EDITOR();
 			close_thread();
-			if (ppeer.is_valid()) {
-				ppeer.unref();
-			}
+			ppeer = nullptr;
 		}
 	};
 
 private:
-	Mutex_define(connection_mutex);
+	Mutex_define(connection_mutex, "Connection Lock");
+	Mutex_define(udp_lock, "UDP Thread Lock");
 	ListenerThreadParamsServer *server_thread_listen = nullptr;
 	Ref<TCP_Server> tcp_server;
 	class GRSViewport *resize_viewport = nullptr;
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+	class GRViewportCaptureRect *udp_preview_viewport = nullptr;
+#endif
+	int64_t unique_server_id = 0;
 	int client_connected = 0;
+	int target_fps = 60;
+	int current_listening_port = 0;
 
+	bool use_static_port = false;
 	bool using_client_settings = false;
 	bool using_client_settings_recently_updated = false;
 
@@ -108,24 +111,29 @@ private:
 	ENUM_ARG(Compression::Mode)
 	custom_input_pck_compression_type = ENUM_CONV(Compression::Mode) 0;
 	const String custom_input_scene_regex_resource_finder_pattern = "\\\"(res://.*?)\\\"";
-	Ref<class RegEx> custom_input_scene_regex_resource_finder;
+	Ref<RegEx> custom_input_scene_regex_resource_finder;
+	PoolByteArray preview_image_data_jpg_buffer;
+	PoolByteArray preview_image_data;
+	PoolByteArray project_icon_image_data;
+	int64_t project_icon_image_flags = 4; // only filtering
 
 	float prev_avg_fps = 0;
 	void _adjust_viewport_scale();
 
-	void _load_settings();
+	void _load_settings(bool force_hide_notifications = false);
 	void _update_settings_from_client(const std::map<int, Variant> settings);
-	void _remove_resize_viewport(Node *vp);
-	void _on_grviewport_deleting();
 
 	virtual void _reset_counters() override;
 
-	THREAD_FUNC void _thread_listen(THREAD_DATA p_userdata);
-	THREAD_FUNC void _thread_connection(THREAD_DATA p_userdata);
+#ifdef GODOT_REMOTE_AUTO_CONNECTION_ENABLED
+	void _thread_udp_connection(Variant p_userdata);
+#endif
+	void _thread_listen(Variant p_userdata);
+	void _thread_connection(Variant p_userdata);
 
-	static AuthResult _auth_client(GRServer *dev, Ref<PacketPeerStream> &ppeer, Dictionary &ret_data, bool refuse_connection DEF_ARG(= false));
+	AuthResult _auth_client(RefStd(PacketPeerStream) ppeer, Dictionary &ret_data, bool refuse_connection DEF_ARG(= false));
 
-	Ref<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress DEF_ARG(= true), ENUM_ARG(Compression::Mode) compression_type DEF_ARG(= ENUM_CONV(Compression::Mode) 0));
+	std::shared_ptr<GRPacketCustomInputScene> _create_custom_input_pack(String _scene_path, bool compress DEF_ARG(= true), ENUM_ARG(Compression::Mode) compression_type DEF_ARG(= ENUM_CONV(Compression::Mode) 0));
 	void _scan_resource_for_dependencies_recursive(String _dir, std::vector<String> &_arr);
 
 protected:
@@ -155,21 +163,29 @@ public:
 	void set_custom_input_scene_compression_type(int _type);
 	int get_custom_input_scene_compression_type();
 
+	bool set_target_fps(int value);
+	int get_target_fps();
+
 	// VIEWPORT
 	bool set_video_stream_enabled(bool val);
 	bool is_video_stream_enabled();
 	bool set_compression_type(ImageCompressionType _type);
 	ImageCompressionType get_compression_type();
-	bool set_jpg_quality(int _quality);
-	int get_jpg_quality();
+	bool set_stream_quality(int _quality);
+	int get_stream_quality();
 	bool set_skip_frames(int fps);
-	int get_skip_frames();
 	bool set_render_scale(float _scale);
 	float get_render_scale();
+	int get_skip_frames();
+	bool set_encoder_threads_count(int count);
+	int get_encoder_threads_count();
 	// NOT VIEWPORT
 
 	GRSViewport *get_gr_viewport();
 	void force_update_custom_input_scene();
+
+	virtual uint16_t get_port() override;
+	virtual void set_port(uint16_t _port) override;
 
 	void _init();
 	void _deinit();
@@ -178,57 +194,29 @@ public:
 class GRSViewport : public Viewport {
 	GD_CLASS(GRSViewport, Viewport);
 	friend GRServer;
-	friend class ImgProcessingViewportStorage;
-	_TS_CLASS_;
 
-public:
-	class ImgProcessingViewportStorage : public Object {
-		GD_CLASS(ImgProcessingViewportStorage, Object);
-
-	public:
-		PoolByteArray ret_data;
-		GRDevice::ImageCompressionType compression_type = GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED;
-		int width, height, format;
-		int bytes_in_color, jpg_quality;
-		bool is_empty = false;
-
-		static void _register_methods(){};
-		void _init() {
-			LEAVE_IF_EDITOR();
-			ret_data = PoolByteArray();
-		};
-
-		~ImgProcessingViewportStorage() {
-			LEAVE_IF_EDITOR();
-			ret_data.resize(0);
-		}
-	};
+	Mutex_define(stream_mutex, "Stream Manager Mutex");
 
 private:
-	Thread_define(_thread_process);
+	float prev_screen_aspect_ratio = 0.0000001f;
+	GRServer *server = nullptr;
 
-	Ref<Image> last_image;
-	ImgProcessingViewportStorage *last_image_data = nullptr;
-
-	void _close_thread() { Thread_close(_thread_process); }
-	void _set_img_data(ImgProcessingViewportStorage *_data);
-	void _on_renderer_deleting();
-
-	THREAD_FUNC void _processing_thread(THREAD_DATA p_user);
+	void _start_encoder();
+	void _stop_encoder();
 
 protected:
 	Viewport *main_vp = nullptr;
-	class GRSViewportRenderer *renderer = nullptr;
+	Node2D *renderer = nullptr;
 	bool video_stream_enabled = true;
 	float rendering_scale = 0.3f;
 	float auto_scale = 0.5f;
-	int jpg_quality = 80;
+	int stream_quality = 80;
 	int skip_frames = 0;
 	GRDevice::ImageCompressionType compression_type = GRDevice::ImageCompressionType::COMPRESSION_UNCOMPRESSED;
+	std::shared_ptr<GRStreamEncodersManager> stream_manager;
 
 	uint16_t frames_from_prev_image = 0;
 	bool is_empty_image_sended = false;
-	bool is_thread_active = false;
 
 #ifndef GDNATIVE_LIBRARY
 	static void _bind_methods();
@@ -241,11 +229,12 @@ protected:
 
 	void _notification(int p_notification);
 	void _update_size();
+	void _draw_main_vp();
 
 public:
-	ImgProcessingViewportStorage *get_last_compressed_image_data();
-	bool has_compressed_image_data();
 	void force_get_image();
+	bool has_data_to_send();
+	std::shared_ptr<GRPacket> pop_data_to_send();
 
 	void set_video_stream_enabled(bool val);
 	bool is_video_stream_enabled();
@@ -253,37 +242,15 @@ public:
 	float get_rendering_scale();
 	void set_compression_type(GRDevice::ImageCompressionType val);
 	GRDevice::ImageCompressionType get_compression_type();
-	void set_jpg_quality(int _quality);
-	int get_jpg_quality();
+	void set_stream_quality(int _quality);
+	int get_stream_quality();
 	void set_skip_frames(int skip);
 	int get_skip_frames();
+	void set_encoder_threads_count(int count);
+	int get_encoder_threads_count();
 
 	void _init();
 	void _deinit();
 };
 
-class GRSViewportRenderer : public Control {
-	GD_CLASS(GRSViewportRenderer, Control);
-
-protected:
-	Viewport *vp = nullptr;
-
-#ifndef GDNATIVE_LIBRARY
-	static void _bind_methods();
-#else
-public:
-	static void _register_methods();
-
-protected:
-#endif
-
-	void _notification(int p_notification);
-
-public:
-	Ref<ViewportTexture> tex;
-
-	void _init();
-	void _deinit();
-};
-
-#endif // !NO_GODOTREMOTE_SERVER
+#endif // NO_GODOTREMOTE_SERVER

@@ -4,24 +4,17 @@
 #include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
-#include "core/reference.h"
+#include "scene/gui/box_container.h"
 #include "scene/gui/panel_container.h"
 #include "scene/main/canvas_layer.h"
 #else
-
-#include <Array.hpp>
 #include <Button.hpp>
 #include <CanvasLayer.hpp>
 #include <Font.hpp>
-#include <Godot.hpp>
 #include <HBoxContainer.hpp>
 #include <ImageTexture.hpp>
 #include <Label.hpp>
 #include <PanelContainer.hpp>
-#include <PoolArrays.hpp>
-#include <Ref.hpp>
-#include <Reference.hpp>
-#include <String.hpp>
 #include <StyleBoxEmpty.hpp>
 #include <StyleBoxFlat.hpp>
 #include <TextureRect.hpp>
@@ -33,6 +26,7 @@ using namespace godot;
 
 class GRNotificationPanel;
 class GRNotificationStyle;
+class GRNotificationListWithSafeZone;
 class GRNotificationPanelSTATIC_DATA;
 
 class GRNotifications : public CanvasLayer {
@@ -69,7 +63,7 @@ private:
 	bool notifications_enabled = true;
 	NotificationsPosition notifications_position = NotificationsPosition::TOP_LEFT;
 
-	class VBoxContainer *notif_list_node = nullptr;
+	GRNotificationListWithSafeZone *notif_list_node = nullptr;
 	std::vector<GRNotificationPanel *> notifications; // GRNotificationPanel *
 	Ref<GRNotificationStyle> style;
 
@@ -85,8 +79,6 @@ private:
 	void _remove_notification(String title, bool all_entries);
 	void _remove_exact_notification(Node *_notif);
 	void _clear_notifications();
-
-	void _remove_list();
 
 protected:
 #ifndef GDNATIVE_LIBRARY
@@ -197,6 +189,8 @@ public:
 	virtual void set_data(GRNotifications *_owner, String title, String text, GRNotifications::NotificationIcon icon, float duration_multiplier DEF_ARG(= 1.f), Ref<GRNotificationStyle> _style DEF_ARG(= Ref<GRNotificationStyle>()));
 	String get_title();
 	String get_text();
+	ENUM_ARG(GRNotifications::NotificationIcon)
+	get_icon_id();
 	void update_text(String text);
 
 	void _init();
@@ -204,7 +198,7 @@ public:
 };
 
 class GRNotificationPanelUpdatable : public GRNotificationPanel {
-	GD_S_CLASS(GRNotificationPanelUpdatable, GRNotificationPanel);
+	GD_CLASS(GRNotificationPanelUpdatable, GRNotificationPanel);
 
 	friend GRNotifications;
 
@@ -277,6 +271,33 @@ public:
 	void set_notification_icon(ENUM_ARG(GRNotifications::NotificationIcon) notification_icon, Ref<Texture> icon_texture);
 	Ref<Texture> get_notification_icon(ENUM_ARG(GRNotifications::NotificationIcon) notification_icon);
 
+	void _init();
+	void _deinit();
+};
+
+// SAFE ZONE
+
+class GRNotificationListWithSafeZone : public VBoxContainer {
+	GD_CLASS(GRNotificationListWithSafeZone, VBoxContainer);
+
+private:
+protected:
+#ifndef GDNATIVE_LIBRARY
+	static void _bind_methods();
+#else
+public:
+	static void _register_methods();
+
+protected:
+#endif
+
+	bool is_manual_changing = false;
+
+	void _on_resize();
+	void _notification(int p_what);
+
+public:
+	void _set_safe_zone();
 	void _init();
 	void _deinit();
 };

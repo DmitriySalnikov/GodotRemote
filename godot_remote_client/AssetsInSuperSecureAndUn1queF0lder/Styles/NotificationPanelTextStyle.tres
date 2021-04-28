@@ -3,6 +3,6 @@
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Fonts/Roboto-Light.ttf" type="DynamicFontData" id=1]
 
 [resource]
-size = 20
+size = 25
 use_filter = true
 font_data = ExtResource( 1 )

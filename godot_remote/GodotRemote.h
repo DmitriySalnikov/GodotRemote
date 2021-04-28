@@ -6,20 +6,9 @@
 #include "GRUtils.h"
 
 #ifndef GDNATIVE_LIBRARY
-#include "core/image.h"
-#include "core/pool_vector.h"
-#include "core/reference.h"
-
 #else
 #include "GRClient.h"
-
-#include <Array.hpp>
-#include <Godot.hpp>
-#include <Image.hpp>
 #include <Node.hpp>
-#include <PoolArrays.hpp>
-#include <Ref.hpp>
-#include <String.hpp>
 using namespace godot;
 #endif
 
@@ -59,22 +48,26 @@ public:
 	};
 
 	static GR_PS_NAME_TYPE ps_general_autoload_name;
+	static GR_PS_NAME_TYPE ps_general_use_static_port_name;
 	static GR_PS_NAME_TYPE ps_general_port_name;
+	static GR_PS_NAME_TYPE ps_general_auto_connection_port_name;
 	static GR_PS_NAME_TYPE ps_general_loglevel_name;
 
 	static GR_PS_NAME_TYPE ps_notifications_enabled_name;
 	static GR_PS_NAME_TYPE ps_noticications_position_name;
 	static GR_PS_NAME_TYPE ps_notifications_duration_name;
 
+	static GR_PS_NAME_TYPE ps_server_image_encoder_threads_count_name;
 	static GR_PS_NAME_TYPE ps_server_config_adb_name;
 	static GR_PS_NAME_TYPE ps_server_stream_skip_frames_name;
 	static GR_PS_NAME_TYPE ps_server_stream_enabled_name;
 	static GR_PS_NAME_TYPE ps_server_compression_type_name;
-	static GR_PS_NAME_TYPE ps_server_jpg_quality_name;
+	static GR_PS_NAME_TYPE ps_server_stream_quality_name;
 	static GR_PS_NAME_TYPE ps_server_jpg_buffer_mb_size_name;
 	static GR_PS_NAME_TYPE ps_server_auto_adjust_scale_name;
 	static GR_PS_NAME_TYPE ps_server_scale_of_sending_stream_name;
 	static GR_PS_NAME_TYPE ps_server_password_name;
+	static GR_PS_NAME_TYPE ps_server_target_fps_name;
 
 	static GR_PS_NAME_TYPE ps_server_custom_input_scene_name;
 	static GR_PS_NAME_TYPE ps_server_custom_input_scene_compressed_name;
@@ -85,24 +78,24 @@ private:
 	bool is_notifications_enabled = true;
 
 	class GRDevice *device = nullptr;
+	class Node *godot_remote_root_node = nullptr;
 
 	void register_and_load_settings();
 #ifndef GDNATIVE_LIBRARY
 #endif
 
-	void _create_notification_manager();
-	void _remove_notifications_manager();
+	void _create_autoload_nodes();
 
-#ifndef GDNATIVE_LIBRARY
-#ifdef TOOLS_ENABLED
+#if !defined(GDNATIVE_LIBRARY) && defined(TOOLS_ENABLED)
 	int64_t adb_pid = 0;
-	class Timer *adb_start_timer = nullptr;
+	bool is_adb_timer_active = false;
+	Ref<_Thread> adb_config_thread;
 
 	void _prepare_editor();
 	void _run_emitted();
 	void _adb_port_forwarding();
-	void _adb_start_timer_timeout();
-#endif
+	void _adb_config_thread(Variant user_data);
+	int _adb_try_configure(String adb_path);
 #endif
 
 protected:
@@ -139,56 +132,18 @@ public:
 	CONST_GET(GRNotifications, NotificationsPosition, BOTTOM_CENTER);
 	CONST_GET(GRNotifications, NotificationsPosition, BOTTOM_RIGHT);
 
-	// GRInputData
-	CONST_GET(GRInputData, InputType, _NoneIT);
-	CONST_GET(GRInputData, InputType, _InputDeviceSensors);
-	CONST_GET(GRInputData, InputType, _InputEvent);
-	CONST_GET(GRInputData, InputType, _InputEventAction);
-	CONST_GET(GRInputData, InputType, _InputEventGesture);
-	CONST_GET(GRInputData, InputType, _InputEventJoypadButton);
-	CONST_GET(GRInputData, InputType, _InputEventJoypadMotion);
-	CONST_GET(GRInputData, InputType, _InputEventKey);
-	CONST_GET(GRInputData, InputType, _InputEventMagnifyGesture);
-	CONST_GET(GRInputData, InputType, _InputEventMIDI);
-	CONST_GET(GRInputData, InputType, _InputEventMouse);
-	CONST_GET(GRInputData, InputType, _InputEventMouseButton);
-	CONST_GET(GRInputData, InputType, _InputEventMouseMotion);
-	CONST_GET(GRInputData, InputType, _InputEventPanGesture);
-	CONST_GET(GRInputData, InputType, _InputEventScreenDrag);
-	CONST_GET(GRInputData, InputType, _InputEventScreenTouch);
-	CONST_GET(GRInputData, InputType, _InputEventWithModifiers);
-	CONST_GET(GRInputData, InputType, _InputEventMAX);
-
-	// GRPacket
-	CONST_GET(GRPacket, PacketType, NonePacket);
-	CONST_GET(GRPacket, PacketType, SyncTime);
-	CONST_GET(GRPacket, PacketType, ImageData);
-	CONST_GET(GRPacket, PacketType, InputData);
-	CONST_GET(GRPacket, PacketType, ServerSettings);
-	CONST_GET(GRPacket, PacketType, MouseModeSync);
-	CONST_GET(GRPacket, PacketType, CustomInputScene);
-	CONST_GET(GRPacket, PacketType, ClientStreamOrientation);
-	CONST_GET(GRPacket, PacketType, ClientStreamAspect);
-	CONST_GET(GRPacket, PacketType, CustomUserData);
-	CONST_GET(GRPacket, PacketType, Ping);
-	CONST_GET(GRPacket, PacketType, Pong);
-	
 	// GRDevice
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_USE_INTERNAL);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_VIDEO_STREAM_ENABLED);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_COMPRESSION_TYPE);
-	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_JPG_QUALITY);
+	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_STREAM_QUALITY);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_SKIP_FRAMES);
 	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_RENDER_SCALE);
+	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_TARGET_FPS);
+	CONST_GET(GRDevice, TypesOfServerSettings, SERVER_SETTINGS_THREADS_NUMBER);
 
-	CONST_GET(GRDevice, ImageCompressionType, COMPRESSION_UNCOMPRESSED);
 	CONST_GET(GRDevice, ImageCompressionType, COMPRESSION_JPG);
-	CONST_GET(GRDevice, ImageCompressionType, COMPRESSION_PNG);
-
-	CONST_GET(GRDevice, Subsampling, SUBSAMPLING_Y_ONLY);
-	CONST_GET(GRDevice, Subsampling, SUBSAMPLING_H1V1);
-	CONST_GET(GRDevice, Subsampling, SUBSAMPLING_H2V1);
-	CONST_GET(GRDevice, Subsampling, SUBSAMPLING_H2V2);
+	CONST_GET(GRDevice, ImageCompressionType, COMPRESSION_H264);
 
 	CONST_GET(GRDevice, WorkingStatus, STATUS_STOPPED);
 	CONST_GET(GRDevice, WorkingStatus, STATUS_WORKING);
@@ -199,6 +154,7 @@ public:
 	// GRClient
 	CONST_GET(GRClient, ConnectionType, CONNECTION_ADB);
 	CONST_GET(GRClient, ConnectionType, CONNECTION_WiFi);
+	CONST_GET(GRClient, ConnectionType, CONNECTION_AUTO);
 
 	CONST_GET(GRClient, StretchMode, STRETCH_KEEP_ASPECT);
 	CONST_GET(GRClient, StretchMode, STRETCH_FILL);
@@ -206,7 +162,7 @@ public:
 	CONST_GET(GRClient, StreamState, STREAM_NO_SIGNAL);
 	CONST_GET(GRClient, StreamState, STREAM_ACTIVE);
 	CONST_GET(GRClient, StreamState, STREAM_NO_IMAGE);
-#endif // !NO_GODOTREMOTE_CLIENT
+#endif // NO_GODOTREMOTE_CLIENT
 
 protected:
 #endif
@@ -214,8 +170,11 @@ protected:
 	void _notification(int p_notification);
 
 public:
+	Node *get_root_node();
+
 	// GRNotifications
 	class GRNotificationPanel *get_notification(String title);
+	int notifications_connect(String signal, Object *inst, String method, Array binds, int64_t flags);
 	Array get_all_notifications();
 	Array get_notifications_with_title(String title);
 
@@ -223,7 +182,8 @@ public:
 	int get_notifications_layer();
 
 	void set_notifications_position(ENUM_ARG(GRNotifications::NotificationsPosition) positon);
-	ENUM_ARG(GRNotifications::NotificationsPosition) get_notifications_position();
+	ENUM_ARG(GRNotifications::NotificationsPosition)
+	get_notifications_position();
 
 	void set_notifications_enabled(bool _enabled);
 	bool get_notifications_enabled();
@@ -244,10 +204,16 @@ public:
 
 	// GRUtils functions binds for GDScript
 	void set_log_level(ENUM_ARG(LogLevel) lvl);
+	Rect2 get_2d_safe_area(CanvasItem *ci);
+
 	void set_gravity(const Vector3 &p_gravity);
 	void set_accelerometer(const Vector3 &p_accel);
 	void set_magnetometer(const Vector3 &p_magnetometer);
 	void set_gyroscope(const Vector3 &p_gyroscope);
+
+	void print_str(String txt);
+	void print_error_str(String txt, String func, String file, int line);
+	void print_warning_str(String txt, String func, String file, int line);
 	// GRUtils end
 
 	GRDevice *get_device();

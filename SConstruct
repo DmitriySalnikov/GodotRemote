@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-
+#!/usr/bin/env python3
 import os
 import sys
 import subprocess
+from godot_remote import lib_utils
 
 if sys.version_info < (3,):
     def decode_utf8(x):
@@ -86,7 +86,7 @@ opts.Add(EnumVariable(
     'platform',
     'Target platform',
     host_platform,
-    allowed_values=('linux', 'freebsd', 'osx', 'windows', 'android', 'ios'),
+    allowed_values=('linux', 'freebsd', 'osx', 'windows', 'android', 'ios', 'javascript'),
     ignorecase=2
 ))
 opts.Add(EnumVariable(
@@ -175,28 +175,7 @@ opts.Add(BoolVariable(
 	True
 ))
 
-# GODOT REMOTE CUSTOM OPTIONS
-
-opts.Add(BoolVariable(
-    'godot_remote_no_default_resources',
-    'Compile without embeded resources.',
-    False
-))
-opts.Add(BoolVariable(
-    'godot_remote_disable_server',
-    'Compile without server side.',
-    False
-))
-opts.Add(BoolVariable(
-    'godot_remote_disable_client',
-    'Compile without client side.',
-    False
-))
-
-# END
-
-opts.Update(env)
-Help(opts.GenerateHelpText(env))
+lib_utils.setup_options(env, opts, lambda e: Help(opts.GenerateHelpText(e)), True)
 
 # This makes sure to keep the session environment variables on Windows.
 # This way, you can run SCons in a Visual Studio 2017 prompt and it will find
@@ -210,7 +189,6 @@ if host_platform == 'windows' and env['platform'] != 'android':
     opts.Update(env)
 
 if env['platform'] == 'linux' or env['platform'] == 'freebsd':
-    env['SHLIBSUFFIX'] = '.so'
     if env['use_llvm']:
         env['CXX'] = 'clang++'
 
@@ -232,7 +210,7 @@ if env['platform'] == 'linux' or env['platform'] == 'freebsd':
 elif env['platform'] == 'osx':
     # Use Clang on macOS by default
     env['CXX'] = 'clang++'
-    env['SHLIBSUFFIX'] = '.dylib'
+
     if env['bits'] == '32':
         raise ValueError(
             'Only 64-bit builds are supported for the macOS target.'
@@ -257,7 +235,6 @@ elif env['platform'] == 'osx':
         env.Append(CCFLAGS=['-O3'])
 
 elif env['platform'] == 'ios':
-    env['SHLIBSUFFIX'] = '.dylib'
     if env['ios_simulator']:
         sdk_name = 'iphonesimulator'
         env.Append(CCFLAGS=['-mios-simulator-version-min=10.0'])
@@ -296,7 +273,6 @@ elif env['platform'] == 'ios':
         env.Append(CCFLAGS=['-O3'])
 
 elif env['platform'] == 'windows':
-    env['SHLIBSUFFIX'] = '.dll'
     if host_platform == 'windows' and not env['use_mingw']:
         # MSVC
         env.Append(LINKFLAGS=['/WX'])
@@ -338,13 +314,6 @@ elif env['platform'] == 'windows':
         ])
 
 elif env['platform'] == 'android':
-    env['SHLIBSUFFIX'] = '.so'
-    
-    if env['target'] == 'debug':
-        env.Append(CCFLAGS=['-Og'])
-    elif env['target'] == 'release':
-        env.Append(CCFLAGS=['-O3'])
-    
     if host_platform == 'windows':
         # Don't Clone the environment. Because otherwise, SCons will pick up msvc stuff.
         env = Environment(ENV = os.environ, tools=["mingw"])
@@ -405,28 +374,40 @@ elif env['platform'] == 'android':
     env.Append(CCFLAGS=['--target=' + arch_info['target'] + env['android_api_level'], '-march=' + arch_info['march'], '-fPIC'])#, '-fPIE', '-fno-addrsig', '-Oz'])
     env.Append(CCFLAGS=arch_info['ccflags'])
 
-arch_suffix = env['bits']
-if env['platform'] == 'android':
-    arch_suffix = env['android_arch']
-if env['platform'] == 'ios':
-    arch_suffix = env['ios_arch']
+elif env["platform"] == "javascript":
+    env["ENV"] = os.environ
+    env["CC"] = "emcc"
+    env["CXX"] = "em++"
+    env["AR"] = "emar"
+    env["RANLIB"] = "emranlib"
+    env.Append(CPPFLAGS=["-s", "SIDE_MODULE=1"])
+    env.Append(LINKFLAGS=["-s", "SIDE_MODULE=1"])
+    env["SHOBJSUFFIX"] = ".bc"
+    env["SHLIBSUFFIX"] = ".wasm"
+    # Use TempFileMunge since some AR invocations are too long for cmd.exe.
+    # Use POSIX-style paths, required with TempFileMunge.
+    env["ARCOM_POSIX"] = env["ARCOM"].replace("$TARGET", "$TARGET.posix").replace("$SOURCES", "$SOURCES.posix")
+    env["ARCOM"] = "${TEMPFILE(ARCOM_POSIX)}"
+
+    # All intermediate files are just LLVM bitcode.
+    env["OBJPREFIX"] = ""
+    env["OBJSUFFIX"] = ".bc"
+    env["PROGPREFIX"] = ""
+    # Program() output consists of multiple files, so specify suffixes manually at builder.
+    env["PROGSUFFIX"] = ""
+    env["LIBPREFIX"] = "lib"
+    env["LIBSUFFIX"] = ".bc"
+    env["LIBPREFIXES"] = ["$LIBPREFIX"]
+    env["LIBSUFFIXES"] = ["$LIBSUFFIX"]
+    env.Replace(SHLINKFLAGS='$LINKFLAGS')
+    env.Replace(SHLINKFLAGS='$LINKFLAGS')
 
 env.Append(CPPPATH=[
     '.',
     env['headers_dir'],
-    'godot_remote',
-    'godot-cpp/include',
-    'godot-cpp/include/gen',
-    'godot-cpp/include/core',
-])
-
-env.Append(LIBPATH=['godot-cpp/bin/'])
-env.Append(LIBS=[
-        'libgodot-cpp.{}.{}.{}{}'.format( # godot-cpp lib
-        env['platform'],
-        env['target'],
-        arch_suffix,
-        env['LIBSUFFIX']),
+    'include',
+    'include/gen',
+    'include/core',
 ])
 
 # Generate bindings?
@@ -443,28 +424,4 @@ if env['generate_bindings'] == 'auto':
 else:
     should_generate_bindings = env['generate_bindings'] in ['yes', 'true']
 
-env.Append(CPPDEFINES=['GDNATIVE_LIBRARY'])
-
-if env['godot_remote_no_default_resources'] == True:
-    env.Append(CPPDEFINES=['NO_GODOTREMOTE_DEFAULT_RESOURCES'])
-
-if env['godot_remote_disable_server'] == True:
-    env.Append(CPPDEFINES=['NO_GODOTREMOTE_SERVER'])
-
-if env['godot_remote_disable_client'] == True:
-    env.Append(CPPDEFINES=['NO_GODOTREMOTE_CLIENT'])
-
-# Sources to compile
-sources = []
-add_sources(sources, 'godot_remote', 'cpp')
-
-library = env.SharedLibrary(
-    target='bin/' + 'godot_remote.{}.{}.{}{}'.format(
-        env['platform'],
-        env['target'],
-        arch_suffix,
-        env['SHLIBSUFFIX']
-        #env['LIBSUFFIX']
-    ), source=sources
-)
-Default(library)
+Default(lib_utils.gdnative_get_library_object(env))

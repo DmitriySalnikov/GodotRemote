@@ -8,37 +8,66 @@ enum RateState{
 
 enum StatInfoState{
 	Hidden = 0,
-	Simple = 1,
-	Detailed = 2,
+	All = 1,
+	Simple = 2,
+	Detailed = 3,
+	Traffic = 4,
+}
+
+enum A_ProgressStatus{
+	Start = 0,
+	Fail = 1,
+	Complete = 2
+}
+
+enum A_ErrorSeverity{
+	Debug = 0,
+	Info = 1,
+	Warning = 2,
+	Error = 3,
+	Critical = 4
 }
 
 signal show_stats_changed(state)
+signal touches_to_open_settings_changed(count)
 
 const CLIENT_VERSION := 0
 const SAVE_FILE := "user://settings.json"
 
 var IsMobile : bool = false
+var GodotRemoteRootNode : Control = null
 var Billings : Node = null
+var Analytics : Node = null
+
+var GameHighScore := 0 setget set_game_score
+var GameShowAfterConnectionErrors := true setget set_game_show_after_errors
 
 var VersionChanged : bool = false
 var PreviousVersion : String = ""
 var AppRuns : int = 0
 var TotalAppRuns : int = 0
+var FirstRunAgreementAccepted : bool = false setget set_first_run_agreement_accepted
+var FirstConnectionSuccessful : bool = false setget set_first_connection_successful
 var TouchesToOpenSettings : int = 5 setget set_touches_to_open_settings
 var UserRateState : int = RateState.NotNow setget set_user_rate_state
 
 var device_id : String = "" setget set_device_id
-var connection_type : int = 0 setget set_con_type
+var connection_type : int = 2 setget set_con_type
 var ip : String = "127.0.0.1" setget set_ip
-var port : int = 52341 setget set_port
+var port : int = 22766 setget set_port
+var auto_listener_port : int = 22765 setget set_auto_listener_port
+var auto_addresses : PoolStringArray = [] setget set_auto_addresses
+var auto_port : int = 0 setget set_auto_port
+var auto_project_name : String = "" setget set_auto_project_name
 var stretch_mode : int = 0 setget set_stretch_mode
-var target_send_fps : int = 60 setget set_target_send_fps
+var target_send_fps : int = 120 setget set_target_send_fps
 var texture_filtering : bool = true setget set_texture_filtering
 var password : String = "" setget set_password
 var sync_viewport_orientation : bool = true setget set_sync_viewport_orientation
 var sync_viewport_aspect_ratio : bool = true setget set_sync_viewport_aspect_ratio
 var keepscreenon : bool = false setget set_keep_screen_on
 var capture_input_when_custom_scene : bool = false setget set_capture_input_when_custom_scene
+var decoder_threads_number : int = 2 setget set_decoder_threads_number
 
 var show_stats : int = StatInfoState.Hidden setget set_show_stats
 
@@ -46,9 +75,11 @@ var override_server_settings : bool = false setget set_override_settings
 var sync_server_settings : bool = false setget set_sync_server_settings
 var server_video_stream : bool = true setget set_server_video_stream
 var server_compression_type : int = 1 setget set_server_compression_type
-var server_jpg_quality : int = 80 setget set_server_jpg_quality
-var server_render_scale : float = 0.3 setget set_server_render_scale
+var server_quality : int = 90 setget set_server_jpg_quality
+var server_render_scale : float = 0.5 setget set_server_render_scale
 var server_skip_fps : int = 0 setget set_server_skip_fps
+var server_target_fps : int = 60 setget set_server_target_fps
+var server_threads_number : int = 2 setget set_server_threads_number
 
 func get_random_hash(length : int = 6) -> String:
 	return str(randi() * randi()).md5_text().substr(0,length)
@@ -59,6 +90,8 @@ func _enter_tree():
 	
 	var d = Directory.new()
 	d.open("res://") # godot in some versions print error if derectory not opened
+	
+	# Billing
 	var f = "res://An0therUn1queN@meOfF0lderForSecur1tyPurp0ses/AndroidBilling.gd"
 	var fc = f+"c"
 	if OS.has_feature("Android") and OS.has_feature("billing") and (d.file_exists(f) or d.file_exists(fc)):
@@ -67,6 +100,16 @@ func _enter_tree():
 			print("Android Billings Loaded")
 			Billings = b.new()
 			add_child(Billings)
+	
+	# Analytics
+	f = "res://An0therUn1queN@meOfF0lderForSecur1tyPurp0ses/Analytics.gd"
+	fc = f+"c"
+	if Engine.has_singleton("GameAnalytics") and (d.file_exists(f) or d.file_exists(fc)):
+		var a = load(f)
+		if a:
+			print("GameAnalytics Loaded")
+			Analytics = a.new()
+			add_child(Analytics)
 
 func _ready():
 	randomize()
@@ -85,7 +128,9 @@ func _ready():
 	_set_all_values()
 	_setup_notifications_style()
 	_add_runs()
-	#GodotRemote.set_log_level(GodotRemote.LL_Debug)
+	
+	# DEBUG
+	#GodotRemote.set_log_level(GodotRemote.LL_DEBUG)
 	
 	yield(get_tree(), "idle_frame")
 	if Billings:
@@ -125,6 +170,9 @@ func _set_all_values():
 	
 	dev.device_id = device_id
 	dev.set_address_port(ip, port)
+	dev.set_decoder_threads_count(decoder_threads_number)
+	dev.set_current_auto_connect_server(auto_project_name, auto_addresses, auto_port, false, 0, true)
+	dev.auto_connection_port = auto_listener_port
 	dev.connection_type = connection_type
 	dev.stretch_mode = stretch_mode
 	dev.target_send_fps = target_send_fps
@@ -133,30 +181,47 @@ func _set_all_values():
 	dev.server_settings_syncing = sync_server_settings
 	dev.viewport_orientation_syncing = sync_viewport_orientation
 	dev.viewport_aspect_ratio_syncing = sync_viewport_aspect_ratio
+	dev.set_decoder_threads_count(decoder_threads_number)
 	OS.keep_screen_on = keepscreenon
 	
 	if override_server_settings:
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_VIDEO_STREAM_ENABLED, server_video_stream)
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_COMPRESSION_TYPE, server_compression_type)
-		dev.set_server_setting(C.GRDevice_SERVER_PARAM_JPG_QUALITY, server_jpg_quality)
+		dev.set_server_setting(C.GRDevice_SERVER_PARAM_STREAM_QUALITY, server_quality)
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_RENDER_SCALE, server_render_scale)
 		dev.set_server_setting(C.GRDevice_SERVER_PARAM_SKIP_FRAMES, server_skip_fps)
+		dev.set_server_setting(C.GRDevice_SERVER_PARAM_TARGET_FPS, server_target_fps)
+		dev.set_server_setting(C.GRDevice_SERVER_PARAM_THREADS_NUMBER, server_threads_number)
 	
 	if i_w:
 		dev.start()
 
+
+#########################################################
+#                       SAVE/LOAD
+#########################################################
+
 func _save_settings():
 	var d = Dictionary()
 	
+	d["game_highscore"] = GameHighScore
+	d["game_show_after_errors"] = GameShowAfterConnectionErrors
+	
 	d["m_version"] = get_version()
+	d["first_run_accepted"] = FirstRunAgreementAccepted
+	d["first_connection_successful"] = FirstConnectionSuccessful
 	d["app_runs"] = AppRuns
 	d["total_app_runs"] = TotalAppRuns
 	d["touches_to_open_settings"] = TouchesToOpenSettings
 	d["user_rate_state"] = UserRateState
 	d["device_id"] = device_id
-	d["con_type"] = connection_type
+	d["connection_type"] = connection_type
 	d["ip"] = ip
 	d["port"] = port
+	d["auto_listener_port"] = auto_listener_port
+	d["auto_addresses"] = auto_addresses
+	d["auto_port"] = auto_port
+	d["auto_project_name"] = auto_project_name
 	d["stretch"] = stretch_mode
 	d["stats"] = show_stats
 	d["target_fps"] = target_send_fps
@@ -164,16 +229,19 @@ func _save_settings():
 	d["password"] = password
 	d["v_orient"] = sync_viewport_orientation
 	d["v_aspect"] = sync_viewport_aspect_ratio
+	d["decoder_threads"] = decoder_threads_number
 	d["keepscreenon"] = keepscreenon
 	d["capture_input_when_custom_scene"] = capture_input_when_custom_scene
 	
 	d["ov_s_settings"] = override_server_settings
 	d["sync_s_settings"] = sync_server_settings
 	d["s_video_stream"] = server_video_stream
-	d["s_jpg_quality"] = server_jpg_quality
+	d["s_quality"] = server_quality
 	d["s_render_scale"] = server_render_scale
 	d["s_skip_fps"] = server_skip_fps
+	d["s_target_fps"] = server_target_fps
 	d["s_compression_type"] = server_compression_type
+	d["s_threads_number"] = server_threads_number
 	
 	var dir = Directory.new()
 	
@@ -201,21 +269,30 @@ func _load_settings():
 			f.close()
 			var d = parse_json(txt)
 			
-			PreviousVersion = _safe_get_from_dict(d, "m_version", get_version()) 
+			GameHighScore = _safe_get_from_dict(d, "game_highscore", GameHighScore)
+			GameShowAfterConnectionErrors = _safe_get_from_dict(d, "game_show_after_errors", GameShowAfterConnectionErrors)
+			
+			PreviousVersion = _safe_get_from_dict(d, "m_version", get_version())
 			VersionChanged = PreviousVersion != get_version()
 			if VersionChanged:
 				AppRuns = 0
 			else:
 				AppRuns = _safe_get_from_dict(d, "app_runs", AppRuns)
 			
+			FirstRunAgreementAccepted = _safe_get_from_dict(d, "first_run_accepted", FirstRunAgreementAccepted) 
+			FirstConnectionSuccessful = _safe_get_from_dict(d, "first_connection_successful", FirstConnectionSuccessful) 
 			TotalAppRuns = _safe_get_from_dict(d, "total_app_runs", TotalAppRuns)
 			TouchesToOpenSettings = _safe_get_from_dict(d, "touches_to_open_settings", TouchesToOpenSettings)
 			UserRateState = _safe_get_from_dict(d, "user_rate_state", UserRateState)
 			
 			device_id = _safe_get_from_dict(d, "device_id", device_id)
-			connection_type = _safe_get_from_dict(d, "con_type", connection_type)
+			connection_type = _safe_get_from_dict(d, "connection_type", connection_type)
 			ip = _safe_get_from_dict(d, "ip", ip)
 			port = _safe_get_from_dict(d, "port", port)
+			auto_listener_port = _safe_get_from_dict(d, "auto_listener_port", auto_listener_port)
+			auto_addresses = _safe_get_from_dict(d, "auto_addresses", auto_addresses)
+			auto_port = _safe_get_from_dict(d, "auto_port", auto_port)
+			auto_project_name = _safe_get_from_dict(d, "auto_project_name", auto_project_name)
 			stretch_mode = _safe_get_from_dict(d, "stretch", stretch_mode)
 			show_stats = _safe_get_from_dict(d, "stats", show_stats)
 			target_send_fps = _safe_get_from_dict(d, "target_fps", target_send_fps)
@@ -223,28 +300,109 @@ func _load_settings():
 			password = _safe_get_from_dict(d, "password", password)
 			sync_viewport_orientation = _safe_get_from_dict(d, "v_orient", sync_viewport_orientation)
 			sync_viewport_aspect_ratio = _safe_get_from_dict(d, "v_aspect", sync_viewport_aspect_ratio)
+			decoder_threads_number = _safe_get_from_dict(d, "decoder_threads", decoder_threads_number)
 			keepscreenon = _safe_get_from_dict(d, "keepscreenon", keepscreenon)
 			capture_input_when_custom_scene = _safe_get_from_dict(d, "capture_input_when_custom_scene", capture_input_when_custom_scene)
 			
 			override_server_settings = _safe_get_from_dict(d, "ov_s_settings", override_server_settings)
 			sync_server_settings = _safe_get_from_dict(d, "sync_s_settings", sync_server_settings)
 			server_video_stream = _safe_get_from_dict(d, "s_video_stream", server_video_stream)
-			server_jpg_quality = _safe_get_from_dict(d, "s_jpg_quality", server_jpg_quality)
+			server_quality = _safe_get_from_dict(d, "s_quality", server_quality)
 			server_render_scale = _safe_get_from_dict(d, "s_render_scale", server_render_scale)
 			server_skip_fps = _safe_get_from_dict(d, "s_skip_fps", server_skip_fps)
+			server_target_fps = _safe_get_from_dict(d, "s_target_fps", server_target_fps)
 			server_compression_type = _safe_get_from_dict(d, "s_compression_type", server_compression_type)
+			server_threads_number = _safe_get_from_dict(d, "s_threads_number", server_threads_number)
+			
+			_check_for_outdated_values()
+
+func _check_for_outdated_values() -> void:
+	if server_compression_type == 2:
+		server_compression_type = 1
+	
+	_save_settings()
 
 func _safe_get_from_dict(dict:Dictionary, val, def):
 	if dict.has(val):
-		return dict[val]
+		var r = dict[val]
+		return r if r != null else def
 	return def
+
+#########################################################
+#                        UTILS
+#########################################################
 
 func get_version() -> String:
 	return "%s.%d" % [GodotRemote.get_version(), CLIENT_VERSION]
 
+func get_margin_rect(vp_size : Vector2, ControlToHandle : Control, custom_left : float, custom_top : float, custom_right : float, custom_bottom : float) -> Rect2:
+	var rect = GodotRemote.get_2d_safe_area(ControlToHandle)
+	#var vp_size = ControlToHandle.get_parent_area_size()
+	
+	return Rect2(
+		rect.position.x + custom_left,
+		rect.position.y + custom_top,
+		vp_size.x - (rect.position.x + rect.size.x) + custom_right,
+		vp_size.y - (rect.position.y + rect.size.y) + custom_bottom
+	)
+
+func create_tex_filtered(img : Image):
+	if img and not img.is_empty() and img.get_width() > 0 and img.get_height() > 0:
+		var tex = ImageTexture.new()
+		tex.create_from_image(img, Texture.FLAG_FILTER)
+		return tex
+	else:
+		return null
+
+#########################################################
+#                       ANALYTICS
+#########################################################
+
+func a_business_event(cartType: String, itemType: String, itemId: String, amount: int, currency: String, receipt: String = "", signature: String = "") -> void:
+	if Analytics:
+		Analytics.business_event(cartType, itemType, itemId, amount, currency, receipt, signature)
+
+func a_design_event(eventId: String, value: float = NAN) -> void:
+	if Analytics:
+		Analytics.design_event(eventId, value)
+
+func a_progression_event(status: int, first: String, second: String = "", third: String = "", score: int = -9223372036854775807) -> void:
+	if Analytics:
+		Analytics.progression_event(status, first, second, third, score)
+
+func a_error_event(severity: int, message: String = "") -> void:
+	if Analytics:
+		Analytics.error_event(severity, message)
+
+func a_resource_event(flowType_is_source: bool, currency: String, amount: float, itemType: String, itemId: String) -> void:
+	if Analytics:
+		Analytics.resource_event(flowType_is_source, currency, amount, itemType, itemId)
+
+
+#########################################################
+#                        SETGET
+#########################################################
+
+func set_game_score(val : int):
+	GameHighScore = val
+	_save_settings()
+
+func set_game_show_after_errors(val : bool):
+	GameShowAfterConnectionErrors = val
+	_save_settings()
+
+func set_first_run_agreement_accepted(val : bool):
+	FirstRunAgreementAccepted = val
+	_save_settings()
+
+func set_first_connection_successful(val : bool):
+	FirstConnectionSuccessful = val
+	_save_settings()
+
 func set_touches_to_open_settings(val : int):
 	TouchesToOpenSettings = val
 	_save_settings()
+	emit_signal("touches_to_open_settings_changed", val)
 
 func set_user_rate_state(val : int):
 	UserRateState = val
@@ -264,6 +422,22 @@ func set_ip(val : String):
 
 func set_port(val : int):
 	port = val
+	_save_settings()
+
+func set_auto_listener_port(val : int):
+	auto_listener_port = val
+	_save_settings()
+
+func set_auto_addresses(val : PoolStringArray):
+	auto_addresses = val
+	_save_settings()
+
+func set_auto_port(val : int):
+	auto_port = val
+	_save_settings()
+
+func set_auto_project_name(val : String):
+	auto_project_name = val
 	_save_settings()
 
 func set_stretch_mode(val : int):
@@ -295,6 +469,10 @@ func set_sync_viewport_aspect_ratio(val : bool):
 	sync_viewport_aspect_ratio = val
 	_save_settings()
 
+func set_decoder_threads_number(val : int):
+	decoder_threads_number = val
+	_save_settings()
+
 func set_keep_screen_on(val : bool):
 	keepscreenon = val
 	_save_settings()
@@ -320,7 +498,7 @@ func set_server_compression_type(val : int):
 	_save_settings()
 
 func set_server_jpg_quality(val : int):
-	server_jpg_quality = val
+	server_quality = val
 	_save_settings()
 
 func set_server_render_scale(val : float):
@@ -329,4 +507,12 @@ func set_server_render_scale(val : float):
 
 func set_server_skip_fps(val : int):
 	server_skip_fps = val
+	_save_settings()
+
+func set_server_target_fps(val : int):
+	server_target_fps = val
+	_save_settings()
+
+func set_server_threads_number(val : int):
+	server_threads_number = val
 	_save_settings()

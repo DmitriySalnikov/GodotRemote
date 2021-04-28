@@ -5,10 +5,7 @@
 #ifndef GDNATIVE_LIBRARY
 #include "core/io/stream_peer.h"
 #include "core/os/input_event.h"
-#include "core/reference.h"
 #else
-#include <Array.hpp>
-#include <Godot.hpp>
 #include <InputEvent.hpp>
 #include <InputEventAction.hpp>
 #include <InputEventGesture.hpp>
@@ -24,12 +21,8 @@
 #include <InputEventScreenDrag.hpp>
 #include <InputEventScreenTouch.hpp>
 #include <InputEventWithModifiers.hpp>
-#include <PoolArrays.hpp>
-#include <Ref.hpp>
-#include <Reference.hpp>
 #include <StreamPeer.hpp>
 #include <StreamPeerBuffer.hpp>
-#include <String.hpp>
 using namespace godot;
 #endif
 
@@ -37,8 +30,7 @@ using namespace godot;
 // BASE CLASS
 
 // GodotRemoteInputData
-class GRInputData : public Reference {
-	GD_CLASS(GRInputData, Reference);
+class GRInputData {
 	friend class GRInputDeviceSensorsData;
 
 public:
@@ -67,62 +59,21 @@ public:
 	};
 
 protected:
-#ifndef GDNATIVE_LIBRARY
-	static void _bind_methods() {
-		BIND_ENUM_CONSTANT(_NoneIT);
-		BIND_ENUM_CONSTANT(_InputDeviceSensors);
-
-		BIND_ENUM_CONSTANT(_InputEvent);
-		BIND_ENUM_CONSTANT(_InputEventAction);
-		BIND_ENUM_CONSTANT(_InputEventGesture);
-		BIND_ENUM_CONSTANT(_InputEventJoypadButton);
-		BIND_ENUM_CONSTANT(_InputEventJoypadMotion);
-		BIND_ENUM_CONSTANT(_InputEventKey);
-		BIND_ENUM_CONSTANT(_InputEventMagnifyGesture);
-		BIND_ENUM_CONSTANT(_InputEventMIDI);
-		BIND_ENUM_CONSTANT(_InputEventMouse);
-		BIND_ENUM_CONSTANT(_InputEventMouseButton);
-		BIND_ENUM_CONSTANT(_InputEventMouseMotion);
-		BIND_ENUM_CONSTANT(_InputEventPanGesture);
-		BIND_ENUM_CONSTANT(_InputEventScreenDrag);
-		BIND_ENUM_CONSTANT(_InputEventScreenTouch);
-		BIND_ENUM_CONSTANT(_InputEventWithModifiers);
-		BIND_ENUM_CONSTANT(_InputEventMAX);
-	}
-#else
-public:
-	void _init(){};
-	static void _register_methods(){};
-protected:
-#endif
-
-	Ref<StreamPeerBuffer> data;
+	PoolByteArray input_data;
 	virtual InputType _get_type() { return InputType::_NoneIT; };
 
 public:
-	GRInputData() {
-		data = Ref<StreamPeerBuffer>(memnew(StreamPeerBuffer));
-	}
-
-	~GRInputData() {
-		data->resize(0);
-	}
-
 	PoolByteArray get_data() {
-		return data->get_data_array();
-	}
-	void set_data(PoolByteArray &_data) {
-		data->set_data_array(_data);
+		return input_data;
 	}
 	virtual InputType get_type() {
-		if (data->get_size()) {
-			data->seek(0);
-			return (InputType)data->get_8();
+		if (input_data.size() > 0) {
+			return (InputType)input_data[0];
 		} else {
 			return _get_type();
 		}
 	};
-	static Ref<GRInputData> create(const PoolByteArray &buf);
+	static std::shared_ptr<GRInputData> create(const PoolByteArray &buf);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -134,11 +85,7 @@ public:
 
 // Device Sensors
 class GRInputDeviceSensorsData : public GRInputData {
-	GD_S_CLASS(GRInputDeviceSensorsData, GRInputData);
-
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
 	virtual InputType _get_type() override { return InputType::_InputDeviceSensors; };
 
 public:
@@ -151,18 +98,14 @@ public:
 
 // GodotRemoteInputEventData
 class GRInputDataEvent : public GRInputData {
-	GD_S_CLASS(GRInputDataEvent, GRInputData);
-
 protected:
-	GDNATIVE_BASIC_REGISTER;
-
-	virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2 &rect) {
+	virtual Ref<InputEvent> _construct_event(StreamPeerBuffer *data, Ref<InputEvent> ev, const Rect2 &rect) {
 		data->seek(0);
 		data->get_8();
 		ev->set_device(data->get_32());
-		return data;
+		return ev;
 	};
-	virtual void _parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) {
+	virtual void _parse_event(StreamPeerBuffer *data, const Ref<InputEvent> &ev, const Rect2 &rect) {
 		data->resize(0);
 		data->put_8((uint8_t)get_type());
 		data->put_32(ev->get_device());
@@ -171,23 +114,20 @@ protected:
 
 public:
 	Ref<InputEvent> construct_event(const Rect2 &rect = Rect2());
-	static Ref<GRInputDataEvent> parse_event(const Ref<InputEvent> &ev, const Rect2 &rect);
+	static std::shared_ptr<GRInputDataEvent> parse_event(const Ref<InputEvent> &ev, const Rect2 &rect);
 };
 
-#define INPUT_EVENT_DATA(__class, _parent, _type)                                                 \
-	class __class : public _parent {                                                              \
-		GD_S_CLASS(__class, _parent);                                                             \
-		friend GRInputDataEvent;                                                                  \
-		friend GRInputData;                                                                       \
-                                                                                                  \
-	protected:                                                                                    \
-		GDNATIVE_BASIC_REGISTER;                                                                  \
-                                                                                                  \
-		virtual Ref<InputEvent> _construct_event(Ref<InputEvent> ev, const Rect2 &rect) override; \
-		virtual void _parse_event(const Ref<InputEvent> &ev, const Rect2 &rect) override;         \
-		virtual InputType _get_type() override { return _type; };                                 \
-                                                                                                  \
-	public:                                                                                       \
+#define INPUT_EVENT_DATA(__class, _parent, _type)                                                                         \
+	class __class : public _parent {                                                                                      \
+		friend GRInputDataEvent;                                                                                          \
+		friend GRInputData;                                                                                               \
+                                                                                                                          \
+	protected:                                                                                                            \
+		virtual Ref<InputEvent> _construct_event(StreamPeerBuffer *data, Ref<InputEvent> ev, const Rect2 &rect) override; \
+		virtual void _parse_event(StreamPeerBuffer *data, const Ref<InputEvent> &ev, const Rect2 &rect) override;         \
+		virtual InputType _get_type() override { return _type; };                                                         \
+                                                                                                                          \
+	public:                                                                                                               \
 	}
 
 INPUT_EVENT_DATA(GRIEDataWithModifiers, GRInputDataEvent, InputType::_InputEventWithModifiers);
@@ -207,7 +147,3 @@ INPUT_EVENT_DATA(GRIEDataAction, GRInputDataEvent, InputType::_InputEventAction)
 INPUT_EVENT_DATA(GRIEDataMIDI, GRInputDataEvent, InputType::_InputEventMIDI);
 
 #undef INPUT_EVENT_DATA
-
-#ifndef GDNATIVE_LIBRARY
-VARIANT_ENUM_CAST(GRInputData::InputType)
-#endif

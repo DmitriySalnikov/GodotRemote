@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=2]
+[gd_scene load_steps=26 format=2]
 
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/GodotRemoteClient.gd" type="Script" id=1]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalLight.tres" type="DynamicFont" id=2]
@@ -10,8 +10,71 @@
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/PlsRatePopup.gd" type="Script" id=8]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/PlsSupportPopup.gd" type="Script" id=9]
 [ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/Changelog.gd" type="Script" id=10]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Styles/PopupPanelWithMargin.tres" type="StyleBox" id=11]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scenes/FullWindowSafeAreaSetter.tscn" type="PackedScene" id=13]
+[ext_resource path="res://AssetsInSuperSecureAndUn1queF0lder/Scripts/FullWindowSafeAreaObject.gd" type="Script" id=14]
 
-[sub_resource type="StyleBoxFlat" id=1]
+[sub_resource type="Resource" id=1]
+script = ExtResource( 14 )
+ControlToHandle = NodePath("../Changelog/HBoxContainer")
+Left = 16.0
+Top = 16.0
+Right = 16.0
+Bottom = 16.0
+IsRootObjectOfPanel = true
+ChangeParentSizeToFullwindow = true
+
+[sub_resource type="Resource" id=2]
+script = ExtResource( 14 )
+ControlToHandle = NodePath("../Welcome/VBox")
+Left = 16.0
+Top = 16.0
+Right = 16.0
+Bottom = 16.0
+IsRootObjectOfPanel = true
+ChangeParentSizeToFullwindow = true
+
+[sub_resource type="Resource" id=3]
+script = ExtResource( 14 )
+ControlToHandle = NodePath("../OpenSettingsWithoutSignal")
+Left = 16.0
+Top = 16.0
+Right = 16.0
+Bottom = 16.0
+IsRootObjectOfPanel = false
+ChangeParentSizeToFullwindow = false
+
+[sub_resource type="Resource" id=4]
+script = ExtResource( 14 )
+ControlToHandle = NodePath("../CustomPopupTextInput/Box")
+Left = 32.0
+Top = 32.0
+Right = 32.0
+Bottom = 32.0
+IsRootObjectOfPanel = true
+ChangeParentSizeToFullwindow = true
+
+[sub_resource type="Resource" id=5]
+script = ExtResource( 14 )
+ControlToHandle = NodePath("../Stream")
+Left = 0.0
+Top = 0.0
+Right = 0.0
+Bottom = 0.0
+IsRootObjectOfPanel = false
+ChangeParentSizeToFullwindow = false
+
+[sub_resource type="Resource" id=6]
+script = ExtResource( 14 )
+ControlToHandle = NodePath("../Stats")
+Left = 0.0
+Top = 0.0
+Right = 0.0
+Bottom = 0.0
+IsRootObjectOfPanel = false
+ChangeParentSizeToFullwindow = false
+
+[sub_resource type="StyleBoxFlat" id=7]
 bg_color = Color( 0.133333, 0.164706, 0.188235, 0.815686 )
 border_width_left = 4
 border_width_top = 4
@@ -20,21 +83,44 @@ border_width_bottom = 4
 border_color = Color( 0.0901961, 0.109804, 0.12549, 0.847059 )
 corner_detail = 1
 
-[sub_resource type="Theme" id=2]
+[sub_resource type="Theme" id=8]
 default_font = ExtResource( 2 )
 
-[sub_resource type="GDScript" id=3]
+[sub_resource type="GDScript" id=9]
 script/source = "extends Button
 
 func _pressed() -> void:
 	OS.shell_open(\"https://github.com/DmitriySalnikov/GodotRemote#godot-remote\")
 "
 
-[sub_resource type="GDScript" id=4]
+[sub_resource type="GDScript" id=10]
 script/source = "extends Button
 
 func _pressed() -> void:
-	get_parent().get_parent().hide()
+	get_parent().get_parent().get_parent().get_parent().show_changelogs()
+"
+
+[sub_resource type="GDScript" id=11]
+script/source = "extends Button
+
+func _pressed() -> void:
+	get_parent().get_parent().get_parent().hide()
+	if !G.FirstRunAgreementAccepted:
+		G.FirstRunAgreementAccepted = true
+		G.a_progression_event(G.A_ProgressStatus.Complete, \"WelcomeScreen\")
+"
+
+[sub_resource type="GDScript" id=12]
+script/source = "extends Button
+
+func _ready() -> void:
+	if G.FirstRunAgreementAccepted:
+		text = \"Clappy Droid\"
+	else:
+		G.a_progression_event(G.A_ProgressStatus.Fail, \"WelcomeScreen\")
+
+func _pressed() -> void:
+	get_parent().get_parent().get_parent().hide()
 "
 
 [node name="GodotRemote" type="Control"]
@@ -46,6 +132,9 @@ script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[node name="SafeAreaSetter" parent="." instance=ExtResource( 13 )]
+Objects = [ SubResource( 1 ), SubResource( 2 ), SubResource( 3 ), SubResource( 4 ), SubResource( 5 ), SubResource( 6 ) ]
 
 [node name="BackgroundTouchHint" type="Control" parent="."]
 anchor_right = 1.0
@@ -62,8 +151,9 @@ anchor_bottom = 1.0
 grow_horizontal = 0
 grow_vertical = 0
 mouse_filter = 2
-custom_styles/panel = SubResource( 1 )
+custom_styles/panel = SubResource( 7 )
 __meta__ = {
+"_edit_lock_": true,
 "_edit_use_anchors_": false
 }
 
@@ -78,8 +168,10 @@ margin_bottom = -33.0
 grow_horizontal = 0
 grow_vertical = 0
 texture = ExtResource( 5 )
+expand = true
 stretch_mode = 4
 __meta__ = {
+"_edit_lock_": true,
 "_edit_use_anchors_": false
 }
 
@@ -90,11 +182,64 @@ grow_horizontal = 0
 grow_vertical = 0
 focus_mode = 2
 mouse_filter = 1
-theme = SubResource( 2 )
+theme = SubResource( 8 )
 __meta__ = {
 "_edit_lock_": true,
 "_edit_use_anchors_": false
 }
+
+[node name="OpenSettingsWithoutSignal" type="VBoxContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 16.0
+margin_top = 16.0
+margin_right = -16.0
+margin_bottom = -16.0
+__meta__ = {
+"_edit_lock_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Control" type="Control" parent="OpenSettingsWithoutSignal"]
+margin_right = 768.0
+margin_bottom = 510.0
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="OpenSettingsWithoutSignal"]
+margin_top = 514.0
+margin_right = 768.0
+margin_bottom = 560.0
+text = "Unable to connect to the server!"
+align = 1
+valign = 1
+clip_text = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="SettingsHint" type="Label" parent="OpenSettingsWithoutSignal"]
+margin_top = 564.0
+margin_right = 768.0
+margin_bottom = 692.0
+size_flags_vertical = 5
+text = "Change the settings or start the server.
+If you want to change settings during the broadcast, touch the screen with %d fingers at once."
+align = 1
+valign = 1
+autowrap = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="OpenSettings" type="Button" parent="OpenSettingsWithoutSignal" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 696.0
+margin_right = 768.0
+margin_bottom = 768.0
+rect_min_size = Vector2( 0, 72 )
+size_flags_stretch_ratio = 0.1
+text = "Open settings"
 
 [node name="Stats" type="Control" parent="."]
 anchor_right = 1.0
@@ -106,12 +251,22 @@ __meta__ = {
 }
 
 [node name="GRStats" parent="Stats" instance=ExtResource( 3 )]
-margin_right = 96.0
-margin_bottom = 64.0
+margin_left = 22.0
+margin_top = 22.0
+margin_right = 325.0
+margin_bottom = 232.0
 
 [node name="GRSettings" parent="." instance=ExtResource( 6 )]
 visible = false
 margin_bottom = 0.0
+
+[node name="TouchInputProtector" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [node name="CustomPopupTextInput" parent="." instance=ExtResource( 7 )]
 visible = false
@@ -121,8 +276,8 @@ visible = true
 margin_left = -838.665
 margin_top = 424.185
 margin_right = -138.665
-margin_bottom = 559.185
-rect_min_size = Vector2( 500, 135 )
+margin_bottom = 582.185
+rect_min_size = Vector2( 500, 158 )
 window_title = "Do you like this app?"
 script = ExtResource( 9 )
 __meta__ = {
@@ -143,108 +298,46 @@ __meta__ = {
 }
 
 [node name="Label" type="Label" parent="PlsSupportPopup/HBoxContainer"]
-margin_top = 1.0
 margin_right = 668.0
-margin_bottom = 47.0
+margin_bottom = 46.0
 size_flags_vertical = 6
 text = "Please support the developer"
 align = 1
 valign = 1
 
 [node name="Control" type="Control" parent="PlsSupportPopup/HBoxContainer"]
-margin_top = 53.0
+margin_top = 50.0
 margin_right = 668.0
-margin_bottom = 53.0
+margin_bottom = 50.0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="PlsSupportPopup/HBoxContainer"]
-margin_top = 57.0
+margin_top = 54.0
 margin_right = 668.0
-margin_bottom = 103.0
+margin_bottom = 126.0
+custom_constants/separation = 12
 
 [node name="Button" type="Button" parent="PlsSupportPopup/HBoxContainer/HBoxContainer"]
-margin_right = 332.0
-margin_bottom = 46.0
+margin_right = 328.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "Support"
 
 [node name="Button2" type="Button" parent="PlsSupportPopup/HBoxContainer/HBoxContainer"]
-margin_left = 336.0
+margin_left = 340.0
 margin_right = 668.0
-margin_bottom = 46.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "Not now"
 
-[node name="Changelog" type="PopupPanel" parent="."]
-visible = true
-margin_left = -1562.0
-margin_top = 101.0
-margin_right = -873.0
-margin_bottom = 641.0
-rect_min_size = Vector2( 500, 540 )
-popup_exclusive = true
-script = ExtResource( 10 )
-__meta__ = {
-"_edit_lock_": true
-}
-
-[node name="HBoxContainer" type="VBoxContainer" parent="Changelog"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-margin_left = 16.0
-margin_top = 16.0
-margin_right = -16.0
-margin_bottom = -16.0
-__meta__ = {
-"_edit_lock_": true,
-"_edit_use_anchors_": false
-}
-
-[node name="Label" type="Label" parent="Changelog/HBoxContainer"]
-margin_right = 657.0
-margin_bottom = 46.0
-text = "Godot Remote Updated"
-align = 1
-
-[node name="Control" type="ScrollContainer" parent="Changelog/HBoxContainer"]
-margin_top = 50.0
-margin_right = 657.0
-margin_bottom = 458.0
-size_flags_vertical = 3
-
-[node name="ListOfChanges" type="Label" parent="Changelog/HBoxContainer/Control"]
-margin_right = 657.0
-margin_bottom = 46.0
-size_flags_horizontal = 3
-size_flags_vertical = 1
-custom_fonts/font = ExtResource( 2 )
-text = "         don't forget to write a changelog..."
-autowrap = true
-
-[node name="HBoxContainer" type="HBoxContainer" parent="Changelog/HBoxContainer"]
-margin_top = 462.0
-margin_right = 657.0
-margin_bottom = 508.0
-
-[node name="Button" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
-margin_right = 240.0
-margin_bottom = 46.0
-size_flags_horizontal = 3
-text = "Okay, I get it!"
-
-[node name="Button2" type="Button" parent="Changelog/HBoxContainer/HBoxContainer"]
-margin_left = 244.0
-margin_right = 657.0
-margin_bottom = 46.0
-size_flags_horizontal = 3
-text = "How do I update the server?"
-
 [node name="PlsRatePopup" type="WindowDialog" parent="."]
 visible = true
-margin_left = -839.331
-margin_top = 100.887
-margin_right = -141.331
-margin_bottom = 362.887
-rect_min_size = Vector2( 500, 135 )
+margin_left = -839.0
+margin_top = 101.0
+margin_right = -189.0
+margin_bottom = 323.0
+rect_min_size = Vector2( 500, 222 )
 popup_exclusive = true
 window_title = "Rate This App"
 script = ExtResource( 8 )
@@ -266,69 +359,71 @@ __meta__ = {
 }
 
 [node name="Label" type="Label" parent="PlsRatePopup/HBoxContainer"]
-margin_top = 65.0
-margin_right = 666.0
-margin_bottom = 111.0
+margin_top = 32.0
+margin_right = 618.0
+margin_bottom = 78.0
 size_flags_vertical = 6
 text = "Do you want to rate this app?"
 align = 1
 valign = 1
 
 [node name="Control" type="Control" parent="PlsRatePopup/HBoxContainer"]
-margin_top = 180.0
-margin_right = 666.0
-margin_bottom = 180.0
+margin_top = 114.0
+margin_right = 618.0
+margin_bottom = 114.0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="PlsRatePopup/HBoxContainer"]
-margin_top = 184.0
-margin_right = 666.0
-margin_bottom = 230.0
+margin_top = 118.0
+margin_right = 618.0
+margin_bottom = 190.0
+custom_constants/separation = 12
 
 [node name="yes" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
-margin_right = 219.0
-margin_bottom = 46.0
+margin_right = 198.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "Yes"
 
 [node name="no" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
-margin_left = 223.0
-margin_right = 442.0
-margin_bottom = 46.0
+margin_left = 210.0
+margin_right = 408.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "No, thanks"
 
 [node name="later" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
-margin_left = 446.0
-margin_right = 666.0
-margin_bottom = 46.0
+margin_left = 420.0
+margin_right = 618.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "Not now"
 
-[node name="FirstLaunchHint" type="PopupPanel" parent="."]
-visible = true
-margin_left = -1558.0
-margin_top = 699.0
-margin_right = -430.0
-margin_bottom = 1368.0
+[node name="Welcome" type="Panel" parent="."]
+margin_left = -833.909
+margin_top = 610.655
+margin_right = -45.9089
+margin_bottom = 1286.65
 rect_min_size = Vector2( 700, 503 )
-popup_exclusive = true
-__meta__ = {
-"_edit_lock_": true
-}
+custom_styles/panel = ExtResource( 11 )
 
-[node name="VBox" type="VBoxContainer" parent="FirstLaunchHint"]
+[node name="VBox" type="VBoxContainer" parent="Welcome"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-margin_left = 8.0
-margin_top = 8.0
-margin_right = -8.0
-margin_bottom = -8.0
+margin_left = 16.0
+margin_top = 16.0
+margin_right = -16.0
+margin_bottom = -16.0
+custom_constants/separation = 0
 __meta__ = {
+"_edit_lock_": true,
 "_edit_use_anchors_": false
 }
 
-[node name="Label" type="Label" parent="FirstLaunchHint/VBox"]
-margin_right = 1112.0
+[node name="Label" type="Label" parent="Welcome/VBox"]
+margin_right = 756.0
 margin_bottom = 46.0
 grow_horizontal = 0
 grow_vertical = 0
@@ -340,10 +435,10 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Label3" type="Label" parent="FirstLaunchHint/VBox"]
-margin_top = 110.0
-margin_right = 1112.0
-margin_bottom = 238.0
+[node name="Label3" type="Label" parent="Welcome/VBox"]
+margin_top = 95.0
+margin_right = 756.0
+margin_bottom = 223.0
 grow_horizontal = 0
 grow_vertical = 0
 size_flags_vertical = 6
@@ -356,22 +451,41 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Button" type="Button" parent="FirstLaunchHint/VBox"]
-margin_top = 303.0
-margin_right = 1112.0
-margin_bottom = 349.0
-text = "Open the documentation page"
-script = SubResource( 3 )
+[node name="HBoxContainer2" type="HBoxContainer" parent="Welcome/VBox"]
+margin_top = 272.0
+margin_right = 756.0
+margin_bottom = 344.0
+custom_constants/separation = 12
 
-[node name="Label2" type="Label" parent="FirstLaunchHint/VBox"]
-margin_top = 434.0
-margin_right = 1112.0
-margin_bottom = 521.0
+[node name="Button" type="Button" parent="Welcome/VBox/HBoxContainer2" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_right = 480.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
+size_flags_horizontal = 3
+text = "Open documentation page"
+script = SubResource( 9 )
+
+[node name="Button2" type="Button" parent="Welcome/VBox/HBoxContainer2" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_left = 492.0
+margin_right = 756.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
+text = "Open Changelogs"
+script = SubResource( 10 )
+
+[node name="Label2" type="Label" parent="Welcome/VBox"]
+margin_top = 414.0
+margin_right = 756.0
+margin_bottom = 501.0
 grow_horizontal = 0
 grow_vertical = 0
 size_flags_vertical = 6
-text = "To reopen this screen, click on the 'Godot Remote' version in settings.
-To open app settings touch the screen with %d fingers at once."
+custom_colors/font_color = Color( 0.5096, 0.5148, 0.52, 1 )
+text = "To reopen this screen, click on the Godot Remote version in settings."
 align = 1
 valign = 1
 autowrap = true
@@ -379,17 +493,116 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Button2" type="Button" parent="FirstLaunchHint/VBox"]
-margin_top = 607.0
-margin_right = 1112.0
-margin_bottom = 653.0
-text = "Okay, I get it!"
-script = SubResource( 4 )
+[node name="HBoxContainer" type="HBoxContainer" parent="Welcome/VBox"]
+margin_top = 571.0
+margin_right = 756.0
+margin_bottom = 643.0
+custom_constants/separation = 12
 
+[node name="Button2" type="Button" parent="Welcome/VBox/HBoxContainer" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_right = 371.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
+size_flags_horizontal = 3
+custom_colors/font_color = Color( 0.588235, 0.964706, 0.466667, 1 )
+custom_colors/font_color_hover = Color( 0.290196, 1, 0.231373, 1 )
+text = "Okay, I get it!"
+script = SubResource( 11 )
+
+[node name="Button3" type="Button" parent="Welcome/VBox/HBoxContainer" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_left = 383.0
+margin_right = 756.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
+custom_colors/font_color = Color( 0.635294, 0.458824, 0.458824, 1 )
+custom_colors/font_color_hover = Color( 0.768627, 0.211765, 0.211765, 1 )
+custom_colors/font_color_pressed = Color( 1, 0.0784314, 0.0784314, 1 )
+text = "No, I think this is a game!"
+script = SubResource( 12 )
+
+[node name="Changelog" type="Panel" parent="."]
+margin_left = -1643.4
+margin_top = 64.0
+margin_right = -864.4
+margin_bottom = 680.0
+rect_min_size = Vector2( 500, 540 )
+custom_styles/panel = ExtResource( 11 )
+script = ExtResource( 10 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="HBoxContainer" type="VBoxContainer" parent="Changelog"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 16.0
+margin_top = 16.0
+margin_right = -16.0
+margin_bottom = -16.0
+__meta__ = {
+"_edit_lock_": true,
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="Changelog/HBoxContainer"]
+margin_right = 747.0
+margin_bottom = 46.0
+text = "Godot Remote Updated"
+align = 1
+
+[node name="Control" type="ScrollContainer" parent="Changelog/HBoxContainer"]
+margin_top = 50.0
+margin_right = 747.0
+margin_bottom = 508.0
+size_flags_vertical = 3
+
+[node name="ListOfChanges" type="Label" parent="Changelog/HBoxContainer/Control"]
+margin_right = 747.0
+margin_bottom = 46.0
+size_flags_horizontal = 3
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 2 )
+text = "         don't forget to write a changelog..."
+autowrap = true
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Changelog/HBoxContainer"]
+margin_top = 512.0
+margin_right = 747.0
+margin_bottom = 584.0
+custom_constants/separation = 12
+
+[node name="Button" type="Button" parent="Changelog/HBoxContainer/HBoxContainer" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_right = 310.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
+size_flags_horizontal = 3
+text = "Okay, I get it!"
+
+[node name="Button2" type="Button" parent="Changelog/HBoxContainer/HBoxContainer" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_left = 322.0
+margin_right = 747.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 0, 72 )
+size_flags_horizontal = 3
+text = "Download the updated editor"
+
+[connection signal="pressed" from="OpenSettingsWithoutSignal/OpenSettings" to="." method="_on_open_settings_pressed"]
+[connection signal="visibility_changed" from="PlsSupportPopup" to="PlsSupportPopup" method="_on_PlsSupportPopup_visibility_changed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button" to="PlsSupportPopup" method="_on_Button_pressed"]
 [connection signal="pressed" from="PlsSupportPopup/HBoxContainer/HBoxContainer/Button2" to="PlsSupportPopup" method="_on_Button2_pressed"]
-[connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button" to="Changelog" method="_on_Button_pressed"]
-[connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button2" to="Changelog" method="_on_Button2_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/yes" to="PlsRatePopup" method="_on_yes_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/no" to="PlsRatePopup" method="_on_no_pressed"]
 [connection signal="pressed" from="PlsRatePopup/HBoxContainer/HBoxContainer/later" to="PlsRatePopup" method="_on_later_pressed"]
+[connection signal="pressed" from="Welcome/VBox/HBoxContainer/Button3" to="." method="_on_no_this_is_a_game_pressed"]
+[connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button" to="Changelog" method="_on_Button_pressed"]
+[connection signal="pressed" from="Changelog/HBoxContainer/HBoxContainer/Button2" to="Changelog" method="_on_Button2_pressed"]
+
+[editable path="CustomPopupTextInput"]

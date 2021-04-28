@@ -13,15 +13,22 @@ _global_script_classes=[ {
 "class": "CustomPopupTextInput",
 "language": "GDScript",
 "path": "res://AssetsInSuperSecureAndUn1queF0lder/Scripts/CustomPopupTextInput.gd"
+}, {
+"base": "Resource",
+"class": "FullWindowSafeAreaObject",
+"language": "GDScript",
+"path": "res://AssetsInSuperSecureAndUn1queF0lder/Scripts/FullWindowSafeAreaObject.gd"
 } ]
 _global_script_class_icons={
-"CustomPopupTextInput": ""
+"CustomPopupTextInput": "",
+"FullWindowSafeAreaObject": ""
 }
 
 [application]
 
 config/name="Godot Remote"
 run/main_scene="res://AssetsInSuperSecureAndUn1queF0lder/Scenes/GUI.tscn"
+boot_splash/bg_color=Color( 0.164706, 0.188235, 0.207843, 1 )
 config/icon="res://AssetsInSuperSecureAndUn1queF0lder/Icon.png"
 
 [autoload]
@@ -48,6 +55,11 @@ window/vsync/vsync_via_compositor=true
 window/handheld/orientation="sensor"
 window/stretch/mode="2d"
 window/stretch/aspect="expand"
+
+[gui]
+
+theme/custom="res://AssetsInSuperSecureAndUn1queF0lder/Styles/MainTheme.tres"
+theme/custom_font="res://AssetsInSuperSecureAndUn1queF0lder/Styles/NormalBold.tres"
 
 [network]
 

@@ -1,3 +1,6 @@
 [submodule "godot-cpp"]
 	path = godot-cpp
 	url = https://github.com/GodotNativeTools/godot-cpp
+[submodule "godot_remote/tracy"]
+	path = godot_remote/tracy
+	url = https://github.com/wolfpld/tracy.git

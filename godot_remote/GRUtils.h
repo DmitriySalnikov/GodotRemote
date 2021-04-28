@@ -1,29 +1,36 @@
 /* GRUtils.h */
-#ifndef GRUTILS_H
-#define GRUTILS_H
+#pragma once
 
+#include "GRObjectPool.h"
+#include "GRProfiler.h"
 #include <algorithm>
 #include <deque>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <queue>
 #include <vector>
 
 #ifndef GDNATIVE_LIBRARY
+#include "core/bind/core_bind.h"
 #include "core/image.h"
 #include "core/io/marshalls.h"
+#include "core/io/stream_peer.h"
 #include "core/os/os.h"
 #include "core/print_string.h"
 #include "core/project_settings.h"
 #include "core/variant.h"
 #include "core/version_generated.gen.h"
 #include "main/input_default.h"
-//#define VERSION_MINOR 2
-//#define VERSION_PATCH 3
+#include "scene/2d/canvas_item.h"
+//#define VERSION_MINOR 3
 
 #else
 
 #include <Array.hpp>
+#include <CanvasItem.hpp>
 #include <Dictionary.hpp>
+#include <Directory.hpp>
 #include <Engine.hpp>
 #include <File.hpp>
 #include <Godot.hpp>
@@ -33,7 +40,9 @@
 #include <Mutex.hpp>
 #include <OS.hpp>
 #include <Object.hpp>
+#include <PoolArrays.hpp>
 #include <ProjectSettings.hpp>
+#include <StreamPeerBuffer.hpp>
 #include <String.hpp>
 #include <Thread.hpp>
 #include <Variant.hpp>
@@ -44,6 +53,8 @@ using namespace godot;
 // CONDITIONAL DEFINES
 
 #ifndef GDNATIVE_LIBRARY
+#define VARIANT_OBJ_CAST_TO(var, to) ((to *)(Object *)var)
+
 #define ENUM_ARG(en) en
 #define ENUM_CONV(en) (en)
 
@@ -52,69 +63,28 @@ using namespace godot;
 
 #define ST() SceneTree::get_singleton()
 #define GD_CLASS(c, p) GDCLASS(c, p)
-#define GD_S_CLASS(c, p) GDCLASS(c, p)
 #define V_CAST(var, type) ((type)var)
 
 // Bind constant with custom name
 //ClassDB::bind_integer_constant(get_class_static(), __constant_get_enum_name(m_constant, #m_constant), #m_constant, m_constant);
 #define BIND_ENUM_CONSTANT_CUSTOM(m_enum, m_const, m_name) ClassDB::bind_integer_constant(get_class_static(), #m_enum, m_name, ((int)(m_enum::m_const)));
-#define GDNATIVE_BASIC_REGISTER
-#define GDNATIVE_BASIC_REGISTER_NO_INIT
 
 #define queue_del queue_delete
 #define img_is_empty(img) img->empty()
+#define img_create_from_data(img, __width, __height, __mipmaps, __format, __data) img->create(__width, __height, __mipmaps, __format, __data);
 #define is_valid_ip is_valid
 #define release_pva_read(pva) pva.release()
 #define release_pva_write(pva) pva.release()
+#define store_data_to_file(p, size) p, size
+#define put_data_from_array_pointer(buf) buf.read().ptr(), buf.size()
+#define get_data_from_stream(_stream, pDst, size) _stream->get_data(pDst, size)
 
 #define dict_get_key_at_index(dict, i) dict.get_key_at_index(i)
 #define dict_get_value_at_index(dict, i) dict.get_value_at_index(i)
 
 #define file_get_as_string(path, err) FileAccess::get_file_as_string(path, err);
-
-#define THREAD_FUNC static
-#define THREAD_DATA void *
-#define _TS_CLASS_ _THREAD_SAFE_CLASS_
-#define _TS_METHOD_ _THREAD_SAFE_METHOD_
-#define _TS_LOCK_ _THREAD_SAFE_LOCK_
-#define _TS_UNLOCK_ _THREAD_SAFE_UNLOCK_
-#define Thread_set_name(_name) Thread::set_name(_name)
-
-#if VERSION_MINOR >= 2 && VERSION_PATCH >= 4
-#define Mutex_define(_var) Mutex _var
-#define Mutex_create(_var)
-#define Mutex_delete(_var)
-#define Mutex_lock(_var) _var.lock()
-#define Mutex_unlock(_var) _var.unlock()
-
-#define t_wait_to_finish(thread) thread.wait_to_finish()
-#define Thread_define(_var) class Thread _var
-#define Thread_start(_var, _class, function, data_to_send, inst) _var.start(&_class::function, data_to_send)
-#define Thread_close(_name) \
-	if (_name.is_started()) \
-		t_wait_to_finish(_name);
-#else
-#define Mutex_define(_var) Mutex *_var = nullptr
-#define Mutex_create(_var) _var = Mutex::create()
-#define Mutex_delete(_var) \
-	if (_var) {            \
-		memdelete(_var);   \
-		_var = nullptr;    \
-	}
-
-#define Mutex_lock(_var) _var->lock()
-#define Mutex_unlock(_var) _var->unlock()
-
-#define t_wait_to_finish(thread) Thread::wait_to_finish(thread)
-#define Thread_define(_var) class Thread *_var = nullptr
-#define Thread_start(_var, _class, function, data_to_send, inst) _var = Thread::create(&_class::function, data_to_send)
-#define Thread_close(_name)      \
-	if (_name) {                 \
-		t_wait_to_finish(_name); \
-		memdelete(_name);        \
-		_name = nullptr;         \
-	}
-#endif
+#define file_open(var, path, flags) \
+	var = FileAccess::open(path, flags);
 
 #else
 
@@ -125,79 +95,12 @@ enum Margin : int {
 	MARGIN_BOTTOM
 };
 
-// THREAD SAFE classes
-// ORIGINAL CODE FROM GODOT CORE
-// because GDNative don't has it
-
-class ThreadSafe {
-
-	Mutex *mutex;
-
-public:
-	inline void lock() const {
-		if (mutex) mutex->lock();
-	}
-	inline void unlock() const {
-		if (mutex) mutex->unlock();
-	}
-
-	ThreadSafe() {
-		mutex = Mutex::_new();
-		if (!mutex) {
-
-			WARN_PRINT("THREAD_SAFE defined, but no default mutex type");
-		}
-	}
-
-	~ThreadSafe() {
-		if (mutex)
-			mutex->free();
-	}
-};
-
-class ThreadSafeMethod {
-
-	const ThreadSafe *_ts;
-
-public:
-	ThreadSafeMethod(const ThreadSafe *p_ts) {
-
-		_ts = p_ts;
-		_ts->lock();
-	}
-
-	~ThreadSafeMethod() { _ts->unlock(); }
-};
-
-#define THREAD_FUNC
-#define THREAD_DATA Variant
-#define _TS_CLASS_ ThreadSafe __thread__safe__
-#define _TS_METHOD_ ThreadSafeMethod __thread_safe_method__(&__thread__safe__)
-#define _TS_LOCK_ __thread__safe__.lock()
-#define _TS_UNLOCK_ __thread__safe__.unlock()
-
-#define Mutex_define(_var) Ref<Mutex> _var
-#define Mutex_create(_var) _var = newref(Mutex)
-#define Mutex_lock(_var) _var->lock()
-#define Mutex_unlock(_var) _var->unlock()
-#define Mutex_delete(_var)   \
-	if (_var.is_valid()) {   \
-		_var.unref();        \
-		_var = Ref<Mutex>(); \
-	}
-
-#define Thread_define(_var) Ref<Thread> _var
-#define t_wait_to_finish(thread) thread->wait_to_finish()
-#define Thread_start(_var, _class, function, data_to_send, inst) _var = _gdn_thread_create(inst, #function, data_to_send)
-#define Thread_set_name(_name)
-#define Thread_close(_name)      \
-	if (_name.is_valid()) {      \
-		t_wait_to_finish(_name); \
-		_name.unref();           \
-		_name = Ref<Thread>();   \
-	}
-
+typedef Thread _Thread;
+typedef File _File;
+typedef Directory _Directory;
 // THREAD SAFE END
+
+#define VARIANT_OBJ_CAST_TO(var, to) ((to *)var)
 
 #define ENUM_ARG(en) int
 #define ENUM_CONV(en)
@@ -221,7 +124,6 @@ public:
 
 #define ST() ((SceneTree *)Engine::get_singleton()->get_main_loop())
 #define GD_CLASS(c, p) GODOT_CLASS(c, p)
-#define GD_S_CLASS(c, p) GODOT_SUBCLASS(c, p)
 #define V_CAST(var, type) (var.operator type())
 #define GLOBAL_DEF(m_var, m_value) _GLOBAL_DEF(m_var, m_value)
 #define GLOBAL_GET(m_var) ProjectSettings::get_singleton()->get(m_var)
@@ -229,29 +131,23 @@ public:
 #define queue_del queue_free
 #define is_valid_ip is_valid_ip_address
 #define img_is_empty(img) img->is_empty()
+#define img_create_from_data(img, __width, __height, __mipmaps, __format, __data) img->create_from_data(__width, __height, __mipmaps, __format, __data);
 #define release_pva_read(pva)
 #define release_pva_write(pva)
+#define store_data_to_file(p, size) _gdn_convert_native_pointer_array_to_pba(p, size)
+#define put_data_from_array_pointer(p) p
+#define get_data_from_stream(_stream, pDst, size) _gdn_convert_array_to_native_pointer_array(pDst, _stream->get_data(size), size)
 
 #define dict_get_key_at_index(dict, i) _gdn_dictionary_get_key_at_index(dict, i)
 #define dict_get_value_at_index(dict, i) _gdn_dictionary_get_value_at_index(dict, i)
 
 #define file_get_as_string(path, err) _gdn_get_file_as_string(path, err)
+#define file_open(var, path, flags) \
+	var = memnew(File);             \
+	var->open(path, flags);
 
 #define memnew(obj) obj::_new()
 #define memdelete(obj) obj->free()
-
-#define GDNATIVE_BASIC_REGISTER        \
-public:                                \
-	void _init(){};                    \
-	static void _register_methods(){}; \
-                                       \
-protected:
-
-#define GDNATIVE_BASIC_REGISTER_NO_INIT \
-public:                                 \
-	static void _register_methods(){};  \
-                                        \
-protected:
 
 #define ERR_FAIL_V_MSG(m_retval, m_msg)                                              \
 	{                                                                                \
@@ -277,35 +173,67 @@ protected:
 // DEBUG DEFINES
 
 #ifdef DEBUG_ENABLED
-
-#define TimeCountInit() uint64_t simple_time_counter = OS::get_singleton()->get_ticks_usec()
-#define TimeCountReset() simple_time_counter = OS::get_singleton()->get_ticks_usec()
-// Shows delta between this and previous counter. Need to call TimeCountInit before
-#define TimeCount(str)                                                                                                                                                   \
-	GRUtils::_log(str + String(": ") + String::num((OS::get_singleton()->get_ticks_usec() - simple_time_counter) / 1000.0, 3) + " ms", GodotRemote::LogLevel::LL_DEBUG); \
-	simple_time_counter = OS::get_singleton()->get_ticks_usec()
+#define _log(val, logLevel) __log(val, logLevel, __FUNCTION__, __FILE__, __LINE__)
 #else
-
-#define TimeCountInit()
-#define TimeCountReset()
-#define TimeCount(str)
-
+#define _log(val, logLevel)
 #endif // DEBUG_ENABLED
+
+#if defined(TRACY_ENABLE) && defined(GODOT_REMOTE_TRACY_ENABLED)
+#define Thread_set_name(_name) tracy::SetThreadName(_name)
+
+#if defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
+#define MANUAL_TRACY
+#define START_TRACY tracy::StartupProfiler();
+#define STOP_TRACY tracy::ShutdownProfiler();
+#else
+#define START_TRACY
+#define STOP_TRACY
+#endif
+
+#else
+#define Thread_set_name(_name)
+
+#define START_TRACY
+#define STOP_TRACY
+#endif
 
 // =================================================================
 // GLOBAL DEFINES
 
+#ifndef NO_SAFE_CAST
+#define shared_ptr_cast_type dynamic_pointer_cast
+#else
+#define shared_ptr_cast_type static_pointer_cast
+#endif
+
 #define sleep_usec(usec) OS::get_singleton()->delay_usec(usec)
+#define rnd_rng(_min, _max) (_min + (abs(rand64()) % (_max - _min + 1)))
+#define Mutex_define(_var, _description) TracyLockableN(std::recursive_mutex, _var, _description)
+#define Scoped_lock(_mutex_name) std::lock_guard<LockableBase(std::recursive_mutex)> _scoped_lock_guard(_mutex_name)
 
 #define LEAVE_IF_EDITOR()                          \
 	if (Engine::get_singleton()->is_editor_hint()) \
 		return;
 
+#define t_wait_to_finish(thread) thread->wait_to_finish()
+#define Thread_start(_var, inst, function, data_to_send) Thread_start_string(_var, inst, #function, data_to_send)
+#define Thread_start_string(_var, inst, function_string, data_to_send) _var = utils_thread_create(inst, function_string, data_to_send)
+#define Thread_close(_name)                       \
+	if (_name.is_valid() && _name->is_active()) { \
+		t_wait_to_finish(_name);                  \
+		_name.unref();                            \
+		_name = Ref<_Thread>();                   \
+	}
+
+#define shared_cast(type, from) std::shared_ptr_cast_type<type>(from)
+#define shared_cast_var(type, var, from) var = std::shared_ptr_cast_type<type>(from)
+#define shared_cast_def(type, var, from) std::shared_ptr<type> var = std::shared_ptr_cast_type<type>(from)
+#define shared_new(type, ...) std::make_shared<type>(__VA_ARGS__)
+
 #define newref(_class) Ref<_class>(memnew(_class))
-#define max(x, y) (x > y ? x : y)
-#define min(x, y) (x < y ? x : y)
-#define _log(val, ll) __log(val, ll, __FILE__, __LINE__)
-#define is_vector_contains(vec, val) (std::find(vec.begin(), vec.end(), val) != vec.end())
+#define newref_std(_class) std::shared_ptr<_class>(memnew(_class), [](_class *o) { memdelete(o); })
+
+#define RefStd(_class) std::shared_ptr<_class>
 
 #define GR_VERSION(x, y, z)                            \
 	if (_grutils_data->internal_VERSION.size() == 0) { \
@@ -323,6 +251,7 @@ protected:
 	}
 
 #define CONNECTION_ADDRESS(con) str(con->get_connected_host()) + ":" + str(con->get_connected_port())
+#define NAMEOF(var) #var
 
 // Get Project Setting
 #define GET_PS(setting_name) \
@@ -330,6 +259,11 @@ protected:
 // Get Project Setting and set it to variable
 #define GET_PS_SET(variable_to_store, setting_name) \
 	variable_to_store = ProjectSettings::get_singleton()->get_setting(setting_name)
+
+#define PORT_AUTO_CONNECTION 22765
+#define PORT_STATIC_CONNECTION 22766
+#define MB_SIZE 1000000
+#define MiB_SIZE 1048576
 
 enum LogLevel : int {
 	LL_DEBUG = 0,
@@ -340,79 +274,6 @@ enum LogLevel : int {
 };
 
 namespace GRUtils {
-// DEFINES
-
-template <typename T, typename Container = std::deque<T> >
-class iterable_queue : public std::queue<T, Container> {
-public:
-	typedef typename Container::iterator iterator;
-	typedef typename Container::const_iterator const_iterator;
-
-	iterator begin() { return this->c.begin(); }
-	iterator end() { return this->c.end(); }
-	const_iterator begin() const { return this->c.begin(); }
-	const_iterator end() const { return this->c.end(); }
-	void add_value_limited(T value, uint32_t limit) {
-		if (value > 100000)
-			this->push(100000);
-		else
-			this->push(value);
-		while (this->size() > limit) {
-			this->pop();
-		}
-	}
-};
-
-class GRUtilsData : public Object {
-	GD_CLASS(GRUtilsData, Object);
-	GDNATIVE_BASIC_REGISTER;
-
-public:
-	int current_loglevel;
-	PoolByteArray internal_PACKET_HEADER;
-	PoolByteArray internal_VERSION;
-};
-
-#ifndef NO_GODOTREMOTE_SERVER
-class GRUtilsDataServer {
-public:
-	PoolByteArray compress_buffer;
-	int compress_buffer_size_mb;
-};
-
-extern GRUtilsDataServer *_grutils_data_server;
-#endif
-extern GRUtilsData *_grutils_data;
-
-extern void init();
-extern void deinit();
-
-#ifndef NO_GODOTREMOTE_SERVER
-extern void init_server_utils();
-extern void deinit_server_utils();
-extern Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width, int height, int bytes_for_color = 4, int quality = 75, int subsampling = 3 /*Subsampling ::SUBSAMPLING_H2V2*/);
-#endif
-
-extern Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type);
-extern Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolByteArray &res, int type);
-extern void __log(const Variant &val, int lvl = 1 /*LogLevel::LL_NORMAL*/, String file = "", int line = 0);
-
-extern String str(const Variant &val);
-extern String str_arr(const Array arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ");
-extern String str_arr(const Dictionary arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ");
-extern String str_arr(const uint8_t *data, const int size, const bool force_full = false, const int max_shown_items = 64, String separator = ", ");
-
-extern bool validate_packet(const uint8_t *data);
-extern bool validate_version(const PoolByteArray &data);
-extern bool validate_version(const uint8_t *data);
-
-extern bool compare_pool_byte_arrays(const PoolByteArray &a, const PoolByteArray &b);
-
-extern void set_gravity(const Vector3 &p_gravity);
-extern void set_accelerometer(const Vector3 &p_accel);
-extern void set_magnetometer(const Vector3 &p_magnetometer);
-extern void set_gyroscope(const Vector3 &p_gyroscope);
-
 // LITERALS
 
 // conversion from usec to msec. most useful to OS::delay_usec()
@@ -420,35 +281,88 @@ constexpr uint32_t operator"" _ms(unsigned long long val) {
 	return (int)val * 1000;
 }
 
+// CLASSES
+
+class GRUtilsData {
+public:
+	int current_loglevel;
+	PoolByteArray internal_PACKET_HEADER;
+	PoolByteArray internal_VERSION;
+	std::shared_ptr<GRObjectPool<StreamPeerBuffer> > streamPeerBufferPool;
+};
+
+extern std::shared_ptr<GRUtilsData> _grutils_data;
+
+extern void init();
+extern void deinit();
+
+extern uint64_t get_time_usec();
+
+extern Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type);
+extern Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolByteArray &res, int type);
+#ifdef DEBUG_ENABLED
+extern void __log(const Variant &val, int lvl = 1 /*LogLevel::LL_NORMAL*/, String func = "", String file = "", int line = 0);
+#endif
+
+extern Rect2 get_2d_safe_area(class CanvasItem *ci);
+
+extern String str(const Variant &val);
+extern String str_arr(const Array arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true);
+extern String str_arr(const Dictionary arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true);
+extern String str_arr(const uint8_t *arr, const int size, const bool force_full = false, const int max_shown_items = 64, String separator = ", ", bool add_braces = true);
+
+extern std::shared_ptr<GRObjectPool<StreamPeerBuffer> > get_stream_peer_buffer_pool();
+extern bool validate_packet(const uint8_t *data);
+extern bool validate_version(const PoolByteArray &data);
+extern bool validate_version(const uint8_t *data);
+
+extern bool compare_pool_byte_arrays(const PoolByteArray &a, const PoolByteArray &b);
+extern bool compare_pool_string_arrays(const PoolStringArray &a, const PoolStringArray &b);
+extern bool compare_pool_string_arrays(const std::vector<String> &a, const PoolStringArray &b);
+
+extern void set_gravity(const Vector3 &p_gravity);
+extern void set_accelerometer(const Vector3 &p_accel);
+extern void set_magnetometer(const Vector3 &p_magnetometer);
+extern void set_gyroscope(const Vector3 &p_gyroscope);
+
+extern Ref<_Thread> utils_thread_create(Object *instance, String func_name, const Variant &user_data);
+
 // IMPLEMENTATINS
 
+#define DEFAULT_STR_ARR_BODY                            \
+	String res = add_braces ? "[ " : "";                \
+	bool is_long = false;                               \
+	if (s > max_shown_items && !force_full) {           \
+		s = max_shown_items;                            \
+		is_long = true;                                 \
+	}                                                   \
+                                                        \
+	for (int i = 0; i < s; i++) {                       \
+		res += str(arr[i]);                             \
+		if (i != s - 1 || is_long) {                    \
+			res += separator;                           \
+		}                                               \
+	}                                                   \
+                                                        \
+	if (is_long) {                                      \
+		res += str(int64_t(ss) - s) + " more items..."; \
+	}                                                   \
+                                                        \
+	if (add_braces) {                                   \
+		return res + " ]";                              \
+	} else {                                            \
+		return res;                                     \
+	}
+
 template <class T>
-extern String str_arr(const std::vector<T> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ") {
-	String res = "[ ";
-	int s = (int)arr.size();
-	bool is_long = false;
-	if (s > max_shown_items && !force_full) {
-		s = max_shown_items;
-		is_long = true;
-	}
-
-	for (int i = 0; i < s; i++) {
-		res += str(arr[i]);
-		if (i != s - 1 || is_long) {
-			res += separator;
-		}
-	}
-
-	if (is_long) {
-		res += str(int64_t(arr.size()) - s) + " more items...";
-	}
-
-	return res + " ]";
+extern String str_arr(const std::vector<T> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true) {
+	int s = (int)arr.size(), ss = (int)arr.size();
+	DEFAULT_STR_ARR_BODY;
 }
 
 template <class K, class V>
-extern String str_arr(const std::map<K, V> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ") {
-	String res = "{ ";
+extern String str_arr(const std::map<K, V> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true) {
+	String res = add_braces ? "{ " : "";
 	int s = (int)arr.size();
 	bool is_long = false;
 	if (s > max_shown_items && !force_full) {
@@ -470,13 +384,23 @@ extern String str_arr(const std::map<K, V> arr, const bool force_full = false, c
 		res += String::num_int64(int64_t(arr.size()) - s) + " more items...";
 	}
 
-	return res + " }";
+	if (add_braces) {
+		return res + " }";
+	} else {
+		return res;
+	}
 }
 
 #ifndef GDNATIVE_LIBRARY
 template <class T>
-static String str_arr(PoolVector<T> arr, const bool force_full = false, const int max_shown_items = 64, String separator = ", ") {
-	String res = "[ ";
+extern String str_arr(const Vector<T> arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true) {
+	int s = (int)arr.size(), ss = (int)arr.size();
+	DEFAULT_STR_ARR_BODY;
+}
+
+template <class T>
+static String str_arr(PoolVector<T> arr, const bool force_full = false, const int max_shown_items = 64, String separator = ", ", bool add_braces = true) {
+	String res = add_braces ? "[ " : "";
 	int s = arr.size();
 	bool is_long = false;
 	if (s > max_shown_items && !force_full) {
@@ -497,34 +421,42 @@ static String str_arr(PoolVector<T> arr, const bool force_full = false, const in
 		res += str(int64_t(arr.size()) - s) + " more items...";
 	}
 
-	return res + " ]";
+	if (add_braces) {
+		return res + " ]";
+	} else {
+		return res;
+	}
 };
 #else
 
-#define POOLARRAYS_STR_ARR(TYPE)                                                                                              \
-	static String str_arr(TYPE arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ") { \
-		String res = "[ ";                                                                                                    \
-		int s = arr.size();                                                                                                   \
-		bool is_long = false;                                                                                                 \
-		if (s > max_shown_items && !force_full) {                                                                             \
-			s = max_shown_items;                                                                                              \
-			is_long = true;                                                                                                   \
-		}                                                                                                                     \
-                                                                                                                              \
-		auto r = arr.read();                                                                                                  \
-		for (int i = 0; i < s; i++) {                                                                                         \
-			res += str(r[i]);                                                                                                 \
-			if (i != s - 1 || is_long) {                                                                                      \
-				res += separator;                                                                                             \
-			}                                                                                                                 \
-		}                                                                                                                     \
-		release_pva_read(r);                                                                                                  \
-                                                                                                                              \
-		if (is_long) {                                                                                                        \
-			res += str(int64_t(arr.size()) - s) + " more items...";                                                           \
-		}                                                                                                                     \
-                                                                                                                              \
-		return res + " ]";                                                                                                    \
+#define POOLARRAYS_STR_ARR(TYPE)                                                                                                                      \
+	static String str_arr(TYPE arr, const bool force_full = false, const int max_shown_items = 32, String separator = ", ", bool add_braces = true) { \
+		String res = add_braces ? "[ " : "";                                                                                                          \
+		int s = arr.size();                                                                                                                           \
+		bool is_long = false;                                                                                                                         \
+		if (s > max_shown_items && !force_full) {                                                                                                     \
+			s = max_shown_items;                                                                                                                      \
+			is_long = true;                                                                                                                           \
+		}                                                                                                                                             \
+                                                                                                                                                      \
+		auto r = arr.read();                                                                                                                          \
+		for (int i = 0; i < s; i++) {                                                                                                                 \
+			res += str(r[i]);                                                                                                                         \
+			if (i != s - 1 || is_long) {                                                                                                              \
+				res += separator;                                                                                                                     \
+			}                                                                                                                                         \
+		}                                                                                                                                             \
+		release_pva_read(r);                                                                                                                          \
+                                                                                                                                                      \
+		if (is_long) {                                                                                                                                \
+			res += str(int64_t(arr.size()) - s) + " more items...";                                                                                   \
+		}                                                                                                                                             \
+                                                                                                                                                      \
+		if (add_braces) {                                                                                                                             \
+			return res + " ]";                                                                                                                        \
+		} else {                                                                                                                                      \
+			return res;                                                                                                                               \
+		}                                                                                                                                             \
 	}
 
 POOLARRAYS_STR_ARR(PoolByteArray);
@@ -550,32 +482,8 @@ static void set_log_level(int lvl) {
 	_grutils_data->current_loglevel = lvl;
 }
 
-template <typename T>
-inline void calculate_avg_min_max_values(const iterable_queue<T> &v, float *avg_val, float *min_val, float *max_val, float(modifier)(double)) {
-	if (v.size() > 0) {
-		double sum = 0;
-		*min_val = (float)v.back();
-		*max_val = (float)v.back();
-
-		for (T i : v) {
-			sum += i;
-			if (i < *min_val)
-				*min_val = (float)i;
-			else if (i > *max_val)
-				*max_val = (float)i;
-		}
-		*avg_val = modifier(sum / v.size());
-		*min_val = modifier(*min_val);
-		*max_val = modifier(*max_val);
-	} else {
-		*avg_val = 0;
-		*min_val = 0;
-		*max_val = 0;
-	}
-}
-
 template <class T>
-inline void vec_remove_idx(std::vector<T> &v, const T &item) {
+inline void vec_remove_obj(std::vector<T> &v, const T &item) {
 	v.erase(std::remove(v.begin(), v.end(), item), v.end());
 }
 
@@ -621,19 +529,31 @@ static std::vector<V> arr_to_vec(Array a) {
 	return res;
 }
 
+template <class V, class VAL>
+static bool is_vector_contains(V vec, VAL val) {
+	return std::find(vec.begin(), vec.end(), val) != vec.end();
+}
+
+template <class V, typename PRED>
+static bool is_vector_contains_if(std::vector<V> vec, PRED pred) {
+	return std::find_if(vec.begin(), vec.end(), pred) != vec.end();
+}
+
 #ifndef GDNATIVE_LIBRARY
 extern Vector<Variant> vec_args(const std::vector<Variant> &args);
 
 #else
 extern Array vec_args(const std::vector<Variant> &args);
 
+extern PoolByteArray _gdn_convert_native_pointer_array_to_pba(uint8_t *p, int64_t size);
+extern void _gdn_convert_array_to_native_pointer_array(uint8_t *pDst, const Array &pSrc, int64_t size);
 extern String _gdn_get_file_as_string(String path, Error *ret_err);
 extern Variant _gdn_dictionary_get_key_at_index(Dictionary d, int idx);
 extern Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx);
-extern Ref<Thread> _gdn_thread_create(Object *instance, String func_name, const Object *user_data);
 extern Variant _GLOBAL_DEF(const String &p_var, const Variant &p_default, bool p_restart_if_changed = false);
 #endif
 
-}; // namespace GRUtils
+// https://stackoverflow.com/a/33021408/8980874
+extern int64_t rand64();
 
-#endif // !GRUTILS_H
+}; // namespace GRUtils

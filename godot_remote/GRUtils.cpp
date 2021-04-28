@@ -2,137 +2,93 @@
 
 #include "GRUtils.h"
 #include "GodotRemote.h"
+#include <chrono>
+#include <ctime>
 
 #ifndef GDNATIVE_LIBRARY
 #include "core/io/compression.h"
-
 #else
 #include <ClassDB.hpp>
-
 using namespace godot;
 #endif
 
-#ifndef NO_GODOTREMOTE_SERVER
-// richgel999/jpeg-compressor: https://github.com/richgel999/jpeg-compressor
-#include "jpge.h"
-#endif
-
-GRUtilsData *GRUtils::_grutils_data = nullptr;
+std::shared_ptr<GRUtilsData> GRUtils::_grutils_data = nullptr;
 
 namespace GRUtils {
 void init() {
+	_grutils_data = shared_new(GRUtilsData);
+	_grutils_data->current_loglevel = LogLevel::LL_NORMAL;
+	GET_PS_SET(_grutils_data->current_loglevel, GodotRemote::ps_general_loglevel_name);
+	_grutils_data->streamPeerBufferPool = std::make_shared<GRObjectPool<StreamPeerBuffer> >(
+			[]() { return newref_std(StreamPeerBuffer); },
+			//[]() { return std::shared_ptr<StreamPeerBuffer>(memnew(StreamPeerBuffer), [](StreamPeerBuffer *o) { memdelete(o); _log("StreamPeerBuffer", LogLevel::LL_NORMAL); }); },
+			[](RefStd(StreamPeerBuffer) buf) { buf->set_data_array(PoolByteArray()); },
+			true, 0);
+
 	LEAVE_IF_EDITOR();
-	_grutils_data = memnew(GRUtilsData);
-	_grutils_data->current_loglevel = GodotRemote::LogLevel::LL_NORMAL;
 
 	GR_PACKET_HEADER('G', 'R', 'H', 'D');
 #include "GRVersion.h"
-
-	GET_PS_SET(_grutils_data->current_loglevel, GodotRemote::ps_general_loglevel_name);
+	srand((unsigned int)time(0));
 }
 
 void deinit() {
-	LEAVE_IF_EDITOR();
 	if (_grutils_data) {
 		_grutils_data->internal_PACKET_HEADER.resize(0);
 		_grutils_data->internal_VERSION.resize(0);
-		memdelete(_grutils_data);
-		_grutils_data = nullptr;
+		if (_grutils_data->streamPeerBufferPool) {
+			_grutils_data->streamPeerBufferPool->clear();
+		}
 	}
-}
-
-#ifndef NO_GODOTREMOTE_SERVER
-GRUtilsDataServer *_grutils_data_server = nullptr;
-
-void init_server_utils() {
 	LEAVE_IF_EDITOR();
-	_grutils_data_server = new GRUtilsDataServer();
-
-	GET_PS_SET(_grutils_data_server->compress_buffer_size_mb, GodotRemote::ps_server_jpg_buffer_mb_size_name);
-	_grutils_data_server->compress_buffer.resize((1024 * 1024) * _grutils_data_server->compress_buffer_size_mb);
 }
 
-void deinit_server_utils() {
-	LEAVE_IF_EDITOR();
-	_grutils_data_server->compress_buffer.resize(0);
-	delete _grutils_data_server;
-}
-#endif
-
-void __log(const Variant &val, int lvl, String file, int line) {
 #ifdef DEBUG_ENABLED
-#ifndef GDNATIVE_LIBRARY
-	if (lvl >= _grutils_data->current_loglevel && lvl < LogLevel::LL_NONE) {
-		String file_line = "";
-		if (file != "") {
-			int idx = file.find("godot_remote");
-			if (idx != -1) {
-				file = file.substr(file.find("godot_remote"), file.length());
-			}
-
-			file_line = "\n    At: " + file + ":" + str(line);
-		}
-
+void __log(const Variant &val, int lvl, String func, String file, int line) {
+	if (lvl >= (_grutils_data ? _grutils_data->current_loglevel : LogLevel::LL_DEBUG) && lvl < LogLevel::LL_NONE) {
 		if (lvl == LogLevel::LL_ERROR) {
-			print_error("[GodotRemote Error] " + str(val) + file_line);
+			auto val_str = "[GodotRemote Error] " + str(val);
+			//GodotRemote::get_singleton()->call_deferred("print_error_str", val_str, func, file, line);
+			GodotRemote::get_singleton()->print_error_str(val_str, func, file, line);
 		} else if (lvl == LogLevel::LL_WARNING) {
-			print_error("[GodotRemote Warning] " + str(val) + file_line);
+			auto val_str = "[GodotRemote Warning] " + str(val);
+			//GodotRemote::get_singleton()->call_deferred("print_warning_str", val_str, func, file, line);
+			GodotRemote::get_singleton()->print_warning_str(val_str, func, file, line);
 		} else {
-			print_line("[GodotRemote] " + str(val));
+			auto val_str = "[GodotRemote] " + str(val);
+			//GodotRemote::get_singleton()->call_deferred("print_str", val_str);
+			GodotRemote::get_singleton()->print_str(val_str);
 		}
 	}
 
-#else
-
-#define print_error_ext() Godot::print_error(str(val), "[GodotRemote Error]", file, line)
-#define print_warning_ext() Godot::print_warning(str(val), "[GodotRemote Warning]", file, line)
-
-	if (lvl >= _grutils_data->current_loglevel && lvl < LogLevel::LL_NONE) {
-		if (file != "") {
-			int idx = file.find("godot_remote");
-			if (idx != -1)
-				file = file.substr(file.find("godot_remote"), file.length());
-		}
-
-		if (lvl == LogLevel::LL_ERROR) {
-			print_error_ext();
-		} else if (lvl == LogLevel::LL_WARNING) {
-			print_warning_ext();
-		} else {
-			Godot::print("[GodotRemote] " + str(val));
-		}
+#ifdef GODOT_REMOTE_TRACY_ENABLED
+	auto val_str = str(val);
+	if (lvl == LogLevel::LL_ERROR) {
+		TracyMessageC(val_str.utf8().get_data(), val_str.length(), tracy::Color::Red2);
+	} else if (lvl == LogLevel::LL_WARNING) {
+		TracyMessageC(val_str.utf8().get_data(), val_str.length(), tracy::Color::Yellow2);
+	} else if (lvl == LogLevel::LL_DEBUG) {
+		TracyMessageC(val_str.utf8().get_data(), val_str.length(), tracy::Color::Gray55);
+	} else {
+		TracyMessageC(val_str.utf8().get_data(), val_str.length(), tracy::Color::WhiteSmoke);
 	}
-#undef print_error_ext
-#undef print_warning_ext
+#endif // GODOT_REMOTE_TRACY_ENABLED
+}
 #endif
-#endif
+
+Rect2 get_2d_safe_area(CanvasItem *ci) {
+	Rect2 safe_area = OS::get_singleton()->get_window_safe_area();
+	Vector2 safe_rect_ratio = (ci->get_viewport_rect().size * (safe_area.size / OS::get_singleton()->get_window_size())) / safe_area.size;
+	return Rect2(safe_area.position * safe_rect_ratio, safe_rect_ratio * safe_area.size);
 }
 
-String str_arr(const Array arr, const bool force_full, const int max_shown_items, String separator) {
-	String res = "[ ";
-	int s = arr.size();
-	bool is_long = false;
-	if (s > max_shown_items && !force_full) {
-		s = max_shown_items;
-		is_long = true;
-	}
-
-	for (int i = 0; i < s; i++) {
-		res += str(arr[i]);
-		if (i != s - 1 || is_long) {
-			res += separator;
-		}
-	}
-
-	if (is_long) {
-		res += String::num_int64(int64_t(arr.size()) - s) + " more items...";
-	}
-
-	return res + " ]";
+String str_arr(const Array arr, const bool force_full, const int max_shown_items, String separator, bool add_braces) {
+	int s = (int)arr.size(), ss = (int)arr.size();
+	DEFAULT_STR_ARR_BODY;
 };
 
-String str_arr(const Dictionary arr, const bool force_full, const int max_shown_items, String separator) {
-	String res = "{ ";
+String str_arr(const Dictionary arr, const bool force_full, const int max_shown_items, String separator, bool add_braces) {
+	String res = add_braces ? "{ " : "";
 	int s = arr.size();
 	bool is_long = false;
 	if (s > max_shown_items && !force_full) {
@@ -157,76 +113,21 @@ String str_arr(const Dictionary arr, const bool force_full, const int max_shown_
 		res += String::num_int64(int64_t(arr.size()) - s) + " more items...";
 	}
 
-	return res + " }";
+	if (add_braces) {
+		return res + " }";
+	} else {
+		return res;
+	}
 };
 
-String str_arr(const uint8_t *data, const int size, const bool force_full, const int max_shown_items, String separator) {
-	String res = "[ ";
-	int s = size;
-	bool is_long = false;
-	if (s > max_shown_items && !force_full) {
-		s = max_shown_items;
-		is_long = true;
-	}
-
-	for (int i = 0; i < s; i++) {
-		res += str(data[i]);
-		if (i != s - 1 || is_long) {
-			res += separator;
-		}
-	}
-
-	if (is_long) {
-		res += String::num_int64(int64_t(size) - s) + " more bytes...";
-	}
-
-	return res + " ]";
+String str_arr(const uint8_t *arr, const int size, const bool force_full, const int max_shown_items, String separator, bool add_braces) {
+	int s = size, ss = size;
+	DEFAULT_STR_ARR_BODY;
 };
 
-#ifndef NO_GODOTREMOTE_SERVER
-Error compress_jpg(PoolByteArray &ret, const PoolByteArray &img_data, int width, int height, int bytes_for_color, int quality, int subsampling) {
-	PoolByteArray res;
-	ERR_FAIL_COND_V(img_data.size() == 0, Error::ERR_INVALID_PARAMETER);
-	ERR_FAIL_COND_V(quality < 1 || quality > 100, Error::ERR_INVALID_PARAMETER);
-
-	jpge::params params;
-	params.m_quality = quality;
-	params.m_subsampling = (jpge::subsampling_t)subsampling;
-
-	ERR_FAIL_COND_V(!params.check(), Error::ERR_INVALID_PARAMETER);
-	auto rb = _grutils_data_server->compress_buffer.read();
-	auto ri = img_data.read();
-	int size = _grutils_data_server->compress_buffer.size();
-
-	TimeCountInit();
-
-	ERR_FAIL_COND_V_MSG(!jpge::compress_image_to_jpeg_file_in_memory(
-								(void *)rb.ptr(),
-								size,
-								width,
-								height,
-								bytes_for_color,
-								(const unsigned char *)ri.ptr(),
-								params),
-			Error::FAILED, "Can't compress image.");
-
-	TimeCount("Compress jpg");
-
-	release_pva_read(ri);
-	res.resize(size);
-	auto wr = res.write();
-	memcpy(wr.ptr(), rb.ptr(), size);
-	release_pva_read(rb);
-	release_pva_write(wr);
-
-	TimeCount("Combine arrays");
-
-	_log("JPG size: " + str(res.size()), GodotRemote::LogLevel::LL_DEBUG);
-
-	ret = res;
-	return Error::OK;
+uint64_t get_time_usec() {
+	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
-#endif
 
 Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type) {
 #ifndef GDNATIVE_LIBRARY
@@ -252,7 +153,7 @@ Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type) {
 	return err;
 #else
 	// TODO I don't found any ways to implement compression in GDNative
-	_log("Compression not supported in GDNative library", GodotRemote::LogLevel::LL_ERROR);
+	_log("Compression not supported in GDNative library", LogLevel::LL_ERROR);
 	res = bytes;
 	return Error::OK;
 #endif
@@ -281,7 +182,7 @@ Error decompress_bytes(const PoolByteArray &bytes, int output_size, PoolByteArra
 	return err;
 #else
 	// TODO I don't found any ways to implement compression in GDNative
-	_log("Compression not supported in GDNative library", GodotRemote::LogLevel::LL_ERROR);
+	_log("Compression not supported in GDNative library", LogLevel::LL_ERROR);
 	res = bytes;
 	return Error::OK;
 #endif
@@ -424,6 +325,10 @@ bool validate_version(const uint8_t *data) {
 	return false;
 }
 
+std::shared_ptr<GRObjectPool<StreamPeerBuffer> > get_stream_peer_buffer_pool() {
+	return _grutils_data->streamPeerBufferPool;
+}
+
 bool compare_pool_byte_arrays(const PoolByteArray &a, const PoolByteArray &b) {
 	if (a.size() != b.size())
 		return false;
@@ -434,6 +339,35 @@ bool compare_pool_byte_arrays(const PoolByteArray &a, const PoolByteArray &b) {
 			return false;
 	}
 
+	return true;
+}
+
+bool compare_pool_string_arrays(const PoolStringArray &a, const PoolStringArray &b) {
+	if (a.size() == b.size()) {
+		auto ra = a.read();
+		auto rb = b.read();
+		for (int i = 0; i < (int)a.size(); i++) {
+			if (ra[i] != rb[i]) {
+				return false;
+			}
+		}
+	} else {
+		return false;
+	}
+	return true;
+}
+
+bool compare_pool_string_arrays(const std::vector<String> &a, const PoolStringArray &b) {
+	if (a.size() == b.size()) {
+		auto rb = b.read();
+		for (int i = 0; i < (int)a.size(); i++) {
+			if (a[i] != rb[i]) {
+				return false;
+			}
+		}
+	} else {
+		return false;
+	}
 	return true;
 }
 
@@ -489,6 +423,12 @@ void set_gyroscope(const Vector3 &p_gyroscope) {
 #endif
 }
 
+Ref<_Thread> utils_thread_create(Object *instance, String func_name, const Variant &user_data) {
+	Ref<_Thread> t = newref(_Thread);
+	t->start(instance, func_name, user_data);
+	return t;
+}
+
 #ifndef GDNATIVE_LIBRARY
 Vector<Variant> vec_args(const std::vector<Variant> &args) {
 	Vector<Variant> res;
@@ -502,6 +442,20 @@ Vector<Variant> vec_args(const std::vector<Variant> &args) {
 #else
 Array vec_args(const std::vector<Variant> &args) {
 	return vec_to_arr(args);
+}
+
+PoolByteArray _gdn_convert_native_pointer_array_to_pba(uint8_t *p, int64_t size) {
+	PoolByteArray a;
+	a.resize((int)size);
+	auto w = a.write();
+	memcpy(w.ptr(), p, size);
+	return a;
+}
+
+void _gdn_convert_array_to_native_pointer_array(uint8_t *pDst, const Array &pSrc, int64_t size) {
+	PoolByteArray a = PoolByteArray(pSrc);
+	auto r = a.read();
+	memcpy(pDst, r.ptr(), size);
 }
 
 String _gdn_get_file_as_string(String path, Error *ret_err) {
@@ -533,12 +487,6 @@ Variant _gdn_dictionary_get_value_at_index(Dictionary d, int idx) {
 	return r;
 }
 
-Ref<Thread> _gdn_thread_create(Object *instance, String func_name, const Object *user_data) {
-	Ref<Thread> t = newref(Thread);
-	t->start(instance, func_name, user_data);
-	return t;
-}
-
 Variant _GLOBAL_DEF(const String &p_var, const Variant &p_default, bool p_restart_if_changed) {
 	Variant ret;
 	if (!ProjectSettings::get_singleton()->has_setting(p_var)) {
@@ -552,5 +500,20 @@ Variant _GLOBAL_DEF(const String &p_var, const Variant &p_default, bool p_restar
 	return ret;
 }
 #endif
+
+// https://stackoverflow.com/a/33021408/8980874
+
+#define IMAX_BITS(m) ((m) / ((m) % 255 + 1) / 255 % 255 * 8 + 7 - 86 / ((m) % 255 + 12))
+#define RAND_MAX_WIDTH IMAX_BITS(RAND_MAX)
+static_assert((RAND_MAX & (RAND_MAX + 1u)) == 0, "RAND_MAX not a Mersenne number");
+
+int64_t rand64() {
+	int64_t r = 0;
+	for (int i = 0; i < 64; i += RAND_MAX_WIDTH) {
+		r <<= RAND_MAX_WIDTH;
+		r ^= rand();
+	}
+	return r * get_time_usec();
+}
 
 } // namespace GRUtils

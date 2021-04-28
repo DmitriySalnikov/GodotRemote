@@ -1,31 +1,78 @@
 # SCsub
-Import('env')
+import lib_utils
+import json
 
+Import('env')
 module_env = env.Clone()
 
-if ARGUMENTS.get('godot_remote_no_default_resources', 'no') == 'yes':
-    module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_DEFAULT_RESOURCES'])
-if ARGUMENTS.get('godot_remote_disable_server', 'no') == 'yes':
-    module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_SERVER'])
-if ARGUMENTS.get('godot_remote_disable_client', 'no') == 'yes':
-    module_env.Append(CPPDEFINES=['NO_GODOTREMOTE_CLIENT'])
+# setup all options
+opts = Variables([], ARGUMENTS)
+lib_utils.setup_options(module_env, opts, lambda e: Help(opts.GenerateHelpText(e)))
 
-if env['platform'] == 'windows':
-    module_env.add_source_files(env.modules_sources, '*.cpp')
+src_files = []
+with open('default_sources.json') as f:
+    src_files = json.load(f)
+
+def get_sources():
+    return ["#modules/godot_remote/" + file for file in src_files]
+
+# Tools
+if module_env['tools']:
+    src_files.append('GRToolMenuPlugin.cpp')
+    src_files.append('TinyProcessLib.cpp')
+
+# Tracy
+if module_env['godot_remote_tracy_enabled']:
+    src_files.append('tracy/TracyClient.cpp')
+    module_env.Append(CPPDEFINES=['GODOT_REMOTE_TRACY_ENABLED', 'TRACY_ENABLE', 'TRACY_ON_DEMAND']) # 'TRACY_DELAYED_INIT', 'TRACY_MANUAL_LIFETIME'
+    #module_env.Append(CPPDEFINES=['TRACY_CALLSTACK'])
+
+# libturbo-jpeg
+if module_env['godot_remote_libjpeg_turbo_enabled']:
+    # an absolutely stupid system that doesn't allow me to link libraries 
+    # inside this module without 'LIBSUFFIX' required this hack
+    lib_utils.prepare_turbo_jpeg(env)
+else:
+    src_files.append('jpge.cpp')
+
+# OpenH264
+if module_env['godot_remote_h264_enabled']:
+    module_env.Append(CPPDEFINES=['GODOT_REMOTE_H264_ENABLED'])
+    lib_utils.prepare_h264(env)
+
+# RPATH can be used to specify a list of paths to shared find libs
+# env.Append(RPATH=["."])
+
+# platform specific
+if module_env['platform'] == 'windows':
+    #if module_env['godot_remote_livepp']:
+    #    module_env.Append(CPPDEFINES=['GODOTREMOTE_LIVEPP'])
+    #    module_env.AppendUnique(LINKFLAGS=['/OPT:NOREF', '/FUNCTIONPADMIN', '/Zi', '/FS'])
+
+    #    if '/OPT:REF' in module_env['LINKFLAGS']:
+    #        module_env['LINKFLAGS'].remove('/OPT:REF')     
+    #    if '/GL' in module_env['LINKFLAGS']:
+    #        module_env['LINKFLAGS'].remove('/GL')
+    
+    if module_env['target'] == 'release_debug':
+        lib_utils.remove_flag_from_env(module_env, 'CCFLAGS', ['/O2', '/O1'])
+        module_env.AppendUnique(CCFLAGS=['/Zi', '/FS'])
+    
+    module_env.Append(CXXFLAGS=['/std:c++14'])
+    module_env.add_source_files(env.modules_sources, get_sources())
+
 else:
     module_env.Append(CXXFLAGS=['-std=c++14']) # Flags for C++ code only
     module_env.Append(CCFLAGS=['-O2']) # Flags for C and C++ code
     
     if ARGUMENTS.get('godot_remote_shared', 'no') == 'yes':
-        sources = []
-        module_env.add_source_files(sources, '*.cpp')
         module_env.Append(CCFLAGS=['-fPIC']) # Flags for C and C++ code
         module_env['LIBS'] = []
         module_env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME'] = True
-        shared_lib = module_env.SharedLibrary(target='#bin/godot_remote', source=sources)
+        shared_lib = module_env.SharedLibrary(target='#bin/godot_remote', source=get_sources())
 
         shared_lib_shim = shared_lib[0].name.rsplit('.', 1)[0]
         env.Append(LIBS=[shared_lib_shim])
         env.Append(LIBPATH=['#bin'])
     else:
-        module_env.add_source_files(env.modules_sources, '*.cpp')
+        module_env.add_source_files(env.modules_sources, get_sources())

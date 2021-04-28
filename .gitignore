@@ -7,21 +7,22 @@ __pycache__
 .vs/
 
 # VSCode Cache
-.vscode/
+#.vscode/
 
 # Binaries
 *.obj
 *.iobj
-*.so
-*.dll
+#*.so
+#*.dll
 *.o
 *.dylib
 *.pdb
 *.ipdb
 *.ilk
 *.exe
+*.264
 *.exp
-*.lib
+#*.lib
 *.vcxproj.filters
 *.vcxproj.user
 *.os
@@ -32,6 +33,7 @@ api.json
 obj/
 libs/
 bin/
+temp_folder_for_lib_copies/
 
 # exist only for testing
 test.gd
