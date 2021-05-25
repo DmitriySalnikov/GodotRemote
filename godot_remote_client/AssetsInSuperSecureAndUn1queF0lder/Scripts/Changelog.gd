@@ -11,6 +11,9 @@ const UPD_EDITOR = "force_update_editor"
 # also 'UPD_EDITOR : true' after "text" key can be used to force show download button
 
 var changelog : Dictionary = {
+"1.0.2.2" : 
+{ "text" : """Godot Engine updated to version 3.3.2
+""", UPD_EDITOR = true},
 "1.0.2.1" : 
 { "text" : """Godot Engine updated to version 3.3.1
 """, UPD_EDITOR = true},
