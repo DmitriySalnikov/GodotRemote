@@ -13,10 +13,10 @@ const UPD_EDITOR = "force_update_editor"
 var changelog : Dictionary = {
 "1.0.2.2" : 
 { "text" : """Godot Engine updated to version 3.3.2
-""", UPD_EDITOR = true},
+""", UPD_EDITOR : true},
 "1.0.2.1" : 
 { "text" : """Godot Engine updated to version 3.3.1
-""", UPD_EDITOR = true},
+""", UPD_EDITOR : true},
 "1.0.2.0" : 
 { "text" : """Client:
 The UI has become more adapted for mobile.
@@ -42,7 +42,7 @@ Removed Uncompressed and PNG codecs.
 Custom input scenes now adding '.md5' files from '.import' folder.
 Added many optimizations to avoid memory allocation and improve performance.
 Added 'tracy' profiler.
-""", UPD_EDITOR = true },
+""", UPD_EDITOR : true },
 "1.0.1.0" : 
 { "text" : """Client:
 Added the ability to send user packages in custom input scenes
