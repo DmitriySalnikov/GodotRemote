@@ -19,8 +19,10 @@ OPENH264_LIB "win64.dll";
 #else
 OPENH264_LIB "win32.dll";
 #endif
+
 #elif defined(__ANDROID__) // Android
 const char *GRUtilsH264Codec::lib_name = "libopenh264.so";
+
 #elif defined(__linux__) // Linux
 #if defined(__i386__)
 OPENH264_LIB "linux32.6.so";
@@ -31,6 +33,22 @@ OPENH264_LIB "linux-arm.6.so";
 #elif defined(__aarch64__)
 OPENH264_LIB "linux-arm64.6.so";
 #endif
+
+// https://stackoverflow.com/a/6802945/8980874
+#elif defined(__APPLE__) // osx and ios
+#include <TargetConditionals.h>
+#if TARGET_OS_MAC
+#if defined(__i386__)
+OPENH264_LIB "osx32.6.dylib";
+#elif defined(__x86_64__)
+OPENH264_LIB "osx64.6.dylib";
+#else
+#error "Unknown or not supported macOS platform"
+#endif
+#else
+#error "Unknown or not supported Apple platform"
+#endif
+
 #endif
 
 #undef OPENH264_LIB
@@ -58,7 +76,7 @@ GRUtilsH264Codec::WelsDestroyDecoderFunc GRUtilsH264Codec::DestroyDecoderFunc = 
 #if defined(_MSC_VER) || defined(__ANDROID__) || defined(_WIN32) // Not Linux
 #define LOAD_LIB_BLOCK() openh264_handle_DLL = load_lib(lib_name, RTLD_NOW | RTLD_LOCAL);
 #define LOG_LIB_ERROR() _log("[OpenH264] No valid library named " + str(lib_name) + " was found. " + error_str, LogLevel::LL_WARNING);
-#elif defined(__linux__) // Linux
+#elif defined(__linux__) || defined(TARGET_OS_MAC) // Linux
 #define LOAD_LIB_BLOCK()                                                                                  \
 	String linux_lib_name = (OS::get_singleton()->get_executable_path().get_base_dir() + "/" + lib_name); \
 	openh264_handle_DLL = load_lib(linux_lib_name.utf8().get_data(), RTLD_NOW | RTLD_LOCAL);

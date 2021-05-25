@@ -58,10 +58,6 @@ void register_godot_remote_types() {
 #ifndef NO_GODOTREMOTE_SERVER
 	ClassDB::register_class<GRServer>();
 	ClassDB::register_class<GRSViewport>();
-	ClassDB::register_class<GRStreamEncodersManager>();
-	ClassDB::register_class<GRStreamEncoder>();
-	ClassDB::register_class<GRStreamEncoderImageSequence>();
-	ClassDB::register_class<GRStreamEncoderH264>();
 #endif
 
 #ifndef NO_GODOTREMOTE_CLIENT

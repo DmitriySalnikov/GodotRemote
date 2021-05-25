@@ -15,7 +15,7 @@ __pycache__
 #*.so
 #*.dll
 *.o
-*.dylib
+#*.dylib
 *.pdb
 *.ipdb
 *.ilk

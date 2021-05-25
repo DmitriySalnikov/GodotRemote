@@ -751,7 +751,7 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 			}
 		}
 	}
-	_log("UDP Broadcast thread inited with " + str(available_sockets.size()) + " available addresses", LogLevel::LL_DEBUG);
+	_log("UDP Broadcast thread inited with " + str((int)available_sockets.size()) + " available addresses", LogLevel::LL_DEBUG);
 
 	while (!this_thread_info->stop_thread) {
 		if (available_sockets.size()) {
@@ -1500,7 +1500,7 @@ std::shared_ptr<GRPacketCustomInputScene> GRServer::_create_custom_input_pack(St
 				} else {
 
 					// if OK show which files added
-					_log(str(files.size()) + " files added to custom input PCK", LogLevel::LL_NORMAL);
+					_log(str((int)files.size()) + " files added to custom input PCK", LogLevel::LL_NORMAL);
 					_log(str_arr(files, true, 0, ",\n"), LogLevel::LL_DEBUG);
 
 #ifndef GDNATIVE_LIBRARY

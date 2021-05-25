@@ -186,12 +186,18 @@ def prepare_h264(env):
             lib_openh264 = lib_version + ("-win64.dll" if env["bits"] == "64" else "-win32.dll")
         elif env["platform"] in ["x11", "linuxbsd"]:
             lib_openh264 = "lib" + lib_version + ("-linux64.6.so" if env["bits"] == "64" else "-linux32.6.so")
+        elif env["platform"] == "osx":
+            lib_openh264 = "lib" + lib_version + ("-osx64.6.dylib" if env["bits"] == "64" else "-osx32.6.dylib")
 
         new_dir = "/".join(cwd.split("/")[0:-3]) + "/bin/"
         old_lib = "openh264/" + lib_openh264
         if not os.path.exists(new_dir):
             os.makedirs(new_dir)
-        copyfile(cwd + old_lib, new_dir + lib_openh264)
+
+        if os.path.exists(cwd + old_lib):
+            copyfile(cwd + old_lib, new_dir + lib_openh264)
+        else:
+            print("WARN: Shared OpenH264 library was not found.")
 
 ######
 # for both types
