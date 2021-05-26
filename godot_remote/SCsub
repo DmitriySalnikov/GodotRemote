@@ -29,8 +29,6 @@ if module_env['godot_remote_tracy_enabled']:
 
 # libturbo-jpeg
 if module_env['godot_remote_libjpeg_turbo_enabled']:
-    # an absolutely stupid system that doesn't allow me to link libraries 
-    # inside this module without 'LIBSUFFIX' required this hack
     lib_utils.prepare_turbo_jpeg(env)
 else:
     src_files.append('jpge.cpp')

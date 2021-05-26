@@ -226,13 +226,14 @@ def prepare_turbo_jpeg(env, is_gdnative = False):
         lib = dir + 'turbojpeg-static.lib'
         need_to_use_hack = True
     
-    # Linux libs
-    elif env['platform'] in ['x11', 'linux', 'freebsd']:
+    # OSX and Linux libs
+    elif env['platform'] in ['osx', 'x11', 'linux', 'freebsd']:
+        plat = 'osx' if env['platform'] == 'osx' else 'linux'
         env.Append(LIBS=['libturbojpeg'])
         if env['bits'] == '32':
-            dir += 'linux/x86/'
+            dir += plat + '/x86/'
         elif env['bits'] == '64':
-            dir += 'linux/x64/'
+            dir += plat + '/x64/'
         lib = dir + 'libturbojpeg.a'
     
     # Android libs
@@ -249,6 +250,8 @@ def prepare_turbo_jpeg(env, is_gdnative = False):
 
         lib = dir + 'libturbojpeg.a'
 
+    # an absolutely stupid system that doesn't allow me to link libraries 
+    # inside this module without 'LIBSUFFIX' required this hack
     if need_to_use_hack and not is_gdnative:
         if env['platform'] == 'windows':
             import pathlib
