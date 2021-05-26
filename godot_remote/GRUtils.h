@@ -296,6 +296,10 @@ extern std::shared_ptr<GRUtilsData> _grutils_data;
 extern void init();
 extern void deinit();
 
+extern PoolByteArray get_packet_header();
+extern PoolByteArray get_gr_version();
+extern void set_log_level(int lvl);
+
 extern uint64_t get_time_usec();
 
 extern Error compress_bytes(const PoolByteArray &bytes, PoolByteArray &res, int type);
@@ -469,18 +473,6 @@ POOLARRAYS_STR_ARR(PoolColorArray);
 
 #undef POOLARRAYS_STR_ARR
 #endif
-
-static PoolByteArray get_packet_header() {
-	return _grutils_data->internal_PACKET_HEADER;
-}
-
-static PoolByteArray get_gr_version() {
-	return _grutils_data->internal_VERSION;
-}
-
-static void set_log_level(int lvl) {
-	_grutils_data->current_loglevel = lvl;
-}
 
 template <class T>
 inline void vec_remove_obj(std::vector<T> &v, const T &item) {

@@ -35,6 +35,7 @@ OPENH264_LIB "linux-arm64.6.so";
 #endif
 
 // https://stackoverflow.com/a/6802945/8980874
+// https://github.com/mstg/iOS-full-sdk/blob/master/iPhoneOS9.3.sdk/usr/include/TargetConditionals.h
 #elif defined(__APPLE__) // osx and ios
 #include <TargetConditionals.h>
 #if TARGET_OS_MAC
@@ -42,6 +43,8 @@ OPENH264_LIB "linux-arm64.6.so";
 OPENH264_LIB "osx32.6.dylib";
 #elif defined(__x86_64__)
 OPENH264_LIB "osx64.6.dylib";
+#elif defined(TARGET_CPU_ARM64)
+OPENH264_LIB "osxarm64.6.dylib";
 #else
 #error "Unknown or not supported macOS platform"
 #endif

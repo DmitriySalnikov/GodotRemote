@@ -234,6 +234,8 @@ def prepare_turbo_jpeg(env, is_gdnative = False):
             dir += plat + '/x86/'
         elif env['bits'] == '64':
             dir += plat + '/x64/'
+        elif env['arch'] == 'arm64':
+            dir += plat + '/arm64/'
         lib = dir + 'libturbojpeg.a'
     
     # Android libs

@@ -43,6 +43,18 @@ void deinit() {
 	LEAVE_IF_EDITOR();
 }
 
+PoolByteArray get_packet_header() {
+	return _grutils_data->internal_PACKET_HEADER;
+}
+
+PoolByteArray get_gr_version() {
+	return _grutils_data->internal_VERSION;
+}
+
+void set_log_level(int lvl) {
+	_grutils_data->current_loglevel = lvl;
+}
+
 #ifdef DEBUG_ENABLED
 void __log(const Variant &val, int lvl, String func, String file, int line) {
 	if (lvl >= (_grutils_data ? _grutils_data->current_loglevel : LogLevel::LL_DEBUG) && lvl < LogLevel::LL_NONE) {

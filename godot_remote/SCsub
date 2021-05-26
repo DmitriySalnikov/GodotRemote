@@ -4,6 +4,7 @@ import json
 
 Import('env')
 module_env = env.Clone()
+module_env.disable_warnings()
 
 # setup all options
 opts = Variables([], ARGUMENTS)

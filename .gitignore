@@ -10,6 +10,7 @@ __pycache__
 #.vscode/
 
 # Binaries
+.DS_Store
 *.obj
 *.iobj
 #*.so

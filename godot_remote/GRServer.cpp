@@ -766,6 +766,7 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 					//}
 					update_packet_data();
 
+					bool result = false;
 					for (auto u : available_sockets) {
 						int64_t rnd_num = rand64();
 						udp_data_buf->seek(4);
@@ -774,6 +775,8 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 							if (u->Send(auto_connection_port, udp_data_buf->get_data_array().read().ptr(), udp_data_buf->get_data_array().size()) == -1) {
 								sockets_to_delete.push_back(u);
 								break;
+							} else {
+								result = true;
 							}
 						}
 					}
@@ -782,7 +785,10 @@ void GRServer::_thread_udp_connection(Variant p_userdata) {
 						vec_remove_obj(available_sockets, u);
 					}
 
-					_log("Broadcasting Server Info", LogLevel::LL_DEBUG);
+					if (result)
+						_log("Broadcasting Server Info", LogLevel::LL_DEBUG);
+					else
+						_log("Broadcasting Server Info Failed", LogLevel::LL_DEBUG);
 				}
 			}
 		} else {
