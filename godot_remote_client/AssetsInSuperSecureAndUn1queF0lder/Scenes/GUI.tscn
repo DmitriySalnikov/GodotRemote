@@ -273,11 +273,12 @@ visible = false
 
 [node name="PlsSupportPopup" type="WindowDialog" parent="."]
 visible = true
-margin_left = -838.665
-margin_top = 424.185
-margin_right = -138.665
-margin_bottom = 582.185
-rect_min_size = Vector2( 500, 158 )
+margin_left = -840.0
+margin_top = 372.0
+margin_right = -140.0
+margin_bottom = 672.0
+rect_min_size = Vector2( 500, 300 )
+popup_exclusive = true
 window_title = "Do you like this app?"
 script = ExtResource( 9 )
 __meta__ = {
@@ -298,22 +299,34 @@ __meta__ = {
 }
 
 [node name="Label" type="Label" parent="PlsSupportPopup/HBoxContainer"]
+margin_top = 5.0
 margin_right = 668.0
-margin_bottom = 46.0
+margin_bottom = 51.0
 size_flags_vertical = 6
-text = "Please support the developer"
+text = "Please support the developer."
 align = 1
 valign = 1
 
-[node name="Control" type="Control" parent="PlsSupportPopup/HBoxContainer"]
-margin_top = 50.0
+[node name="Label2" type="Label" parent="PlsSupportPopup/HBoxContainer"]
+margin_top = 60.0
 margin_right = 668.0
-margin_bottom = 50.0
+margin_bottom = 188.0
+size_flags_vertical = 6
+custom_colors/font_color = Color( 0.654902, 0.65098, 0.65098, 1 )
+text = "This application is free and does not contain annoying ads, but without financial support, it cannot exist forever."
+align = 1
+valign = 1
+autowrap = true
+
+[node name="Control" type="Control" parent="PlsSupportPopup/HBoxContainer"]
+margin_top = 192.0
+margin_right = 668.0
+margin_bottom = 192.0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="PlsSupportPopup/HBoxContainer"]
-margin_top = 54.0
+margin_top = 196.0
 margin_right = 668.0
-margin_bottom = 126.0
+margin_bottom = 268.0
 custom_constants/separation = 12
 
 [node name="Button" type="Button" parent="PlsSupportPopup/HBoxContainer/HBoxContainer"]
@@ -379,13 +392,14 @@ margin_bottom = 190.0
 custom_constants/separation = 12
 
 [node name="yes" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
-margin_right = 198.0
+margin_right = 303.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
 text = "Yes"
 
 [node name="no" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
+visible = false
 margin_left = 210.0
 margin_right = 408.0
 margin_bottom = 72.0
@@ -394,7 +408,7 @@ size_flags_horizontal = 3
 text = "No, thanks"
 
 [node name="later" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
-margin_left = 420.0
+margin_left = 315.0
 margin_right = 618.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
@@ -402,10 +416,10 @@ size_flags_horizontal = 3
 text = "Not now"
 
 [node name="Welcome" type="Panel" parent="."]
-margin_left = -833.909
-margin_top = 610.655
-margin_right = -45.9089
-margin_bottom = 1286.65
+margin_left = -1652.03
+margin_top = 690.997
+margin_right = -864.026
+margin_bottom = 1367.0
 rect_min_size = Vector2( 700, 503 )
 custom_styles/panel = ExtResource( 11 )
 
@@ -452,9 +466,9 @@ __meta__ = {
 }
 
 [node name="HBoxContainer2" type="HBoxContainer" parent="Welcome/VBox"]
-margin_top = 272.0
+margin_top = 273.0
 margin_right = 756.0
-margin_bottom = 344.0
+margin_bottom = 345.0
 custom_constants/separation = 12
 
 [node name="Button" type="Button" parent="Welcome/VBox/HBoxContainer2" groups=[
@@ -478,9 +492,9 @@ text = "Open Changelogs"
 script = SubResource( 10 )
 
 [node name="Label2" type="Label" parent="Welcome/VBox"]
-margin_top = 414.0
+margin_top = 415.0
 margin_right = 756.0
-margin_bottom = 501.0
+margin_bottom = 502.0
 grow_horizontal = 0
 grow_vertical = 0
 size_flags_vertical = 6
@@ -494,9 +508,9 @@ __meta__ = {
 }
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Welcome/VBox"]
-margin_top = 571.0
+margin_top = 572.0
 margin_right = 756.0
-margin_bottom = 643.0
+margin_bottom = 644.0
 custom_constants/separation = 12
 
 [node name="Button2" type="Button" parent="Welcome/VBox/HBoxContainer" groups=[

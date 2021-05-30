@@ -38,7 +38,7 @@ func _on_Button_pressed():
 	if has_billings:
 		get_parent().show_support_window()
 	else:
-		OS.shell_open("https://github.com/DmitriySalnikov/GodotRemote#godot-remote")
+		OS.shell_open("https://github.com/DmitriySalnikov/GodotRemote#support")
 	
 	G.a_design_event("PlsSupportDeveloper:Yes")
 
