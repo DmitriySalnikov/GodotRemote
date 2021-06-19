@@ -512,6 +512,10 @@ capture_pointer
 # type bool, default true
 capture_input
 
+# Capture and send mouse events
+# type bool, default true
+capture_mouse_events
+
 # Type of connection
 # type GRClient.ConnectionType, default CONNECTION_WiFi
 connection_type

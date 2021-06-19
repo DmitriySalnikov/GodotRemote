@@ -31,7 +31,7 @@ enum A_ErrorSeverity{
 signal show_stats_changed(state)
 signal touches_to_open_settings_changed(count)
 
-const CLIENT_VERSION := 2
+const CLIENT_VERSION := 0
 const SAVE_FILE := "user://settings.json"
 
 var IsMobile : bool = false
@@ -50,6 +50,7 @@ var FirstRunAgreementAccepted : bool = false setget set_first_run_agreement_acce
 var FirstConnectionSuccessful : bool = false setget set_first_connection_successful
 var TouchesToOpenSettings : int = 5 setget set_touches_to_open_settings
 var UserRateState : int = RateState.NotNow setget set_user_rate_state
+var EmulateMouseFromTouch : bool = true setget set_emulate_mouse_from_touch
 
 var device_id : String = "" setget set_device_id
 var connection_type : int = 2 setget set_con_type
@@ -196,7 +197,6 @@ func _set_all_values():
 	if i_w:
 		dev.start()
 
-
 #########################################################
 #                       SAVE/LOAD
 #########################################################
@@ -206,6 +206,7 @@ func _save_settings():
 	
 	d["game_highscore"] = GameHighScore
 	d["game_show_after_errors"] = GameShowAfterConnectionErrors
+	d["emulate_mouse_from_touch"] = EmulateMouseFromTouch
 	
 	d["m_version"] = get_version()
 	d["first_run_accepted"] = FirstRunAgreementAccepted
@@ -284,6 +285,7 @@ func _load_settings():
 			TotalAppRuns = _safe_get_from_dict(d, "total_app_runs", TotalAppRuns)
 			TouchesToOpenSettings = _safe_get_from_dict(d, "touches_to_open_settings", TouchesToOpenSettings)
 			UserRateState = _safe_get_from_dict(d, "user_rate_state", UserRateState)
+			EmulateMouseFromTouch = _safe_get_from_dict(d, "emulate_mouse_from_touch", EmulateMouseFromTouch)
 			
 			device_id = _safe_get_from_dict(d, "device_id", device_id)
 			connection_type = _safe_get_from_dict(d, "connection_type", connection_type)
@@ -382,6 +384,10 @@ func a_resource_event(flowType_is_source: bool, currency: String, amount: float,
 #########################################################
 #                        SETGET
 #########################################################
+
+func set_emulate_mouse_from_touch(val : bool):
+	EmulateMouseFromTouch = val
+	_save_settings()
 
 func set_game_score(val : int):
 	GameHighScore = val

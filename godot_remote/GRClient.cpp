@@ -127,6 +127,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_capture_when_hover), "val"), &GRClient::set_capture_when_hover);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_capture_pointer), "val"), &GRClient::set_capture_pointer);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_capture_input), "val"), &GRClient::set_capture_input);
+	ClassDB::bind_method(D_METHOD(NAMEOF(set_capture_mouse_events), "val"), &GRClient::set_capture_mouse_events);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_connection_type), "type"), &GRClient::set_connection_type);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_target_send_fps), "fps"), &GRClient::set_target_send_fps);
 	ClassDB::bind_method(D_METHOD(NAMEOF(set_stretch_mode), "mode"), &GRClient::set_stretch_mode);
@@ -142,6 +143,7 @@ void GRClient::_bind_methods() {
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_when_hover)), &GRClient::is_capture_when_hover);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_pointer)), &GRClient::is_capture_pointer);
 	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_input)), &GRClient::is_capture_input);
+	ClassDB::bind_method(D_METHOD(NAMEOF(is_capture_mouse_events)), &GRClient::is_capture_mouse_events);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_connection_type)), &GRClient::get_connection_type);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_target_send_fps)), &GRClient::get_target_send_fps);
 	ClassDB::bind_method(D_METHOD(NAMEOF(get_stretch_mode)), &GRClient::get_stretch_mode);
@@ -157,6 +159,7 @@ void GRClient::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_when_hover"), NAMEOF(set_capture_when_hover), NAMEOF(is_capture_when_hover));
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_pointer"), NAMEOF(set_capture_pointer), NAMEOF(is_capture_pointer));
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_input"), NAMEOF(set_capture_input), NAMEOF(is_capture_input));
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_mouse_events"), NAMEOF(set_capture_mouse_events), NAMEOF(is_capture_mouse_events));
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "connection_type", PROPERTY_HINT_ENUM, "WiFi,ADB"), NAMEOF(set_connection_type), NAMEOF(get_connection_type));
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "target_send_fps", PROPERTY_HINT_RANGE, "1,1000"), NAMEOF(set_target_send_fps), NAMEOF(get_target_send_fps));
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Fill,Keep Aspect"), NAMEOF(set_stretch_mode), NAMEOF(get_stretch_mode));
@@ -247,6 +250,7 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, set_capture_when_hover);
 	METHOD_REG(GRClient, set_capture_pointer);
 	METHOD_REG(GRClient, set_capture_input);
+	METHOD_REG(GRClient, set_capture_mouse_events);
 	METHOD_REG(GRClient, set_connection_type);
 	METHOD_REG(GRClient, set_target_send_fps);
 	METHOD_REG(GRClient, set_stretch_mode);
@@ -262,6 +266,7 @@ void GRClient::_register_methods() {
 	METHOD_REG(GRClient, is_capture_when_hover);
 	METHOD_REG(GRClient, is_capture_pointer);
 	METHOD_REG(GRClient, is_capture_input);
+	METHOD_REG(GRClient, is_capture_mouse_events);
 	METHOD_REG(GRClient, get_connection_type);
 	METHOD_REG(GRClient, get_target_send_fps);
 	METHOD_REG(GRClient, get_stretch_mode);
@@ -277,6 +282,7 @@ void GRClient::_register_methods() {
 	register_property<GRClient, bool>("capture_when_hover", &GRClient::set_capture_when_hover, &GRClient::is_capture_when_hover, false);
 	register_property<GRClient, bool>("capture_pointer", &GRClient::set_capture_pointer, &GRClient::is_capture_pointer, true);
 	register_property<GRClient, bool>("capture_input", &GRClient::set_capture_input, &GRClient::is_capture_input, true);
+	register_property<GRClient, bool>("capture_mouse_events", &GRClient::set_capture_mouse_events, &GRClient::is_capture_mouse_events, true);
 	register_property<GRClient, int>("connection_type", &GRClient::set_connection_type, &GRClient::get_connection_type, CONNECTION_WiFi, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_ENUM, "WiFi,ADB");
 	register_property<GRClient, int>("target_send_fps", &GRClient::set_target_send_fps, &GRClient::get_target_send_fps, 60, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_RANGE, "1,1000");
 	register_property<GRClient, int>("stretch_mode", &GRClient::set_stretch_mode, &GRClient::get_stretch_mode, STRETCH_KEEP_ASPECT, GODOT_METHOD_RPC_MODE_DISABLED, GODOT_PROPERTY_USAGE_DEFAULT, GODOT_PROPERTY_HINT_ENUM, "Fill,Keep Aspect");
@@ -638,6 +644,17 @@ bool GRClient::is_capture_input() {
 void GRClient::set_capture_input(bool value) {
 	if (input_collector && !input_collector->is_queued_for_deletion())
 		input_collector->set_capture_input(value);
+}
+
+bool GRClient::is_capture_mouse_events() {
+	if (input_collector && !input_collector->is_queued_for_deletion())
+		return input_collector->is_capture_mouse_events();
+	return false;
+}
+
+void GRClient::set_capture_mouse_events(bool value) {
+	if (input_collector && !input_collector->is_queued_for_deletion())
+		input_collector->set_capture_mouse_events(value);
 }
 
 void GRClient::set_connection_type(ENUM_ARG(ConnectionType) type) {
@@ -2494,7 +2511,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 		if (iemb.is_valid()) {
 			int idx = (int)iemb->get_button_index();
 
-			if ((!stream_rect.has_point(iemb->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer) {
+			if ((!stream_rect.has_point(iemb->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer || !capture_mouse_events) {
 				if (idx == BUTTON_WHEEL_UP || idx == BUTTON_WHEEL_DOWN ||
 						idx == BUTTON_WHEEL_LEFT || idx == BUTTON_WHEEL_RIGHT) {
 					return;
@@ -2512,7 +2529,7 @@ void GRInputCollector::_input(Ref<InputEvent> ie) {
 	{
 		Ref<InputEventMouseMotion> iemm = ie;
 		if (iemm.is_valid()) {
-			if ((!stream_rect.has_point(iemm->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer)
+			if ((!stream_rect.has_point(iemm->get_position()) && capture_pointer_only_when_hover_control) || dont_capture_pointer || !capture_mouse_events)
 				return;
 			goto end;
 		}
@@ -2628,6 +2645,14 @@ bool GRInputCollector::is_capture_input() {
 
 void GRInputCollector::set_capture_input(bool value) {
 	set_process_input(value);
+}
+
+bool GRInputCollector::is_capture_mouse_events() {
+	return capture_mouse_events;
+}
+
+void GRInputCollector::set_capture_mouse_events(bool value) {
+	capture_mouse_events = value;
 }
 
 void GRInputCollector::set_tex_rect(TextureRect *tr) {

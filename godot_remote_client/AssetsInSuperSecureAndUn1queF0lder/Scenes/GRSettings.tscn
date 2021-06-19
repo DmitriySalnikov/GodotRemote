@@ -250,14 +250,14 @@ __meta__ = {
 margin_left = 2.0
 margin_top = 2.0
 margin_right = 766.0
-margin_bottom = 4118.0
+margin_bottom = 4200.0
 grow_horizontal = 0
 grow_vertical = 0
 size_flags_horizontal = 3
 
 [node name="Grid" type="GridContainer" parent="V/Scroll/H"]
 margin_right = 752.0
-margin_bottom = 4116.0
+margin_bottom = 4198.0
 size_flags_horizontal = 3
 custom_constants/vseparation = 24
 __meta__ = {
@@ -845,12 +845,29 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="SyncOrientation" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
+[node name="EmulateMouse" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
 margin_top = 2498.0
 margin_right = 752.0
 margin_bottom = 2580.0
+rect_min_size = Vector2( 0, 82 )
+focus_mode = 1
+mouse_filter = 1
+size_flags_vertical = 4
+pressed = true
+enabled_focus_mode = 1
+text = "Send Mouse Events"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="SyncOrientation" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
+"nodes_that_should_be_higher",
+]]
+margin_top = 2604.0
+margin_right = 752.0
+margin_bottom = 2686.0
 rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
@@ -865,9 +882,9 @@ __meta__ = {
 [node name="SyncAspect" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 2604.0
+margin_top = 2710.0
 margin_right = 752.0
-margin_bottom = 2686.0
+margin_bottom = 2792.0
 rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
@@ -880,9 +897,9 @@ __meta__ = {
 }
 
 [node name="DecoderThreads" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 2710.0
+margin_top = 2816.0
 margin_right = 752.0
-margin_bottom = 2792.0
+margin_bottom = 2898.0
 __meta__ = {
 "_edit_use_anchors_": false
 }
@@ -917,26 +934,28 @@ items = [ "1", null, false, 0, null, "2", null, false, 1, null, "3", null, false
 selected = 0
 
 [node name="Empty11" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 2816.0
-margin_right = 752.0
-margin_bottom = 2816.0
+visible = false
+margin_left = 891.0
+margin_top = 1229.0
+margin_right = 1778.0
+margin_bottom = 1229.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 
 [node name="Empty7" type="HSeparator" parent="V/Scroll/H/Grid"]
-margin_top = 2840.0
+margin_top = 2922.0
 margin_right = 752.0
-margin_bottom = 2844.0
+margin_bottom = 2926.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 custom_styles/separator = SubResource( 7 )
 
 [node name="Empty10" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 2868.0
+margin_top = 2950.0
 margin_right = 752.0
-margin_bottom = 2868.0
+margin_bottom = 2950.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
@@ -944,9 +963,9 @@ size_flags_vertical = 0
 [node name="OverrideServerSetting" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 2892.0
+margin_top = 2974.0
 margin_right = 752.0
-margin_bottom = 2974.0
+margin_bottom = 3056.0
 rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
@@ -957,9 +976,9 @@ text = "Override Server Settings"
 [node name="SyncServerSettings" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 2998.0
+margin_top = 3080.0
 margin_right = 752.0
-margin_bottom = 3080.0
+margin_bottom = 3162.0
 rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
@@ -967,26 +986,26 @@ enabled_focus_mode = 1
 text = "Sync Server Settings"
 
 [node name="Empty5" type="HSeparator" parent="V/Scroll/H/Grid"]
-margin_top = 3104.0
+margin_top = 3186.0
 margin_right = 752.0
-margin_bottom = 3108.0
+margin_bottom = 3190.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 custom_styles/separator = SubResource( 7 )
 
 [node name="Empty8" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 3132.0
+margin_top = 3214.0
 margin_right = 752.0
-margin_bottom = 3132.0
+margin_bottom = 3214.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 
 [node name="ServerSettings" type="Label" parent="V/Scroll/H/Grid"]
-margin_top = 3156.0
+margin_top = 3238.0
 margin_right = 752.0
-margin_bottom = 3202.0
+margin_bottom = 3284.0
 size_flags_horizontal = 3
 text = "Server Settings:"
 align = 1
@@ -996,9 +1015,9 @@ __meta__ = {
 }
 
 [node name="Empty2" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 3226.0
+margin_top = 3308.0
 margin_right = 752.0
-margin_bottom = 3226.0
+margin_bottom = 3308.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
@@ -1006,9 +1025,9 @@ size_flags_vertical = 0
 [node name="VideoStream" type="CheckButton" parent="V/Scroll/H/Grid" groups=[
 "nodes_that_should_be_higher",
 ]]
-margin_top = 3250.0
+margin_top = 3332.0
 margin_right = 752.0
-margin_bottom = 3332.0
+margin_bottom = 3414.0
 rect_min_size = Vector2( 0, 82 )
 focus_mode = 1
 mouse_filter = 1
@@ -1020,17 +1039,17 @@ __meta__ = {
 }
 
 [node name="Empty4" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 3356.0
+margin_top = 3438.0
 margin_right = 752.0
-margin_bottom = 3356.0
+margin_bottom = 3438.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 
 [node name="Quality" type="VBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 3380.0
+margin_top = 3462.0
 margin_right = 752.0
-margin_bottom = 3512.0
+margin_bottom = 3594.0
 size_flags_horizontal = 3
 
 [node name="HBox" type="HBoxContainer" parent="V/Scroll/H/Grid/Quality"]
@@ -1069,9 +1088,9 @@ value = 50.0
 tick_count = 5
 
 [node name="RenderScale" type="VBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 3536.0
+margin_top = 3618.0
 margin_right = 752.0
-margin_bottom = 3668.0
+margin_bottom = 3750.0
 size_flags_horizontal = 3
 
 [node name="HBox" type="HBoxContainer" parent="V/Scroll/H/Grid/RenderScale"]
@@ -1112,9 +1131,9 @@ value = 0.53
 tick_count = 5
 
 [node name="TargetFramerate" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 3692.0
+margin_top = 3774.0
 margin_right = 752.0
-margin_bottom = 3774.0
+margin_bottom = 3856.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/TargetFramerate" groups=[
@@ -1143,9 +1162,9 @@ rounded = true
 align = 1
 
 [node name="SkipFrames" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 3798.0
+margin_top = 3880.0
 margin_right = 752.0
-margin_bottom = 3880.0
+margin_bottom = 3962.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/SkipFrames" groups=[
@@ -1175,9 +1194,9 @@ items = [ "100 %", null, false, 0, false, "50 %", null, false, 1, false, "33.3 %
 selected = 0
 
 [node name="CompressionType" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 3904.0
+margin_top = 3986.0
 margin_right = 752.0
-margin_bottom = 3986.0
+margin_bottom = 4068.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/CompressionType" groups=[
@@ -1205,9 +1224,9 @@ items = [ "JPG", null, false, 1, null, "H.264", null, false, 3, null ]
 selected = 0
 
 [node name="EncoderThreadsNumber" type="HBoxContainer" parent="V/Scroll/H/Grid"]
-margin_top = 4010.0
+margin_top = 4092.0
 margin_right = 752.0
-margin_bottom = 4092.0
+margin_bottom = 4174.0
 size_flags_horizontal = 3
 
 [node name="Label" type="Label" parent="V/Scroll/H/Grid/EncoderThreadsNumber" groups=[
@@ -1234,9 +1253,9 @@ rounded = true
 align = 1
 
 [node name="Empty3" type="Control" parent="V/Scroll/H/Grid"]
-margin_top = 4116.0
+margin_top = 4198.0
 margin_right = 752.0
-margin_bottom = 4116.0
+margin_bottom = 4198.0
 mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
@@ -1244,7 +1263,7 @@ size_flags_vertical = 0
 [node name="VSeparator" type="VSeparator" parent="V/Scroll/H"]
 margin_left = 756.0
 margin_right = 764.0
-margin_bottom = 4116.0
+margin_bottom = 4198.0
 rect_min_size = Vector2( 8, 0 )
 custom_styles/separator = ExtResource( 4 )
 
@@ -1282,6 +1301,7 @@ __meta__ = {
 [connection signal="item_selected" from="V/Scroll/H/Grid/TouchesToOpenSettings/Type" to="." method="_on_touches_to_open_item_selected"]
 [connection signal="toggled" from="V/Scroll/H/Grid/KeepScreen" to="." method="_on_keep_screen_CheckButton_toggled"]
 [connection signal="toggled" from="V/Scroll/H/Grid/CaptureInput" to="." method="_on_CaptureInput_toggled"]
+[connection signal="toggled" from="V/Scroll/H/Grid/EmulateMouse" to="." method="_on_EmulateMouse_toggled"]
 [connection signal="toggled" from="V/Scroll/H/Grid/SyncOrientation" to="." method="_on_SyncOrientation_toggled"]
 [connection signal="toggled" from="V/Scroll/H/Grid/SyncAspect" to="." method="_on_SyncAspect_toggled"]
 [connection signal="item_selected" from="V/Scroll/H/Grid/DecoderThreads/Type" to="." method="_on_number_of_decoder_threads_item_selected"]

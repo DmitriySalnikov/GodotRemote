@@ -1,1 +1,1 @@
-GR_VERSION(1, 0, 2);
+GR_VERSION(1, 0, 3);

@@ -251,6 +251,8 @@ public:
 	void set_capture_pointer(bool value);
 	bool is_capture_input();
 	void set_capture_input(bool value);
+	bool is_capture_mouse_events();
+	void set_capture_mouse_events(bool value);
 	void set_connection_type(ENUM_ARG(ConnectionType) type);
 	ENUM_ARG(ConnectionType)
 	get_connection_type();
@@ -328,6 +330,7 @@ private:
 	bool capture_only_when_control_in_focus = false;
 	bool capture_pointer_only_when_hover_control = true;
 	bool dont_capture_pointer = false;
+	bool capture_mouse_events = true;
 
 	Rect2 stream_rect;
 	PoolVector3Array sensors;
@@ -364,6 +367,8 @@ public:
 	void set_capture_pointer(bool value);
 	bool is_capture_input();
 	void set_capture_input(bool value);
+	bool is_capture_mouse_events();
+	void set_capture_mouse_events(bool value);
 
 	void set_tex_rect(class TextureRect *tr);
 

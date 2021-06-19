@@ -35,6 +35,7 @@ onready var auto_prev_icon = $V/Scroll/H/Grid/Auto/PC/HC/TextureRect
 onready var auto_prev_addr = $V/Scroll/H/Grid/Auto/PC/HC/LastConnected
 onready var auto_item_scroll = $V/Scroll/H/Grid/Auto/AvailableAddresses
 
+onready var emulate_mouse = $V/Scroll/H/Grid/EmulateMouse
 onready var fps = $V/Scroll/H/Grid/OutFps/FPS
 onready var password = $V/Scroll/H/Grid/PassRow/Pass
 onready var filtering = $V/Scroll/H/Grid/Filtering
@@ -166,6 +167,7 @@ func update_values():
 	password.text = G.password
 	sync_orient.pressed = G.sync_viewport_orientation
 	sync_aspect.pressed = G.sync_viewport_aspect_ratio
+	emulate_mouse.pressed = G.EmulateMouseFromTouch
 	keepscreen.pressed = G.keepscreenon
 	captureinput.pressed = G.capture_input_when_custom_scene
 	touches_to_open.selected = G.TouchesToOpenSettings - 3
@@ -437,6 +439,10 @@ func _on_keep_screen_CheckButton_toggled(button_pressed):
 	G.keepscreenon = button_pressed
 	if !GodotRemote.get_device().is_stream_active():
 		OS.keep_screen_on = button_pressed
+
+func _on_EmulateMouse_toggled(button_pressed: bool) -> void:
+	G.EmulateMouseFromTouch = button_pressed
+	GodotRemote.get_device().capture_mouse_events = button_pressed
 
 func _on_CaptureInput_toggled(button_pressed: bool) -> void:
 	G.capture_input_when_custom_scene = button_pressed

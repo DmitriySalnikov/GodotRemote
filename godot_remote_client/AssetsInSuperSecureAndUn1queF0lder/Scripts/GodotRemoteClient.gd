@@ -32,6 +32,8 @@ func _ready():
 	TIM.InputPopup = $CustomPopupTextInput
 	
 	GodotRemote.get_device().set_control_to_show_in($Stream)
+	GodotRemote.get_device().capture_mouse_events = G.EmulateMouseFromTouch
+	
 	GodotRemote.get_device().connect("custom_input_scene_added", self, "_custom_input_scene_added")
 	GodotRemote.get_device().connect("custom_input_scene_removed", self, "_custom_input_scene_removed")
 	GodotRemote.get_device().connect("stream_state_changed", self, "_stream_state_changed")
@@ -39,6 +41,7 @@ func _ready():
 	GodotRemote.get_device().connect("stream_aspect_ratio_changed", self, "_stream_aspect_ratio_changed")
 	GodotRemote.get_device().connect("connection_state_changed", self, "_connections_state_changed")
 	GodotRemote.connect("device_removed", self, "_device_removed")
+	
 	settings.connect("stretch_mode_changed", self, "_settings_stretch_mode_changed")
 	
 	stats.visible = false
