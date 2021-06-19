@@ -87,6 +87,7 @@ Here you can find info about every setting in project and in client app.
 | Number of touches to open settings       | 5                 | Indicates how many simultaneous touches are required to open settings during an active connection |
 | Keep Screen On                           | on                | Specifies whether to keep the screen on without an active connection                              |
 | Capture pointer when custom scene active | on                | Specifies whether to capture touches if a custom input scene is active                            |
+| Send Mouse Events                        | on                | Specifies whether to capture and send mouse events                                                |
 | Sync Viewport Orientation                | on                | Specifies whether to send data about the orientation of the device                                |
 | Sync Viewport Aspect                     | on                | Specifies whether to send data about the device's aspect ratio                                    |
 | Number of decoder threads                | 2                 | The number of threads used to decode the stream image                                             |
