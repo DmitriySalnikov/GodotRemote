@@ -143,6 +143,17 @@ opts.Add(
     'macOS deployment target',
     'default'
 )
+opts.Add(
+    'macos_sdk_path',
+    'macOS SDK path',
+    ''
+)
+opts.Add(EnumVariable(
+    'macos_arch',
+    'Target macOS architecture',
+    'x86_64',
+    ['x86_64', 'arm64']
+))
 opts.Add(EnumVariable(
     'ios_arch',
     'Target iOS architecture',
@@ -216,14 +227,19 @@ elif env['platform'] == 'osx':
             'Only 64-bit builds are supported for the macOS target.'
         )
 
-    env.Append(CCFLAGS=['-std=c++14', '-arch', 'x86_64'])
+    env.Append(CCFLAGS=['-std=c++14', '-arch', env['macos_arch']])
 
     if env['macos_deployment_target'] != 'default':
         env.Append(CCFLAGS=['-mmacosx-version-min=' + env['macos_deployment_target']])
+        env.Append(LINKFLAGS=['-mmacosx-version-min=' + env['macos_deployment_target']])
+
+    if env['macos_sdk_path']:
+        env.Append(CCFLAGS=['-isysroot', env['macos_sdk_path']])
+        env.Append(LINKFLAGS=['-isysroot', env['macos_sdk_path']])
 
     env.Append(LINKFLAGS=[
         '-arch',
-        'x86_64',
+        env['macos_arch'],
         '-framework',
         'Cocoa',
         '-Wl,-undefined,dynamic_lookup',
@@ -374,6 +390,11 @@ elif env['platform'] == 'android':
     env.Append(CCFLAGS=['--target=' + arch_info['target'] + env['android_api_level'], '-march=' + arch_info['march'], '-fPIC'])#, '-fPIE', '-fno-addrsig', '-Oz'])
     env.Append(CCFLAGS=arch_info['ccflags'])
 
+    if env['target'] == 'debug':
+        env.Append(CCFLAGS=['-Og', '-g'])
+    elif env['target'] == 'release':
+        env.Append(CCFLAGS=['-O3'])
+
 elif env["platform"] == "javascript":
     env["ENV"] = os.environ
     env["CC"] = "emcc"
@@ -396,11 +417,16 @@ elif env["platform"] == "javascript":
     # Program() output consists of multiple files, so specify suffixes manually at builder.
     env["PROGSUFFIX"] = ""
     env["LIBPREFIX"] = "lib"
-    env["LIBSUFFIX"] = ".bc"
+    env["LIBSUFFIX"] = ".a"
     env["LIBPREFIXES"] = ["$LIBPREFIX"]
     env["LIBSUFFIXES"] = ["$LIBSUFFIX"]
     env.Replace(SHLINKFLAGS='$LINKFLAGS')
     env.Replace(SHLINKFLAGS='$LINKFLAGS')
+
+    if env['target'] == 'debug':
+        env.Append(CCFLAGS=['-O0', '-g'])
+    elif env['target'] == 'release':
+        env.Append(CCFLAGS=['-O3'])
 
 env.Append(CPPPATH=[
     '.',
