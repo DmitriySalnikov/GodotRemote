@@ -390,7 +390,8 @@ void set_gravity(const Vector3 &p_gravity) {
 		id->set_gravity(p_gravity);
 #else
 	Input *id = Input::get_singleton();
-	if (ClassDB::get_singleton()->class_has_method(id->get_class(), "set_gravity")) {
+	static bool _has = ClassDB::get_singleton()->class_has_method(id->get_class(), "set_gravity");
+	if (_has) {
 		id->call("set_gravity", p_gravity);
 	}
 #endif
@@ -403,7 +404,8 @@ void set_accelerometer(const Vector3 &p_accel) {
 		id->set_accelerometer(p_accel);
 #else
 	Input *id = Input::get_singleton();
-	if (ClassDB::get_singleton()->class_has_method(id->get_class(), "set_accelerometer")) {
+	static bool _has = ClassDB::get_singleton()->class_has_method(id->get_class(), "set_accelerometer");
+	if (_has) {
 		id->call("set_accelerometer", p_accel);
 	}
 #endif
@@ -416,7 +418,8 @@ void set_magnetometer(const Vector3 &p_magnetometer) {
 		id->set_magnetometer(p_magnetometer);
 #else
 	Input *id = Input::get_singleton();
-	if (ClassDB::get_singleton()->class_has_method(id->get_class(), "set_magnetometer")) {
+	static bool _has = ClassDB::get_singleton()->class_has_method(id->get_class(), "set_magnetometer");
+	if (_has) {
 		id->call("set_magnetometer", p_magnetometer);
 	}
 #endif
@@ -429,7 +432,8 @@ void set_gyroscope(const Vector3 &p_gyroscope) {
 		id->set_gyroscope(p_gyroscope);
 #else
 	Input *id = Input::get_singleton();
-	if (ClassDB::get_singleton()->class_has_method(id->get_class(), "set_gyroscope")) {
+	static bool _has = ClassDB::get_singleton()->class_has_method(id->get_class(), "set_gyroscope");
+	if (_has) {
 		id->call("set_gyroscope", p_gyroscope);
 	}
 #endif

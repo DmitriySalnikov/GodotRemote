@@ -34,6 +34,10 @@ protected:
 
 	void _notification(int p_notification);
 
+#ifdef GDNATIVE_LIBRARY
+	void _show_warning_window();
+#endif
+
 public:
 	virtual String get_name() const { return "GodotRemoteMenu"; }
 	bool has_main_screen() const { return false; }

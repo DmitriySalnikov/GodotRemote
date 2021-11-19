@@ -1,6 +1,7 @@
 cd godot-cpp
 set cpu=%NUMBER_OF_PROCESSORS%
-set api=custom_api_file="../api.json"
+::set api=custom_api_file="../api.json"
+set api= 
 
 scons generate_bindings=yes platform=windows target=release bits=64 -j%cpu% %api%
 scons platform=windows target=release bits=64 -j%cpu% %api%

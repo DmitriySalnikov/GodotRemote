@@ -255,6 +255,9 @@ CONSTRUCT(GRIEDataKey) {
 	iek->set_echo((flags >> 1) & 1);
 	iek->set_scancode(data->get_32());
 	iek->set_unicode(data->get_32());
+
+	// TODO
+	//iek->set_physical_scancode(data->get_32());
 	return iek;
 }
 
@@ -264,6 +267,9 @@ PARSE(GRIEDataKey) {
 	data->put_8((uint8_t)iek->is_pressed() | (uint8_t)iek->is_echo() << 1);
 	data->put_32(iek->get_scancode());
 	data->put_32(iek->get_unicode());
+	
+	// TODO
+	//data->put_32(iek->get_physical_scancode());
 }
 
 //////////////////////////////////////////////////////////////////////////

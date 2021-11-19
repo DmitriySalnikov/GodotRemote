@@ -50,10 +50,15 @@ GR_PS_NAME_TYPE GodotRemote::ps_server_custom_input_scene_name = "debug/godot_re
 GR_PS_NAME_TYPE GodotRemote::ps_server_custom_input_scene_compressed_name = "debug/godot_remote/server_custom_input_scene/send_custom_input_scene_compressed";
 GR_PS_NAME_TYPE GodotRemote::ps_server_custom_input_scene_compression_type_name = "debug/godot_remote/server_custom_input_scene/custom_input_scene_compression_type";
 
+#ifdef GDNATIVE_LIBRARY
+GR_PS_NAME_TYPE GodotRemote::ps_gdnative_warning_name = "debug/godot_remote/gdnative_warning";
+#endif
+
 GodotRemote *GodotRemote::get_singleton() {
 	return singleton;
 }
 
+// TODO This function is not called in GDNative build inside the editor, so it can be called from an existing EditorPlugin - GRToolMenuPlugin
 void GodotRemote::_init() {
 	START_TRACY
 
@@ -526,6 +531,10 @@ void GodotRemote::register_and_load_settings() {
 	DEF_(ps_server_scale_of_sending_stream_name, 0.75f, Variant::REAL, PROPERTY_HINT_RANGE, "0,1,0.01");
 	DEF_(ps_server_stream_quality_name, 85, Variant::INT, PROPERTY_HINT_RANGE, "0,100");
 	//DEF_(ps_server_auto_adjust_scale_name, false, Variant::BOOL, PROPERTY_HINT_NONE, "");
+
+#ifdef GDNATIVE_LIBRARY
+	DEF_(ps_gdnative_warning_name, true, Variant::BOOL, PROPERTY_HINT_NONE, "");
+#endif
 
 #undef DEF_SET
 #undef DEF_SET_ENUM

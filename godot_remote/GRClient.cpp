@@ -2285,6 +2285,10 @@ GRDevice::AuthResult GRClient::_auth_on_server(RefStd(PacketPeerStream) ppeer) {
 		data["version"] = get_gr_version();
 		data["password"] = password;
 
+#ifdef GDNATIVE_LIBRARY
+		data["supports_compression"] = false;
+#endif
+
 		// PUT auth data
 		err = ppeer->put_var(data);
 		packet_error_check("Can't put authorization data to server. Code: " + str((int)err));

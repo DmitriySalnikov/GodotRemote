@@ -1373,6 +1373,13 @@ GRServer::AuthResult GRServer::_auth_client(RefStd(PacketPeerStream) ppeer, Dict
 		con->disconnect_from_host();     \
 		return _r;                       \
 	}
+#define dict_get_or_def(_t, _v, _n, _d) \
+	_t _v;                              \
+	if (dict.has(_n))                   \
+		_v = V_CAST(dict[_n], _t);      \
+	else                                \
+		_v = _d;
+
 #define wait_packet(_n)                                                                                       \
 	{                                                                                                         \
 		ZoneScopedNC("Waiting Auth Packet: " #_n, tracy::Color::DarkCyan);                                    \
@@ -1432,12 +1439,18 @@ GRServer::AuthResult GRServer::_auth_client(RefStd(PacketPeerStream) ppeer, Dict
 				ppeer->put_var((int)GRDevice::AuthResult::VersionMismatch); // just try to send and forget
 				return GRDevice::AuthResult::VersionMismatch;
 			}
-
 			// TODO thread safe password...
 			if (!password.empty()) {
 				dict_get(String, tmp_pass, "password",
 						tmp_pass != password, "Incorrect password. " + address,
 						GRDevice::AuthResult::IncorrectPassword);
+			}
+
+			dict_get_or_def(bool, supports_compression, "supports_compression", true);
+
+			if (!supports_compression && custom_input_pck_compressed) {
+				_log("Compression is not supported with GDNative client or server. Disabling custom input scene compression.", LogLevel::LL_WARNING);
+				set_custom_input_scene_compressed(false);
 			}
 		}
 
@@ -1465,6 +1478,7 @@ timeout:
 	return GRDevice::AuthResult::Timeout;
 
 #undef dict_get
+#undef dict_get_or_def
 #undef wait_packet
 #undef packet_error_check
 }

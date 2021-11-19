@@ -7,20 +7,17 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GodotRemoteGDNative", "Godo
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		debug_hotpatch|x64 = debug_hotpatch|x64
 		debug|x64 = debug|x64
-		debug|x86 = debug|x86
 		release|x64 = release|x64
-		release|x86 = release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4D452F2C-8FBB-476B-A990-1E9E5DB93D32}.debug_hotpatch|x64.ActiveCfg = debug_hotpatch|x64
+		{4D452F2C-8FBB-476B-A990-1E9E5DB93D32}.debug_hotpatch|x64.Build.0 = debug_hotpatch|x64
 		{4D452F2C-8FBB-476B-A990-1E9E5DB93D32}.debug|x64.ActiveCfg = debug|x64
 		{4D452F2C-8FBB-476B-A990-1E9E5DB93D32}.debug|x64.Build.0 = debug|x64
-		{4D452F2C-8FBB-476B-A990-1E9E5DB93D32}.debug|x86.ActiveCfg = debug|Win32
-		{4D452F2C-8FBB-476B-A990-1E9E5DB93D32}.debug|x86.Build.0 = debug|Win32
 		{4D452F2C-8FBB-476B-A990-1E9E5DB93D32}.release|x64.ActiveCfg = release|x64
 		{4D452F2C-8FBB-476B-A990-1E9E5DB93D32}.release|x64.Build.0 = release|x64
-		{4D452F2C-8FBB-476B-A990-1E9E5DB93D32}.release|x86.ActiveCfg = release|Win32
-		{4D452F2C-8FBB-476B-A990-1E9E5DB93D32}.release|x86.Build.0 = release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

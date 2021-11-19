@@ -73,6 +73,10 @@ public:
 	static GR_PS_NAME_TYPE ps_server_custom_input_scene_compressed_name;
 	static GR_PS_NAME_TYPE ps_server_custom_input_scene_compression_type_name;
 
+#ifdef GDNATIVE_LIBRARY
+	static GR_PS_NAME_TYPE ps_gdnative_warning_name;
+#endif
+
 private:
 	bool is_autostart = false;
 	bool is_notifications_enabled = true;
