@@ -31,7 +31,7 @@ enum A_ErrorSeverity{
 signal show_stats_changed(state)
 signal touches_to_open_settings_changed(count)
 
-const CLIENT_VERSION := 0
+const CLIENT_VERSION := 1
 const SAVE_FILE := "user://settings.json"
 
 var IsMobile : bool = false
@@ -214,7 +214,7 @@ func _save_settings():
 	d["app_runs"] = AppRuns
 	d["total_app_runs"] = TotalAppRuns
 	d["touches_to_open_settings"] = TouchesToOpenSettings
-	d["user_rate_state"] = UserRateState
+	d["user_rate_status"] = UserRateState
 	d["device_id"] = device_id
 	d["connection_type"] = connection_type
 	d["ip"] = ip
@@ -284,7 +284,7 @@ func _load_settings():
 			FirstConnectionSuccessful = _safe_get_from_dict(d, "first_connection_successful", FirstConnectionSuccessful) 
 			TotalAppRuns = _safe_get_from_dict(d, "total_app_runs", TotalAppRuns)
 			TouchesToOpenSettings = _safe_get_from_dict(d, "touches_to_open_settings", TouchesToOpenSettings)
-			UserRateState = _safe_get_from_dict(d, "user_rate_state", UserRateState)
+			UserRateState = _safe_get_from_dict(d, "user_rate_status", UserRateState)
 			EmulateMouseFromTouch = _safe_get_from_dict(d, "emulate_mouse_from_touch", EmulateMouseFromTouch)
 			
 			device_id = _safe_get_from_dict(d, "device_id", device_id)

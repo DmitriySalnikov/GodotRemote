@@ -272,10 +272,10 @@ visible = false
 
 [node name="PlsSupportPopup" type="WindowDialog" parent="."]
 visible = true
-margin_left = -840.0
-margin_top = 372.0
-margin_right = -140.0
-margin_bottom = 672.0
+margin_left = -850.0
+margin_top = 630.0
+margin_right = -150.0
+margin_bottom = 930.0
 rect_min_size = Vector2( 500, 300 )
 popup_exclusive = true
 window_title = "Do you like this app?"
@@ -345,13 +345,13 @@ text = "Not now"
 
 [node name="PlsRatePopup" type="WindowDialog" parent="."]
 visible = true
-margin_left = -839.0
+margin_left = -850.0
 margin_top = 101.0
-margin_right = -189.0
-margin_bottom = 323.0
-rect_min_size = Vector2( 500, 222 )
+margin_right = -17.0
+margin_bottom = 466.0
+rect_min_size = Vector2( 833, 413 )
 popup_exclusive = true
-window_title = "Rate This App"
+window_title = "Please Rate This App"
 script = ExtResource( 8 )
 __meta__ = {
 "_edit_lock_": true,
@@ -371,27 +371,33 @@ __meta__ = {
 }
 
 [node name="Label" type="Label" parent="PlsRatePopup/HBoxContainer"]
-margin_top = 32.0
-margin_right = 618.0
-margin_bottom = 78.0
+margin_top = 4.0
+margin_right = 801.0
+margin_bottom = 296.0
 size_flags_vertical = 6
-text = "Do you want to rate this app?"
+text = "The rating of this app is underestimated
+due to people who think it's a game or a standalone app
+(apparently I wrote too few warnings...).
+They don't find the game here and rate it 1 star.
+
+If you really like this app,
+please leave a positive review."
 align = 1
 valign = 1
 
 [node name="Control" type="Control" parent="PlsRatePopup/HBoxContainer"]
-margin_top = 114.0
-margin_right = 618.0
-margin_bottom = 114.0
+margin_top = 305.0
+margin_right = 801.0
+margin_bottom = 305.0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="PlsRatePopup/HBoxContainer"]
-margin_top = 118.0
-margin_right = 618.0
-margin_bottom = 190.0
+margin_top = 309.0
+margin_right = 801.0
+margin_bottom = 381.0
 custom_constants/separation = 12
 
 [node name="yes" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
-margin_right = 303.0
+margin_right = 394.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
@@ -407,8 +413,8 @@ size_flags_horizontal = 3
 text = "No, thanks"
 
 [node name="later" type="Button" parent="PlsRatePopup/HBoxContainer/HBoxContainer"]
-margin_left = 315.0
-margin_right = 618.0
+margin_left = 406.0
+margin_right = 801.0
 margin_bottom = 72.0
 rect_min_size = Vector2( 0, 72 )
 size_flags_horizontal = 3
@@ -421,6 +427,9 @@ margin_right = -864.026
 margin_bottom = 1367.0
 rect_min_size = Vector2( 700, 503 )
 custom_styles/panel = ExtResource( 11 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [node name="VBox" type="VBoxContainer" parent="Welcome"]
 anchor_right = 1.0
@@ -449,14 +458,15 @@ __meta__ = {
 }
 
 [node name="Label3" type="Label" parent="Welcome/VBox"]
-margin_top = 95.0
+margin_top = 54.0
 margin_right = 756.0
-margin_bottom = 223.0
+margin_bottom = 264.0
 grow_horizontal = 0
 grow_vertical = 0
 size_flags_vertical = 6
 text = "THIS IS NOT A GAME!
-Godot Remote gives you ability to control your Godot Engine projects remotely over WiFi or USB."
+Godot Remote gives you ability to control your Godot Engine projects remotely over WiFi or USB.
+So you need Godot Engine with Godot Remote module on your PC."
 align = 1
 valign = 1
 autowrap = true
