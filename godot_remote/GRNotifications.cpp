@@ -538,34 +538,25 @@ Ref<GRNotificationStyle> GRNotificationPanel::generate_default_style() {
 #ifndef NO_GODOTREMOTE_DEFAULT_RESOURCES
 void GRNotificationPanel::_load_default_textures() {
 
-#define LoadTex(_i, _n)                                  \
-	{                                                    \
-		img.instance();                                  \
-		GetPoolVectorFromBin(tmp_arr, _n);               \
-		img->load_png_from_buffer(tmp_arr);              \
-                                                         \
-		tex.instance();                                  \
-		tex->create_from_image(img);                     \
-		_default_data->_default_textures[(int)_i] = tex; \
+#define LoadTex(_i, _n)                                    \
+	{                                                      \
+		img.instance();                                    \
+		GetPoolVectorFromBin(tmp_arr, _n);                 \
+		img->load_png_from_buffer(tmp_arr);                \
+                                                           \
+		tex.instance();                                    \
+		tex->create_from_image(img, Texture::FLAG_FILTER); \
+		_default_data->_i = tex;                           \
 	}
 
 	Ref<Image> img;
 	Ref<ImageTexture> tex;
 
-	LoadTex(GRNotifications::NotificationIcon::ICON_ERROR, GRResources::Bin_ErrorIconPNG);
-	LoadTex(GRNotifications::NotificationIcon::ICON_WARNING, GRResources::Bin_WarningIconPNG);
-	LoadTex(GRNotifications::NotificationIcon::ICON_SUCCESS, GRResources::Bin_ConnectedIconPNG);
-	LoadTex(GRNotifications::NotificationIcon::ICON_FAIL, GRResources::Bin_DisconnectedIconPNG);
-
-	{
-		img.instance();
-		GetPoolVectorFromBin(tmp_arr, GRResources::Bin_CloseIconPNG);
-		img->load_png_from_buffer(tmp_arr);
-
-		tex.instance();
-		tex->create_from_image(img);
-		_default_data->_default_close_texture = tex;
-	}
+	LoadTex(_default_textures[(int)GRNotifications::NotificationIcon::ICON_ERROR], GRResources::Bin_ErrorIconPNG);
+	LoadTex(_default_textures[(int)GRNotifications::NotificationIcon::ICON_WARNING], GRResources::Bin_WarningIconPNG);
+	LoadTex(_default_textures[(int)GRNotifications::NotificationIcon::ICON_SUCCESS], GRResources::Bin_ConnectedIconPNG);
+	LoadTex(_default_textures[(int)GRNotifications::NotificationIcon::ICON_FAIL], GRResources::Bin_DisconnectedIconPNG);
+	LoadTex(_default_close_texture, GRResources::Bin_CloseIconPNG);
 
 #undef LoadTex
 }

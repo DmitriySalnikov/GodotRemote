@@ -1073,14 +1073,14 @@ void GRClient::_update_texture_from_image(Ref<Image> img) {
 
 			Ref<ImageTexture> tex = tex_shows_stream->get_texture();
 			if (tex.is_valid()) {
-				tex->create_from_image(img);
+				tex->create_from_image(img, 0);
 			} else {
 				tex = newref(ImageTexture);
-				tex->create_from_image(img);
+				tex->create_from_image(img, 0);
 				tex_shows_stream->set_texture(tex);
 			}
 
-			uint32_t new_flags = Texture::FLAG_MIPMAPS | (is_filtering_enabled ? Texture::FLAG_FILTER : 0);
+			uint32_t new_flags = is_filtering_enabled ? Texture::FLAG_FILTER : 0;
 			if (tex->get_flags() != new_flags) {
 				tex->set_flags(new_flags);
 			}
