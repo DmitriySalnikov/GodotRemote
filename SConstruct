@@ -383,9 +383,13 @@ elif env['platform'] == 'android':
     arch_info = arch_info_table[env['android_arch']]
 
     # Setup tools
-    env['CC'] = toolchain + "/bin/clang"
-    env['CXX'] = toolchain + "/bin/clang++"
-    env['AR'] = toolchain + "/bin/" + arch_info['tool_path'] + "-ar"
+    env["CC"] = toolchain + "/bin/clang"
+    env["CXX"] = toolchain + "/bin/clang++"
+    env["AR"] = toolchain + "/bin/llvm-ar"
+    env["AS"] = toolchain + "/bin/llvm-as"
+    env["LD"] = toolchain + "/bin/llvm-ld"
+    env["STRIP"] = toolchain + "/bin/llvm-strip"
+    env["RANLIB"] = toolchain + "/bin/llvm-ranlib"
 
     env.Append(CCFLAGS=['--target=' + arch_info['target'] + env['android_api_level'], '-march=' + arch_info['march'], '-fPIC'])#, '-fPIE', '-fno-addrsig', '-Oz'])
     env.Append(CCFLAGS=arch_info['ccflags'])
