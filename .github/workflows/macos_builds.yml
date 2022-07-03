@@ -1,0 +1,83 @@
+name: 🍏 MacOS
+on:
+  push:
+    paths: [godot_remote/**, .github/**, '!.github/**/util_*', '**.patch', SConstruct]
+  pull_request:
+    types: [opened, edited]
+  repository_dispatch:
+
+# Stop the same workflow actions
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  macos-gdnative:
+    name: MacOS GDNative
+    runs-on: "macos-latest"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+          submodules: recursive
+
+      - name: Compile GDNative 
+        uses: ./.github/actions/compile_module
+        with:
+          is_module: no
+          platform: osx
+          target: release
+          artifact: macos
+  
+
+  macos-module:
+    name: MacOS Module ${{ matrix.name }}
+    runs-on: "macos-latest"
+
+    env:
+      artifact: macos_editor
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: x64
+            arch: x86_64
+
+          - name: arm64
+            arch: arm64
+
+    steps:
+      - name: Checkout Godot
+        uses: actions/checkout@v3
+        with:
+          repository: godotengine/godot
+          ref: 3.4.4-stable
+          lfs: true
+          submodules: recursive
+
+      - name: Checkout GodotRemote
+        uses: actions/checkout@v3
+        with:
+          path: gr
+          lfs: true
+          submodules: recursive
+
+      - name: Compile Module 
+        uses: ./gr/.github/actions/compile_module
+        with:
+          is_module: yes
+          target: release_debug
+          tools: yes
+          platform: osx
+          bits: arch=${{ matrix.arch }}
+          artifact: ${{ env.artifact }}
+
+      - name: Upload Dist Folder
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.artifact }}
+          retention-days: 7
+          path: misc/dist/osx_tools.app/*

@@ -1,0 +1,100 @@
+name: Compile Godot
+description: Compile Godot with GodotRemote module
+inputs:
+  is_module:
+    description: Build as module (yes/no)
+    required: true
+  platform:
+    description: Target platform.
+    required: true
+  target:
+    description: The scons target (debug/release_debug/release).
+    default: "release_debug"
+  bits:
+    description: Target platform bits.
+    default: ""
+  tools:
+    description: Build with tools (yes/no).
+    default: "yes"
+  artifact:
+    description: Artifact name
+    default: "bin"
+runs:
+  using: "composite"
+  steps:
+    - name: Add GodotRemote to modules Windows
+      if: runner.os == 'Windows' && inputs.is_module == 'yes'
+      shell: powershell
+      run: New-Item -ItemType Junction -Name "modules/godot_remote" -Target ("gr/godot_remote" | Resolve-Path)
+
+    - name: Add GodotRemote to modules Linux and MacOS
+      if: runner.os != 'Windows' && inputs.is_module == 'yes'
+      shell: sh
+      run: ln -s gr/godot_remote modules/godot_remote
+
+    - name: Set up Python 3.x
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
+        architecture: "x64"
+
+    - name: Configuring Python packages
+      shell: bash
+      run: |
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          python -m pip install pywin32
+        fi
+        python -m pip install scons
+        python --version
+        scons --version
+      
+    - name: Linux dependencies
+      shell: bash
+      if: inputs.platform == 'linux' || inputs.platform == 'linuxbsd' || inputs.platform == 'x11'
+      run: |
+        sudo apt-get update
+        # The actual dependencies
+        if [[ "${{ inputs.is_module }}" == "yes" ]]; then
+          sudo apt-get install build-essential pkg-config libx11-dev libxcursor-dev \
+            libxinerama-dev libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev \
+            libdbus-1-dev libudev-dev libxi-dev libxrandr-dev yasm xvfb wget unzip
+        elif [[ "${{ inputs.bits }}" == *"32" ]];then
+          sudo apt-get install gcc-multilib g++-multilib
+        fi
+
+    - name: Compilation
+      shell: bash
+      run: |
+        if [[ "${{ inputs.is_module }}" == "yes" ]]; then
+          scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} tools=${{ inputs.tools }} progress=no module_godot_remote_enabled=yes -j3
+        else
+          cd godot-cpp
+          git apply --ignore-space-change --ignore-whitespace ../godot_cpp_trim_unused_classes.patch
+          scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} generate_bindings=yes -j3
+          cd ..
+          scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} godot_remote_custom_init_for_trimmed_godot_cpp=yes -j3
+        fi
+
+
+    - name: Prepare artifact Unix
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
+          strip -u bin/*
+        else
+          strip bin/*
+        fi
+
+    - name: Prepare artifact Windows
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        Remove-Item bin/* -Include *.exp,*.lib,*.pdb -Force
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.artifact }}
+        retention-days: 7
+        path: bin/*

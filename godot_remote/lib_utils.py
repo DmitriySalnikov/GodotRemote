@@ -20,6 +20,11 @@ def setup_options(env, opts, gen_help, is_gdnative = False):
     opts.Add(BoolVariable("godot_remote_use_sse2", "Godot Remote. Use SSE2 to convert YUV to RGB for the H264 codec. Only on PC and without libjpeg-turbo.", True))
     opts.Add(BoolVariable("godot_remote_tracy_enabled", "Godot Remote. Enable tracy profiler.", False))
     #opts.Add(BoolVariable("godot_remote_livepp", "Godot Remote. Live++ support... Windows only", False))
+    
+    # Only GDNative options
+    if is_gdnative:
+        opts.Add(BoolVariable("godot_remote_custom_init_for_trimmed_godot_cpp", "Add custom class initialization for trimmed godot-cpp. But theoretically it can also be used with the regular version of godot-cpp.", False))
+
     opts.Update(env)
 
     gen_help(env)
@@ -30,7 +35,7 @@ def setup_options(env, opts, gen_help, is_gdnative = False):
     if not is_gdnative:
         setup_default_cpp_defines(env)
 
-def setup_default_cpp_defines(env):
+def setup_default_cpp_defines(env, is_gdnative = False):
     if env['godot_remote_no_default_resources']:
         env.Append(CPPDEFINES=['NO_GODOTREMOTE_DEFAULT_RESOURCES'])
     if env['godot_remote_disable_server']:
@@ -43,6 +48,11 @@ def setup_default_cpp_defines(env):
         env.Append(CPPDEFINES=['GODOT_REMOTE_USE_SSE2'])
     if env['godot_remote_auto_connection_enabled']:
         env.Append(CPPDEFINES=['GODOT_REMOTE_AUTO_CONNECTION_ENABLED'])
+    
+    # Only GDNative options
+    if is_gdnative:
+        if env['godot_remote_custom_init_for_trimmed_godot_cpp']:
+            env.Append(CPPDEFINES=['GODOT_REMOTE_CUSTOM_INIT_TRIMMED_GODOT_CPP'])
 
 ######
 # gdnative
@@ -85,9 +95,14 @@ def gdnative_get_library_object(env):
     arch_suffix = env['bits']
     if env['platform'] == 'android':
         arch_suffix = env['android_arch']
-    if env['platform'] == 'ios':
+    elif env['platform'] == 'ios':
         arch_suffix = env['ios_arch']
-
+    elif env['platform'] == 'osx':
+        if env['macos_arch'] != 'universal':
+            arch_suffix = env['macos_arch']
+    elif env['platform'] == 'javascript':
+        arch_suffix = 'wasm'
+    
     env.Append(CPPPATH=[
         'godot-cpp/godot-headers',
         'godot_remote',

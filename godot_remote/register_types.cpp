@@ -42,7 +42,7 @@ HMODULE livePP = NULL;
 void register_godot_remote_types() {
 	ClassDB::register_class<GodotRemote>();
 	Engine::get_singleton()->add_singleton(Engine::Singleton(NAMEOF(GodotRemote), memnew(GodotRemote)));
-	//GRUtils::init();
+	// GRUtils::init();
 
 	ClassDB::register_class<GRNotifications>();
 	ClassDB::register_class<GRNotificationListWithSafeZone>();
@@ -72,7 +72,7 @@ void register_godot_remote_types() {
 
 	/*
 * // TODO move to GodotRemote class because here it's breaks everything
-* 
+*
 #ifdef GODOTREMOTE_LIVEPP
 	auto args = OS::get_singleton()->get_cmdline_args();
 	for (int i = 0; i < args.size(); i++) {
@@ -100,11 +100,116 @@ void unregister_godot_remote_types() {
 }
 
 #else
+#include <AcceptDialog.hpp>
+#include <ClassDB.hpp>
+#include <EditorInterface.hpp>
+#include <IP.hpp>
+#include <PCKPacker.hpp>
+#include <PackedScene.hpp>
+#include <PopupMenu.hpp>
+#include <RandomNumberGenerator.hpp>
+#include <ResourceLoader.hpp>
+#include <SceneTree.hpp>
+#include <Shader.hpp>
+
 using namespace godot;
 
 /** GDNative Initialize **/
 extern "C" void GDN_EXPORT godot_gdnative_init(godot_gdnative_init_options *o) {
 	Godot::gdnative_init(o);
+
+#ifdef GODOT_REMOTE_CUSTOM_INIT_TRIMMED_GODOT_CPP
+	// Custom register and init for only needed classes
+	// Should be used with my patch, but might work without it (sort of)
+
+	// Base class for others
+	godot::_TagDB::register_global_type("Object", typeid(Object).hash_code(), 0);
+	Object::___init_method_bindings();
+
+#define CUSTOM_CLASS(_class, _base, _name)                                                             \
+	godot::_TagDB::register_global_type(_name, typeid(_class).hash_code(), typeid(_base).hash_code()); \
+	_class::___init_method_bindings();
+
+#define TEXT(t) #t
+#define REGULAR_CLASS(_class, _base) CUSTOM_CLASS(_class, _base, #_class)
+#define REGULAR_CLASS_DASH(_class, _base) CUSTOM_CLASS(_class, _base, TEXT(_##_class))
+
+	REGULAR_CLASS(AcceptDialog, WindowDialog);
+	REGULAR_CLASS(BoxContainer, Container);
+	REGULAR_CLASS(Button, BaseButton);
+	REGULAR_CLASS(CanvasItem, Node);
+	REGULAR_CLASS(CanvasLayer, Node);
+	REGULAR_CLASS(ClassDB, Object);
+	REGULAR_CLASS(Control, CanvasItem);
+	REGULAR_CLASS(EditorInterface, Node);
+	REGULAR_CLASS(EditorPlugin, Node);
+	REGULAR_CLASS(Font, Resource);
+	REGULAR_CLASS(HBoxContainer, BoxContainer);
+	REGULAR_CLASS(Image, Resource);
+	REGULAR_CLASS(ImageTexture, Texture);
+	REGULAR_CLASS(Input, Object);
+	REGULAR_CLASS(InputEvent, Resource);
+	REGULAR_CLASS(InputEventAction, InputEvent);
+	REGULAR_CLASS(InputEventGesture, InputEventWithModifiers);
+	REGULAR_CLASS(InputEventJoypadButton, InputEvent);
+	REGULAR_CLASS(InputEventJoypadMotion, InputEvent);
+	REGULAR_CLASS(InputEventKey, InputEventWithModifiers);
+	REGULAR_CLASS(InputEventMagnifyGesture, InputEventGesture);
+	REGULAR_CLASS(InputEventMIDI, InputEvent);
+	REGULAR_CLASS(InputEventMouse, InputEventWithModifiers);
+	REGULAR_CLASS(InputEventMouseButton, InputEventMouse);
+	REGULAR_CLASS(InputEventMouseMotion, InputEventMouse);
+	REGULAR_CLASS(InputEventPanGesture, InputEventGesture);
+	REGULAR_CLASS(InputEventScreenDrag, InputEvent);
+	REGULAR_CLASS(InputEventScreenTouch, InputEvent);
+	REGULAR_CLASS(InputEventWithModifiers, InputEvent);
+	REGULAR_CLASS(IP, Object);
+	REGULAR_CLASS(Label, Control);
+	REGULAR_CLASS(Material, Resource);
+	REGULAR_CLASS(Node, Object);
+	REGULAR_CLASS(Node2D, CanvasItem);
+	REGULAR_CLASS(PackedScene, Resource);
+	REGULAR_CLASS(PacketPeer, Reference);
+	REGULAR_CLASS(PacketPeerStream, PacketPeer);
+	REGULAR_CLASS(PanelContainer, Container);
+	REGULAR_CLASS(PCKPacker, Reference);
+	REGULAR_CLASS(Popup, Control);
+	REGULAR_CLASS(PopupMenu, Popup);
+	REGULAR_CLASS(ProjectSettings, Object);
+	REGULAR_CLASS(RandomNumberGenerator, Reference);
+	REGULAR_CLASS(Reference, Object);
+	REGULAR_CLASS(RegEx, Reference);
+	REGULAR_CLASS(RegExMatch, Reference);
+	REGULAR_CLASS(SceneTree, MainLoop);
+	REGULAR_CLASS(Shader, Resource);
+	REGULAR_CLASS(ShaderMaterial, Material);
+	REGULAR_CLASS(StreamPeer, Reference);
+	REGULAR_CLASS(StreamPeerBuffer, StreamPeer);
+	REGULAR_CLASS(StreamPeerTCP, StreamPeer);
+	REGULAR_CLASS(StyleBox, Resource);
+	REGULAR_CLASS(StyleBoxEmpty, StyleBox);
+	REGULAR_CLASS(StyleBoxFlat, StyleBox);
+	REGULAR_CLASS(TCP_Server, Reference);
+	REGULAR_CLASS(Texture, Resource);
+	REGULAR_CLASS(TextureRect, Control);
+	REGULAR_CLASS(Theme, Resource);
+	REGULAR_CLASS(Tween, Node);
+	REGULAR_CLASS(VBoxContainer, BoxContainer);
+	REGULAR_CLASS(Viewport, Node);
+	REGULAR_CLASS(WindowDialog, Popup);
+
+	REGULAR_CLASS_DASH(Thread, Reference);
+	REGULAR_CLASS_DASH(ResourceLoader, Object);
+	REGULAR_CLASS_DASH(OS, Object);
+	REGULAR_CLASS_DASH(File, Reference);
+	REGULAR_CLASS_DASH(Engine, Object);
+	REGULAR_CLASS_DASH(Directory, Reference);
+
+#undef CUSTOM_CLASS
+#undef TEXT
+#undef REGULAR_CLASS
+#undef REGULAR_CLASS_DASH
+#endif
 }
 
 /** GDNative Terminate **/
