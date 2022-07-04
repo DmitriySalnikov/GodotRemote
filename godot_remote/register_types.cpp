@@ -108,9 +108,12 @@ void unregister_godot_remote_types() {
 #include <PackedScene.hpp>
 #include <PopupMenu.hpp>
 #include <RandomNumberGenerator.hpp>
+#include <RegEx.hpp>
+#include <RegExMatch.hpp>
 #include <ResourceLoader.hpp>
 #include <SceneTree.hpp>
 #include <Shader.hpp>
+#include <TCP_Server.hpp>
 
 using namespace godot;
 

@@ -11,6 +11,10 @@ const UPD_EDITOR = "force_update_editor"
 # also 'UPD_EDITOR : true' after "text" key can be used to force show download button
 
 var changelog : Dictionary = {
+"1.0.4.0" : 
+{ "text" : """Module:
+Updated OpenH264 to version 2.2.0
+"""},
 "1.0.3.4" : 
 { "text" : """Added debugging symbols to track native crashes
 """},

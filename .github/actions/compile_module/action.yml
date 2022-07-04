@@ -16,21 +16,21 @@ inputs:
   tools:
     description: Build with tools (yes/no).
     default: "yes"
+  additional_args:
+    description: Additional scons args.
+    default: ""
+  upload:
+    description: Upload artifacts (yes/no).
+    default: "yes"
   artifact:
     description: Artifact name
     default: "bin"
 runs:
   using: "composite"
   steps:
-    - name: Add GodotRemote to modules Windows
-      if: runner.os == 'Windows' && inputs.is_module == 'yes'
-      shell: powershell
-      run: New-Item -ItemType Junction -Name "modules/godot_remote" -Target ("gr/godot_remote" | Resolve-Path)
-
-    - name: Add GodotRemote to modules Linux and MacOS
-      if: runner.os != 'Windows' && inputs.is_module == 'yes'
-      shell: sh
-      run: ln -s gr/godot_remote modules/godot_remote
+    - name: Add godot_remote_link
+      uses: ./gr/.github/actions/add_godot_remote_module
+      if: inputs.is_module == 'yes'
 
     - name: Set up Python 3.x
       uses: actions/setup-python@v4
@@ -66,18 +66,21 @@ runs:
       shell: bash
       run: |
         if [[ "${{ inputs.is_module }}" == "yes" ]]; then
-          scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} tools=${{ inputs.tools }} progress=no module_godot_remote_enabled=yes -j3
+          scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} tools=${{ inputs.tools }} ${{ inputs.additional_args }} \
+            progress=no module_godot_remote_enabled=yes -j3
         else
           cd godot-cpp
           git apply --ignore-space-change --ignore-whitespace ../godot_cpp_trim_unused_classes.patch
-          scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} generate_bindings=yes -j3
+          scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} ${{ inputs.additional_args }} \
+            generate_bindings=yes -j3
           cd ..
-          scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} godot_remote_custom_init_for_trimmed_godot_cpp=yes -j3
+          scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} ${{ inputs.additional_args }} \
+            godot_remote_custom_init_for_trimmed_godot_cpp=yes -j3
         fi
 
 
     - name: Prepare artifact Unix
-      if: runner.os != 'Windows'
+      if: runner.os != 'Windows' && inputs.upload == 'yes'
       shell: bash
       run: |
         if [[ "$RUNNER_OS" == "macOS" ]]; then
@@ -87,14 +90,16 @@ runs:
         fi
 
     - name: Prepare artifact Windows
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && inputs.upload == 'yes'
       shell: powershell
       run: |
         Remove-Item bin/* -Include *.exp,*.lib,*.pdb -Force
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
+      if: inputs.upload == 'yes'
       with:
         name: ${{ inputs.artifact }}
         retention-days: 7
         path: bin/*
+        

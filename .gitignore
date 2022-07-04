@@ -5,6 +5,7 @@ __pycache__
 
 # Visual Studio Cache
 .vs/
+.vscode/*.log
 
 # VSCode Cache
 #.vscode/
@@ -32,7 +33,7 @@ api.json
 .import/
 .mono/
 obj/
-libs/
+/libs/
 bin/
 temp_folder_for_lib_copies/
 

@@ -3,7 +3,7 @@
         "**/*.obj": true,
         "**/*.pdb": true,
         "**/*.o": true,
-        "**/*.so": true,
+        "**/*.os": true,
         "**/*.a": true,
         "**/*.lib": true,
         "**/*.pyc": true,

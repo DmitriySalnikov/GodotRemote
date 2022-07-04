@@ -172,10 +172,10 @@ def gdnative_get_library_object(env):
 # original code from godot 3.x https://github.com/godotengine/godot/commit/6d022f813f2ee00dbde98946e596183ad67c0411
 def prepare_h264(env):
     cwd = (os.path.dirname(os.path.abspath(__file__)) + "/").replace("\\", "/");
-    lib_version = "openh264-2.1.1"
+    lib_version = "openh264-2.2.0"
 
     if env["platform"] == "android":
-        lib_vars = {"armv7":["-android-arm.so", "armeabi-v7a"], "arm64v8":["-android-arm64.so", "arm64-v8a"], "x86":["-android-x86.so", "x86"], "x86_64":["-android-x64.so", "x86_64"]}
+        lib_vars = {"armv7":["-android-arm.6.so", "armeabi-v7a"], "arm64v8":["-android-arm64.6.so", "arm64-v8a"], "x86":["-android-x86.6.so", "x86"], "x86_64":["-android-x64.6.so", "x86_64"]}
         lib_arch_dir = ""
         lib_openh264 = ""
         if env["android_arch"] in lib_vars.keys():
@@ -202,7 +202,7 @@ def prepare_h264(env):
         elif env["platform"] in ["x11", "linuxbsd"]:
             lib_openh264 = "lib" + lib_version + ("-linux64.6.so" if env["bits"] == "64" else "-linux32.6.so")
         elif env["platform"] == "osx":
-            lib_openh264 = "lib" + lib_version + ("-osx64.6.dylib" if env["bits"] == "64" else "-osx32.6.dylib")
+            lib_openh264 = "lib" + lib_version + ("-osx-x64.6.dylib" if env["arch"] == "x86_64" else "-osx-arm64.6.dylib")
 
         new_dir = "/".join(cwd.split("/")[0:-3]) + "/bin/"
         old_lib = "openh264/" + lib_openh264
@@ -245,13 +245,27 @@ def prepare_turbo_jpeg(env, is_gdnative = False):
     elif env['platform'] in ['osx', 'x11', 'linux', 'freebsd']:
         plat = 'osx' if env['platform'] == 'osx' else 'linux'
         env.Append(LIBS=['libturbojpeg'])
-        if env['bits'] == '32':
-            dir += plat + '/x86/'
-        elif env['bits'] == '64':
-            dir += plat + '/x64/'
-        elif env['arch'] == 'arm64':
-            dir += plat + '/arm64/'
-        lib = dir + 'libturbojpeg.a'
+        if plat == 'osx':
+            is_x64 = True
+            is_universal = False
+            if is_gdnative:
+                is_x64 = env['macos_arch'] == 'x86_64'
+                is_universal = env['macos_arch'] == 'universal'
+            else:
+                is_x64 = env['arch'] == 'x86_64'
+
+            if is_x64:
+                dir += plat + '/x64/'
+            elif is_universal:
+                dir += plat + '/universal/'
+            else:
+                dir += plat + '/arm64/'
+            lib = dir + 'libturbojpeg.a'
+        else:
+            if env['bits'] == '32':
+                dir += plat + '/x86/'
+            elif env['bits'] == '64':
+                dir += plat + '/x64/'
     
     # Android libs
     elif env['platform'] == 'android':

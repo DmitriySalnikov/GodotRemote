@@ -42,8 +42,9 @@ jobs:
           bits: bits=${{ matrix.bits }}
           artifact: win
   
+  
   windows-module:
-    name: Windows Module ${{ matrix.name }}
+    name: Module ${{ matrix.name }}
     runs-on: "windows-latest"
 
     strategy:

@@ -33,7 +33,7 @@ jobs:
   
 
   macos-module:
-    name: MacOS Module ${{ matrix.name }}
+    name: Module ${{ matrix.name }}
     runs-on: "macos-latest"
 
     env:

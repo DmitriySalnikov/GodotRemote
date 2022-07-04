@@ -1,0 +1,15 @@
+name: Add GodotRemote link
+description: Add symlink or hardlink to godot_remote module
+runs:
+  using: "composite"
+  steps:
+    - name: Add GodotRemote to modules Windows
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: New-Item -ItemType Junction -Name "modules/godot_remote" -Target ("gr/godot_remote" | Resolve-Path)
+
+    - name: Add GodotRemote to modules Linux and MacOS
+      if: runner.os != 'Windows'
+      shell: sh
+      run: |
+        ln -s ../gr/godot_remote modules/godot_remote

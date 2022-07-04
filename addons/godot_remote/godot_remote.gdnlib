@@ -1,0 +1,30 @@
+[general]
+
+singleton=false
+load_once=true
+symbol_prefix="godot_"
+reloadable=false
+
+[entry]
+
+Android.armeabi-v7a="res://addons/godot_remote/libs/android/armeabi-v7a/libgodot_remote.so"
+Android.arm64-v8a="res://addons/godot_remote/libs/android/arm64-v8a/libgodot_remote.so"
+Android.x86="res://addons/godot_remote/libs/android/x86/libgodot_remote.so"
+Android.x86_64="res://addons/godot_remote/libs/android/x86_64/libgodot_remote.so"
+OSX.64="res://addons/godot_remote/libs/macos/libgodot_remote.osx.release.64.dylib"
+Windows.64="res://addons/godot_remote/libs/win/godot_remote.windows.release.64.dll"
+Windows.32="res://addons/godot_remote/libs/win/godot_remote.windows.release.32.dll"
+X11.64="res://addons/godot_remote/libs/linux/libgodot_remote.linux.release.64.so"
+X11.32="res://addons/godot_remote/libs/linux/libgodot_remote.linux.release.32.so"
+
+[dependencies]
+
+Android.armeabi-v7a=[ "res://addons/godot_remote/libs/android/armeabi-v7a/libopenh264.so" ]
+Android.arm64-v8a=[ "res://addons/godot_remote/libs/android/arm64-v8a/libopenh264.so" ]
+Android.x86=[ "res://addons/godot_remote/libs/android/x86/libopenh264.so" ]
+Android.x86_64=[ "res://addons/godot_remote/libs/android/x86_64/libopenh264.so" ]
+OSX.64=[  ]
+Windows.64=[  ]
+Windows.32=[  ]
+X11.64=[  ]
+X11.32=[  ]

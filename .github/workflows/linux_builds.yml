@@ -42,8 +42,9 @@ jobs:
           bits: bits=${{ matrix.bits }}
           artifact: linux
 
+
   linux-module:
-    name: Linux Module x64
+    name: Module x64
     runs-on: "ubuntu-latest"
 
     steps:
