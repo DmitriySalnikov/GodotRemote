@@ -20,6 +20,11 @@ def setup_options(env, opts, gen_help, is_gdnative = False):
     opts.Add(BoolVariable("godot_remote_use_sse2", "Godot Remote. Use SSE2 to convert YUV to RGB for the H264 codec. Only on PC and without libjpeg-turbo.", True))
     opts.Add(BoolVariable("godot_remote_tracy_enabled", "Godot Remote. Enable tracy profiler.", False))
     #opts.Add(BoolVariable("godot_remote_livepp", "Godot Remote. Live++ support... Windows only", False))
+    
+    # Only GDNative options
+    if is_gdnative:
+        opts.Add(BoolVariable("godot_remote_custom_init_for_trimmed_godot_cpp", "Add custom class initialization for trimmed godot-cpp. But theoretically it can also be used with the regular version of godot-cpp.", False))
+
     opts.Update(env)
 
     gen_help(env)
@@ -30,7 +35,7 @@ def setup_options(env, opts, gen_help, is_gdnative = False):
     if not is_gdnative:
         setup_default_cpp_defines(env)
 
-def setup_default_cpp_defines(env):
+def setup_default_cpp_defines(env, is_gdnative = False):
     if env['godot_remote_no_default_resources']:
         env.Append(CPPDEFINES=['NO_GODOTREMOTE_DEFAULT_RESOURCES'])
     if env['godot_remote_disable_server']:
@@ -43,6 +48,11 @@ def setup_default_cpp_defines(env):
         env.Append(CPPDEFINES=['GODOT_REMOTE_USE_SSE2'])
     if env['godot_remote_auto_connection_enabled']:
         env.Append(CPPDEFINES=['GODOT_REMOTE_AUTO_CONNECTION_ENABLED'])
+    
+    # Only GDNative options
+    if is_gdnative:
+        if env['godot_remote_custom_init_for_trimmed_godot_cpp']:
+            env.Append(CPPDEFINES=['GODOT_REMOTE_CUSTOM_INIT_TRIMMED_GODOT_CPP'])
 
 ######
 # gdnative
@@ -85,9 +95,14 @@ def gdnative_get_library_object(env):
     arch_suffix = env['bits']
     if env['platform'] == 'android':
         arch_suffix = env['android_arch']
-    if env['platform'] == 'ios':
+    elif env['platform'] == 'ios':
         arch_suffix = env['ios_arch']
-
+    elif env['platform'] == 'osx':
+        if env['macos_arch'] != 'universal':
+            arch_suffix = env['macos_arch']
+    elif env['platform'] == 'javascript':
+        arch_suffix = 'wasm'
+    
     env.Append(CPPPATH=[
         'godot-cpp/godot-headers',
         'godot_remote',
@@ -157,10 +172,10 @@ def gdnative_get_library_object(env):
 # original code from godot 3.x https://github.com/godotengine/godot/commit/6d022f813f2ee00dbde98946e596183ad67c0411
 def prepare_h264(env):
     cwd = (os.path.dirname(os.path.abspath(__file__)) + "/").replace("\\", "/");
-    lib_version = "openh264-2.1.1"
+    lib_version = "openh264-2.2.0"
 
     if env["platform"] == "android":
-        lib_vars = {"armv7":["-android-arm.so", "armeabi-v7a"], "arm64v8":["-android-arm64.so", "arm64-v8a"], "x86":["-android-x86.so", "x86"], "x86_64":["-android-x64.so", "x86_64"]}
+        lib_vars = {"armv7":["-android-arm.6.so", "armeabi-v7a"], "arm64v8":["-android-arm64.6.so", "arm64-v8a"], "x86":["-android-x86.6.so", "x86"], "x86_64":["-android-x64.6.so", "x86_64"]}
         lib_arch_dir = ""
         lib_openh264 = ""
         if env["android_arch"] in lib_vars.keys():
@@ -187,7 +202,7 @@ def prepare_h264(env):
         elif env["platform"] in ["x11", "linuxbsd"]:
             lib_openh264 = "lib" + lib_version + ("-linux64.6.so" if env["bits"] == "64" else "-linux32.6.so")
         elif env["platform"] == "osx":
-            lib_openh264 = "lib" + lib_version + ("-osx64.6.dylib" if env["bits"] == "64" else "-osx32.6.dylib")
+            lib_openh264 = "lib" + lib_version + ("-osx-x64.6.dylib" if env["arch"] == "x86_64" else "-osx-arm64.6.dylib")
 
         new_dir = "/".join(cwd.split("/")[0:-3]) + "/bin/"
         old_lib = "openh264/" + lib_openh264
@@ -230,13 +245,27 @@ def prepare_turbo_jpeg(env, is_gdnative = False):
     elif env['platform'] in ['osx', 'x11', 'linux', 'freebsd']:
         plat = 'osx' if env['platform'] == 'osx' else 'linux'
         env.Append(LIBS=['libturbojpeg'])
-        if env['bits'] == '32':
-            dir += plat + '/x86/'
-        elif env['bits'] == '64':
-            dir += plat + '/x64/'
-        elif env['arch'] == 'arm64':
-            dir += plat + '/arm64/'
-        lib = dir + 'libturbojpeg.a'
+        if plat == 'osx':
+            is_x64 = True
+            is_universal = False
+            if is_gdnative:
+                is_x64 = env['macos_arch'] == 'x86_64'
+                is_universal = env['macos_arch'] == 'universal'
+            else:
+                is_x64 = env['arch'] == 'x86_64'
+
+            if is_x64:
+                dir += plat + '/x64/'
+            elif is_universal:
+                dir += plat + '/universal/'
+            else:
+                dir += plat + '/arm64/'
+            lib = dir + 'libturbojpeg.a'
+        else:
+            if env['bits'] == '32':
+                dir += plat + '/x86/'
+            elif env['bits'] == '64':
+                dir += plat + '/x64/'
     
     # Android libs
     elif env['platform'] == 'android':

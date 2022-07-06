@@ -11,7 +11,7 @@ using namespace GRUtils;
 #define LIB_PREFIX "lib"
 #endif
 // when updating just need to replace this string                              \/
-#define OPENH264_LIB const char *GRUtilsH264Codec::lib_name = LIB_PREFIX "openh264-2.1.1-"
+#define OPENH264_LIB const char *GRUtilsH264Codec::lib_name = LIB_PREFIX "openh264-2.2.0-"
 
 #if defined(_MSC_VER) // Windows
 #if _WIN64
@@ -39,12 +39,10 @@ OPENH264_LIB "linux-arm64.6.so";
 #elif defined(__APPLE__) // osx and ios
 #include <TargetConditionals.h>
 #if TARGET_OS_MAC
-#if defined(__i386__)
-OPENH264_LIB "osx32.6.dylib";
-#elif defined(__x86_64__)
-OPENH264_LIB "osx64.6.dylib";
+#if defined(__x86_64__)
+OPENH264_LIB "osx-x64.6.dylib";
 #elif defined(TARGET_CPU_ARM64)
-OPENH264_LIB "osxarm64.6.dylib";
+OPENH264_LIB "osx-arm64.6.dylib";
 #else
 #error "Unknown or not supported macOS platform"
 #endif

@@ -1,0 +1,164 @@
+name: 1. 📦 Collect binaries from artifacts
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+
+jobs:
+  macos-module-universal:
+    name: MacOS Universal App Bundle
+    runs-on: "macos-latest"
+
+    steps:
+      - name: Download MacOS Binaries
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: macos_builds.yml
+          name: macos_editor
+
+      - name: Create Universal Binary
+        run: |
+          ls
+          lipo -create godot.osx.opt.tools.x86_64 godot.osx.opt.tools.arm64 -output godot.osx.opt.tools.universal
+
+      - name: Create new folder for bundle
+        run: |
+          mkdir -p Godot.app
+          cp -rf Contents Godot.app/Contents
+          ls
+
+      - name: Create folder for executable
+        run: |
+          mkdir -p Godot.app/Contents/MacOS
+          cp godot.osx.opt.tools.universal Godot.app/Contents/MacOS/Godot
+          cp libopenh264-2.2.0-osx-arm64.6.dylib Godot.app/Contents/MacOS/libopenh264-2.2.0-osx-arm64.6.dylib
+          cp libopenh264-2.2.0-osx-x64.6.dylib Godot.app/Contents/MacOS/libopenh264-2.2.0-osx-x64.6.dylib
+          chmod +x Godot.app/Contents/MacOS/Godot
+          ls Godot.app/Contents/MacOS
+
+      #- name: Install 7Zip
+      #  run: |
+      #    brew update
+      #    brew install p7zip
+
+      - name: Create archive with bundle
+        run: |
+          7z a -tzip -y godot.osx.opt.tools.universal.zip Godot.app/
+
+      - name: Upload Universal Binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: module_binaries
+          retention-days: 7
+          path: godot.osx.opt.tools.universal.zip
+
+
+  collect:
+    name: Collect Module Binaries
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Windows Binaries
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: windows_builds.yml
+          path: extracted_files
+
+      - name: Download Linux Binaries
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: linux_builds.yml
+          path: extracted_files
+
+      - name: Download MacOS Binaries
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: macos_builds.yml
+          path: extracted_files/macos
+          name: macos
+
+      - name: Download Android GDNative Binaries
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: android_builds.yml
+          name: android
+          path: extracted_files/android
+
+      - name: Download Android Module Binaries
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: android_builds.yml
+          name: android_source
+          path: extracted_files/
+
+      - name: List files and Create module directory
+        run: |
+          ls extracted_files/*
+          mkdir -p module
+
+      #- name: Install 7Zip
+      #  run: |
+      #    sudo add-apt-repository universe
+      #    sudo apt update
+      #    sudo apt install p7zip
+
+      - name: Create Windows Editor archives
+        run: |
+          cat > extracted_files/win_editor/Godot_win64_console.cmd << EOL
+          @echo off
+          godot.windows.opt.tools.64.exe
+          pause > nul
+          EOL
+
+          cat > extracted_files/win_editor/Godot_win32_console.cmd << EOL
+          @echo off
+          godot.windows.opt.tools.32.exe
+          pause > nul
+          EOL
+
+          cd extracted_files/win_editor
+          7z a -tzip -y ../../module/godot.windows.opt.tools.64.zip -- *.64.* *win64.* *win64_console*
+          7z a -tzip -y ../../module/godot.windows.opt.tools.32.zip -- *.32.* *win32.* *win32_console*
+
+      - name: Create Linux archives
+        run: |
+          cd extracted_files/linux_editor
+          7z a -tzip -y ../../module/godot.x11.opt.tools.64.zip -- *.64* *linux64.*
+
+      - name: Copy Android archives
+        run: |
+          cp -rf extracted_files/android_source.zip module/android_source__for_custom_client.zip
+
+      - name: Upload Module
+        uses: actions/upload-artifact@v3
+        with:
+          name: module_binaries
+          retention-days: 7
+          path: module/*
+
+      ###################
+      - name: Checkout GodotRemote
+        uses: actions/checkout@v3
+        with:
+          path: gr
+
+      - name: Create GDNative artifact
+        run: |
+          cp -rf gr/godot_remote_client/AssetsInSuperSecureAndUn1queF0lder/Scripts/Constants.gd gr/addons/godot_remote/Constants.gd
+          cp -rf gr/README.md gr/addons/godot_remote/README.md
+          cp -rf gr/LICENSE gr/addons/godot_remote/LICENSE
+          cp -rf extracted_files/win/* gr/addons/godot_remote/libs/win
+          cp -rf extracted_files/linux/* gr/addons/godot_remote/libs/linux
+          cp -rf extracted_files/macos/* gr/addons/godot_remote/libs/macos
+          cp -rf extracted_files/android/* gr/addons/godot_remote/libs/android
+
+          mkdir -p gdnative/
+          cp -rf gr/addons gdnative/addons
+
+      - name: Upload GDNative
+        uses: actions/upload-artifact@v3
+        with:
+          name: gdnative_libs
+          retention-days: 7
+          path: gdnative/*
+      

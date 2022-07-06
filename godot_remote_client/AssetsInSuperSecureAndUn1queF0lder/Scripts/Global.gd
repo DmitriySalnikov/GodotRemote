@@ -31,7 +31,7 @@ enum A_ErrorSeverity{
 signal show_stats_changed(state)
 signal touches_to_open_settings_changed(count)
 
-const CLIENT_VERSION := 4
+const CLIENT_VERSION := 0
 const SAVE_FILE := "user://settings.json"
 
 var IsMobile : bool = false

@@ -1,8 +1,5 @@
 # Android.mk
 
-# TODO outdated
-# Need to add openh264, libjpeg-turbo and tracy libs integrations
-
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
@@ -21,12 +18,27 @@ ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
 endif
 include $(PREBUILT_STATIC_LIBRARY)
 
+LOCAL_MODULE := turbojpeg
+ifeq ($(TARGET_ARCH_ABI),x86)
+    LOCAL_SRC_FILES := godot_remote/libjpeg-turbo/lib/android/x86/libturbojpeg.a
+endif
+ifeq ($(TARGET_ARCH_ABI),x86_64)
+    LOCAL_SRC_FILES := godot_remote/libjpeg-turbo/lib/android/x86_64/libturbojpeg.a
+endif
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+    LOCAL_SRC_FILES := godot_remote/libjpeg-turbo/lib/android/armeabi-v7a/libturbojpeg.a
+endif
+ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+    LOCAL_SRC_FILES := godot_remote/libjpeg-turbo/lib/android/arm64-v8a/libturbojpeg.a
+endif
+include $(PREBUILT_STATIC_LIBRARY)
+
 include $(CLEAR_VARS)
-LOCAL_MODULE := godot_remote.android.release.$(TARGET_ARCH_ABI)
-LOCAL_CPPFLAGS := -std=c++14
+LOCAL_MODULE := godot_remote
+LOCAL_CPPFLAGS := -std=c++14 -O3
 LOCAL_CPP_FEATURES := rtti exceptions
 LOCAL_LDLIBS := -llog 
-LOCAL_CFLAGS := -DGODOT_REMOTE_AUTO_CONNECTION_ENABLED
+LOCAL_CFLAGS := -DGODOT_REMOTE_AUTO_CONNECTION_ENABLED -DNO_GODOTREMOTE_SERVER -DGODOT_REMOTE_LIBJPEG_TURBO_ENABLED -DGODOT_REMOTE_H264_ENABLED -DGODOT_REMOTE_CUSTOM_INIT_TRIMMED_GODOT_CPP
 
 LOCAL_SRC_FILES := \
 godot_remote/GodotRemote.cpp \
@@ -47,11 +59,13 @@ godot_remote/GRStreamDecoderImageSequence.cpp \
 godot_remote/GRStreamEncoders.cpp \
 godot_remote/GRStreamEncoderH264.cpp \
 godot_remote/GRStreamEncoderImageSequence.cpp \
+godot_remote/GRToolMenuPlugin.cpp \
 godot_remote/GRUtils.cpp \
 godot_remote/GRUtilsH264Codec.cpp \
 godot_remote/GRUtilsJPGCodec.cpp \
 godot_remote/GRViewportCaptureRect.cpp \
 godot_remote/UDPSocket.cpp \
+godot_remote/jpge.cpp \
 godot_remote/iterable_queue.cpp \
 godot_remote/register_types.cpp 
 
@@ -61,6 +75,6 @@ godot-cpp/include/ \
 godot-cpp/include/core \
 godot-cpp/include/gen \
 
-LOCAL_STATIC_LIBRARIES := godot-cpp
+LOCAL_STATIC_LIBRARIES := godot-cpp turbojpeg
 
 include $(BUILD_SHARED_LIBRARY)
