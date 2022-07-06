@@ -69,7 +69,7 @@
     <IncludePath>$(ProjectDir)godot-cpp\include;$(ProjectDir)godot-cpp\godot-headers;$(ProjectDir)godot-cpp\include\gen;$(ProjectDir)godot-cpp\include\core;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)godot-cpp\bin;C:\My\Projects\GE\GodotRemote\godot_remote\libjpeg-turbo\lib\win\x64;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)\bin\</OutDir>
-    <TargetName>godot_remote.windows.$(Configuration).$(PlatformArchitecture)</TargetName>
+    <TargetName>godot_remote.windows.release.$(PlatformArchitecture)</TargetName>
     <IntDir>$(SolutionDir)obj\$(PlatformTarget)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>

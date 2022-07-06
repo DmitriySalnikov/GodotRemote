@@ -75,7 +75,7 @@ runs:
             generate_bindings=yes -j3
           cd ..
           scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} ${{ inputs.additional_args }} \
-            godot_remote_custom_init_for_trimmed_godot_cpp=yes -j3
+            godot_remote_custom_init_for_trimmed_godot_cpp=yes godot_remote_h264_enabled=no -j3
         fi
 
 

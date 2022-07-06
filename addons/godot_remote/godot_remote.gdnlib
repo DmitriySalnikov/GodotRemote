@@ -19,10 +19,10 @@ X11.32="res://addons/godot_remote/libs/linux/libgodot_remote.linux.release.32.so
 
 [dependencies]
 
-Android.armeabi-v7a=[ "res://addons/godot_remote/libs/android/armeabi-v7a/libopenh264.so" ]
-Android.arm64-v8a=[ "res://addons/godot_remote/libs/android/arm64-v8a/libopenh264.so" ]
-Android.x86=[ "res://addons/godot_remote/libs/android/x86/libopenh264.so" ]
-Android.x86_64=[ "res://addons/godot_remote/libs/android/x86_64/libopenh264.so" ]
+Android.armeabi-v7a=[  ]
+Android.arm64-v8a=[  ]
+Android.x86=[  ]
+Android.x86_64=[  ]
 OSX.64=[  ]
 Windows.64=[  ]
 Windows.32=[  ]

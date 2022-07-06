@@ -31,6 +31,13 @@ jobs:
           target: release
           artifact: macos
   
+      #- name: Upload OpenH264
+      #  uses: actions/upload-artifact@v3
+      #  with:
+      #    name: macos
+      #    retention-days: 7
+      #    path: godot_remote/openh264/libopenh264-2.2.0-osx-*.6.dylib
+
 
   macos-module:
     name: Module ${{ matrix.name }}

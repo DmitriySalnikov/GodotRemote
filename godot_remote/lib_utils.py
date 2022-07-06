@@ -64,7 +64,7 @@ def gdnative_get_sources(src):
 
 # this can replace everything after 'sources = []' by Default(gdnative_get_library_object(env))
 def gdnative_get_library_object(env):
-    setup_default_cpp_defines(env)
+    setup_default_cpp_defines(env, True)
     env.Append(CPPDEFINES=['GDNATIVE_LIBRARY'])
 
     #######################################################

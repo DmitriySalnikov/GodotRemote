@@ -52,10 +52,10 @@ jobs:
       - name: Prepare Libs
         run: |
           rm -rf libs/*/gdb*
-          cp -rf godot_remote/openh264/libopenh264-2.2.0-android-arm.6.so libs/armeabi-v7a/libopenh264.so
-          cp -rf godot_remote/openh264/libopenh264-2.2.0-android-arm64.6.so libs/arm64-v8a/libopenh264.so
-          cp -rf godot_remote/openh264/libopenh264-2.2.0-android-x86.6.so libs/x86/libopenh264.so
-          cp -rf godot_remote/openh264/libopenh264-2.2.0-android-x64.6.so libs/x86_64/libopenh264.so
+          #cp -rf godot_remote/openh264/libopenh264-2.2.0-android-arm.6.so libs/armeabi-v7a/libopenh264.so
+          #cp -rf godot_remote/openh264/libopenh264-2.2.0-android-arm64.6.so libs/arm64-v8a/libopenh264.so
+          #cp -rf godot_remote/openh264/libopenh264-2.2.0-android-x86.6.so libs/x86/libopenh264.so
+          #cp -rf godot_remote/openh264/libopenh264-2.2.0-android-x64.6.so libs/x86_64/libopenh264.so
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3

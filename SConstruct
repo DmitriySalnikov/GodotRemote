@@ -144,7 +144,7 @@ opts.Add(
 )
 opts.Add(BoolVariable("generate_template_get_node", "Generate a template version of the Node class's get_node.", True))
 
-lib_utils.setup_options(env, opts, lambda e: Help(opts.GenerateHelpText(e)))
+lib_utils.setup_options(env, opts, lambda e: Help(opts.GenerateHelpText(e)), True)
 
 # This makes sure to keep the session environment variables on Windows.
 # This way, you can run SCons in a Visual Studio 2017 prompt and it will find

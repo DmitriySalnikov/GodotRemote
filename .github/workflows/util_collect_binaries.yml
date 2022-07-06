@@ -14,6 +14,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: macos_builds.yml
+          branch: ${{ github.ref_name }}
           name: macos_editor
 
       - name: Create Universal Binary
@@ -62,18 +63,21 @@ jobs:
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: windows_builds.yml
+          branch: ${{ github.ref_name }}
           path: extracted_files
 
       - name: Download Linux Binaries
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: linux_builds.yml
+          branch: ${{ github.ref_name }}
           path: extracted_files
 
       - name: Download MacOS Binaries
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: macos_builds.yml
+          branch: ${{ github.ref_name }}
           path: extracted_files/macos
           name: macos
 
@@ -81,6 +85,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: android_builds.yml
+          branch: ${{ github.ref_name }}
           name: android
           path: extracted_files/android
 
@@ -88,6 +93,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: android_builds.yml
+          branch: ${{ github.ref_name }}
           name: android_source
           path: extracted_files/
 

@@ -42,6 +42,13 @@ jobs:
           bits: bits=${{ matrix.bits }}
           artifact: linux
 
+      #- name: Upload OpenH264
+      #  uses: actions/upload-artifact@v3
+      #  with:
+      #    name: linux
+      #    retention-days: 7
+      #    path: godot_remote/openh264/libopenh264-2.2.0-linux${{ matrix.bits }}.6.so
+
 
   linux-module:
     name: Module x64

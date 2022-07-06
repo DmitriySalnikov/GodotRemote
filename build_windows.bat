@@ -1,1 +1,1 @@
-scons platform=windows bits=64 target=release -j8
+scons platform=windows bits=64 target=release godot_remote_custom_init_for_trimmed_godot_cpp=yes -j8
