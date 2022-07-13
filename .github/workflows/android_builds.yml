@@ -2,8 +2,6 @@ name: 🤖 Android
 on:
   push:
     paths: [godot_remote/**, .github/**, '!.github/**/util_*', '**.patch', SConstruct, Android.mk, jni/Application.mk]
-  pull_request:
-    types: [opened, edited]
   repository_dispatch:
 
 # Stop the same workflow actions

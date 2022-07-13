@@ -2,8 +2,6 @@ name: 🐧 Linux
 on:
   push:
     paths: [godot_remote/**, .github/**, '!.github/**/util_*', '**.patch', SConstruct]
-  pull_request:
-    types: [opened, edited]
   repository_dispatch:
 
 # Stop the same workflow actions
