@@ -5,7 +5,7 @@
 
 using namespace GRUtils;
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #define LIB_PREFIX ""
 #else
 #define LIB_PREFIX "lib"
@@ -13,7 +13,7 @@ using namespace GRUtils;
 // when updating just need to replace this string                              \/
 #define OPENH264_LIB const char *GRUtilsH264Codec::lib_name = LIB_PREFIX "openh264-2.2.0-"
 
-#if defined(_MSC_VER) // Windows
+#if defined(_MSC_VER) || defined(__MINGW32__) // Windows
 #if _WIN64
 OPENH264_LIB "win64.dll";
 #else
@@ -55,7 +55,7 @@ OPENH264_LIB "osx-arm64.6.dylib";
 #undef OPENH264_LIB
 #undef LIB_PREFIX
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #include "windows.h"
 HMODULE openh264_handle_DLL = nullptr;
 #define load_lib(name, flags) LoadLibraryA(name)

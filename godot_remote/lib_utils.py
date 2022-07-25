@@ -232,8 +232,9 @@ def prepare_turbo_jpeg(env, is_gdnative = False):
     need_to_use_hack = False
 
     # Windows libs
-    if env['platform'] == 'windows':
-        env.Append(LIBS=['turbojpeg-static'])
+    if env['platform'] == 'windows' and not env['use_mingw']:
+        if not env['use_mingw']:
+            env.Append(LIBS=['turbojpeg-static'])
         if env['bits'] == '32':
             dir += 'win/x86/'
         elif env['bits'] == '64':
@@ -242,8 +243,13 @@ def prepare_turbo_jpeg(env, is_gdnative = False):
         need_to_use_hack = True
     
     # OSX and Linux libs
-    elif env['platform'] in ['osx', 'x11', 'linux', 'freebsd']:
-        plat = 'osx' if env['platform'] == 'osx' else 'linux'
+    elif env['platform'] in ['osx', 'x11', 'linux', 'freebsd', 'windows']:
+        plat = env['platform']
+        if env['platform'] in ['x11', 'linux', 'freebsd']:
+            plat='linux'
+        elif env['platform'] == 'windows':
+            plat='win'
+        
         env.Append(LIBS=['libturbojpeg'])
         if plat == 'osx':
             is_x64 = True

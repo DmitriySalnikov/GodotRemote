@@ -45,6 +45,7 @@ if module_env['godot_remote_h264_enabled']:
 # platform specific
 if module_env['platform'] == 'windows':
     #if module_env['godot_remote_livepp']:
+    #    lib_utils.remove_flag_from_env(module_env, 'CCFLAGS', ['/O2', '/O1'])
     #    module_env.Append(CPPDEFINES=['GODOTREMOTE_LIVEPP'])
     #    module_env.AppendUnique(LINKFLAGS=['/OPT:NOREF', '/FUNCTIONPADMIN', '/Zi', '/FS'])
 
@@ -53,11 +54,11 @@ if module_env['platform'] == 'windows':
     #    if '/GL' in module_env['LINKFLAGS']:
     #        module_env['LINKFLAGS'].remove('/GL')
     
-    if module_env['target'] == 'release_debug':
-        lib_utils.remove_flag_from_env(module_env, 'CCFLAGS', ['/O2', '/O1'])
-        module_env.AppendUnique(CCFLAGS=['/Zi', '/FS'])
-    
-    module_env.Append(CXXFLAGS=['/std:c++14'])
+    if module_env['use_mingw']:
+        module_env.Append(CXXFLAGS=['-std=c++14'])
+    else:
+        module_env.Append(CXXFLAGS=['/std:c++14'])
+
     module_env.add_source_files(env.modules_sources, get_sources())
 
 else:
