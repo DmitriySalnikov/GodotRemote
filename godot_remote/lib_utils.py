@@ -233,8 +233,7 @@ def prepare_turbo_jpeg(env, is_gdnative = False):
 
     # Windows libs
     if env['platform'] == 'windows' and not env['use_mingw']:
-        if not env['use_mingw']:
-            env.Append(LIBS=['turbojpeg-static'])
+        env.Append(LIBS=['turbojpeg-static'])
         if env['bits'] == '32':
             dir += 'win/x86/'
         elif env['bits'] == '64':
