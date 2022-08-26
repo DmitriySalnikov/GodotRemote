@@ -67,15 +67,13 @@ runs:
       run: |
         if [[ "${{ inputs.is_module }}" == "yes" ]]; then
           scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} tools=${{ inputs.tools }} ${{ inputs.additional_args }} \
-            progress=no module_godot_remote_enabled=yes -j3
+            progress=no module_godot_remote_enabled=yes
         else
           cd godot-cpp
-          git apply --ignore-space-change --ignore-whitespace ../godot_cpp_trim_unused_classes.patch
-          scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} ${{ inputs.additional_args }} \
-            generate_bindings=yes -j3
+          git apply --ignore-space-change --ignore-whitespace ../patches/godot_cpp_trim_unused_classes.patch
           cd ..
           scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} ${{ inputs.additional_args }} \
-            godot_remote_custom_init_for_trimmed_godot_cpp=yes godot_remote_h264_enabled=no -j3
+            godot_remote_custom_init_for_trimmed_godot_cpp=yes godot_remote_h264_enabled=no
         fi
 
 

@@ -4,9 +4,6 @@ from shutil import copyfile
 import os
 import json
 
-# 'headers_dir' option in SConstruct must be correct: 'godot-cpp/godot-headers'
-# 'binding_generator' should be commented out or replaced by 'pass'
-
 # in GDNative this method must be placed instead of Help generation line
 def setup_options(env, opts, gen_help, is_gdnative = False):
     from SCons.Variables import BoolVariable, EnumVariable
@@ -68,48 +65,8 @@ def gdnative_get_library_object(env):
     env.Append(CPPDEFINES=['GDNATIVE_LIBRARY'])
 
     #######################################################
-    # platform specific
-
-    if env['platform'] in ['x11', 'linux', 'freebsd']:
-        env['SHLIBSUFFIX'] = '.so'
-
-    elif env['platform'] == 'osx':
-        env['SHLIBSUFFIX'] = '.dylib'
-
-    elif env['platform'] == 'ios':
-        env['SHLIBSUFFIX'] = '.dylib'
-
-    elif env['platform'] == 'windows':
-        env['SHLIBSUFFIX'] = '.dll'
-
-    elif env['platform'] == 'android':
-        env['SHLIBSUFFIX'] = '.so'
-        
-        if env['target'] == 'debug':
-            env.Append(CCFLAGS=['-Og'])
-        elif env['target'] == 'release':
-            env.Append(CCFLAGS=['-O3'])
     
-    #######################################################
-    
-    arch_suffix = env['bits']
-    if env['platform'] == 'android':
-        arch_suffix = env['android_arch']
-    elif env['platform'] == 'ios':
-        arch_suffix = env['ios_arch']
-    elif env['platform'] == 'osx':
-        if env['macos_arch'] != 'universal':
-            arch_suffix = env['macos_arch']
-    elif env['platform'] == 'javascript':
-        arch_suffix = 'wasm'
-    
-    env.Append(CPPPATH=[
-        'godot-cpp/godot-headers',
-        'godot_remote',
-        'godot-cpp/include',
-        'godot-cpp/include/gen',
-        'godot-cpp/include/core',
-    ])
+    env.Append(CPPPATH=['godot_remote'])
 
     src = []
     with open('godot_remote/default_sources.json') as f:
@@ -146,24 +103,15 @@ def gdnative_get_library_object(env):
     if env['target'] == 'debug':
         env.Append(CPPDEFINES=['DEBUG_ENABLED'])
     
-    env.Append(LIBPATH=['#godot-cpp/bin/'])
-    env.Append(LIBS=[
-            'libgodot-cpp.{}.{}.{}{}'.format( # godot-cpp lib
-            env['platform'],
-            env['target'],
-            arch_suffix,
-            env['LIBSUFFIX']),
-    ])
-
-    return env.SharedLibrary(
+    library = env.SharedLibrary(
         target='#bin/' + 'godot_remote.{}.{}.{}{}'.format(
-        env['platform'],
-        env['target'],
-        arch_suffix,
-        env['SHLIBSUFFIX']
-        #env['LIBSUFFIX']
-        ), source=gdnative_get_sources(src)
+            env['platform'], env['target'], env["arch_suffix"], env['SHLIBSUFFIX']
+        ),
+        source=gdnative_get_sources(src),
+        SHLIBSUFFIX=env["SHLIBSUFFIX"]
     )
+
+    return library
 
 ######
 # only for regular module
