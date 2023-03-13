@@ -54,7 +54,8 @@ runs:
         if [[ "$RUNNER_OS" == "Windows" ]]; then
           python -m pip install pywin32
         fi
-        python -m pip install scons
+        # TODO: https://github.com/godotengine/godot/issues/74683
+        python -m pip install SCons==4.4.0
         python --version
         scons --version
 
