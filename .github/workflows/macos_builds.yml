@@ -1,15 +1,23 @@
 name: 🍏 MacOS
 on:
   push:
-    paths: [godot_remote/**, .github/**, '!.github/**/util_*', '**.patch', SConstruct]
+    paths:
+      [
+        godot_remote/**,
+        .github/**,
+        "!.github/**/util_*",
+        "**.patch",
+        SConstruct,
+      ]
   repository_dispatch:
 
 env:
-  godot_version: 3.5-stable
+  godot_version: 3.5.2-stable
+  SCONS_CACHE: ${{github.workspace}}/.scons-cache/
 
 # Stop the same workflow actions
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ${{github.workflow}}-${{github.event.pull_request.number || github.run_id}}
   cancel-in-progress: true
 
 jobs:
@@ -24,14 +32,14 @@ jobs:
           lfs: true
           submodules: recursive
 
-      - name: Compile GDNative 
+      - name: Compile GDNative
         uses: ./.github/actions/compile_module
         with:
           is_module: no
           platform: osx
           target: release
           artifact: macos
-  
+
       #- name: Upload OpenH264
       #  uses: actions/upload-artifact@v3
       #  with:
@@ -39,9 +47,8 @@ jobs:
       #    retention-days: 7
       #    path: godot_remote/openh264/libopenh264-2.2.0-osx-*.6.dylib
 
-
   macos-module:
-    name: Module ${{ matrix.name }}
+    name: Module ${{matrix.name}}
     runs-on: "macos-latest"
 
     env:
@@ -62,7 +69,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: godotengine/godot
-          ref: ${{ env.godot_version }}
+          ref: ${{env.godot_version}}
           lfs: true
           submodules: recursive
 
@@ -73,19 +80,19 @@ jobs:
           lfs: true
           submodules: recursive
 
-      - name: Compile Module 
+      - name: Compile Module
         uses: ./gr/.github/actions/compile_module
         with:
           is_module: yes
           target: release_debug
           tools: yes
           platform: osx
-          bits: arch=${{ matrix.arch }}
-          artifact: ${{ env.artifact }}
+          bits: arch=${{matrix.arch}}
+          artifact: ${{env.artifact}}
 
       - name: Upload Dist Folder
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.artifact }}
+          name: ${{env.artifact}}
           retention-days: 7
           path: misc/dist/osx_tools.app/*

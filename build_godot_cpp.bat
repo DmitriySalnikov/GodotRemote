@@ -2,7 +2,7 @@ cd godot-cpp
 ::set api=custom_api_file="../api.json"
 set api= 
 
-git apply ../godot_cpp_trim_unused_classes.patch
+git apply --ignore-space-change --ignore-whitespace ../patches/godot_cpp_trim_unused_classes.patch
 
 title win x64 release
 scons platform=windows target=release bits=64 %api% generate_bindings=yes

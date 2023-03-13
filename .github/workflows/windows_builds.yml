@@ -1,20 +1,28 @@
-name: 🪟 Windows
+name: 🏁 Windows
 on:
   push:
-    paths: [godot_remote/**, .github/**, '!.github/**/util_*', '**.patch', SConstruct]
+    paths:
+      [
+        godot_remote/**,
+        .github/**,
+        "!.github/**/util_*",
+        "**.patch",
+        SConstruct,
+      ]
   repository_dispatch:
 
 env:
-  godot_version: 3.5-stable
+  godot_version: 3.5.2-stable
+  SCONS_CACHE: ${{github.workspace}}/.scons-cache/
 
 # Stop the same workflow actions
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ${{github.workflow}}-${{github.event.pull_request.number || github.run_id}}
   cancel-in-progress: true
 
 jobs:
   windows-gdnative:
-    name: Windows GDNative ${{ matrix.name }}
+    name: Windows GDNative ${{matrix.name}}
     runs-on: "windows-latest"
 
     strategy:
@@ -34,25 +42,24 @@ jobs:
           lfs: true
           submodules: recursive
 
-      - name: Compile GDNative 
+      - name: Compile GDNative
         uses: ./.github/actions/compile_module
         with:
           is_module: no
           platform: windows
           target: release
-          bits: bits=${{ matrix.bits }}
+          bits: bits=${{matrix.bits}}
           artifact: win
-    
+
       #- name: Upload OpenH264
       #  uses: actions/upload-artifact@v3
       #  with:
       #    name: win
       #    retention-days: 7
-      #    path: godot_remote/openh264/openh264-2.2.0-win${{ matrix.bits }}.dll
-
+      #    path: godot_remote/openh264/openh264-2.2.0-win${{matrix.bits}}.dll
 
   windows-module:
-    name: Module ${{ matrix.name }}
+    name: Module ${{matrix.name}}
     runs-on: "windows-latest"
 
     strategy:
@@ -70,7 +77,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: godotengine/godot
-          ref: ${{ env.godot_version }}
+          ref: ${{env.godot_version}}
           lfs: true
           submodules: recursive
 
@@ -88,5 +95,5 @@ jobs:
           target: release_debug
           tools: yes
           platform: windows
-          bits: bits=${{ matrix.bits }}
+          bits: bits=${{matrix.bits}}
           artifact: win_editor

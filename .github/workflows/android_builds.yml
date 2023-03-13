@@ -1,15 +1,24 @@
 name: 🤖 Android
 on:
   push:
-    paths: [godot_remote/**, .github/**, '!.github/**/util_*', '**.patch', SConstruct, Android.mk, jni/Application.mk]
+    paths:
+      [
+        godot_remote/**,
+        .github/**,
+        "!.github/**/util_*",
+        "**.patch",
+        SConstruct,
+        Android.mk,
+        jni/Application.mk,
+      ]
   repository_dispatch:
 
 env:
-  godot_version: 3.5-stable
+  godot_version: 3.5.2-stable
 
 # Stop the same workflow actions
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ${{github.workflow}}-${{github.event.pull_request.number || github.run_id}}
   cancel-in-progress: true
 
 jobs:
@@ -36,7 +45,7 @@ jobs:
           python -m pip install scons
           python --version
           scons --version
-        
+
       - name: Compile godot-cpp
         run: |
           cd godot-cpp
@@ -66,7 +75,7 @@ jobs:
           path: libs/*
 
   android-module:
-    name: Module ${{ matrix.arch }} ${{ matrix.target }}
+    name: Module ${{matrix.arch}} ${{matrix.target}}
     runs-on: "ubuntu-latest"
 
     strategy:
@@ -104,7 +113,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: godotengine/godot
-          ref: ${{ env.godot_version }}
+          ref: ${{env.godot_version}}
           lfs: true
           submodules: recursive
 
@@ -118,6 +127,16 @@ jobs:
       - name: Add godot_remote_link
         uses: ./gr/.github/actions/add_godot_remote_module
 
+      - name: Restore .scons_cache directory
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{env.SCONS_CACHE}}
+          key: ${{github.job}}-${{matrix.arch}}_${{matrix.target}}-${{env.godot_version}}-${{github.ref}}-${{github.sha}}
+          restore-keys: |
+            ${{github.job}}-${{matrix.arch}}_${{matrix.target}}-${{env.godot_version}}-${{github.ref}}
+            ${{github.job}}-${{matrix.arch}}_${{matrix.target}}-${{env.godot_version}}
+        continue-on-error: true
+
       - name: Set up Python 3.x
         uses: actions/setup-python@v4
         with:
@@ -130,12 +149,12 @@ jobs:
           python -m pip install scons
           python --version
           scons --version
-        
+
       - name: Compile
         run: |
-          scons -j2 android_arch="${{ matrix.arch }}" tools="no" platform="android" target="${{ matrix.target }}" \
+          scons -j2 android_arch="${{matrix.arch}}" tools="no" platform="android" target="${{matrix.target}}" \
           debug_symbols="full" no_editor_splash="yes" module_mobile_vr_enabled="no" module_arkit_enabled="no" \
-          module_godot_remote_enabled="yes" godot_remote_disable_server="yes" progress="no" "${{ matrix.additional }}"
+          module_godot_remote_enabled="yes" godot_remote_disable_server="yes" progress="no" "${{matrix.additional}}"
 
       - name: Upload Android Project Folder
         uses: actions/upload-artifact@v3
@@ -143,7 +162,13 @@ jobs:
           name: android_libs
           retention-days: 7
           path: platform/android/java/
-  
+
+      - name: Save .scons_cache directory
+        uses: actions/cache/save@v3
+        with:
+          path: ${{env.SCONS_CACHE}}
+          key: ${{github.job}}-${{matrix.arch}}_${{matrix.target}}-${{env.godot_version}}-${{github.ref}}-${{github.sha}}
+        continue-on-error: true
 
   android-gradle:
     name: Android Gradle Build
@@ -182,7 +207,7 @@ jobs:
           sed -i 's/def binDir \= \"\$rootDir\/bin\/\"/def binDir \= \"\bin\/\"/g' build.gradle
           sed -i 's/def pathToRootDir \= \"\.\.\/\.\.\/\.\.\/\.\.\/\"/def pathToRootDir \= \"\.\.\/\"/g' lib/build.gradle
           ./gradlew generateGodotTemplates -PdoNotStrip
-      
+
       - name: Upload android_source.zip
         uses: actions/upload-artifact@v3
         with:

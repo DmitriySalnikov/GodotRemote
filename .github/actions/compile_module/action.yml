@@ -32,6 +32,16 @@ runs:
       uses: ./gr/.github/actions/add_godot_remote_module
       if: inputs.is_module == 'yes'
 
+    - name: Restore .scons_cache directory
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{env.SCONS_CACHE}}
+        key: ${{github.job}}-${{inputs.bits}}_${{inputs.target}}-${{env.godot_version}}-${{github.ref}}-${{github.sha}}
+        restore-keys: |
+          ${{github.job}}-${{inputs.bits}}_${{inputs.target}}-${{env.godot_version}}-${{github.ref}}
+          ${{github.job}}-${{inputs.bits}}_${{inputs.target}}-${{env.godot_version}}
+      continue-on-error: true
+
     - name: Set up Python 3.x
       uses: actions/setup-python@v4
       with:
@@ -47,35 +57,34 @@ runs:
         python -m pip install scons
         python --version
         scons --version
-      
+
     - name: Linux dependencies
       shell: bash
       if: inputs.platform == 'linux' || inputs.platform == 'linuxbsd' || inputs.platform == 'x11'
       run: |
         sudo apt-get update
         # The actual dependencies
-        if [[ "${{ inputs.is_module }}" == "yes" ]]; then
+        if [[ "${{inputs.is_module}}" == "yes" ]]; then
           sudo apt-get install build-essential pkg-config libx11-dev libxcursor-dev \
             libxinerama-dev libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev \
             libdbus-1-dev libudev-dev libxi-dev libxrandr-dev yasm xvfb wget unzip
-        elif [[ "${{ inputs.bits }}" == *"32" ]];then
+        elif [[ "${{inputs.bits}}" == *"32" ]];then
           sudo apt-get install gcc-multilib g++-multilib
         fi
 
     - name: Compilation
       shell: bash
       run: |
-        if [[ "${{ inputs.is_module }}" == "yes" ]]; then
-          scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} tools=${{ inputs.tools }} ${{ inputs.additional_args }} \
+        if [[ "${{inputs.is_module}}" == "yes" ]]; then
+          scons platform=${{inputs.platform}} ${{inputs.bits}} target=${{inputs.target}} tools=${{inputs.tools}} ${{inputs.additional_args}} \
             progress=no module_godot_remote_enabled=yes
         else
           cd godot-cpp
           git apply --ignore-space-change --ignore-whitespace ../patches/godot_cpp_trim_unused_classes.patch
           cd ..
-          scons platform=${{ inputs.platform }} ${{ inputs.bits }} target=${{ inputs.target }} ${{ inputs.additional_args }} \
+          scons platform=${{inputs.platform}} ${{inputs.bits}} target=${{inputs.target}} ${{inputs.additional_args}} \
             godot_remote_custom_init_for_trimmed_godot_cpp=yes godot_remote_h264_enabled=no
         fi
-
 
     - name: Prepare artifact Unix
       if: runner.os != 'Windows' && inputs.upload == 'yes'
@@ -97,7 +106,13 @@ runs:
       uses: actions/upload-artifact@v3
       if: inputs.upload == 'yes'
       with:
-        name: ${{ inputs.artifact }}
+        name: ${{inputs.artifact}}
         retention-days: 7
         path: bin/*
-        
+
+    - name: Save .scons_cache directory
+      uses: actions/cache/save@v3
+      with:
+        path: ${{env.SCONS_CACHE}}
+        key: ${{github.job}}-${{inputs.bits}}_${{inputs.target}}-${{env.godot_version}}-${{github.ref}}-${{github.sha}}
+      continue-on-error: true
