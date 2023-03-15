@@ -156,6 +156,14 @@ jobs:
           debug_symbols="full" no_editor_splash="yes" module_mobile_vr_enabled="no" module_arkit_enabled="no" \
           module_godot_remote_enabled="yes" godot_remote_disable_server="yes" progress="no" "${{matrix.additional}}"
 
+      # 'dev' - invalid directory name when exporting apk
+      - name: Change 'dev' dir name to debug
+        if: matrix.target == 'debug'
+        shell: bash
+        run: |
+          cp -r platform/android/java/lib/libs/dev/** platform/android/java/lib/libs/debug/
+          rm -r platform/android/java/lib/libs/dev
+
       - name: Upload Android Project Folder
         uses: actions/upload-artifact@v3
         with:
