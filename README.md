@@ -213,6 +213,8 @@ func _on_button_pressed():
 * **Auto connection mode does not show any servers**
     1. Make sure that your devices are connected to the same network and can ping each other.
     2. `Listener Status` icon in the client should be green, which means that it is active. ![Listener Status](Images/Screenshots/auto_listener_status.png) If not, try changing the `Listener Port`, also don't forget to change `general/auto_connection_port` in project settings. If this also does not help, then most likely this function is not available for you.
+* **The server is detected, but the error "Connection timed out" appears**</br>
+    Most likely your firewall is blocking the connection. Try disabling it completely, or fix the blocking rule.
 * **Wi-Fi and ADB mode don't connect either**</br>
     1. Make sure that your firewall does not block all the ports that the server writes to the console every time it starts.
     2. The phone must not be connected to the guest network.
