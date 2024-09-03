@@ -191,7 +191,7 @@ jobs:
           java-version: 11
 
       - name: Download Android Binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           name: android_libs
 
